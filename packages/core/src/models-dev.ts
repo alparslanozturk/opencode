@@ -98,10 +98,26 @@ const NATIVE_PACKAGES: Readonly<Record<string, string>> = {
   "@openrouter/ai-sdk-provider": "@opencode/ai/providers/openrouter",
 }
 
-function nativePackage(npm: string, modelID?: string) {
+// models.dev providers with a dedicated @opencode/ai package that their npm cannot express. Alibaba, Z.AI,
+// Moonshot and the coding plans are not listed yet, so they resolve to openai-compatible like their npm says.
+const NATIVE_PROVIDERS: Readonly<Record<string, string>> = {
+  baseten: "@opencode/ai/providers/baseten",
+  "cloudflare-workers-ai": "@opencode/ai/providers/cloudflare-workers-ai",
+  deepseek: "@opencode/ai/providers/deepseek",
+  "fireworks-ai": "@opencode/ai/providers/fireworks",
+  meta: "@opencode/ai/providers/meta/responses",
+  minimax: "@opencode/ai/providers/minimax/messages",
+  "minimax-cn": "@opencode/ai/providers/minimax/messages",
+  "minimax-coding-plan": "@opencode/ai/providers/minimax/messages",
+  "minimax-cn-coding-plan": "@opencode/ai/providers/minimax/messages",
+}
+
+function nativePackage(provider: SourceProvider, model?: SourceModel) {
+  const npm = model?.provider?.npm ?? provider.npm
   // Mantle only appears as a per-model override; gpt-oss models are chat-only there.
   if (npm === "@ai-sdk/amazon-bedrock/mantle")
-    return `@opencode/ai/providers/amazon-bedrock/mantle/${modelID?.includes("gpt-oss") ? "chat" : "responses"}`
+    return `@opencode/ai/providers/amazon-bedrock/mantle/${model?.id.includes("gpt-oss") ? "chat" : "responses"}`
+  if (model?.provider?.npm === undefined && NATIVE_PROVIDERS[provider.id]) return NATIVE_PROVIDERS[provider.id]
   return NATIVE_PACKAGES[npm] ?? Provider.aisdk(npm)
 }
 
@@ -109,12 +125,11 @@ function normalize(input: Record<string, SourceProvider>): readonly Snapshot[] {
   const providers: Snapshot[] = []
   for (const item of Object.values(input)) {
     const providerID = Provider.ID.make(item.id)
-    const pkg = nativePackage(item.npm)
     const info = {
       id: providerID,
       name: item.name,
       activation: "auto",
-      package: pkg,
+      package: nativePackage(item),
       ...(item.api ? { settings: { baseURL: item.api } } : {}),
     } satisfies Provider.Info
     const models: Model.Info[] = []
@@ -122,11 +137,11 @@ function normalize(input: Record<string, SourceProvider>): readonly Snapshot[] {
       const baseCost = cost(model.cost)
       const variants = reasoningVariants(item, model)
       const id = Model.ID.make(model.id)
-      models.push(modelInfo(providerID, pkg, id, model, { cost: baseCost, variants }))
+      models.push(modelInfo(item, id, model, { cost: baseCost, variants }))
       for (const [mode, options] of Object.entries(model.experimental?.modes ?? {})) {
         const modeID = Model.ID.make(`${model.id}-${mode}`)
         models.push(
-          modelInfo(providerID, pkg, modeID, model, {
+          modelInfo(item, modeID, model, {
             name: modeName(model, mode),
             cost: mergeCost(baseCost, options.cost),
             request: options.provider,
@@ -507,8 +522,7 @@ function modeName(model: SourceModel, mode: string) {
 }
 
 function modelInfo(
-  providerID: Provider.ID,
-  providerPackage: string,
+  provider: SourceProvider,
   id: Model.ID,
   model: SourceModel,
   input: {
@@ -518,12 +532,13 @@ function modelInfo(
     readonly variants?: NonNullable<Model.Info["variants"]>
   } = {},
 ): Model.Info {
-  const pkg = model.provider?.npm ? nativePackage(model.provider.npm, model.id) : undefined
+  const providerID = Provider.ID.make(provider.id)
+  const pkg = model.provider?.npm ? nativePackage(provider, model) : undefined
   // The generic package takes the provider identity as a setting; the AI SDK inferred it. Set per model so it
   // never merges into a model that overrides to a different package.
   const settings = {
     ...(model.provider?.api ? { baseURL: model.provider.api } : {}),
-    ...((pkg ?? providerPackage) === "@opencode/ai/providers/openai-compatible" ? { provider: providerID } : {}),
+    ...(nativePackage(provider, model) === "@opencode/ai/providers/openai-compatible" ? { provider: providerID } : {}),
   }
   return {
     id,

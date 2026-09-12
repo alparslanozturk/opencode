@@ -79,15 +79,42 @@ export type Snapshot = {
   readonly environment: readonly string[]
 }
 
+// models.dev npm packages with a native @opencode/ai equivalent. Anything else stays on the AI SDK.
+const NATIVE_PACKAGES: Readonly<Record<string, string>> = {
+  "@ai-sdk/amazon-bedrock": "@opencode/ai/providers/amazon-bedrock",
+  "@ai-sdk/anthropic": "@opencode/ai/providers/anthropic",
+  "@ai-sdk/azure": "@opencode/ai/providers/azure/responses",
+  "@ai-sdk/cerebras": "@opencode/ai/providers/cerebras",
+  "@ai-sdk/deepinfra": "@opencode/ai/providers/deepinfra",
+  "@ai-sdk/google": "@opencode/ai/providers/google",
+  "@ai-sdk/google-vertex": "@opencode/ai/providers/google-vertex",
+  "@ai-sdk/google-vertex/anthropic": "@opencode/ai/providers/google-vertex/messages",
+  "@ai-sdk/groq": "@opencode/ai/providers/groq",
+  "@ai-sdk/mistral": "@opencode/ai/providers/mistral",
+  "@ai-sdk/openai": "@opencode/ai/providers/openai",
+  "@ai-sdk/openai-compatible": "@opencode/ai/providers/openai-compatible",
+  "@ai-sdk/togetherai": "@opencode/ai/providers/togetherai",
+  "@ai-sdk/xai": "@opencode/ai/providers/xai",
+  "@openrouter/ai-sdk-provider": "@opencode/ai/providers/openrouter",
+}
+
+function nativePackage(npm: string, modelID?: string) {
+  // Mantle only appears as a per-model override; gpt-oss models are chat-only there.
+  if (npm === "@ai-sdk/amazon-bedrock/mantle")
+    return `@opencode/ai/providers/amazon-bedrock/mantle/${modelID?.includes("gpt-oss") ? "chat" : "responses"}`
+  return NATIVE_PACKAGES[npm] ?? Provider.aisdk(npm)
+}
+
 function normalize(input: Record<string, SourceProvider>): readonly Snapshot[] {
   const providers: Snapshot[] = []
   for (const item of Object.values(input)) {
     const providerID = Provider.ID.make(item.id)
+    const pkg = nativePackage(item.npm)
     const info = {
       id: providerID,
       name: item.name,
       activation: "auto",
-      package: Provider.aisdk(item.npm),
+      package: pkg,
       ...(item.api ? { settings: { baseURL: item.api } } : {}),
     } satisfies Provider.Info
     const models: Model.Info[] = []
@@ -95,11 +122,11 @@ function normalize(input: Record<string, SourceProvider>): readonly Snapshot[] {
       const baseCost = cost(model.cost)
       const variants = reasoningVariants(item, model)
       const id = Model.ID.make(model.id)
-      models.push(modelInfo(providerID, id, model, { cost: baseCost, variants }))
+      models.push(modelInfo(providerID, pkg, id, model, { cost: baseCost, variants }))
       for (const [mode, options] of Object.entries(model.experimental?.modes ?? {})) {
         const modeID = Model.ID.make(`${model.id}-${mode}`)
         models.push(
-          modelInfo(providerID, modeID, model, {
+          modelInfo(providerID, pkg, modeID, model, {
             name: modeName(model, mode),
             cost: mergeCost(baseCost, options.cost),
             request: options.provider,
@@ -481,6 +508,7 @@ function modeName(model: SourceModel, mode: string) {
 
 function modelInfo(
   providerID: Provider.ID,
+  providerPackage: string,
   id: Model.ID,
   model: SourceModel,
   input: {
@@ -490,6 +518,13 @@ function modelInfo(
     readonly variants?: NonNullable<Model.Info["variants"]>
   } = {},
 ): Model.Info {
+  const pkg = model.provider?.npm ? nativePackage(model.provider.npm, model.id) : undefined
+  // The generic package takes the provider identity as a setting; the AI SDK inferred it. Set per model so it
+  // never merges into a model that overrides to a different package.
+  const settings = {
+    ...(model.provider?.api ? { baseURL: model.provider.api } : {}),
+    ...((pkg ?? providerPackage) === "@opencode/ai/providers/openai-compatible" ? { provider: providerID } : {}),
+  }
   return {
     id,
     modelID: Model.ID.make(model.id),
@@ -497,8 +532,8 @@ function modelInfo(
     name: input.name ?? model.name,
     compatibility: Model.compatibility(model.interleaved),
     family: model.family ? Model.Family.make(model.family) : undefined,
-    package: model.provider?.npm ? Provider.aisdk(model.provider.npm) : undefined,
-    settings: model.provider?.api ? { baseURL: model.provider.api } : undefined,
+    package: pkg,
+    settings: Object.keys(settings).length === 0 ? undefined : settings,
     capabilities: {
       tools: model.tool_call,
       input: [...(model.modalities?.input ?? [])],

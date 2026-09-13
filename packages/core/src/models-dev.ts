@@ -75,7 +75,6 @@ export type Snapshot = {
   readonly environment: readonly string[]
 }
 
-// models.dev npm packages with a native @opencode/ai equivalent. Anything else stays on the AI SDK.
 const NATIVE_PACKAGES: Readonly<Record<string, string>> = {
   "@ai-sdk/amazon-bedrock": "@opencode/ai/providers/amazon-bedrock",
   "@ai-sdk/anthropic": "@opencode/ai/providers/anthropic",
@@ -94,8 +93,6 @@ const NATIVE_PACKAGES: Readonly<Record<string, string>> = {
   "@openrouter/ai-sdk-provider": "@opencode/ai/providers/openrouter",
 }
 
-// models.dev providers with a dedicated @opencode/ai package that their npm cannot express. Alibaba, Z.AI,
-// Moonshot and the coding plans are not listed yet, so they resolve to openai-compatible like their npm says.
 const NATIVE_PROVIDERS: Readonly<Record<string, string>> = {
   baseten: "@opencode/ai/providers/baseten",
   "cloudflare-workers-ai": "@opencode/ai/providers/cloudflare-workers-ai",
@@ -240,8 +237,7 @@ function modelInfo(
 ): Model.Info {
   const providerID = Provider.ID.make(provider.id)
   const pkg = model.provider?.npm ? nativePackage(provider, model) : undefined
-  // The generic package takes the provider identity as a setting; the AI SDK inferred it. Set per model so it
-  // never merges into a model that overrides to a different package.
+  // Per model, so it never merges into a model that overrides to a different package.
   const settings = {
     ...(model.provider?.api ? { baseURL: model.provider.api } : {}),
     ...(nativePackage(provider, model) === "@opencode/ai/providers/openai-compatible" ? { provider: providerID } : {}),

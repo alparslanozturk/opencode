@@ -3,7 +3,6 @@ export * as Variant from "./variant.js"
 import { Model } from "./model.js"
 import { Provider } from "./provider.js"
 
-/** What a provider says a model can do with reasoning. Same shape as models.dev `reasoning_options`. */
 export type Option =
   | { readonly type: "effort"; readonly values: readonly (string | null)[] }
   | { readonly type: "toggle" }
@@ -12,17 +11,13 @@ export type Option =
 type Overlay = Omit<Model.Info["variants"][number], "id">
 type Pair = readonly [off: Overlay, on: Overlay]
 
-/** How one package spells reasoning controls. Any operation a package cannot express is left undefined. */
 type Package = {
   readonly effort?: (modelID: string, effort: string) => Overlay | undefined
   readonly toggle?: (modelID: string) => Pair | undefined
   readonly budget?: (modelID: string, budget: number) => Overlay | undefined
 }
 
-/**
- * Variants for a catalog model. `model.package` must be the effective package (provider or model override);
- * models without one, or on a package this table does not know, get no generated variants.
- */
+// `model.package` must be the effective package: a model-level override or the provider's.
 export function resolve(model: Model.Info, options: readonly Option[]): Model.Info["variants"] {
   const pkg = model.package === undefined ? undefined : PACKAGES[model.package]
   if (!pkg || options.length === 0) return []
@@ -75,8 +70,6 @@ function budgetVariants(
     return overlay ? [{ id: Model.VariantID.make(item.id), ...overlay }] : []
   })
 }
-
-// Package families. Each is one spelling of reasoning controls; the table below maps catalog packages onto them.
 
 const OPENAI_INCLUDE_ENCRYPTED_REASONING = ["reasoning.encrypted_content"]
 
@@ -160,7 +153,6 @@ const copilot: Package = {
   },
 }
 
-// Vercel's gateway relays other labs' models; it uses their spellings when the model id names one.
 const gateway: Package = {
   effort: (modelID, effort) => (gatewayUpstream(modelID) ?? effortOnly).effort?.(modelID, effort),
   toggle: (modelID) => (gatewayUpstream(modelID) ?? openrouter).toggle?.(modelID),
@@ -177,7 +169,6 @@ function gatewayUpstream(modelID: string): Package | undefined {
   if (prefix === "alibaba") return alibaba
 }
 
-// SAP AI Core wraps every upstream in `modelParams` with each lab's own field names.
 const sap: Package = {
   effort: (modelID, effort) => {
     if (modelID.includes("anthropic"))
@@ -248,7 +239,6 @@ function anthropicManualThinking(modelID: string) {
   return major < 4 || (major === 4 && minor < 6)
 }
 
-/** Catalog package → spelling. Native packages first, then AI SDK packages that have no native equivalent. */
 const PACKAGES: Readonly<Record<string, Package>> = {
   "@opencode/ai/providers/openai": openai,
   "@opencode/ai/providers/azure/responses": openai,

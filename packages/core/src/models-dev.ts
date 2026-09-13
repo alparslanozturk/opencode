@@ -35,7 +35,10 @@ type SourceModel = {
   readonly release_date: string
   readonly attachment: boolean
   readonly reasoning: boolean
-  readonly reasoning_options?: readonly Variant.Option[]
+  readonly reasoning_options?: readonly (
+    | { readonly type: "effort"; readonly values: readonly (string | null)[] }
+    | Exclude<Variant.Support, { type: "effort" }>
+  )[]
   readonly temperature?: boolean
   readonly tool_call: boolean
   readonly interleaved?: boolean | string | { readonly field: string }
@@ -130,7 +133,7 @@ function normalize(input: Record<string, SourceProvider>): readonly Snapshot[] {
       const baseCost = cost(model.cost)
       const id = Model.ID.make(model.id)
       const base = modelInfo(item, id, model, { cost: baseCost })
-      const variants = Variant.resolve({ ...base, package: nativePackage(item, model) }, model.reasoning_options ?? [])
+      const variants = Variant.resolve({ ...base, package: nativePackage(item, model) }, supports(model))
       models.push({ ...base, variants })
       for (const [mode, options] of Object.entries(model.experimental?.modes ?? {})) {
         const modeID = Model.ID.make(`${model.id}-${mode}`)
@@ -222,6 +225,15 @@ function mergeCost(base: Model.Info["cost"], override: SourceModel["cost"] | und
 
 function modeName(model: SourceModel, mode: string) {
   return `${model.name} ${mode.charAt(0).toUpperCase()}${mode.slice(1)}`
+}
+
+// models.dev writes `null` (sometimes the string "null") for "no reasoning" inside effort lists.
+function supports(model: SourceModel): readonly Variant.Support[] {
+  return (model.reasoning_options ?? []).map((option) =>
+    option.type === "effort"
+      ? { type: "effort", values: option.values.filter((value): value is string => value !== null && value !== "null") }
+      : option,
+  )
 }
 
 function modelInfo(

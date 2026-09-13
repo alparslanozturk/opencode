@@ -3,273 +3,55 @@ export * as Variant from "./variant.js"
 import { Model } from "./model.js"
 import { Provider } from "./provider.js"
 
-export type Option =
-  | { readonly type: "effort"; readonly values: readonly (string | null)[] }
+// A reasoning control a model is known to support. Effort without `values` means the protocol picks them.
+export type Support =
+  | { readonly type: "effort"; readonly values?: readonly string[] }
   | { readonly type: "toggle" }
   | { readonly type: "budget_tokens"; readonly min?: number; readonly max?: number }
 
-type Overlay = Omit<Model.Info["variants"][number], "id">
-type Toggle = readonly [off: Overlay, on: Overlay]
+type Variants = Model.Info["variants"]
+type Overlay = Omit<Variants[number], "id">
 
-// How one package spells the three reasoning controls. `undefined` means this package or model has no way to say it.
-type Format = {
-  readonly effort?: (model: Model.Info, value: string) => Overlay | undefined
-  readonly toggle?: (model: Model.Info) => Toggle | undefined
-  readonly budget?: (model: Model.Info, tokens: number) => Overlay | undefined
-}
+// One per package: the variants a model gets for one supported control, in that protocol's vocabulary.
+type Protocol = (model: Model.Info, support: Support) => Variants
 
 // `model.package` must be the effective package: a model-level override or the provider's.
-export function resolve(model: Model.Info, options: readonly Option[]): Model.Info["variants"] {
-  const format = model.package === undefined ? undefined : FORMATS[model.package]
-  if (!format || options.length === 0) return []
-  const toggle = options.some((option) => option.type === "toggle") ? toggleVariants(format, model) : []
-  const off = toggle.filter((variant) => variant.id === "none")
-  const effort = options.find((option) => option.type === "effort")
-  if (effort?.type === "effort") {
-    const variants = [
-      ...off,
-      ...effort.values.flatMap((value) => {
-        if (value === null || value === "null") return []
-        if (value === "none" && off.length > 0) return []
-        const overlay = format.effort?.(model, value)
-        return overlay ? [{ id: Model.VariantID.make(value), ...overlay }] : []
-      }),
-    ]
-    return [...new Map(variants.map((variant) => [variant.id, variant])).values()]
-  }
-  const budget = options.find((option) => option.type === "budget_tokens")
-  if (budget?.type === "budget_tokens") return [...off, ...budgetVariants(format, model, budget)]
-  return toggle
+// With nothing declared, a model is assumed to support effort and the protocol chooses the values.
+export function resolve(model: Model.Info, supports: readonly Support[] = [{ type: "effort" }]): Variants {
+  const protocol = model.package === undefined ? undefined : PROTOCOLS[model.package]
+  if (!protocol) return []
+  const toggle = supports.some((support) => support.type === "toggle") ? protocol(model, { type: "toggle" }) : []
+  const effort = supports.find((support) => support.type === "effort")
+  const budget = supports.find((support) => support.type === "budget_tokens")
+  const main = effort ? protocol(model, effort) : budget ? protocol(model, budget) : toggle
+  const variants = [...toggle.filter((variant) => variant.id === "none"), ...main]
+  return variants.filter((variant, index) => variants.findIndex((other) => other.id === variant.id) === index)
 }
 
-function toggleVariants(format: Format, model: Model.Info): Model.Info["variants"] {
-  const pair = format.toggle?.(model)
-  if (!pair) return []
-  return [
-    { id: Model.VariantID.make("none"), ...pair[0] },
-    { id: Model.VariantID.make("thinking"), ...pair[1] },
-  ]
-}
+// ── Building blocks ────────────────────────────────────────────────────────────────────────────────────────
 
-const OUTPUT_TOKEN_MAX = 32_000
-
-function budgetVariants(
-  format: Format,
-  model: Model.Info,
-  option: Extract<Option, { type: "budget_tokens" }>,
-): Model.Info["variants"] {
-  const maximum = Math.min(option.max ?? OUTPUT_TOKEN_MAX - 1, model.limit.output - 1, OUTPUT_TOKEN_MAX - 1)
-  if (maximum <= 0) return []
-  const high = Math.min(Math.max(option.min ?? 0, Math.floor((maximum + 1) / 2)), maximum)
-  return [
-    { id: "high", budget: high },
-    { id: "max", budget: maximum },
-  ].flatMap((item) => {
-    const overlay = format.budget?.(model, item.budget)
-    return overlay ? [{ id: Model.VariantID.make(item.id), ...overlay }] : []
-  })
-}
-
-// ── Wire spellings ─────────────────────────────────────────────────────────────────────────────────────────
-// One function per way a control appears on the wire. Packages below compose these.
-
-const pair = (spell: (on: boolean) => Overlay): Toggle => [spell(false), spell(true)]
-
+const EFFORTS = ["low", "medium", "high"]
 const ENCRYPTED_REASONING = ["reasoning.encrypted_content"]
 const ADAPTIVE_THINKING = { type: "adaptive", display: "summarized" }
+const OUTPUT_TOKEN_MAX = 32_000
 
-// effort
-const chatReasoningEffort = (value: string): Overlay => ({ settings: { reasoningEffort: value } })
-const responsesReasoningEffort = (value: string): Overlay => ({
-  settings: { reasoningEffort: value, reasoningSummary: "auto", include: ENCRYPTED_REASONING },
-})
-const anthropicEffort = (model: Model.Info, value: string): Overlay => ({
-  settings: claudeThinksManually(model) ? { effort: value } : { thinking: ADAPTIVE_THINKING, effort: value },
-})
-const geminiThinkingLevel = (value: string): Overlay => ({
-  settings: { thinkingConfig: { includeThoughts: true, thinkingLevel: value } },
-})
-const openrouterReasoningEffort = (value: string): Overlay => ({ settings: { reasoning: { effort: value } } })
+const variant = (id: string, overlay: Overlay): Variants[number] => ({ id: Model.VariantID.make(id), ...overlay })
 
-// toggle
-const anthropicThinking = pair((on) => ({ settings: { thinking: on ? ADAPTIVE_THINKING : { type: "disabled" } } }))
-const geminiThinking = pair((on) => ({
-  settings: {
-    thinkingConfig: on ? { includeThoughts: true, thinkingBudget: -1 } : { includeThoughts: false, thinkingBudget: 0 },
-  },
-}))
-const openrouterReasoning = pair((on) => ({ settings: { reasoning: { enabled: on } } }))
-const enableThinking = pair((on) => ({ settings: { enableThinking: on } }))
-const cohereThinking = pair((on) => ({ settings: { thinking: { type: on ? "enabled" : "disabled" } } }))
+const efforts = (values: readonly string[], spell: (effort: string) => Overlay): Variants =>
+  values.map((effort) => variant(effort, spell(effort)))
 
-// budget
-const anthropicBudget = (tokens: number): Overlay => ({
-  settings: { thinking: { type: "enabled", budgetTokens: tokens } },
-})
-const geminiBudget = (tokens: number): Overlay => ({
-  settings: { thinkingConfig: { includeThoughts: true, thinkingBudget: tokens } },
-})
-const openrouterBudget = (tokens: number): Overlay => ({ settings: { reasoning: { max_tokens: tokens } } })
-const cohereBudget = (tokens: number): Overlay => ({ settings: { thinking: { type: "enabled", tokenBudget: tokens } } })
-const enableThinkingBudget = (tokens: number): Overlay => ({
-  settings: { enableThinking: true, thinkingBudget: tokens },
-})
+const toggle = (off: Overlay, on: Overlay): Variants => [variant("none", off), variant("thinking", on)]
 
-// ── Shared formats ─────────────────────────────────────────────────────────────────────────────────────────
-
-const openaiChat: Format = {
-  effort: (_, value) => chatReasoningEffort(value),
+function budgets(
+  model: Model.Info,
+  support: Extract<Support, { type: "budget_tokens" }>,
+  spell: (tokens: number) => Overlay,
+): Variants {
+  const maximum = Math.min(support.max ?? OUTPUT_TOKEN_MAX - 1, model.limit.output - 1, OUTPUT_TOKEN_MAX - 1)
+  if (maximum <= 0) return []
+  const high = Math.min(Math.max(support.min ?? 0, Math.floor((maximum + 1) / 2)), maximum)
+  return [variant("high", spell(high)), variant("max", spell(maximum))]
 }
-
-const openaiResponses: Format = {
-  effort: (_, value) => responsesReasoningEffort(value),
-}
-
-const anthropicMessages: Format = {
-  effort: anthropicEffort,
-  toggle: () => anthropicThinking,
-  budget: (_, tokens) => anthropicBudget(tokens),
-}
-
-const gemini: Format = {
-  effort: (_, value) => geminiThinkingLevel(value),
-  toggle: () => geminiThinking,
-  budget: (_, tokens) => geminiBudget(tokens),
-}
-
-const openrouter: Format = {
-  effort: (_, value) => openrouterReasoningEffort(value),
-  toggle: () => openrouterReasoning,
-  budget: (_, tokens) => openrouterBudget(tokens),
-}
-
-// Bedrock Converse has no reasoning options; everything rides in `additionalModelRequestFields`.
-const bedrockConverse: Format = {
-  effort: (model, value) => {
-    const id = modelID(model)
-    if (id.includes("anthropic"))
-      return bedrockFields({
-        ...(claudeThinksManually(model) ? {} : { thinking: ADAPTIVE_THINKING }),
-        output_config: { effort: value },
-      })
-    if (id.includes("openai.gpt-oss")) return bedrockFields({ reasoning_effort: value })
-    if (id.includes("openai.")) return bedrockFields({ reasoning: { effort: value } })
-    return bedrockFields({ reasoningConfig: { type: "enabled", maxReasoningEffort: value } })
-  },
-  toggle: (model) =>
-    modelID(model).includes("anthropic")
-      ? pair((on) => bedrockFields({ thinking: on ? ADAPTIVE_THINKING : { type: "disabled" } }))
-      : pair((on) => bedrockFields({ reasoningConfig: { type: on ? "enabled" : "disabled" } })),
-  budget: (model, tokens) =>
-    modelID(model).includes("anthropic")
-      ? bedrockFields({ thinking: { type: "enabled", budget_tokens: tokens } })
-      : bedrockFields({ reasoningConfig: { type: "enabled", budgetTokens: tokens } }),
-}
-
-const bedrockFields = (fields: Record<string, unknown>): Overlay => ({ body: { additionalModelRequestFields: fields } })
-
-// ── AI SDK-only formats (no native package; translated by AISDKNative at resolve time) ────────────────────
-
-const githubCopilot: Format = {
-  effort: (model, value) => {
-    const id = modelID(model)
-    if (id.includes("gemini")) return
-    if (id.includes("claude")) return chatReasoningEffort(value)
-    return responsesReasoningEffort(value)
-  },
-}
-
-const alibabaAISDK: Format = {
-  toggle: () => enableThinking,
-  budget: (_, tokens) => enableThinkingBudget(tokens),
-}
-
-const cohere: Format = {
-  toggle: () => cohereThinking,
-  budget: (_, tokens) => cohereBudget(tokens),
-}
-
-// Bedrock Converse via the AI SDK spells everything as `reasoningConfig` settings; AISDKNative turns it into body.
-const bedrockAISDK: Format = {
-  effort: (model, value) => ({
-    settings: modelID(model).includes("anthropic")
-      ? { reasoningConfig: { ...(claudeThinksManually(model) ? {} : ADAPTIVE_THINKING), maxReasoningEffort: value } }
-      : { reasoningConfig: { type: "enabled", maxReasoningEffort: value } },
-  }),
-  toggle: (model) =>
-    modelID(model).includes("anthropic")
-      ? pair((on) => ({
-          settings: { additionalModelRequestFields: { thinking: on ? ADAPTIVE_THINKING : { type: "disabled" } } },
-        }))
-      : pair((on) => ({
-          settings: { additionalModelRequestFields: { reasoningConfig: { type: on ? "enabled" : "disabled" } } },
-        })),
-  budget: (_, tokens) => ({ settings: { reasoningConfig: { type: "enabled", budgetTokens: tokens } } }),
-}
-
-// Vercel's gateway relays other labs' models and takes their spelling when the id names one.
-const vercelGateway: Format = {
-  effort: (model, value) => (gatewayUpstream(model) ?? openaiChat).effort?.(model, value),
-  toggle: (model) => (gatewayUpstream(model) ?? openrouter).toggle?.(model),
-  budget: (model, tokens) => (gatewayUpstream(model) ?? openrouter).budget?.(model, tokens),
-}
-
-function gatewayUpstream(model: Model.Info): Format | undefined {
-  const id = modelID(model)
-  const separator = id.indexOf("/")
-  if (separator <= 0) return
-  const prefix = id.slice(0, separator)
-  if (prefix === "anthropic") return anthropicMessages
-  if (prefix === "google") return gemini
-  if (prefix === "amazon") return bedrockAISDK
-  if (prefix === "alibaba") return alibabaAISDK
-}
-
-// SAP AI Core wraps each upstream's fields in `modelParams`.
-const sapAICore: Format = {
-  effort: (model, value) => {
-    const id = modelID(model)
-    if (id.includes("anthropic"))
-      return sap({
-        additionalModelRequestFields: {
-          ...(claudeThinksManually(model) ? {} : { thinking: ADAPTIVE_THINKING }),
-          output_config: { effort: value },
-        },
-      })
-    if (id.includes("gemini")) return sap({ thinkingConfig: { includeThoughts: true, thinkingLevel: value } })
-    if (id.includes("amazon--nova")) return sap({ additionalModelRequestFields: { output_config: { effort: value } } })
-    return sap({ reasoning_effort: value })
-  },
-  toggle: (model) => {
-    const id = modelID(model)
-    if (id.includes("gemini"))
-      return pair((on) =>
-        sap({
-          thinkingConfig: on
-            ? { includeThoughts: true, thinkingBudget: -1 }
-            : { includeThoughts: false, thinkingBudget: 0 },
-        }),
-      )
-    if (id.includes("cohere")) return pair((on) => sap({ thinking: { type: on ? "enabled" : "disabled" } }))
-    if (id.includes("amazon--nova"))
-      return pair((on) => sap({ additionalModelRequestFields: { thinking: { type: on ? "enabled" : "disabled" } } }))
-    if (id.includes("anthropic"))
-      return pair((on) =>
-        sap({ additionalModelRequestFields: { thinking: on ? ADAPTIVE_THINKING : { type: "disabled" } } }),
-      )
-  },
-  budget: (model, tokens) => {
-    const id = modelID(model)
-    if (id.includes("anthropic"))
-      return sap({ additionalModelRequestFields: { thinking: { type: "enabled", budget_tokens: tokens } } })
-    if (id.includes("gemini")) return sap({ thinkingConfig: { includeThoughts: true, thinkingBudget: tokens } })
-    if (id.includes("cohere")) return sap({ thinking: { type: "enabled", token_budget: tokens } })
-  },
-}
-
-const sap = (modelParams: Record<string, unknown>): Overlay => ({ settings: { modelParams } })
-
-// ── Model checks ───────────────────────────────────────────────────────────────────────────────────────────
 
 const modelID = (model: Model.Info) => model.modelID ?? model.id
 
@@ -285,10 +67,218 @@ function claudeThinksManually(model: Model.Info) {
   return major < 4 || (major === 4 && minor < 6)
 }
 
-// ── Packages ───────────────────────────────────────────────────────────────────────────────────────────────
-// One entry per catalog package. Share a format by pointing at it; specialise by spreading and overriding.
+// ── Protocols ──────────────────────────────────────────────────────────────────────────────────────────────
 
-const FORMATS: Readonly<Record<string, Format>> = {
+const openaiChat: Protocol = (_, support) => {
+  if (support.type !== "effort") return []
+  return efforts(support.values ?? EFFORTS, (effort) => ({ settings: { reasoningEffort: effort } }))
+}
+
+const openaiResponses: Protocol = (_, support) => {
+  if (support.type !== "effort") return []
+  return efforts(support.values ?? ["none", "minimal", ...EFFORTS, "xhigh"], responsesEffort)
+}
+
+const responsesEffort = (effort: string): Overlay => ({
+  settings: { reasoningEffort: effort, reasoningSummary: "auto", include: ENCRYPTED_REASONING },
+})
+
+const anthropicMessages: Protocol = (model, support) => {
+  const manual = claudeThinksManually(model)
+  switch (support.type) {
+    case "effort":
+      return efforts(support.values ?? (manual ? EFFORTS : [...EFFORTS, "xhigh", "max"]), (effort) => ({
+        settings: manual ? { effort } : { thinking: ADAPTIVE_THINKING, effort },
+      }))
+    case "toggle":
+      return toggle({ settings: { thinking: { type: "disabled" } } }, { settings: { thinking: ADAPTIVE_THINKING } })
+    case "budget_tokens":
+      return budgets(model, support, (tokens) => ({
+        settings: { thinking: { type: "enabled", budgetTokens: tokens } },
+      }))
+  }
+}
+
+const gemini: Protocol = (model, support) => {
+  switch (support.type) {
+    case "effort":
+      return efforts(support.values ?? EFFORTS, (effort) => ({
+        settings: { thinkingConfig: { includeThoughts: true, thinkingLevel: effort } },
+      }))
+    case "toggle":
+      return toggle(
+        { settings: { thinkingConfig: { includeThoughts: false, thinkingBudget: 0 } } },
+        { settings: { thinkingConfig: { includeThoughts: true, thinkingBudget: -1 } } },
+      )
+    case "budget_tokens":
+      return budgets(model, support, (tokens) => ({
+        settings: { thinkingConfig: { includeThoughts: true, thinkingBudget: tokens } },
+      }))
+  }
+}
+
+const openrouter: Protocol = (model, support) => {
+  switch (support.type) {
+    case "effort":
+      return efforts(support.values ?? EFFORTS, (effort) => ({ settings: { reasoning: { effort } } }))
+    case "toggle":
+      return toggle({ settings: { reasoning: { enabled: false } } }, { settings: { reasoning: { enabled: true } } })
+    case "budget_tokens":
+      return budgets(model, support, (tokens) => ({ settings: { reasoning: { max_tokens: tokens } } }))
+  }
+}
+
+// Bedrock Converse has no reasoning options; everything rides in `additionalModelRequestFields`.
+const bedrockConverse: Protocol = (model, support) => {
+  const id = modelID(model)
+  const claude = id.includes("anthropic")
+  const fields = (fields: Record<string, unknown>): Overlay => ({ body: { additionalModelRequestFields: fields } })
+  switch (support.type) {
+    case "effort":
+      return efforts(support.values ?? EFFORTS, (effort) => {
+        if (claude)
+          return fields({
+            ...(claudeThinksManually(model) ? {} : { thinking: ADAPTIVE_THINKING }),
+            output_config: { effort },
+          })
+        if (id.includes("openai.gpt-oss")) return fields({ reasoning_effort: effort })
+        if (id.includes("openai.")) return fields({ reasoning: { effort } })
+        return fields({ reasoningConfig: { type: "enabled", maxReasoningEffort: effort } })
+      })
+    case "toggle":
+      return claude
+        ? toggle(fields({ thinking: { type: "disabled" } }), fields({ thinking: ADAPTIVE_THINKING }))
+        : toggle(fields({ reasoningConfig: { type: "disabled" } }), fields({ reasoningConfig: { type: "enabled" } }))
+    case "budget_tokens":
+      return budgets(model, support, (tokens) =>
+        claude
+          ? fields({ thinking: { type: "enabled", budget_tokens: tokens } })
+          : fields({ reasoningConfig: { type: "enabled", budgetTokens: tokens } }),
+      )
+  }
+}
+
+// ── AI SDK-only protocols (no native package; translated by AISDKNative at resolve time) ──────────────────
+
+const alibabaAISDK: Protocol = (model, support) => {
+  switch (support.type) {
+    case "effort":
+      return []
+    case "toggle":
+      return toggle({ settings: { enableThinking: false } }, { settings: { enableThinking: true } })
+    case "budget_tokens":
+      return budgets(model, support, (tokens) => ({ settings: { enableThinking: true, thinkingBudget: tokens } }))
+  }
+}
+
+const cohere: Protocol = (model, support) => {
+  switch (support.type) {
+    case "effort":
+      return []
+    case "toggle":
+      return toggle({ settings: { thinking: { type: "disabled" } } }, { settings: { thinking: { type: "enabled" } } })
+    case "budget_tokens":
+      return budgets(model, support, (tokens) => ({ settings: { thinking: { type: "enabled", tokenBudget: tokens } } }))
+  }
+}
+
+// Bedrock Converse via the AI SDK spells everything as `reasoningConfig` settings; AISDKNative turns it into body.
+const bedrockAISDK: Protocol = (model, support) => {
+  const claude = modelID(model).includes("anthropic")
+  switch (support.type) {
+    case "effort":
+      return efforts(support.values ?? EFFORTS, (effort) => ({
+        settings: claude
+          ? {
+              reasoningConfig: {
+                ...(claudeThinksManually(model) ? {} : ADAPTIVE_THINKING),
+                maxReasoningEffort: effort,
+              },
+            }
+          : { reasoningConfig: { type: "enabled", maxReasoningEffort: effort } },
+      }))
+    case "toggle":
+      return claude
+        ? toggle(
+            { settings: { additionalModelRequestFields: { thinking: { type: "disabled" } } } },
+            { settings: { additionalModelRequestFields: { thinking: ADAPTIVE_THINKING } } },
+          )
+        : toggle(
+            { settings: { additionalModelRequestFields: { reasoningConfig: { type: "disabled" } } } },
+            { settings: { additionalModelRequestFields: { reasoningConfig: { type: "enabled" } } } },
+          )
+    case "budget_tokens":
+      return budgets(model, support, (tokens) => ({
+        settings: { reasoningConfig: { type: "enabled", budgetTokens: tokens } },
+      }))
+  }
+}
+
+// Vercel's gateway relays other labs' models and takes their spelling when the id names one.
+const vercelGateway: Protocol = (model, support) => {
+  const prefix = modelID(model).split("/")[0]
+  if (prefix === "anthropic") return anthropicMessages(model, support)
+  if (prefix === "google") return gemini(model, support)
+  if (prefix === "amazon") return bedrockAISDK(model, support)
+  if (prefix === "alibaba") return alibabaAISDK(model, support)
+  return support.type === "effort" ? openaiChat(model, support) : openrouter(model, support)
+}
+
+// SAP AI Core wraps each upstream's fields in `modelParams`.
+const sapAICore: Protocol = (model, support) => {
+  const id = modelID(model)
+  const sap = (modelParams: Record<string, unknown>): Overlay => ({ settings: { modelParams } })
+  switch (support.type) {
+    case "effort":
+      return efforts(support.values ?? EFFORTS, (effort) => {
+        if (id.includes("anthropic"))
+          return sap({
+            additionalModelRequestFields: {
+              ...(claudeThinksManually(model) ? {} : { thinking: ADAPTIVE_THINKING }),
+              output_config: { effort },
+            },
+          })
+        if (id.includes("gemini")) return sap({ thinkingConfig: { includeThoughts: true, thinkingLevel: effort } })
+        if (id.includes("amazon--nova")) return sap({ additionalModelRequestFields: { output_config: { effort } } })
+        return sap({ reasoning_effort: effort })
+      })
+    case "toggle":
+      if (id.includes("gemini"))
+        return toggle(
+          sap({ thinkingConfig: { includeThoughts: false, thinkingBudget: 0 } }),
+          sap({ thinkingConfig: { includeThoughts: true, thinkingBudget: -1 } }),
+        )
+      if (id.includes("cohere"))
+        return toggle(sap({ thinking: { type: "disabled" } }), sap({ thinking: { type: "enabled" } }))
+      if (id.includes("amazon--nova"))
+        return toggle(
+          sap({ additionalModelRequestFields: { thinking: { type: "disabled" } } }),
+          sap({ additionalModelRequestFields: { thinking: { type: "enabled" } } }),
+        )
+      if (id.includes("anthropic"))
+        return toggle(
+          sap({ additionalModelRequestFields: { thinking: { type: "disabled" } } }),
+          sap({ additionalModelRequestFields: { thinking: ADAPTIVE_THINKING } }),
+        )
+      return []
+    case "budget_tokens":
+      if (id.includes("anthropic"))
+        return budgets(model, support, (tokens) =>
+          sap({ additionalModelRequestFields: { thinking: { type: "enabled", budget_tokens: tokens } } }),
+        )
+      if (id.includes("gemini"))
+        return budgets(model, support, (tokens) =>
+          sap({ thinkingConfig: { includeThoughts: true, thinkingBudget: tokens } }),
+        )
+      if (id.includes("cohere"))
+        return budgets(model, support, (tokens) => sap({ thinking: { type: "enabled", token_budget: tokens } }))
+      return []
+  }
+}
+
+// ── Packages ───────────────────────────────────────────────────────────────────────────────────────────────
+
+const PROTOCOLS: Readonly<Record<string, Protocol>> = {
   "@opencode/ai/providers/openai": openaiResponses,
   "@opencode/ai/providers/azure/responses": openaiResponses,
   "@opencode/ai/providers/amazon-bedrock/mantle/chat": openaiResponses,
@@ -336,7 +326,6 @@ const FORMATS: Readonly<Record<string, Format>> = {
   [Provider.aisdk("@ai-sdk/amazon-bedrock")]: bedrockAISDK,
   [Provider.aisdk("@openrouter/ai-sdk-provider")]: openrouter,
   [Provider.aisdk("@ai-sdk/gateway")]: vercelGateway,
-  [Provider.aisdk("@ai-sdk/github-copilot")]: githubCopilot,
   [Provider.aisdk("@jerome-benoit/sap-ai-provider-v2")]: sapAICore,
   [Provider.aisdk("@ai-sdk/alibaba")]: alibabaAISDK,
   [Provider.aisdk("@ai-sdk/cohere")]: cohere,

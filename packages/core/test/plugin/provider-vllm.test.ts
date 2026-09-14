@@ -184,7 +184,7 @@ describe("VLLMPlugin", () => {
           yield* catalog.transform((editor) => {
             editor.provider.update(providerID, (provider) => {
               provider.name = "vLLM"
-              provider.package = "aisdk:@ai-sdk/openai-compatible"
+              provider.package = "@opencode/ai/providers/openai-compatible"
               provider.integrationID = Integration.ID.make("vllm")
               provider.activation = "auto"
             })

@@ -255,25 +255,31 @@ describe("Cloudflare", () => {
 
   it.effect("supports direct Workers AI token aliases through auth config", () =>
     Effect.gen(function* () {
-      yield* LLM.generate(
-        LLM.request({
-          model: CloudflareWorkersAI.configure({
-            accountId: "test-account",
-          }).model("@cf/meta/llama-3.1-8b-instruct"),
-          prompt: "Say hello.",
-        }),
-      ).pipe(
-        withEnv({ CLOUDFLARE_WORKERS_AI_TOKEN: "test-token" }),
-        Effect.provide(
-          dynamicResponse((input) =>
-            Effect.gen(function* () {
-              const web = yield* HttpClientRequest.toWeb(input.request).pipe(Effect.orDie)
-              expect(web.headers.get("authorization")).toBe("Bearer test-token")
-              return input.respond(
-                sseEvents(deltaChunk({ role: "assistant", content: "Hello" }), deltaChunk({}, "stop")),
-                { headers: { "content-type": "text/event-stream" } },
-              )
-            }),
+      yield* Effect.forEach(["CLOUDFLARE_WORKERS_AI_TOKEN", "CLOUDFLARE_API_TOKEN"], (name) =>
+        LLM.generate(
+          LLM.request({
+            model: CloudflareWorkersAI.configure({
+              accountId: "test-account",
+            }).model("@cf/meta/llama-3.1-8b-instruct"),
+            prompt: "Say hello.",
+          }),
+        ).pipe(
+          withEnv({
+            CLOUDFLARE_API_KEY: undefined,
+            CLOUDFLARE_WORKERS_AI_TOKEN: name === "CLOUDFLARE_WORKERS_AI_TOKEN" ? "test-token" : undefined,
+            CLOUDFLARE_API_TOKEN: name === "CLOUDFLARE_API_TOKEN" ? "test-token" : undefined,
+          }),
+          Effect.provide(
+            dynamicResponse((input) =>
+              Effect.gen(function* () {
+                const web = yield* HttpClientRequest.toWeb(input.request).pipe(Effect.orDie)
+                expect(web.headers.get("authorization")).toBe("Bearer test-token")
+                return input.respond(
+                  sseEvents(deltaChunk({ role: "assistant", content: "Hello" }), deltaChunk({}, "stop")),
+                  { headers: { "content-type": "text/event-stream" } },
+                )
+              }),
+            ),
           ),
         ),
       )

@@ -1,8 +1,19 @@
 import { describe, expect, test } from "bun:test"
 import { AISDKNative } from "@opencode/core/aisdk-native"
 
-const map = (packageName: string, settings: Readonly<Record<string, unknown>>, modelID = "test-model") =>
-  AISDKNative.map({ packageName, settings, modelID, providerID: "test-provider" })
+function map(packageName: string, settings: Readonly<Record<string, unknown>>, modelID = "test-model") {
+  const target: {
+    package?: string
+    settings?: Record<string, unknown>
+    headers?: Record<string, string>
+    body?: Record<string, unknown>
+  } = {
+    package: `aisdk:${packageName}`,
+    settings: { ...settings },
+  }
+  AISDKNative.rewrite(target, { specifier: target.package, providerID: "test-provider", modelID })
+  return target.package?.startsWith("aisdk:") ? undefined : target
+}
 
 describe("AISDKNative", () => {
   test("maps OpenAI-family packages and request options to native providers", () => {

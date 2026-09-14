@@ -9,6 +9,7 @@ import { Bus } from "./bus.js"
 import { makeGlobalNode } from "@opencode/util/effect/app-node"
 import { httpClient } from "@opencode/util/effect/app-node-platform"
 import { Model } from "./model.js"
+import { AISDKNative } from "./aisdk-native.js"
 import { Provider } from "./provider.js"
 import { Variant } from "./variant.js"
 import { KV } from "./kv.js"
@@ -78,43 +79,9 @@ export type Snapshot = {
   readonly environment: readonly string[]
 }
 
-const NATIVE_PACKAGES: Readonly<Record<string, string>> = {
-  "@ai-sdk/amazon-bedrock": "@opencode/ai/providers/amazon-bedrock",
-  "@ai-sdk/anthropic": "@opencode/ai/providers/anthropic",
-  "@ai-sdk/azure": "@opencode/ai/providers/azure/responses",
-  "@ai-sdk/cerebras": "@opencode/ai/providers/cerebras",
-  "@ai-sdk/deepinfra": "@opencode/ai/providers/deepinfra",
-  "@ai-sdk/google": "@opencode/ai/providers/google",
-  "@ai-sdk/google-vertex": "@opencode/ai/providers/google-vertex",
-  "@ai-sdk/google-vertex/anthropic": "@opencode/ai/providers/google-vertex/messages",
-  "@ai-sdk/groq": "@opencode/ai/providers/groq",
-  "@ai-sdk/mistral": "@opencode/ai/providers/mistral",
-  "@ai-sdk/openai": "@opencode/ai/providers/openai",
-  "@ai-sdk/openai-compatible": "@opencode/ai/providers/openai-compatible",
-  "@ai-sdk/togetherai": "@opencode/ai/providers/togetherai",
-  "@ai-sdk/xai": "@opencode/ai/providers/xai",
-  "@openrouter/ai-sdk-provider": "@opencode/ai/providers/openrouter",
-}
-
-const NATIVE_PROVIDERS: Readonly<Record<string, string>> = {
-  baseten: "@opencode/ai/providers/baseten",
-  "cloudflare-workers-ai": "@opencode/ai/providers/cloudflare-workers-ai",
-  deepseek: "@opencode/ai/providers/deepseek",
-  "fireworks-ai": "@opencode/ai/providers/fireworks",
-  meta: "@opencode/ai/providers/meta/responses",
-  minimax: "@opencode/ai/providers/minimax/messages",
-  "minimax-cn": "@opencode/ai/providers/minimax/messages",
-  "minimax-coding-plan": "@opencode/ai/providers/minimax/messages",
-  "minimax-cn-coding-plan": "@opencode/ai/providers/minimax/messages",
-}
-
 function nativePackage(provider: SourceProvider, model?: SourceModel) {
   const npm = model?.provider?.npm ?? provider.npm
-  // Mantle only appears as a per-model override; gpt-oss models are chat-only there.
-  if (npm === "@ai-sdk/amazon-bedrock/mantle")
-    return `@opencode/ai/providers/amazon-bedrock/mantle/${model?.id.includes("gpt-oss") ? "chat" : "responses"}`
-  if (model?.provider?.npm === undefined && NATIVE_PROVIDERS[provider.id]) return NATIVE_PROVIDERS[provider.id]
-  return NATIVE_PACKAGES[npm] ?? Provider.aisdk(npm)
+  return AISDKNative.native(npm, { providerID: provider.id, modelID: model?.id }) ?? Provider.aisdk(npm)
 }
 
 function normalize(input: Record<string, SourceProvider>): readonly Snapshot[] {
@@ -227,7 +194,6 @@ function modeName(model: SourceModel, mode: string) {
   return `${model.name} ${mode.charAt(0).toUpperCase()}${mode.slice(1)}`
 }
 
-// models.dev writes `null` (sometimes the string "null") for "no reasoning" inside effort lists.
 function supports(model: SourceModel): readonly Variant.Support[] {
   return (model.reasoning_options ?? []).map((option) =>
     option.type === "effort"

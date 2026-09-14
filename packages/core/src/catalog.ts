@@ -3,6 +3,7 @@ export * as Catalog from "./catalog.js"
 import { makeLocationNode } from "@opencode/util/effect/app-node"
 import { Array, Context, Effect, Layer, Order, pipe } from "effect"
 import { Catalog } from "@opencode/schema/catalog"
+import { AISDKNative } from "./aisdk-native.js"
 import { Model } from "./model.js"
 import { Provider } from "./provider.js"
 import { Bus } from "./bus.js"
@@ -103,6 +104,11 @@ const layer = Layer.effect(
               }
               fn(current.provider)
               current.provider.id = providerID
+              AISDKNative.rewrite(current.provider, {
+                specifier: current.provider.package,
+                providerID,
+                canonical: current.provider.canonical,
+              })
             },
             remove: (providerID) => {
               editor.providers.delete(providerID)
@@ -124,6 +130,12 @@ const layer = Layer.effect(
               fn(model)
               model.id = modelID
               model.providerID = providerID
+              AISDKNative.rewrite(model, {
+                specifier: model.package ?? record.provider.package,
+                providerID,
+                canonical: model.canonical ?? record.provider.canonical,
+                modelID: model.modelID ?? modelID,
+              })
             },
             remove: (providerID, modelID) => {
               editor.providers.get(providerID)?.models.delete(modelID)

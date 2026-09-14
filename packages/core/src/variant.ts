@@ -3,7 +3,6 @@ export * as Variant from "./variant.js"
 import { Model } from "./model.js"
 import { Provider } from "./provider.js"
 
-// A reasoning control a model is known to support. Effort without `values` means the protocol picks them.
 export type Support =
   | { readonly type: "effort"; readonly values?: readonly string[] }
   | { readonly type: "toggle" }
@@ -12,11 +11,8 @@ export type Support =
 type Variants = Model.Info["variants"]
 type Overlay = Omit<Variants[number], "id">
 
-// One per package: the variants a model gets for one supported control, in that protocol's vocabulary.
 type Protocol = (model: Model.Info, support: Support) => Variants
 
-// `model.package` must be the effective package: a model-level override or the provider's.
-// With nothing declared, a model is assumed to support effort and the protocol chooses the values.
 export function resolve(model: Model.Info, supports: readonly Support[] = [{ type: "effort" }]): Variants {
   const protocol = model.package === undefined ? undefined : PROTOCOLS[model.package]
   if (!protocol) return []
@@ -27,8 +23,6 @@ export function resolve(model: Model.Info, supports: readonly Support[] = [{ typ
   const variants = [...toggle.filter((variant) => variant.id === "none"), ...main]
   return variants.filter((variant, index) => variants.findIndex((other) => other.id === variant.id) === index)
 }
-
-// ── Building blocks ────────────────────────────────────────────────────────────────────────────────────────
 
 const EFFORTS = ["low", "medium", "high"]
 const ENCRYPTED_REASONING = ["reasoning.encrypted_content"]
@@ -66,8 +60,6 @@ function claudeThinksManually(model: Model.Info) {
   const minor = rawMinor > 9 ? 0 : rawMinor
   return major < 4 || (major === 4 && minor < 6)
 }
-
-// ── Protocols ──────────────────────────────────────────────────────────────────────────────────────────────
 
 const openaiChat: Protocol = (_, support) => {
   if (support.type !== "effort") return []
@@ -128,7 +120,6 @@ const openrouter: Protocol = (model, support) => {
   }
 }
 
-// Bedrock Converse has no reasoning options; everything rides in `additionalModelRequestFields`.
 const bedrockConverse: Protocol = (model, support) => {
   const id = modelID(model)
   const claude = id.includes("anthropic")
@@ -158,8 +149,6 @@ const bedrockConverse: Protocol = (model, support) => {
   }
 }
 
-// ── AI SDK-only protocols (no native package; translated by AISDKNative at resolve time) ──────────────────
-
 const alibabaAISDK: Protocol = (model, support) => {
   switch (support.type) {
     case "effort":
@@ -182,7 +171,6 @@ const cohere: Protocol = (model, support) => {
   }
 }
 
-// Bedrock Converse via the AI SDK spells everything as `reasoningConfig` settings; AISDKNative turns it into body.
 const bedrockAISDK: Protocol = (model, support) => {
   const claude = modelID(model).includes("anthropic")
   switch (support.type) {
@@ -214,7 +202,6 @@ const bedrockAISDK: Protocol = (model, support) => {
   }
 }
 
-// Vercel's gateway relays other labs' models and takes their spelling when the id names one.
 const vercelGateway: Protocol = (model, support) => {
   const prefix = modelID(model).split("/")[0]
   if (prefix === "anthropic") return anthropicMessages(model, support)
@@ -224,7 +211,6 @@ const vercelGateway: Protocol = (model, support) => {
   return support.type === "effort" ? openaiChat(model, support) : openrouter(model, support)
 }
 
-// SAP AI Core wraps each upstream's fields in `modelParams`.
 const sapAICore: Protocol = (model, support) => {
   const id = modelID(model)
   const sap = (modelParams: Record<string, unknown>): Overlay => ({ settings: { modelParams } })
@@ -276,16 +262,20 @@ const sapAICore: Protocol = (model, support) => {
   }
 }
 
-// ── Packages ───────────────────────────────────────────────────────────────────────────────────────────────
-
 const PROTOCOLS: Readonly<Record<string, Protocol>> = {
   "@opencode/ai/providers/openai": openaiResponses,
   "@opencode/ai/providers/azure/responses": openaiResponses,
   "@opencode/ai/providers/amazon-bedrock/mantle/chat": openaiResponses,
   "@opencode/ai/providers/amazon-bedrock/mantle/responses": openaiResponses,
+  "@opencode/ai/providers/alibaba/responses": openaiResponses,
   "@opencode/ai/providers/meta/responses": openaiResponses,
+  "@opencode/ai/providers/minimax/responses": openaiResponses,
+  "@opencode/ai/providers/moonshot/responses": openaiResponses,
+  "@opencode/ai/providers/zai-coding-plan/responses": openaiResponses,
 
   "@opencode/ai/providers/openai-compatible": openaiChat,
+  "@opencode/ai/providers/google-vertex/chat": openaiChat,
+  "@opencode/ai/providers/alibaba/chat": openaiChat,
   "@opencode/ai/providers/baseten": openaiChat,
   "@opencode/ai/providers/cerebras": openaiChat,
   "@opencode/ai/providers/cloudflare-workers-ai": openaiChat,
@@ -293,13 +283,22 @@ const PROTOCOLS: Readonly<Record<string, Protocol>> = {
   "@opencode/ai/providers/deepseek": openaiChat,
   "@opencode/ai/providers/fireworks": openaiChat,
   "@opencode/ai/providers/groq": openaiChat,
+  "@opencode/ai/providers/meta/chat": openaiChat,
+  "@opencode/ai/providers/minimax/chat": openaiChat,
   "@opencode/ai/providers/mistral": openaiChat,
+  "@opencode/ai/providers/moonshot/chat": openaiChat,
   "@opencode/ai/providers/togetherai": openaiChat,
   "@opencode/ai/providers/xai": openaiChat,
+  "@opencode/ai/providers/zai/chat": openaiChat,
+  "@opencode/ai/providers/zai-coding-plan/chat": openaiChat,
 
   "@opencode/ai/providers/anthropic": anthropicMessages,
   "@opencode/ai/providers/google-vertex/messages": anthropicMessages,
+  "@opencode/ai/providers/alibaba/messages": anthropicMessages,
+  "@opencode/ai/providers/meta/messages": anthropicMessages,
   "@opencode/ai/providers/minimax/messages": anthropicMessages,
+  "@opencode/ai/providers/moonshot/messages": anthropicMessages,
+  "@opencode/ai/providers/zai-coding-plan/messages": anthropicMessages,
 
   "@opencode/ai/providers/google": gemini,
   "@opencode/ai/providers/google-vertex": gemini,
@@ -307,24 +306,8 @@ const PROTOCOLS: Readonly<Record<string, Protocol>> = {
   "@opencode/ai/providers/amazon-bedrock": bedrockConverse,
   "@opencode/ai/providers/openrouter": openrouter,
 
-  [Provider.aisdk("@ai-sdk/openai")]: openaiResponses,
-  [Provider.aisdk("@ai-sdk/azure")]: openaiResponses,
-  [Provider.aisdk("@ai-sdk/amazon-bedrock/mantle")]: openaiResponses,
-  [Provider.aisdk("@ai-sdk/openai-compatible")]: openaiChat,
-  [Provider.aisdk("@ai-sdk/cerebras")]: openaiChat,
-  [Provider.aisdk("@ai-sdk/deepinfra")]: openaiChat,
-  [Provider.aisdk("@ai-sdk/groq")]: openaiChat,
-  [Provider.aisdk("@ai-sdk/mistral")]: openaiChat,
-  [Provider.aisdk("@ai-sdk/togetherai")]: openaiChat,
-  [Provider.aisdk("@ai-sdk/xai")]: openaiChat,
   [Provider.aisdk("venice-ai-sdk-provider")]: openaiChat,
   [Provider.aisdk("ai-gateway-provider")]: openaiChat,
-  [Provider.aisdk("@ai-sdk/anthropic")]: anthropicMessages,
-  [Provider.aisdk("@ai-sdk/google-vertex/anthropic")]: anthropicMessages,
-  [Provider.aisdk("@ai-sdk/google")]: gemini,
-  [Provider.aisdk("@ai-sdk/google-vertex")]: gemini,
-  [Provider.aisdk("@ai-sdk/amazon-bedrock")]: bedrockAISDK,
-  [Provider.aisdk("@openrouter/ai-sdk-provider")]: openrouter,
   [Provider.aisdk("@ai-sdk/gateway")]: vercelGateway,
   [Provider.aisdk("@jerome-benoit/sap-ai-provider-v2")]: sapAICore,
   [Provider.aisdk("@ai-sdk/alibaba")]: alibabaAISDK,

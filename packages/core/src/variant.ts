@@ -27,7 +27,6 @@ export function resolve(model: Model.Info, supports: readonly Support[] = [{ typ
 const EFFORTS = ["low", "medium", "high"]
 const ENCRYPTED_REASONING = ["reasoning.encrypted_content"]
 const ADAPTIVE_THINKING = { type: "adaptive", display: "summarized" }
-const OUTPUT_TOKEN_MAX = 32_000
 
 const variant = (id: string, overlay: Overlay): Variants[number] => ({ id: Model.VariantID.make(id), ...overlay })
 
@@ -41,7 +40,7 @@ function budgets(
   support: Extract<Support, { type: "budget_tokens" }>,
   spell: (tokens: number) => Overlay,
 ): Variants {
-  const maximum = Math.min(support.max ?? OUTPUT_TOKEN_MAX - 1, model.limit.output - 1, OUTPUT_TOKEN_MAX - 1)
+  const maximum = Math.min(support.max ?? model.limit.output - 1, model.limit.output - 1)
   if (maximum <= 0) return []
   const high = Math.min(Math.max(support.min ?? 0, Math.floor((maximum + 1) / 2)), maximum)
   return [variant("high", spell(high)), variant("max", spell(maximum))]
@@ -49,16 +48,26 @@ function budgets(
 
 const modelID = (model: Model.Info) => model.modelID ?? model.id
 
-// Claude before 4.6 has no adaptive thinking; effort is sent on its own.
-function claudeThinksManually(model: Model.Info) {
+function claudeInfo(model: Model.Info) {
   const id = modelID(model)
-  const familyFirst = /(?:claude-)?(?:opus|sonnet|haiku)-(\d+)(?:[.-](\d+))?/i.exec(id)
-  const versionFirst = /claude-(\d+)(?:[.-](\d+))?-(?:opus|sonnet|haiku)/i.exec(id)
-  const major = Number(familyFirst?.[1] ?? versionFirst?.[1])
-  const rawMinor = Number(familyFirst?.[2] ?? versionFirst?.[2] ?? 0)
-  if (!Number.isFinite(major)) return false
-  const minor = rawMinor > 9 ? 0 : rawMinor
-  return major < 4 || (major === 4 && minor < 6)
+  const familyFirst = /(?:claude-)?(opus|sonnet|haiku|fable|mythos)-(\d+)(?:[.-](\d+))?/i.exec(id)
+  const versionFirst = /claude-(\d+)(?:[.-](\d+))?-(opus|sonnet|haiku|fable|mythos)/i.exec(id)
+  const family = (familyFirst?.[1] ?? versionFirst?.[3])?.toLowerCase()
+  const major = Number(familyFirst?.[2] ?? versionFirst?.[1])
+  const minor = Number(familyFirst?.[3] ?? versionFirst?.[2] ?? 0)
+  return {
+    family,
+    major,
+    minor,
+    manual: (major === 3 && minor === 7) || (major === 4 && minor < 6),
+    always: family === "fable" || family === "mythos" || id.toLowerCase().includes("mythos-preview"),
+  }
+}
+
+function manualThinking(model: Model.Info): Overlay | undefined {
+  const tokens = Math.min(16_000, model.limit.output - 1)
+  if (tokens < 1024) return
+  return { settings: { thinking: { type: "enabled", budgetTokens: tokens } } }
 }
 
 const openaiChat: Protocol = (_, support) => {
@@ -76,18 +85,81 @@ const responsesEffort = (effort: string): Overlay => ({
 })
 
 const anthropicMessages: Protocol = (model, support) => {
-  const manual = claudeThinksManually(model)
+  const info = claudeInfo(model)
+  const opus45 = info.family === "opus" && info.major === 4 && info.minor === 5
   switch (support.type) {
-    case "effort":
-      return efforts(support.values ?? (manual ? EFFORTS : [...EFFORTS, "xhigh", "max"]), (effort) => ({
-        settings: manual ? { effort } : { thinking: ADAPTIVE_THINKING, effort },
+    case "effort": {
+      if (info.manual && !opus45) return anthropicMessages(model, { type: "budget_tokens", min: 1024 })
+      const thinking = opus45 ? manualThinking(model) : { settings: { thinking: ADAPTIVE_THINKING } }
+      if (!thinking) return []
+      const defaults = info.major === 4 && info.minor === 6 ? [...EFFORTS, "max"] : [...EFFORTS, "xhigh", "max"]
+      const values = support.values ?? defaults
+      return efforts(values, (effort) => ({
+        settings: { ...thinking.settings, effort },
       }))
-    case "toggle":
-      return toggle({ settings: { thinking: { type: "disabled" } } }, { settings: { thinking: ADAPTIVE_THINKING } })
+    }
+    case "toggle": {
+      if (info.always) return []
+      const thinking = info.manual ? manualThinking(model) : { settings: { thinking: ADAPTIVE_THINKING } }
+      if (!thinking) return []
+      return toggle({ settings: { thinking: { type: "disabled" } } }, thinking)
+    }
     case "budget_tokens":
       return budgets(model, support, (tokens) => ({
         settings: { thinking: { type: "enabled", budgetTokens: tokens } },
       }))
+  }
+}
+
+const minimaxMessages: Protocol = (model, support) => {
+  if (/minimax[-.]?m2(?:[.-]|$)/i.test(modelID(model))) return []
+  const configurable = support.type === "toggle" || (support.type === "effort" && support.values === undefined)
+  if (!configurable) return []
+  return toggle({ settings: { thinking: { type: "disabled" } } }, { settings: { thinking: { type: "adaptive" } } })
+}
+
+const moonshotMessages: Protocol = (model, support) => {
+  if (support.type !== "effort" || /kimi[-.]?k2/i.test(modelID(model))) return []
+  return efforts(support.values ?? ["low", "high", "max"], (effort) => ({ settings: { effort } }))
+}
+
+const alibabaMessages: Protocol = (model, support) => {
+  const id = modelID(model).toLowerCase()
+  switch (support.type) {
+    case "effort": {
+      const hosted = id.includes("glm") || id.includes("deepseek")
+      const values = support.values ?? (hosted ? ["high", "max"] : ["low", "medium", "xhigh"])
+      return efforts(values, (effort) => {
+        if (effort === "none") return { settings: { thinking: { type: "disabled" } } }
+        return { settings: { thinking: { type: "enabled" }, effort } }
+      })
+    }
+    case "toggle":
+      return toggle({ settings: { thinking: { type: "disabled" } } }, { settings: { thinking: { type: "enabled" } } })
+    case "budget_tokens":
+      return budgets(model, support, (tokens) => ({
+        settings: { thinking: { type: "enabled", budgetTokens: tokens } },
+      }))
+  }
+}
+
+const zaiMessages: Protocol = (model, support) => {
+  const id = modelID(model).toLowerCase()
+  const forced = id.includes("glm-5.3") || id.includes("glm-5-3") || id.includes("glm-5p3")
+  switch (support.type) {
+    case "effort":
+      return efforts(support.values ?? (forced ? ["low", "high", "max"] : ["high", "max"]), (effort) => ({
+        settings: {
+          thinking: { type: effort === "none" || effort === "minimal" ? "disabled" : "enabled" },
+          effort,
+        },
+      }))
+    case "toggle":
+      return forced
+        ? []
+        : toggle({ settings: { thinking: { type: "disabled" } } }, { settings: { thinking: { type: "enabled" } } })
+    case "budget_tokens":
+      return []
   }
 }
 
@@ -129,7 +201,7 @@ const bedrockConverse: Protocol = (model, support) => {
       return efforts(support.values ?? EFFORTS, (effort) => {
         if (claude)
           return fields({
-            ...(claudeThinksManually(model) ? {} : { thinking: ADAPTIVE_THINKING }),
+            ...(claudeInfo(model).manual ? {} : { thinking: ADAPTIVE_THINKING }),
             output_config: { effort },
           })
         if (id.includes("openai.gpt-oss")) return fields({ reasoning_effort: effort })
@@ -179,7 +251,7 @@ const bedrockAISDK: Protocol = (model, support) => {
         settings: claude
           ? {
               reasoningConfig: {
-                ...(claudeThinksManually(model) ? {} : ADAPTIVE_THINKING),
+                ...(claudeInfo(model).manual ? {} : ADAPTIVE_THINKING),
                 maxReasoningEffort: effort,
               },
             }
@@ -220,7 +292,7 @@ const sapAICore: Protocol = (model, support) => {
         if (id.includes("anthropic"))
           return sap({
             additionalModelRequestFields: {
-              ...(claudeThinksManually(model) ? {} : { thinking: ADAPTIVE_THINKING }),
+              ...(claudeInfo(model).manual ? {} : { thinking: ADAPTIVE_THINKING }),
               output_config: { effort },
             },
           })
@@ -294,11 +366,11 @@ const PROTOCOLS: Readonly<Record<string, Protocol>> = {
 
   "@opencode/ai/providers/anthropic": anthropicMessages,
   "@opencode/ai/providers/google-vertex/messages": anthropicMessages,
-  "@opencode/ai/providers/alibaba/messages": anthropicMessages,
+  "@opencode/ai/providers/alibaba/messages": alibabaMessages,
   "@opencode/ai/providers/meta/messages": anthropicMessages,
-  "@opencode/ai/providers/minimax/messages": anthropicMessages,
-  "@opencode/ai/providers/moonshot/messages": anthropicMessages,
-  "@opencode/ai/providers/zai-coding-plan/messages": anthropicMessages,
+  "@opencode/ai/providers/minimax/messages": minimaxMessages,
+  "@opencode/ai/providers/moonshot/messages": moonshotMessages,
+  "@opencode/ai/providers/zai-coding-plan/messages": zaiMessages,
 
   "@opencode/ai/providers/google": gemini,
   "@opencode/ai/providers/google-vertex": gemini,

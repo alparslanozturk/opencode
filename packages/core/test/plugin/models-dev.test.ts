@@ -924,11 +924,11 @@ describe("ModelsDevPlugin", () => {
       const budgetModel = yield* catalog.model.get(Provider.ID.anthropic, Model.ID.make("claude-budget"))
       expect(budgetModel?.variants).toContainEqual({
         id: Model.VariantID.make("high"),
-        settings: { thinking: { type: "enabled", budgetTokens: 16000 } },
+        settings: { thinking: { type: "enabled", budgetTokens: 32000 } },
       })
       expect(budgetModel?.variants).toContainEqual({
         id: Model.VariantID.make("max"),
-        settings: { thinking: { type: "enabled", budgetTokens: 31999 } },
+        settings: { thinking: { type: "enabled", budgetTokens: 63999 } },
       })
 
       const anthropicEffortModel = yield* catalog.model.get(Provider.ID.anthropic, Model.ID.make("claude-opus-4.7"))
@@ -951,8 +951,14 @@ describe("ModelsDevPlugin", () => {
 
       const opus45 = yield* catalog.model.get(Provider.ID.anthropic, Model.ID.make("claude-opus-4-5"))
       expect(opus45?.variants).toEqual([
-        { id: Model.VariantID.make("low"), settings: { effort: "low" } },
-        { id: Model.VariantID.make("high"), settings: { effort: "high" } },
+        {
+          id: Model.VariantID.make("low"),
+          settings: { effort: "low", thinking: { type: "enabled", budgetTokens: 8191 } },
+        },
+        {
+          id: Model.VariantID.make("high"),
+          settings: { effort: "high", thinking: { type: "enabled", budgetTokens: 8191 } },
+        },
       ])
 
       const grok = yield* catalog.model.get(Provider.ID.make("xai"), Model.ID.make("grok-4.5"))

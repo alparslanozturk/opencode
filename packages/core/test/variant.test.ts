@@ -3,8 +3,8 @@ import { Model } from "@opencode/core/model"
 import { Provider } from "@opencode/core/provider"
 import { Variant } from "@opencode/core/variant"
 
-const model = (packageName: string, modelID: string, output?: number) => {
-  const result = Model.Info.default(Provider.ID.make("test"), Model.ID.make(modelID)) as Model.MutableInfo
+const model = (packageName: string, modelID: string, output?: number, providerID = "test") => {
+  const result = Model.Info.default(Provider.ID.make(providerID), Model.ID.make(modelID)) as Model.MutableInfo
   result.package = packageName
   result.modelID = Model.ID.make(modelID)
   if (output !== undefined) result.limit = { ...result.limit, output }
@@ -162,5 +162,86 @@ test("spells Chat Completions variants for direct providers", () => {
   expect(resolve(model("@opencode/ai/providers/zai/chat", "glm-4.7"), [{ type: "toggle" }])).toEqual([
     { id: "none", settings: { thinking: { type: "disabled" } } },
     { id: "thinking", settings: { thinking: { type: "enabled", clear_thinking: false } } },
+  ])
+})
+
+test("spells Chat Completions variants for hosting providers", () => {
+  expect(
+    resolve(model("@opencode/ai/providers/openai-compatible", "deepseek-ai/deepseek-v4-pro", undefined, "nvidia"), [
+      { type: "effort", values: ["none", "high", "max"] },
+    ]),
+  ).toEqual([
+    { id: "none", body: { chat_template_kwargs: { thinking: false } } },
+    { id: "high", body: { chat_template_kwargs: { thinking: true, reasoning_effort: "high" } } },
+    { id: "max", body: { chat_template_kwargs: { thinking: true, reasoning_effort: "max" } } },
+  ])
+
+  expect(
+    resolve(model("@opencode/ai/providers/openai-compatible", "moonshotai/kimi-k2.6", undefined, "nvidia"), [
+      { type: "effort", values: ["none", "low", "high", "max"] },
+    ]),
+  ).toEqual([
+    { id: "none", body: { chat_template_kwargs: { thinking: false } } },
+    { id: "thinking", body: { chat_template_kwargs: { thinking: true } } },
+  ])
+
+  expect(
+    resolve(model("@opencode/ai/providers/openai-compatible", "moonshotai/kimi-k3", undefined, "nvidia"), [
+      { type: "toggle" },
+      { type: "effort", values: ["low", "high", "max"] },
+    ]),
+  ).toEqual([
+    { id: "none", body: { chat_template_kwargs: { thinking: false } } },
+    { id: "low", settings: { reasoningEffort: "low" } },
+    { id: "high", settings: { reasoningEffort: "high" } },
+    { id: "max", settings: { reasoningEffort: "max" } },
+  ])
+
+  expect(
+    resolve(model("@opencode/ai/providers/openai-compatible", "minimaxai/minimax-m3", undefined, "nvidia"), [
+      { type: "toggle" },
+    ]),
+  ).toEqual([
+    { id: "none", body: { chat_template_kwargs: { thinking_mode: "disabled" } } },
+    { id: "thinking", body: { chat_template_kwargs: { thinking_mode: "enabled" } } },
+  ])
+
+  expect(
+    resolve(model("@opencode/ai/providers/baseten", "zai-org/GLM-5.2"), [
+      { type: "effort", values: ["none", "high", "max"] },
+    ]),
+  ).toEqual([
+    {
+      id: "none",
+      settings: { reasoningEffort: "none" },
+      body: { chat_template_args: { enable_thinking: false } },
+    },
+    {
+      id: "high",
+      settings: { reasoningEffort: "high" },
+      body: { chat_template_args: { enable_thinking: true } },
+    },
+    {
+      id: "max",
+      settings: { reasoningEffort: "max" },
+      body: { chat_template_args: { enable_thinking: true } },
+    },
+  ])
+
+  expect(resolve(model("@opencode/ai/providers/baseten", "moonshotai/Kimi-K2.6"), [{ type: "toggle" }])).toEqual([
+    { id: "none", body: { chat_template_args: { enable_thinking: false } } },
+    { id: "thinking", body: { chat_template_args: { enable_thinking: true } } },
+  ])
+
+  expect(
+    resolve(model("@opencode/ai/providers/deepinfra", "zai-org/GLM-5.2"), [
+      { type: "toggle" },
+      { type: "effort", values: ["low", "high", "xhigh"] },
+    ]),
+  ).toEqual([
+    { id: "none", body: { reasoning: { enabled: false } } },
+    { id: "low", settings: { reasoningEffort: "low" } },
+    { id: "high", settings: { reasoningEffort: "high" } },
+    { id: "xhigh", settings: { reasoningEffort: "xhigh" } },
   ])
 })

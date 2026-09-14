@@ -98,6 +98,93 @@ const deepseekChat: Protocol = (_, support) => {
   }
 }
 
+const nvidiaTemplate = (chat_template_kwargs: Record<string, unknown>): Overlay => ({
+  body: { chat_template_kwargs },
+})
+
+const nvidiaToggle = (key: string): Variants =>
+  toggle(nvidiaTemplate({ [key]: false }), nvidiaTemplate({ [key]: true }))
+
+const nvidiaChat: Protocol = (model, support) => {
+  const id = modelID(model).toLowerCase()
+  if (id.includes("deepseek-v4")) {
+    if (support.type === "toggle") return nvidiaToggle("thinking")
+    if (support.type !== "effort") return []
+    return efforts(support.values ?? ["none", "high", "max"], (effort) =>
+      effort === "none"
+        ? nvidiaTemplate({ thinking: false })
+        : nvidiaTemplate({ thinking: true, reasoning_effort: effort }),
+    )
+  }
+  if (id.includes("kimi-k2.6") || id.includes("kimi-k2-6")) return nvidiaToggle("thinking")
+  if (id.includes("kimi-k3")) {
+    if (support.type === "toggle") return nvidiaToggle("thinking")
+    if (support.type !== "effort") return []
+    return efforts(support.values ?? ["low", "high", "max"], (effort) => ({
+      settings: { reasoningEffort: effort },
+    }))
+  }
+  if (id.includes("minimax-m3"))
+    return toggle(nvidiaTemplate({ thinking_mode: "disabled" }), nvidiaTemplate({ thinking_mode: "enabled" }))
+  if (id.includes("glm"))
+    return toggle(
+      nvidiaTemplate({ enable_thinking: false }),
+      nvidiaTemplate({ enable_thinking: true, clear_thinking: false }),
+    )
+  const toggleOnly = id.includes("qwen") || id.includes("gemma") || id.includes("nemotron")
+  switch (support.type) {
+    case "effort":
+      return toggleOnly && support.values === undefined ? nvidiaToggle("enable_thinking") : openaiChat(model, support)
+    case "toggle":
+      return nvidiaToggle("enable_thinking")
+    case "budget_tokens":
+      return budgets(model, support, (tokens) => ({
+        body: { chat_template_kwargs: { enable_thinking: true }, reasoning_budget: tokens },
+      }))
+  }
+}
+
+const basetenTemplate = (enable_thinking: boolean): Overlay => ({
+  body: { chat_template_args: { enable_thinking } },
+})
+
+const basetenChat: Protocol = (model, support) => {
+  const id = modelID(model).toLowerCase()
+  switch (support.type) {
+    case "effort": {
+      const glm = id.includes("glm-5.2") || id.includes("glm-5-2") || id.includes("glm-5p2")
+      return efforts(support.values ?? EFFORTS, (effort) => ({
+        settings: { reasoningEffort: effort },
+        ...(glm ? basetenTemplate(effort !== "none") : {}),
+        ...(id.includes("deepseek-v4-pro-0813") && effort !== "none"
+          ? { body: { thinking: { type: "enabled" } } }
+          : {}),
+      }))
+    }
+    case "toggle":
+      return toggle(basetenTemplate(false), basetenTemplate(true))
+    case "budget_tokens":
+      return []
+  }
+}
+
+const deepinfraChat: Protocol = (model, support) => {
+  if (/kimi[-.]?k2[.-]7-code/i.test(modelID(model))) return []
+  switch (support.type) {
+    case "effort":
+      return efforts(support.values ?? EFFORTS, (effort) => ({ settings: { reasoningEffort: effort } }))
+    case "toggle":
+      return toggle({ body: { reasoning: { enabled: false } } }, { body: { reasoning: { enabled: true } } })
+    case "budget_tokens":
+      return []
+  }
+}
+
+const openaiCompatible: Protocol = (model, support) => {
+  if (model.providerID === "nvidia") return nvidiaChat(model, support)
+  return openaiChat(model, support)
+}
+
 const moonshotChat: Protocol = (model, support) => {
   const id = modelID(model).toLowerCase()
   const toggleable = id.includes("k2.5") || id.includes("k2-5") || id.includes("k2.6") || id.includes("k2-6")
@@ -419,13 +506,13 @@ const PROTOCOLS: Readonly<Record<string, Protocol>> = {
   "@opencode/ai/providers/moonshot/responses": openaiResponses,
   "@opencode/ai/providers/zai-coding-plan/responses": openaiResponses,
 
-  "@opencode/ai/providers/openai-compatible": openaiChat,
+  "@opencode/ai/providers/openai-compatible": openaiCompatible,
   "@opencode/ai/providers/google-vertex/chat": openaiChat,
   "@opencode/ai/providers/alibaba/chat": alibabaChat,
-  "@opencode/ai/providers/baseten": openaiChat,
+  "@opencode/ai/providers/baseten": basetenChat,
   "@opencode/ai/providers/cerebras": openaiChat,
   "@opencode/ai/providers/cloudflare-workers-ai": openaiChat,
-  "@opencode/ai/providers/deepinfra": openaiChat,
+  "@opencode/ai/providers/deepinfra": deepinfraChat,
   "@opencode/ai/providers/deepseek": deepseekChat,
   "@opencode/ai/providers/fireworks": openaiChat,
   "@opencode/ai/providers/groq": openaiChat,

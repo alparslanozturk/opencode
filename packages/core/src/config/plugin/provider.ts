@@ -119,14 +119,16 @@ export const Plugin = define({
             }
             if (config.disabled !== undefined) model.enabled = !config.disabled
             if (config.limit !== undefined) model.limit = { ...model.limit, ...config.limit }
-            if (config.variants === undefined && !base)
+          })
+          if (config.variants === undefined && !base)
+            catalog.model.update(providerID, id, (model) => {
               model.variants = [
                 ...Variant.resolve({
                   ...model,
                   package: model.package ?? catalog.provider.get(providerID)?.provider.package,
                 }),
               ]
-          })
+            })
         }
       }
     })

@@ -460,6 +460,47 @@ noLLMServer.instance(
   { config: cfg },
 )
 
+it.instance(
+  // Regression test for #49414: "loop continues when finish is unknown"
+  // (below) intentionally retries once when a provider ends a stream
+  // without a proper finish signal - that's a reasonable way to recover
+  // from a one-off glitch. But if a provider *never* resolves to a
+  // recognized finish reason (e.g. its finish_reason string never maps to
+  // one of our known values), the same retry had no upper bound and kept
+  // re-sending the same request forever. This asserts it's now capped.
+  "loop gives up after repeated unrecognized finish reason instead of retrying forever",
+  () =>
+    Effect.gen(function* () {
+      const { llm } = yield* useServerConfig(providerCfg)
+      const prompt = yield* SessionPrompt.Service
+      const sessions = yield* Session.Service
+      const session = yield* sessions.create({
+        title: "Pinned",
+        permission: [{ permission: "*", pattern: "*", action: "allow" }],
+      })
+      yield* prompt.prompt({
+        sessionID: session.id,
+        agent: "build",
+        noReply: true,
+        parts: [{ type: "text", text: "hello" }],
+      })
+      // Every reply ends its stream without a finish line, so every attempt
+      // maps to "unknown" - never a real "stop". Push more than the retry
+      // cap; the loop must give up before exhausting the queue.
+      for (let i = 0; i < 10; i++) {
+        yield* llm.push(reply().text(`attempt ${i}`))
+      }
+
+      const result = yield* prompt.loop({ sessionID: session.id })
+      expect(result.info.role).toBe("assistant")
+      if (result.info.role === "assistant") expect(result.info.finish).toBe("unknown")
+      // 1 initial attempt + MAX_UNKNOWN_FINISH_RETRIES retries, then it must
+      // stop instead of consuming the rest of the queued replies.
+      expect(yield* llm.calls).toBe(4)
+    }),
+  { config: cfg },
+)
+
 noLLMServer.instance(
   "loop exits for a completed parent turn with nonmonotonic message IDs",
   () =>

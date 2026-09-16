@@ -63,6 +63,13 @@ globalThis.AI_SDK_LOG_WARNINGS = false
 const decodeMessageInfo = Schema.decodeUnknownExit(SessionV1.Info)
 const decodeMessagePart = Schema.decodeUnknownExit(SessionV1.Part)
 const MAX_MCP_RESOURCE_BLOB_BYTES = 10 * 1024 * 1024
+// How many times in a row we'll silently retry a turn that ends with an
+// unrecognized ("unknown") finish reason and no tool calls before giving up.
+// A provider occasionally dropping its finish signal is expected to resolve
+// within a request or two; a provider that never resolves it (e.g. a
+// finish_reason value this build's FinishReason schema doesn't recognize)
+// must not retry forever. See anomalyco/opencode#49414.
+const MAX_UNKNOWN_FINISH_RETRIES = 3
 const SUPPORTED_MCP_RESOURCE_ATTACHMENT_MIMES = new Set([
   "application/pdf",
   "image/gif",
@@ -1083,6 +1090,12 @@ const layer = Layer.effect(
         const ctx = yield* InstanceState.context
         let structured: unknown
         let step = 0
+        // "unknown" finish reasons are treated as possibly-transient (see below) and the
+        // loop retries by design (e.g. a provider that ends its stream without a proper
+        // finish signal). If a provider deterministically never resolves to a recognized
+        // finish reason, that retry has no bound today and re-sends the same request
+        // forever - see anomalyco/opencode#49414. Cap it.
+        let consecutiveUnknownFinishes = 0
         const session = yield* sessions.get(sessionID).pipe(Effect.orDie)
 
         while (true) {
@@ -1108,6 +1121,10 @@ const layer = Layer.effect(
               (part) => part.type === "tool" && !part.metadata?.providerExecuted && !isOrphanedInterruptedTool(part),
             ) ?? false
 
+          const isUnresolvedFinish =
+            lastAssistant?.finish === "unknown" && !hasToolCalls && lastAssistant.parentID === lastUser.id
+          consecutiveUnknownFinishes = isUnresolvedFinish ? consecutiveUnknownFinishes + 1 : 0
+
           if (
             lastAssistant?.finish &&
             !["tool-calls", "unknown"].includes(lastAssistant.finish) &&
@@ -1126,6 +1143,20 @@ const layer = Layer.effect(
               })
             }
             yield* Effect.logInfo("exiting loop", { "session.id": sessionID })
+            break
+          }
+
+          // An "unknown" finish reason is treated above as possibly-transient and
+          // retried like "tool-calls", but with no tool calls to resolve there's
+          // nothing that will change about the next request. If a provider never
+          // resolves to a recognized finish reason, don't retry forever - see
+          // anomalyco/opencode#49414.
+          if (isUnresolvedFinish && consecutiveUnknownFinishes > MAX_UNKNOWN_FINISH_RETRIES) {
+            yield* Effect.logWarning("loop exit after repeated unrecognized finish reason", {
+              "session.id": sessionID,
+              messageID: lastAssistant?.id,
+              attempts: consecutiveUnknownFinishes,
+            })
             break
           }
 

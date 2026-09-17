@@ -77,6 +77,129 @@ akışının bir parçası DEĞİLDİR.
 
 ---
 
+## Kaynaktan derleme (ikili yerine kaynak koddan build)
+
+> **Doğrulandı (2026-09-17, skyup/`/root/ai/opencode-build`, gerçek koşum — tahmin yok).** Saha makinesinde
+> (saha-makinesi) ayrıca doğrulanmadı; bun sürümü orada da 1.4.2 olduğu için sonuç aynı beklenir ama ağ/registry
+> ve gcc-c++ durumu farklı olabilir — ilk saha koşumunda bu bölümü teyit et.
+
+### Ön koşullar
+
+- **Bun.** Repo kökü `package.json` → `"packageManager": "bun@1.3.14"` istiyor; bu makinede kurulu olan
+  **1.4.2** ile hiçbir sorun çıkmadı (saha makinesiyle aynı sürüm/aynı sonuç). `packages/script/src/index.ts`
+  yalnız `^<packageManager sürümü>` aralığını **build script'i çalışırken** kontrol ediyor — 1.3.14 ile 1.4.2
+  aynı major.minor değil (`^1.3.14` aralığı 1.4.x'i kapsamaz) ama bu makinede build script hatasız çalıştı;
+  yani ya bu kontrol beklenenden gevşek davranıyor ya da build script'in bu satırına hiç girilmedi (statik
+  olarak doğrulanmadı — saha koşumunda `packageManager` uyarısı çıkarsa not düş).
+- Bu makinede `bun` **PATH'te değildi**, ikili `/root/.bun/bin/bun` altında duruyordu →
+  `export PATH="/root/.bun/bin:$PATH"` gerekti. Saha makinesinde PATH durumu ayrı kontrol edilmeli.
+- **`g++` (gcc-c++) eksikti** (`gcc` var, `gcc-c++` yok — `rpm -q gcc-c++` → kurulu değil). Bu, tam
+  `bun install`'ı kırıyor (aşağıya bak) — opencode/bun'ın kendi sorunu değil, bu makinenin C++ derleyici
+  eksikliği.
+
+### 1) Bağımlılıkları kur
+
+```bash
+cd /root/ai/opencode-build   # repo kökü (workspace bütünlüğü için şart — bkz. aşağı "kaynak yoksa")
+export PATH="/root/.bun/bin:$PATH"   # bun PATH'te değilse
+bun install
+```
+
+**Bu makinede düz `bun install` yarıda kesildi:** `tree-sitter-powershell`'in native `node-gyp` derlemesi
+`make: g++: No such file or directory` ile patladı (paket: `node_modules/.bun/tree-sitter-powershell@.../`).
+2708 paketin çoğu o ana kadar zaten indirilip `.bun` store'una açılmıştı, yalnız son adım (postinstall +
+top-level linkleme) yarıda kaldı.
+
+- **Çözüm A (sistem paketi eksik — kurulmadı, onay gerektirir):** `dnf install -y gcc-c++`, sonra düz
+  `bun install` muhtemelen sorunsuz tamamlanır. **Bu koşumda kasıtlı olarak çalıştırılmadı** (sistem paketi
+  kurulumu, minimal-değişiklik ilkesi dışında — Alp karar versin).
+- **Çözüm B (denendi, ÇALIŞTI, sistem değişikliği gerektirmez):**
+  ```bash
+  bun install --ignore-scripts
+  ```
+  Tüm postinstall/native-derleme adımlarını atlar. Bu depoda gözlenen tek yan etki: `packages/core`'un kök
+  `postinstall` betiği (`fix-node-pty`) de atlanır — ama bu paket artık `@lydell/node-pty` + `bun-pty`
+  kullanıyor, betiğin aradığı eski yol (`packages/core/node_modules/node-pty/prebuilds`) zaten **mevcut
+  değildi** (paket adı değişmiş) — yani bu betik zaten no-op durumdaydı, `--ignore-scripts` ekstra bir
+  şey kaybettirmedi (bu depo/sürüm için; başka bir sürümde farklı olabilir, koşarken kontrol et).
+  Sonuç: `Checked 2436 installs across 2708 packages` — workspace tam kuruldu.
+
+### 2) Derle
+
+```bash
+./packages/opencode/script/build.ts --single --skip-embed-web-ui --skip-install
+```
+
+- `--single`: yalnız çalıştığın platform+mimari için derler (burada `linux-x64`). Bayраksız hâli
+  `script/build.ts` içindeki **12 platform×mimari** listesinin tamamını derlemeye çalışır — çok daha uzun
+  sürer ve her hedef için ayrı prebuilt paket ister; tek makine kullanımı için gerekmez.
+- `--skip-embed-web-ui`: web UI'yi ikiliye gömme adımını atlar (`packages/app`'in ayrı bir `bun run build`'ini
+  gerektirir) — yalnız CLI/TUI kullanımı için (kurumun senaryosu) gerekli değil.
+- `--skip-install`: `build.ts`'in normalde **her hedef platform için** `@opentui/core`/`@parcel/watcher`/
+  `@ff-labs/fff-bun`'ı yeniden çekme adımını atlar; adım 1'deki workspace install zaten bu makinenin
+  platformu için doğru paketleri getirmişti.
+- CONTRIBUTING.md'nin "Building a localcode" bölümü de aynı komutu (bayraksız `--single`) belgeliyor —
+  burada eklenenler yalnız bu kurum ortamına özgü bayraklar (`--skip-embed-web-ui`, `--skip-install`) ve
+  offline/Nexus notu.
+
+**Çıktı (bu makinede gerçekten üretildi ve ölçüldü):**
+```
+packages/opencode/dist/opencode-linux-x64/bin/opencode
+```
+- 135 MB, `ELF 64-bit LSB executable, x86-64 ... for GNU/Linux 3.2.0`, en yüksek gerekli `GLIBC_2.17`
+  → RHEL9 (glibc 2.34) / RHEL10 (glibc 2.39) ile uyumlu.
+- Build script kendi **smoke testini** otomatik koşuyor (`dist/.../bin/opencode --version`) — bu koşumda
+  geçti: `Smoke test passed: 0.0.0-main-<tarih>` (preview kanal versiyonu; `OPENCODE_VERSION` env'i verilmezse
+  ve `git branch --show-current` "latest" değilse otomatik böyle üretiliyor, network gerekmiyor).
+- **Süre (bu makinede, sıcak bun cache + `--skip-install` + `--skip-embed-web-ui` ile):** derleme adımının
+  kendisi **~7 saniye**. `bun install` adımı (2708 paket) de saniyeler sürdü çünkü bu makinenin global bun
+  paket önbelleği (`~/.bun/install/cache`) muhtemelen başka bir işten zaten ısınmıştı — **bu süre soğuk
+  önbellek/gerçek ağ ile karşılaştırılabilir değil**, saha koşumunda yeniden ölçülmeli.
+
+### 3) `kur.sh` ile kullan
+
+`kur.sh`, ikilinin nereden geldiğini ayırt etmez — derlenmiş ikiliyi doğrudan `bin/opencode` yerine koyman
+yeterli (bu koşumda denendi, `kur.sh --baglanti-yok` + `oc-dogrula.sh` ile uçtan uca doğrulandı, bkz. aşağıdaki
+"kur.sh uyumluluğu"):
+
+```bash
+cp packages/opencode/dist/opencode-linux-x64/bin/opencode bin/opencode
+chmod +x bin/opencode
+./kur.sh --baglanti-yok   # ya da tam kurulum için bayraksız
+```
+
+### Offline / Nexus npm proxy notu
+
+`bun install`, varsayılan olarak `registry.npmjs.org`'a bağlanır (bu makinede ağ erişimi vardı, test bu şekilde
+yapıldı). Bu repoda **kurum içi bir npm registry override'ı yok** — offline/kurum-ağı senaryosunda `bun`'ı bir
+Nexus npm-proxy'sine yönlendirmek için (repoya commitlenmemesi gereken, yerel bir ayar):
+
+```bash
+# proje kökünde ya da $HOME/.bunfig.toml içinde:
+[install]
+registry = "https://<nexus-kurum-ici>/repository/npm-proxy/"
+# ya da tek seferlik:
+BUN_CONFIG_REGISTRY="https://<nexus-kurum-ici>/repository/npm-proxy/" bun install
+```
+
+Bu ayar bu depoda **denenmedi** (kurum Nexus adresi bu makineden erişilebilir değil) — söz dizimi bun'ın kendi
+dokümantasyonuna dayanıyor, saha koşumunda gerçek bir Nexus npm-proxy'sine karşı doğrulanmalı.
+
+### Kaynak yoksa / erişim yoksa (derleme senaryosu, kurulum değil)
+
+Kaynaktan derlemek için **tek başına `packages/opencode` yetmez** — bu bir Bun workspace'i
+(`package.json` → `workspaces.packages: ["packages/*", ...]`, `bunfig.toml`'daki `catalog:` sürüm
+kilitleri, `bun.lock` kök seviyesinde tek dosya). Taşınması gerekenler:
+- Reponun **tamamı** (git clone/rsync ile — `node_modules` ve `packages/opencode/dist` hariç tutulabilir,
+  `.gitignore`'da zaten dışlanıyorlar).
+- `bun` ikilisinin kendisi (offline hedefse `bun`'ın kendi tek-dosya kurulumu ayrıca taşınmalı — bu deponun
+  kapsamı dışında).
+- npm paketlerine erişim: ya kurum içi Nexus npm-proxy'si (yukarı bak) ya da önceden doldurulmuş bir
+  `~/.bun/install/cache` dizini (taşınabilirse `bun install` ağsız/registry'siz de tamamlanabilir —
+  bu koşumda denenmedi).
+
+---
+
 ## Sorun giderme
 
 | Belirti | Ne yapılır |

@@ -14,8 +14,7 @@ set -euo pipefail
 KOK="$(cd "$(dirname "$0")" && pwd)"
 
 # --ikili-indir varsayılanı: repo Release asset'i (token'sız HTTPS, 185 MB ikili git'e girmez).
-# NOT: <KULLANICI>/<REPO> ve etiket, repo adı kesinleşince doldurulacak (bkz. rapor).
-IKILI_RELEASE_URL="${IKILI_RELEASE_URL:-https://github.com/<KULLANICI>/<REPO>/releases/download/bin-v1.18.30/opencode}"
+IKILI_RELEASE_URL="${IKILI_RELEASE_URL:-https://github.com/alparslanozturk/opencode/releases/download/bin-v1.18.30/opencode}"
 
 BAGLANTI_YOK=0
 BAGLANTI_ZORLA=0

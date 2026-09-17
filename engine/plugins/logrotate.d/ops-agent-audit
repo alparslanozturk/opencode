@@ -1,0 +1,30 @@
+# logrotate örneği — audit-log.ts plugin'inin yazdığı /var/log/ops-agent/audit.jsonl için.
+# Kaynak: ../../../knowledge/policy/AUDIT-FORMAT.md §1.
+# Bu dosya bir ÖRNEKTİR — uygulama (kur.sh entegrasyonu, /etc/logrotate.d/'e kopyalama,
+# aiops kullanıcı/grubunun oluşturulması, postrotate imzalama scripti) Faz 0 kapsamı dışıdır
+# (bkz. notlar/FAZ0-RAPOR.md "açık kalanlar").
+/var/log/ops-agent/audit.jsonl {
+    daily
+    rotate 365
+    # Denetim bulgusu #13: dateext olmadan logrotate numaralı rotasyon üretir
+    # (audit.jsonl.1, audit.jsonl.2.gz, ...) — AUDIT-FORMAT.md §3'ün beklediği
+    # günlük audit-YYYY-MM-DD.jsonl manifest akışını kırar. `extension .jsonl`
+    # ile birlikte kullanıldığında logrotate tarihi uzantıdan ÖNCE ekler
+    # (`audit-2026-09-14.jsonl`, sıkışınca `audit-2026-09-14.jsonl.gz`) —
+    # `dateext` tek başına `audit.jsonl-2026-09-14` üretirdi, istenen biçim değil.
+    dateext
+    dateformat -%Y-%m-%d
+    extension .jsonl
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 aiops aiops
+    postrotate
+        # gün sonu manifestini imzala (AUDIT-FORMAT.md §3), sonra döndür.
+        # Örnek adımlar (Faz 0'da uygulanmadı, tasarım referansı):
+        #   1. dünün audit-YYYY-MM-DD.jsonl satırlarının birleşik hash'ini al
+        #   2. {date, line_count, final_hash, prev_manifest_hash} manifestini yaz
+        #   3. ssh-keygen -Y sign ile ajanın erişemediği bir anahtarla imzala
+    endscript
+}

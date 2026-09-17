@@ -1,0 +1,110 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "autoupdate": false,
+  "model": "kurum/qwen3.6-35b-a3b",
+  "default_agent": "build",
+  "agent": {
+    "plan": {
+      "permission": {
+        "edit": "deny",
+        "bash": "deny"
+      }
+    }
+  },
+  "provider": {
+    "kurum": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Kurum Qwen (iç ağ)",
+      "options": {
+        "baseURL": "http://KURUM_ENDPOINT:PORT/v1",
+        "apiKey": "kurum-anahtari",
+        "timeout": 900000,
+        "headerTimeout": 300000,
+        "chunkTimeout": 180000
+      },
+      "models": {
+        "qwen3.6-35b-a3b": {
+          "id": "MODEL_ID_YER_TUTUCU",
+          "name": "Qwen3.6-35B-A3B-FP8 (kurum)",
+          "tool_call": true,
+          "reasoning": false,
+          "attachment": false,
+          "limit": {
+            "context": 16384,
+            "output": 4096
+          }
+        }
+      }
+    }
+  },
+  "permission": {
+    "skill": {
+      "*": "allow"
+    },
+    "bash": {
+      "*": "ask",
+      "ls*": "allow",
+      "cat*": "allow",
+      "head*": "allow",
+      "tail*": "allow",
+      "wc*": "allow",
+      "file*": "allow",
+      "stat*": "allow",
+      "pwd*": "allow",
+      "whoami*": "allow",
+      "hostname*": "allow",
+      "uname*": "allow",
+      "uptime*": "allow",
+      "date*": "allow",
+      "df*": "allow",
+      "du*": "allow",
+      "free*": "allow",
+      "ps*": "allow",
+      "pvs*": "allow",
+      "vgs*": "allow",
+      "lvs*": "allow",
+      "lsblk*": "allow",
+      "blkid*": "allow",
+      "git status*": "allow",
+      "git log*": "allow",
+      "git diff*": "allow",
+      "git show*": "allow",
+      "git branch*": "allow",
+      "grep*": "allow",
+      "rg*": "allow",
+      "find*": "allow",
+      "journalctl*": "allow",
+      "systemctl status*": "allow",
+      "ss*": "allow",
+      "ip a*": "allow",
+      "ip addr*": "allow",
+      "ip route*": "allow",
+      "mount": "allow",
+      "rm -rf *": "deny",
+      "rm -rf /*": "deny",
+      "mkfs*": "deny",
+      "git push --force*": "deny",
+      "git branch -d*": "deny",
+      "git branch -D*": "deny",
+      "git branch -m*": "deny",
+      "git branch -M*": "deny",
+      "git branch --delete*": "deny",
+      "git branch --move*": "deny",
+      "kubectl delete*": "deny",
+      "kubectl apply*": "deny",
+      "systemctl stop*": "deny",
+      "systemctl restart*": "deny",
+      "ansible-playbook*": "ask",
+      "dd if=*of=/dev/*": "deny"
+    },
+    "edit": "deny",
+    "read": "allow",
+    "grep": "allow",
+    "glob": "allow",
+    "list": "allow",
+    "external_directory": "ask",
+    "webfetch": "deny",
+    "task": "deny",
+    "todowrite": "deny"
+  }
+}

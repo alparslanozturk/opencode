@@ -32,3 +32,12 @@ UPCOMING_CHANGELOG.md
 logs/
 *.bun-build
 tsconfig.tsbuildinfo
+
+# --- Alp katmanı (bkz. kur.sh/NASIL-CALISTIRILIR.md) ---
+# 185 MB ikili git'e girmez — Release asset'ten kur.sh --ikili-indir ile veya
+# elle bin/opencode.tar.xz ile kurulur (bin/ripgrep.tar.xz İZLENİR, ignore edilmez).
+/bin/opencode
+/env
+/env2
+/notlar/
+*.log

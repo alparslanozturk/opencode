@@ -1,0 +1,249 @@
+# NASIL ÇALIŞTIRILIR — opencode (kurum içi / offline)
+
+> Hedef: `test-sunucu` (RHEL). Kaynak kod **gerekmez** — tek ikili + ayar + beceriler yeter.
+> Sonuçta çalışacak komut: **`opencode`** (kısa ad: **`oc`**).
+> **Offline güvence:** `opencode.json`'daki `"npm": "@ai-sdk/openai-compatible"` alanı çalışma anında
+> npm/network tetiklemez — bu SDK opencode'un tek ikilisine derleme zamanında gömülüdür. İnternet/npm
+> erişimi olmayan bir makinede de sorunsuz çalışır (ayrıntı: `README.md` "Offline güvence" — eski
+> `GELISTIRME-RAPORU-OPENCODE-CILA.md` atıfı bu depoda hiç var olmamış bir dosyaydı, kaldırıldı,
+> denetim bulgusu #16).
+
+---
+
+## 3 adımda kurulum
+
+```bash
+# 1) paketi getir ve 3 satırı doldur
+tar xJf opencode-paket.tar.xz -C /root      # -> /root/ai/opencode-agent/   (.tar.gz ise: tar xzf ...)
+vi /root/ai/opencode-agent/env                    # KURUM_URL=http(s)://sunucu:port/v1 (+ KURUM_KEY, MODEL_ID)
+
+# 2) kur (offline; ikili + ayar + 10 çekirdek beceri + oc/opencode kısayolları + rg kurulur,
+#    bağlam penceresi kurum uçtan otomatik tespit edilir, sonda otomatik doğrulama çalışır)
+/root/ai/opencode-agent/kur.sh
+#    38 becerinin tümünü istiyorsan: /root/ai/opencode-agent/kur.sh --tum-beceriler
+
+# 3) çalıştır
+cd /root/ai/aider   # hangi dizinde çalışacaksan orada aç
+opencode              # kısa ad: oc
+```
+**git ile çektiysen** (paket yerine `git pull`/`git clone` ile kuruyorsan):
+```bash
+cd /root/ai/opencode-agent   # repo nerede ise
+cp env.example env 2>/dev/null || vi env   # env oluştur + 3 satırı doldur
+./kur.sh
+```
+> ℹ️ **2026-09-16'dan itibaren `bin/*.tar.xz` git'e commitli DEĞİL** (`.gitignore`'da `bin/`, K1 kararı —
+> repo boyutu şişmesin). Taze bir `git clone` sonrası `bin/` dizini **boş** olur. `kur.sh` bunu net bir
+> hata mesajıyla söyler (`bin/opencode yok`). Çözüm: `bin/opencode.tar.xz` + `bin/ripgrep.tar.xz`'yi ayrı
+> bir kanaldan (paket dağıtımı / kurumun dosya paylaşımı) al, `bin/` altına koy, `./kur.sh`'ı tekrar
+> çalıştır — o zaman kendisi açar. Diskte zaten bu dosyalar varsa (ör. bu paket `tar xJf opencode-paket.tar.xz`
+> ile geldiyse) hiçbir şey yapmana gerek yok.
+
+İlk açılışta **`/models`** → `kurum / Qwen3.6-35B-A3B-FP8` seç (bir kez; sonra hatırlar).
+
+**Doğrulama** (istediğin zaman tekrar çalıştırılabilir, internet gerektirmez):
+```bash
+/root/ai/opencode-agent/oc-dogrula.sh
+```
+
+---
+
+## Ortam değişkenleri
+
+**Ana yol yalnız `env` dosyasıdır** — kur.sh onu okur, sen elle hiçbir şey export etmezsin.
+Aşağıdaki `OPENCODE_*` değişkenleri yalnız **kaçış kapısı / teşhis** amaçlıdır, günlük kullanım
+akışının bir parçası DEĞİLDİR.
+
+| Değişken | Nerede | Zorunlu mu | Ne işe yarar |
+|---|---|---|---|
+| `KURUM_URL` | `env` | evet | Kurum vLLM ucu, `/v1` ile biter (`kur.sh` bunu okuyup `opencode.json`'a yazar) |
+| `KURUM_KEY` | `env` | evet | Uç kimlik doğrulaması istemiyorsa `dummy` yeterli |
+| `MODEL_ID` | `env` | evet | `/v1/models` çıktısındaki model kimliği |
+| `KURUM_MAX_CONTEXT` | `env` | hayır | Bağlam penceresi (token) — `kur.sh` önce `${KURUM_URL}/models`'ten otomatik tespit etmeyi dener; başarısız olursa bu değeri kullanır; o da yoksa mevcut `limit.context` korunur |
+| `OPENCODE_DISABLE_AUTOCOMPACT` | kabukta elle (kaçış kapısı) | hayır | Auto-compaction'ı tamamen kapatır — yalnız teşhis için; context taşarsa sert hata verebilir (bkz. aşağı) |
+| `OPENCODE_LOG_LEVEL` | kabukta elle (kaçış kapısı) | hayır | `DEBUG/INFO/WARN/ERROR` — sorun ararken `--log-level DEBUG` ile aynı iş |
+
+---
+
+## Depo düzeni: motor / bilgi
+
+| Katman | Yer | Ne |
+|---|---|---|
+| **Motor** | `engine/` | `AGENTS.md` (kurallar) · `opencode.json` (ayar) · `plugins/` (araç) |
+| **Bilgi** | `knowledge/` | `skills/approved/` (canlı beceriler) · `experimental/` · `generated/` · `runbooks/` · `incidents/` · `lessons-learned/` · `operations-notes/` · `architecture/` · `roadmap/` |
+
+`kur.sh` becerileri **yalnız `knowledge/skills/approved/`**'dan kurar; ajan `experimental/` + `generated/`'ı okumaz
+(onay kapısı — *"AI kendi kendine öğrenmez, öğrenme önerir"*).
+
+---
+
+## Sorun giderme
+
+| Belirti | Ne yapılır |
+|---|---|
+| `Endpoint 180 sn'dir yeni içerik göndermedi` | Zaman aşımları 900/300/180 sn'ye çekildi; sorun model tarafında — aynı isteği üst üste yineleme |
+| Uzun dosya/log okurken kesilme | Pencere kurulumda tespit edilen değer kadar (bkz. "Ortam değişkenleri"); model `offset`/`limit` ile parça parça okumalı |
+| Beceriler görünmüyor | `~/.config/opencode/skills/` altında mı? `opencode debug skill` ile say. Varsayılan kurulum yalnız **10 çekirdek beceri** kurar — ihtiyacın olan beceri yoksa `kur.sh --tum-beceriler` ile 38'inin tümünü kur |
+| Ayar değişti, etki yok | opencode ayarı açılışta bir kez okunur, sıcak yükleme yok → opencode'u tamamen kapat-aç |
+| TUI bozuk görünüyor (glif/kutu) | Terminal fontu/UTF-8; `TERM=xterm-256color` |
+| `opencode`/`oc` PATH'te yok | `kur.sh` çıktısındaki NOT satırına bak; `export PATH="<kısayol-dizini>:$PATH"` |
+| Var olan başka bir `opencode`/`oc` kısayolu var | `kur.sh` uyarır ve dokunmaz; üzerine yazmak için `kur.sh --baglanti-zorla` (eskisini yedekler) |
+| Ekranda sürekli `⠋ Thinking` + `Compaction`/`Build` art arda dönüyor, hiç ilerlemiyor | **Bilinen sorun, aşağıya bak** ("Compaction thrash / sonsuz döngü") |
+| Çalışma dizini boş (`ll` → `total 0`) ama opencode yine de çalışıyor | Paket o makinede **açılmamış olabilir** — aşağıdaki "Dağıtım kontrolü"ne bak |
+| `ripgrep execution failed` / arama (grep/glob) çalışmıyor | `rg` eksik. `oc-dogrula.sh` çalıştır → 5/7 adımı kontrol eder. `kur.sh` normalde `bin/ripgrep.tar.xz`'yi `~/.cache/opencode/bin/rg`'ye kurar; hâlâ yoksa elle bir statik `rg` ikilisini o yola koy |
+| Çıplak `ls`/`cat`/`git log` gibi salt-okunur komutlar hâlâ izin soruyor | `~/.config/opencode/opencode.json` güncel mi? (`kur.sh`'ı tekrar çalıştır) — Aşama 2'den önceki paketlerde bu kalıplar yoktu |
+| Aynı görevde defalarca "Plan" ajanına düşüyor, komut denemiyor | `Tab` ile **Build** ajanına geç; `kur.sh` artık `default_agent: build` yazıyor ama TUI önceki oturumdan Plan'da kalmış olabilir |
+
+---
+
+## Compaction thrash / sonsuz döngü (2026-09-15 Aşama 1 + 2, kanıtlı kök neden)
+
+**Belirti:** Basit bir istekte (`ls`, "dizini listele") bile ekran sürekli `⠋ Thinking` →
+`Compaction · Qwen...` → `Build · ...` arasında dönüyor, context doluyor (`%86 used` gibi), agent
+tool çağırmak yerine "Next Move / Receive user response..." tipi plan metni üretip duruyor. `esc` ile
+kesmek gerekiyor.
+
+**Kök neden (iki katmanlı; offline olarak `bin/opencode` ile ölçüldü — kurum endpoint'i gerekmedi):**
+
+1. **Baseline bağlam pencerenin büyük bir kısmını kaplıyor.** Ölçüm yöntemi: `opencode.json`'daki
+   `baseURL`'i yerel bir mock HTTP sunucuya yönlendirip (`opencode run "..." --format json`), sunucuya
+   gelen **gerçek istek gövdesi** kaydedildi — tahmin yok, gerçek bayt sayısı + gerçek tokenizer
+   (`tiktoken cl100k_base`, Qwen'in kendi tokenizer'ı yerine en yakın kamuya açık BPE proxy'si).
+2. **Model araç çağırmayan (plan metni gibi) bir yanıt döndürdüğünde, opencode'un adım döngüsü
+   DURMUYOR.** `finish_reason: "stop"` + düz metin içeren geçerli bir OpenAI-uyumlu yanıt geldiğinde,
+   opencode aynı isteği **saniyede onlarca kez, hiç bekleme/üst sınır olmadan** tekrar gönderiyor;
+   her `step-finish` olayı `"reason":"unknown"`. **Bu, modelden bağımsız, ikiliye gömülü bir harness
+   hatası** — repo içinden düzeltilemez.
+
+   > **Kök neden kaynak kodunda bulundu + upstream issue açıldı (2026-09-17):**
+   > `packages/opencode/src/session/prompt.ts` (`SessionPrompt.run`, ~satır 1111) döngü çıkış koşulu
+   > `finish` değeri `"tool-calls"` VEYA `"unknown"` olduğunda kırılmıyor; `"unknown"` da
+   > `packages/opencode/src/session/llm/ai-sdk.ts:23`'te AI SDK'nin döndürdüğü ama opencode'un kendi
+   > `FinishReason` şemasında (`packages/llm/src/schema/ids.ts:39`) tanınmayan her değer için düşülen
+   > varsayılan — kurum vLLM ucu gibi standart-olmayan bir `finish_reason` döndüren her backend'de
+   > **her zaman** tetiklenir. Issue: **https://github.com/anomalyco/opencode/issues/49414**.
+   > **Düzeltme:** "unknown"'ı tamamen hariç tutma listesinden çıkarmak yanlış çıktı — reponun kendi
+   > test takımında bunu bilerek kapsayan bir test var (`"loop continues when finish is unknown"`,
+   > tek seferlik "stream finish sinyali gelmedi" durumunu kurtarmak için). Asıl doğru düzeltme: ardışık
+   > "unknown" denemesine sayaçlı bir üst sınır koymak (`MAX_UNKNOWN_FINISH_RETRIES`) — tek seferlik
+   > kurtarma davranışı korunur, sonsuz tekrar kapanır. Draft PR: **https://github.com/anomalyco/opencode/pull/49418**
+   > (yeni regresyon testiyle: düzeltmeden önce test 5 saniyede timeout ile fail, düzeltmeden sonra pass;
+   > `bun test test/session/ test/agent/` → 463 pass/0 fail; `typecheck` + `oxlint` temiz). Takip: bu
+   > issue/PR kapanırsa bu bölüm ve `SURUM-NOTLARI.md`'deki ilgili girişler güncellenmeli.
+
+   Aşama 2'de doğrulanan ek bulgular:
+   - **`agent.build.steps` bu hatayı durdurmuyor** — `steps=1`, `steps=5` ve steps hiç yokken üçünde de
+     10 saniyede 86-138 istek arasında, fark yok. Bu yüzden config'e **eklenmedi** (yanıltıcı olurdu).
+   - **`opencode 1.18.31`'de de aynı hata var** (npm'den indirilip test edildi): 10 saniyede 135 istek,
+     aynı `"reason":"unknown"` imzası. **Sürüm yükseltmesi çözmüyor.**
+   - **`OPENCODE_DISABLE_AUTOCOMPACT=1` + taban pencereyi aşıyor + backend isteği sessizce kabul
+     ediyorsa (200 OK, boyut kontrolü yok):** opencode context-taşması hatası VERMEDEN doğrudan bu
+     livelock'a düşüyor — ekranda hiçbir ilerleme/hata görünmez. Bu, Alp'in "hiç açılmadı" gözlemiyle
+     örtüşüyor: TUI donmuş görünür çünkü arka planda sessizce saniyede onlarca istek atıyor.
+   - **Backend isteği gerçekten reddederse (HTTP 400 `context_length_exceeded`):** opencode bunu doğru
+     tanıyor (`ContextOverflowError`), 2 istekte temiz hata verip **çıkıyor** — bu YOLDA livelock YOK.
+     Yani sonuç kurum vLLM'in davranışına bağlı: reddederse temiz hata, sessizce kabul ederse livelock.
+
+**Bu pakette yapılan azaltmalar (kökü düzeltmez, alanı küçültür + tetiklenme ihtimalini azaltır):**
+- `engine/opencode.json`: `permission.webfetch/task/todowrite = "deny"` (Aşama 1) — araç şeması
+  ~%38 küçüldü.
+- **Aşama 2:** varsayılan kurulum 38 → **9 çekirdek beceri**. Ölçüm (gerçek istek gövdesi,
+  9 çekirdek vs 38 beceri, aynı 16384 pencere varsayımıyla):
+
+  | | sistem mesajı (ham karakter) | istek gövdesi (bayt) | cl100k token tahmini | pencerenin % (16384) |
+  |---|---|---|---|---|
+  | 38 beceri (Aşama 1 sonu) | 28.705 | 47.031 | 14.633 | %89,3 |
+  | 9 çekirdek beceri (Aşama 2) | 18.692 | 35.162 | 10.413 | %63,6 |
+  | 0 beceri (teorik alt sınır) | 14.967 | 30.734 | 8.793 | %53,7 |
+
+  **Açık kalan:** paketin hedefi olan "taban ≤ pencerenin %40'ı" bu ölçümle **tutturulamadı** —
+  9 beceriyle bile %63,6'da, hatta sıfır beceriyle bile %53,7'de kalıyor (opencode'un kendi yerleşik
+  sistem promptu + 7 zorunlu araç şeması + `AGENTS.md` tek başına pencerenin yarısından fazlasını
+  yiyor, ve göreve dokunulmaması istendi). **%40 hedefi, 16384'lük bir pencerede matematiksel olarak
+  ulaşılamaz** — bu yüzden Paket A'daki gerçek pencere tespiti kritik: pencere gerçekte örn. 32768 ise
+  aynı taban oranı otomatik olarak ~%32'ye düşer.
+
+  **Not (2026-09-15):** çekirdek liste 9 → **10**'a çıktı (`rapor-excel-pdf` eklendi, Excel/PDF çıktı
+  talepleri için). Yukarıdaki ölçüm 9 becerilik eski listeyle yapıldı, yeniden ölçülmedi — oran hafifçe
+  yükselir, sonuç yönü (**%40 hedefi bu pencerede tutturulamıyor**) değişmez.
+- `engine/AGENTS.md`: "Tek adım disiplini", "Çalışma dizini boşsa", "Dosya arama" kuralları — modelin
+  araç çağırmayıp plan metni üretme/tüm diski tarama ihtimalini azaltmayı hedefler; harness hatasını
+  düzeltmez.
+- `compaction.prune=true` (+ `reserved`/`preserve_recent_tokens`) artık `kur.sh` tarafından otomatik
+  yazılıyor. **Etkisi bu ortamda izole ölçülemedi:** büyüyen-geçmiş senaryosunu simüle eden test,
+  compaction eşiğine ulaşmadan **önce** yukarıdaki #2 livelock hatasına düştü (0 compaction olayı
+  gözlendi) — yani hatanın kendisi o kadar agresif ki, compaction ayarının devreye girme şansı bile
+  olmuyor adversarial senaryoda. `prune=true` yine de belgelenmiş, zararsız bir varsayılan olarak
+  bırakıldı (eski tool çıktılarını budamak mantıken thrash'i azaltır), ama "kanıtlanmış çözüm" olarak
+  sunulmuyor.
+
+### Gerçek context penceresini ölçme — artık otomatik (Aşama 2, Paket A)
+`kur.sh` artık kurulum anında `${KURUM_URL}/models`'e sorup `max_model_len` /`context_length` /
+`max_context_length` / `context_window` alanlarından **otomatik tespit** ediyor ve `limit.context`'e
+yazıyor (kaynağıyla birlikte ekrana basar). Tespit başarısız olursa `KURUM_MAX_CONTEXT` (env) kullanılır;
+o da yoksa mevcut değer (`16384`) korunur ve sarı uyarı basılır. Elle doğrulamak istersen:
+```bash
+curl -sS "${KURUM_URL%/}/models" | python3 -m json.tool | grep -iE "max_model_len|context_length|context_window"
+opencode debug config | grep -A3 '"limit"'
+```
+
+**Saha ölçümü (2026-09-16):** saha-sunucu.ornek.local'da kurulu config `limit.context=262144` (256K) gösterdi
+(provider `kurum/qwen3.6-35b-a3b`) — yani kurum uçtaki otomatik tespit gerçekten çalışıyor ve varsayılan
+`16384` şablon değerinin çok üzerinde bir pencere tespit ediliyor. Bu, yukarıdaki "%40 hedefi 16384'te
+matematiksel olarak ulaşılamaz" bulgusunu da hafifletir: gerçek pencere 262144 ise taban bağlam oranı
+otomatik olarak ~%4'e düşer (16 kat büyüme). Şablondaki `16384` değeri **bilinçli olarak değiştirilmedi**
+— bu, kurum uca erişimi olmayan/ölçüm yapmamış bir kurulumda kullanılacak worst-case varsayımdır; gerçek
+değer her zaman `kur.sh`'ın kurulum-anı tespitiyle ezilir.
+
+### Dağıtım kontrolü (Vaka 2: saha-sunucu.ornek.local'da boş çalışma dizini)
+`/root/ai/work/opencode-agent` gibi bir dizinin **boş olması normaldir** — `kur.sh`, `AGENTS.md`'yi ve
+becerileri **global** `~/.config/opencode/`'a kurar, proje dizinine değil (yukarıdaki "3 adımda kurulum"a
+bak: adım 3'te `cd` edilen dizin keyfi bir çalışma dizinidir, paketin kendisi değil). Yani **boş dizin
+başlı başına "kurallar yüklenmedi" anlamına gelmez** — test ederken bunu doğrula:
+```bash
+ls ~/.config/opencode/AGENTS.md          # varsa: global kurallar kurulu
+opencode debug skill 2>&1 | grep -c '"name"'   # varsayılan: 10 çekirdek beceri + yerleşikler (--tum-beceriler ile 38)
+```
+Eğer bu ikisi de boşsa/yoksa, o makinede **`kur.sh` hiç çalıştırılmamış** demektir — paket açılmış olsa
+bile kurulum adımı atlanmış olabilir; `kur.sh`'ı çalıştır.
+
+---
+
+## Dizin kapsamı davranışı (Alp kuralı, 2026-09-11)
+
+- Proje **içinde** okuma/arama serbest; **proje kökünün dışına çıkmak = izin ister** (`external_directory: "ask"`).
+- `AGENTS.md`: açılışta çalışma dizinini duyur, `cd` ile başka klasöre geçme, kök dışında `find`/`grep`/`ls` yapma.
+- **Sertleştirmek istersen:** `opencode.json` → `"external_directory": "deny"` (hiç sormaz, direkt engeller).
+- Kabuk komutları yine sorar (`bash: { "*": "ask" }`); `rm -rf`, `mkfs`, force-push **deny**.
+
+---
+
+## Yanındaki kol: aider (fork)
+
+```bash
+cd /root/ai/aider
+./kur.sh          # venv + paketleri kurar (birkaç dakika), tekrar çalıştırılabilir
+aider             # ya da venv/bin/aider
+```
+- **İlk açılışta:** `/model-ekle` → kurum endpoint adresi + model + anahtar; sonrasında her dizinde düz `aider` yeter.
+- **Modlar:** `shift+tab` → `⏸ plan` → `⏵ onay` → `⏵⏵ oto` (plan modu hiçbir dosyaya dokunmaz).
+- Glif/kutu bozulursa: program içinde `/terminal-setup` ya da `AIDER_ASCII=1 aider`.
+- Ayrıntılı kurulum: `/root/ai/aider/README.md` ("Kurulum" bölümü).
+
+---
+
+## Dosya düzeni
+
+| Ne | Nerede |
+|---|---|
+| opencode ikilisi | `~/.opencode/bin/opencode` · kısayollar: `opencode` / `oc` (`/usr/local/bin` ya da `~/.local/bin`) |
+| opencode ayarı | `~/.config/opencode/opencode.json` |
+| kurallar | `~/.config/opencode/AGENTS.md` |
+| beceriler | `~/.config/opencode/skills/<ad>/SKILL.md` (varsayılan 10 çekirdek, `--tum-beceriler` ile 38) |
+| rg (ripgrep) | `~/.cache/opencode/bin/rg` (`kur.sh` `bin/ripgrep.tar.xz`'den kurar) |
+| paket (kaynak dosyalar) | `/root/ai/opencode-agent/` |
+| kaynak klonu (çalıştırmak için gerekmez) | `/root/work/opencode` |
+| aider fork + venv | `/root/ai/aider/` |
+
+---
+*Patron/Doktor · 2026-09-14 · opencode v1.18.30*

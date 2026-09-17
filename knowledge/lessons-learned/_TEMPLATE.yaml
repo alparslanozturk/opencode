@@ -1,0 +1,9 @@
+# Görev sonu önerisi — şablon
+tarih: 2026-09-14
+task: ""            # görev adı (ör. envanter toplama)
+problem: ""         # karşılaşılan sorun (ör. lshw komutu her sunucuda yok)
+suggestion: ""      # öneri (ör. fallback olarak dmidecode kullanılabilir)
+confidence: high    # high | medium | low
+evidence: ""        # kanıt: komut, çıktı, dosya
+skill_etkisi: ""    # hangi beceri/runbook'u etkiler (yoksa boş)
+# NOT: onaylanana kadar opencode bu öneriyi kullanmaz.

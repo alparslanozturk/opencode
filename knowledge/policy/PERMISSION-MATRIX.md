@@ -17,7 +17,7 @@
 | `glob` | **allow** | Salt-okunur dosya listeleme | Düşük |
 | `list` | **allow** | Salt-okunur dizin listeleme | Düşük |
 | `bash` | **ask** (varsayılan) + belirli desenler **deny** | v1'de mutasyon yok; ama envanter/log işleri bazen salt-okunur kabuk komutu gerektirir (`journalctl`, `rpm -qa`). Her çağrı insana sorulur | **Yüksek** — `ask` yalnız kural (model atlayabilir/yanlış yorumlayabilir); asıl kapı sunucu tarafında forced-command olmalı (bkz. §3) |
-| `edit` (`write` aracı da aynı kapıya tabi — bkz. not) | **v1'de `deny`** — 2026-09-16 (faz0-yuzeye-getir) `engine/opencode.json`'a uygulandı: `permission.edit: "deny"` | v1 salt-okunur ilkesi (`THREAT-MODEL.md` §4) | Orta — dosya sistemi izinleriyle desteklenmezse model "izin var" der gibi davranıp yanlış yola yazabilir |
+| `edit` (`write` aracı da aynı kapıya tabi — bkz. not) | **v2'de `ask`** — 2026-09-19 (Alp kararı: "amaç ile mevcut durum arasındaki boşluk kapatılsın, CC'ye benzesin") `engine/opencode.json`'a uygulandı: `permission.edit: "ask"`. v1'deki blanket `deny` (2026-09-16, faz0-yuzeye-getir) kaldırıldı. | v1'in salt-okunur-only kapsamı (`THREAT-MODEL.md` §4) BT işi **yapamayan** bir ajan üretiyordu — amaçla çelişiyordu. `ask`, CC'nin kendi varsayılanıyla aynı: her yazma insana sorulur, otomatik değil. | Orta-Yüksek — `ask` yalnız kural, model atlayabilir; audit-log plugin (bkz. §aşağı) her denemeyi (izin sonucu ne olursa olsun) kaydeder ki atlatma girişimi görünür olsun. Bu ajanın gerçekten yazmaya başladığı ilk an olduğu için **audit-log plugin'in fiilen kurulu/çalışır olduğu doğrulanmadan** `edit: ask`'ı `allow`'a çevirme. |
 | `skill` | **allow** (`*`) | Beceri yükleme zaten salt-okunur; asıl risk beceri *içeriği*, yükleme eylemi değil | Düşük |
 | `webfetch` | **deny** (v1'de tanımsız → deny sayılır) | Air-gapped'e yakın ortam; dış ağ/telemetri kapalı varsayımı (`engine/AGENTS.md`) | Orta — tanımsız izin opencode'da varsayılan davranışa düşer, açıkça `deny` yazılmalı |
 | `external_directory` | **ask** (mevcut ayarla uyumlu) | `/root/ai/opencode-agent` dışına çıkış her zaman insana sorulmalı — `engine/AGENTS.md` "çalışma dizini kapsamı" kuralını tool seviyesinde destekler | Orta — kural metniyle çakışırsa (AGENTS.md "izin iste" der, tool "ask" sorar) ikisi de aynı yönde olduğu sürece güvenli |
@@ -34,6 +34,18 @@
 > bir izin anahtarı **yok** (bkz. `THREAT-MODEL.md` §4 notu) — aşağıdaki `"write": {...}` bloğu bu yüzden
 > bugün **etkisizdir**, yalnızca gelecekte opencode bu anahtarı gerçekten okumaya başlarsa diye belgede
 > tutuluyor.
+>
+> **Durum (2026-09-19, v1 → v2 geçişi):** Alp'in kararı: ajan salt-okunur kalırsa amacını
+> (kurumun BT işlerini yapmak) yerine getiremiyor — `edit: "deny"` → **`edit: "ask"`** yapıldı
+> (`engine/opencode.json`). Bu geçişin ön koşulu **audit-log plugin'in fiilen çalışır olması**
+> (bkz. `AUDIT-FORMAT.md`) — kod zaten yazılmış ve 2026-09-16'da smoke-test edilmişti, ama bu
+> makinenin (skyup) **canlı** `~/.config/opencode/` kurulumunda şu an (2026-09-19 kontrolünde)
+> `plugins/` dizini **boş** — yani `kur.sh` bu makinede tam çalıştırılmamış/güncellenmemiş.
+> **`edit: "ask"` fiilen etkili olmadan önce `kur.sh` bu makinede (yeniden) çalıştırılıp audit
+> plugin'in kurulduğu doğrulanmalı** — aksi halde yazma denemeleri onaya düşer ama audit'e düşmez.
+> SSH forced-command (§3) hâlâ **tasarım aşamasında**: `aiops` unix hesabı henüz yok, hedef
+> sunucu listesi bu repoda maskeli (`test-sunucu`/`KUME-A`/`KUME-B`) — gerçek hedefler ve hesap
+> kararı Alp'ten bekleniyor, bu dosyada icat edilmedi.
 
 ```json
 {

@@ -37,6 +37,12 @@
 - Yıkıcı komut (rm -rf, mkfs, dnf remove, servis durdurma, force push) → **önce sor**.
 - Kurum dışına veri gönderme; dış ağ/telemetri kapalı varsay.
 - Üretim kümesinde çalışmadan önce "hangi küme bağlı" doğrula (`k8s-rancher` becerisi).
+- **Tanımadığın/kısıtlı bir makinede tam-monorepo paralel build/typecheck/lint çalıştırma** (`bun turbo
+  typecheck`, `turbo run build` gibi kökten tetiklenen, workspace'teki her paket için ayrı süreç açan
+  komutlar). Önce `nproc`/`free -h`/swap durumuna bak; küçükse (ör. 2 vCPU, swap yok) tek paket bazında
+  çalıştır ya da `--concurrency=1|2` ile sınırla. Kanıtlı olay: opencode reposunda (`/root/ai/opencode`,
+  2026-09-19) bu şekilde ~30 paralel `tsgo` süreci makineyi tamamen dondurdu, 5 kez hard-reboot gerekti
+  (bkz. `NASIL-CALISTIRILIR.md` → "Root'tan tam typecheck/build ÇALIŞTIRMA").
 - **İzinler bu dosyada TANIMLANMAZ.** Hangi komutun onaysız çalıştığı (`allow`/`ask`/`deny`)
   `opencode.json` → `permission` bloğunda yazılıdır, burada değil. "AGENTS.md'ye göre izin
   politikası" diye bir şey söyleme/varsayma — iki dosyayı karıştırma: burası **davranış kuralı**,

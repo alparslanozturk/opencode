@@ -2,7 +2,7 @@
 # =============================================================================
 #  kur.sh — opencode paketi kurucusu (kurum içi, offline; ağ/npm gerekmez).
 #
-#  Kullanım:  cd /root/ai/opencode-agent && ./kur.sh
+#  Kullanım:  cd /root/ai/opencode && ./kur.sh   (dizin adı önemli değil, script kendi yolunu bulur)
 #    --baglanti-yok     kısayolları kurma (yalnız ikili + ayar + beceri)
 #    --baglanti-zorla   mevcut başka bir 'opencode'/'oc' varsa yedekle ve üzerine yaz
 #    --tum-beceriler    tüm becerileri kur (varsayılan: 10 çekirdek beceri, bkz. CORE_SKILLS)

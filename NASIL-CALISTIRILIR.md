@@ -13,22 +13,23 @@
 ## 3 adımda kurulum
 
 ```bash
-# 1) paketi getir ve 3 satırı doldur
-tar xJf opencode-paket.tar.xz -C /root      # -> /root/ai/opencode-agent/   (.tar.gz ise: tar xzf ...)
-vi /root/ai/opencode-agent/env                    # KURUM_URL=http(s)://sunucu:port/v1 (+ KURUM_KEY, MODEL_ID)
+# 1) paketi getir ve 3 satırı doldur (KOK = kur.sh'ın bulunduğu dizin, adı önemli değil —
+#    kur.sh kendi yolunu otomatik bulur; aşağıda örnek olarak /root/ai/opencode kullanıldı)
+tar xJf opencode-paket.tar.xz -C /root      # -> /root/ai/opencode/   (.tar.gz ise: tar xzf ...)
+vi /root/ai/opencode/env                    # KURUM_URL=http(s)://sunucu:port/v1 (+ KURUM_KEY, MODEL_ID)
 
 # 2) kur (offline; ikili + ayar + 10 çekirdek beceri + oc/opencode kısayolları + rg kurulur,
 #    bağlam penceresi kurum uçtan otomatik tespit edilir, sonda otomatik doğrulama çalışır)
-/root/ai/opencode-agent/kur.sh
-#    38 becerinin tümünü istiyorsan: /root/ai/opencode-agent/kur.sh --tum-beceriler
+/root/ai/opencode/kur.sh
+#    38 becerinin tümünü istiyorsan: /root/ai/opencode/kur.sh --tum-beceriler
 
 # 3) çalıştır
-cd /root/ai/aider   # hangi dizinde çalışacaksan orada aç
+cd /root/ai/work/opencode/<proje-adi>   # örn. /root/ai/work/opencode/envanter — bkz. docs/PROJE-YAPISI.md
 opencode              # kısa ad: oc
 ```
 **git ile çektiysen** (paket yerine `git pull`/`git clone` ile kuruyorsan):
 ```bash
-cd /root/ai/opencode-agent   # repo nerede ise
+cd /root/ai/opencode   # repo nerede ise
 cp env.example env 2>/dev/null || vi env   # env oluştur + 3 satırı doldur
 ./kur.sh
 ```
@@ -43,7 +44,7 @@ cp env.example env 2>/dev/null || vi env   # env oluştur + 3 satırı doldur
 
 **Doğrulama** (istediğin zaman tekrar çalıştırılabilir, internet gerektirmez):
 ```bash
-/root/ai/opencode-agent/oc-dogrula.sh
+/root/ai/opencode/oc-dogrula.sh
 ```
 
 ---
@@ -79,9 +80,10 @@ akışının bir parçası DEĞİLDİR.
 
 ## Kaynaktan derleme (ikili yerine kaynak koddan build)
 
-> **Doğrulandı (2026-09-17, skyup/`/root/ai/opencode-build`, gerçek koşum — tahmin yok).** Saha makinesinde
-> (saha-makinesi) ayrıca doğrulanmadı; bun sürümü orada da 1.4.2 olduğu için sonuç aynı beklenir ama ağ/registry
-> ve gcc-c++ durumu farklı olabilir — ilk saha koşumunda bu bölümü teyit et.
+> **Doğrulandı (2026-09-17, skyup/`/root/ai/opencode-build`, gerçek koşum — tahmin yok).** Saha makinesi
+> (saha-makinesi) **ayrıca doğrulandı (2026-09-19, Alp)**: npm, Node.js, bun kurulu; Node header'ları
+> manuel kuruldu; kurum içi npm proxy ayarlı. **Derleme tarafında bilinen bir sorun yok** — bkz.
+> `knowledge/architecture/2026-09-saha-topolojisi.md`.
 
 ### Ön koşullar
 
@@ -198,6 +200,26 @@ kilitleri, `bun.lock` kök seviyesinde tek dosya). Taşınması gerekenler:
   `~/.bun/install/cache` dizini (taşınabilirse `bun install` ağsız/registry'siz de tamamlanabilir —
   bu koşumda denenmedi).
 
+### ⚠️ Root'tan tam typecheck/build ÇALIŞTIRMA (2026-09-19, kanıtlı kök neden — makine 5 kez donup rebootlandı)
+
+**Asla** proje kökünden `bun run typecheck` / `bun turbo typecheck` (ya da bayraksız `bun turbo build`)
+çalıştırma. Bu komut, workspace'teki ~30 paketin **her biri için paralel bir `tsgo`** (TypeScript
+native-preview derleyicisi) süreci başlatıyor. Saha/geliştirme makinesi tipik olarak **2 vCPU, 8GB RAM,
+0B swap** — bu kadar `tsgo` süreci aynı anda RAM'i tüketince swap olmadığı için kernel OOM-killer
+yetişmeden makine tamamen donuyor (SSH dahil hiçbir şey yanıt vermiyor), kurtarmak için host seviyesinde
+hard-reset gerekiyor. 2026-09-19'da bu şekilde ~40 dakikada 5 reboot yaşandı.
+
+- **Zaten doğru kural mevcuttu, ihlal edildi:** kök `AGENTS.md` → "Type Checking" bölümü zaten
+  "Always run `bun typecheck` from package directories (e.g., `packages/opencode`), never `tsc`
+  directly" diyor — buna `bun turbo typecheck`'i **kökten** çalıştırmamak da dahil edilmeli.
+- **Doğru kullanım:** `cd packages/opencode && bun typecheck` gibi **tek paket** bazında; tüm workspace'i
+  doğrulamak gerekiyorsa `bun turbo typecheck --concurrency=1` (ya da makinenin `nproc` değerine göre 2)
+  ile paralellik sınırlanmalı.
+- **Güvenlik ağı (henüz kurulmadı, öneri):** bu sınıf makinelerde swap yok — en az 2-4GB swap eklemek,
+  tam donma yerine yavaşlama + OOM-killer'ın araya girmesini sağlar.
+- Herhangi bir ajana (openclaw/Patron dahil) bu repoda tam derleme/typecheck gibi ağır komutları
+  **tetiklettirme** — bkz. kök `/root/CLAUDE.md`.
+
 ---
 
 ## Sorun giderme
@@ -216,6 +238,7 @@ kilitleri, `bun.lock` kök seviyesinde tek dosya). Taşınması gerekenler:
 | `ripgrep execution failed` / arama (grep/glob) çalışmıyor | `rg` eksik. `oc-dogrula.sh` çalıştır → 5/7 adımı kontrol eder. `kur.sh` normalde `bin/ripgrep.tar.xz`'yi `~/.cache/opencode/bin/rg`'ye kurar; hâlâ yoksa elle bir statik `rg` ikilisini o yola koy |
 | Çıplak `ls`/`cat`/`git log` gibi salt-okunur komutlar hâlâ izin soruyor | `~/.config/opencode/opencode.json` güncel mi? (`kur.sh`'ı tekrar çalıştır) — Aşama 2'den önceki paketlerde bu kalıplar yoktu |
 | Aynı görevde defalarca "Plan" ajanına düşüyor, komut denemiyor | `Tab` ile **Build** ajanına geç; `kur.sh` artık `default_agent: build` yazıyor ama TUI önceki oturumdan Plan'da kalmış olabilir |
+| Makine tamamen donuyor / SSH yanıt vermiyor (reboot gerekiyor) | Root'tan `bun run typecheck` / `bun turbo typecheck` çalıştırılmış olabilir — **bilinen sorun, yukarıya bak** ("Root'tan tam typecheck/build ÇALIŞTIRMA") |
 
 ---
 
@@ -364,7 +387,7 @@ aider             # ya da venv/bin/aider
 | kurallar | `~/.config/opencode/AGENTS.md` |
 | beceriler | `~/.config/opencode/skills/<ad>/SKILL.md` (varsayılan 10 çekirdek, `--tum-beceriler` ile 38) |
 | rg (ripgrep) | `~/.cache/opencode/bin/rg` (`kur.sh` `bin/ripgrep.tar.xz`'den kurar) |
-| paket (kaynak dosyalar) | `/root/ai/opencode-agent/` |
+| paket (kaynak dosyalar) | `/root/ai/opencode/` |
 | kaynak klonu (çalıştırmak için gerekmez) | `/root/work/opencode` |
 | aider fork + venv | `/root/ai/aider/` |
 

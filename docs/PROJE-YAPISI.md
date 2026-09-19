@@ -46,21 +46,24 @@ opencode'da Claude Code'daki `#` ile hafızaya ekleme kısayolu **yok**. Kalıc�
 
 ## Örnek proje iskeleti
 
+> **Gerçek kök (Alp, 2026-09-19):** saha-makinesi'te çalışma kökü `/root/ai/work/opencode/` — her
+> proje bunun **doğrudan altında** (`projeler/` gibi bir ara katman yok). İlk proje: `envanter/`
+> (`/root/ai/work/opencode/envanter/`, Faz 0'ın ilk görevi). Aşağıdaki iskelet genel kalıptır,
+> `<proje-adi>` yerine gerçek adı (`envanter`, vb.) koy.
+
 ```
-~/ansible/dns-ntp-splunk/
+/root/ai/work/opencode/<proje-adi>/
 ├─ AGENTS.md                  # projeye özel kurallar + notlar  (global'e EKLENİR)
 ├─ opencode.json              # (opsiyonel) instructions / izin ince ayarı
 ├─ .opencode/
 │  ├─ skills/<ad>/SKILL.md    # sadece bu projede geçerli yetenek
 │  └─ commands/<ad>.md        # sadece bu projede geçerli komut
 ├─ inventories/               # envanterler burada (proje içi → izin kapısı çıkmaz)
-├─ playbooks/
-├─ roles/
-├─ group_vars/
-└─ baseline/                  # ölçüm/rapor çıktıları
+├─ ansible/                   # ansible görevi olan projelerde: playbooks/, roles/, group_vars/, baseline/
+└─ baseline/                  # ölçüm/rapor çıktıları (ansible yoksa proje kökünde)
 ```
 
-Kullanım: `cd ~/ansible/dns-ntp-splunk && oc`
+Kullanım: `cd /root/ai/work/opencode/<proje-adi> && oc` (örn. `cd /root/ai/work/opencode/envanter && oc`)
 
 ## "Umumi" olunca ne olur
 

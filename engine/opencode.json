@@ -97,7 +97,7 @@
       "ansible-playbook*": "ask",
       "dd if=*of=/dev/*": "deny"
     },
-    "edit": "deny",
+    "edit": "ask",
     "read": "allow",
     "grep": "allow",
     "glob": "allow",

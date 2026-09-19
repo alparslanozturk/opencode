@@ -200,25 +200,31 @@ kilitleri, `bun.lock` kök seviyesinde tek dosya). Taşınması gerekenler:
   `~/.bun/install/cache` dizini (taşınabilirse `bun install` ağsız/registry'siz de tamamlanabilir —
   bu koşumda denenmedi).
 
-### ⚠️ Root'tan tam typecheck/build ÇALIŞTIRMA (2026-09-19, kanıtlı kök neden — makine 5 kez donup rebootlandı)
+### ✅ Root'tan typecheck artık güvenli — otomatik sınırlı (2026-09-19, düzeltildi; önceki hali: makine 5 kez donup rebootlandı)
 
-**Asla** proje kökünden `bun run typecheck` / `bun turbo typecheck` (ya da bayraksız `bun turbo build`)
-çalıştırma. Bu komut, workspace'teki ~30 paketin **her biri için paralel bir `tsgo`** (TypeScript
-native-preview derleyicisi) süreci başlatıyor. Saha/geliştirme makinesi tipik olarak **2 vCPU, 8GB RAM,
-0B swap** — bu kadar `tsgo` süreci aynı anda RAM'i tüketince swap olmadığı için kernel OOM-killer
-yetişmeden makine tamamen donuyor (SSH dahil hiçbir şey yanıt vermiyor), kurtarmak için host seviyesinde
-hard-reset gerekiyor. 2026-09-19'da bu şekilde ~40 dakikada 5 reboot yaşandı.
+**Geçmiş:** Kök `typecheck` script'i (`bun turbo typecheck`), workspace'teki ~30 paketin **her biri için
+paralel bir `tsgo`** (TypeScript native-preview derleyicisi) süreci başlatıyordu, concurrency sınırı yoktu.
+Saha/geliştirme makinesi tipik olarak **2 vCPU, 8GB RAM, 0B swap** — bu kadar `tsgo` süreci aynı anda
+RAM'i tüketince swap olmadığı için kernel OOM-killer yetişmeden makine tamamen donuyordu (SSH dahil
+hiçbir şey yanıt vermiyordu), kurtarmak için host seviyesinde hard-reset gerekiyordu. 2026-09-19'da bu
+şekilde ~40 dakikada 5 reboot yaşandı. Detaylı kayıt: `knowledge/incidents/2026-09-19-typecheck-donma.md`.
 
-- **Zaten doğru kural mevcuttu, ihlal edildi:** kök `AGENTS.md` → "Type Checking" bölümü zaten
-  "Always run `bun typecheck` from package directories (e.g., `packages/opencode`), never `tsc`
-  directly" diyor — buna `bun turbo typecheck`'i **kökten** çalıştırmamak da dahil edilmeli.
-- **Doğru kullanım:** `cd packages/opencode && bun typecheck` gibi **tek paket** bazında; tüm workspace'i
-  doğrulamak gerekiyorsa `bun turbo typecheck --concurrency=1` (ya da makinenin `nproc` değerine göre 2)
-  ile paralellik sınırlanmalı.
-- **Güvenlik ağı (henüz kurulmadı, öneri):** bu sınıf makinelerde swap yok — en az 2-4GB swap eklemek,
-  tam donma yerine yavaşlama + OOM-killer'ın araya girmesini sağlar.
-- Herhangi bir ajana (openclaw/Patron dahil) bu repoda tam derleme/typecheck gibi ağır komutları
-  **tetiklettirme** — bkz. kök `/root/CLAUDE.md`.
+**Kalıcı düzeltme (commit `c6f1ce7d74`):** `script/safe-concurrency.sh`, hem `nproc` hem
+`/proc/meminfo`'daki `MemAvailable` değerine bakıp güvenli bir concurrency hesaplıyor (~700MB/süreç
+varsayımıyla, ikisinin küçüğü kullanılıyor). Kök `package.json`'daki `typecheck` script'i artık bunu
+kullanıyor, `.husky/pre-push` de kendi kopyasını tutmadan yalnız `bun typecheck`'i çağırıyor — yani
+**hangi yoldan çağrılırsa çağrılsın** (`git push`, CI, doğrudan `bun run typecheck`, başka bir sunucuda
+başka bir ajan) aynı korumadan geçiyor. Bu fix repoya gömülü olduğu için klonlanan **her** sunucuda
+(kurum filosu dahil) otomatik geçerli — host bazında ayrı kurulum gerekmiyor. Karar gerekçesi:
+`knowledge/architecture/decisions/0002-typecheck-guvenli-calisma.md`.
+
+- 2026-09-19'da iki gerçek `git push` ile canlı doğrulandı: bellek boyunca GB'larca boş kaldı, makine
+  hiç zorlanmadı, 30/30 typecheck task'ı geçti.
+- **Yine de dikkat:** Bu, "sınırsız paralellik" riskini kapatır, "sıfır yük" değil — çok büyük/ağır bir
+  workspace'te ya da çok daha kısıtlı bir makinede (ör. 1 vCPU/1GB RAM konteyner) yine de dikkatli olun;
+  tek paket bazında çalıştırmak (`cd packages/opencode && bun typecheck`) her zaman en hafif yol.
+- **Açık kalem (henüz uygulanmadı, zorunlu değil):** bu sınıf makinelerde swap yok — en az 2-4GB swap
+  eklemek ek bir savunma katmanı olurdu, ama kök neden zaten kod seviyesinde kapatıldığı için acil değil.
 
 ---
 
@@ -238,7 +244,7 @@ hard-reset gerekiyor. 2026-09-19'da bu şekilde ~40 dakikada 5 reboot yaşandı.
 | `ripgrep execution failed` / arama (grep/glob) çalışmıyor | `rg` eksik. `oc-dogrula.sh` çalıştır → 5/7 adımı kontrol eder. `kur.sh` normalde `bin/ripgrep.tar.xz`'yi `~/.cache/opencode/bin/rg`'ye kurar; hâlâ yoksa elle bir statik `rg` ikilisini o yola koy |
 | Çıplak `ls`/`cat`/`git log` gibi salt-okunur komutlar hâlâ izin soruyor | `~/.config/opencode/opencode.json` güncel mi? (`kur.sh`'ı tekrar çalıştır) — Aşama 2'den önceki paketlerde bu kalıplar yoktu |
 | Aynı görevde defalarca "Plan" ajanına düşüyor, komut denemiyor | `Tab` ile **Build** ajanına geç; `kur.sh` artık `default_agent: build` yazıyor ama TUI önceki oturumdan Plan'da kalmış olabilir |
-| Makine tamamen donuyor / SSH yanıt vermiyor (reboot gerekiyor) | Root'tan `bun run typecheck` / `bun turbo typecheck` çalıştırılmış olabilir — **bilinen sorun, yukarıya bak** ("Root'tan tam typecheck/build ÇALIŞTIRMA") |
+| Makine tamamen donuyor / SSH yanıt vermiyor (reboot gerekiyor) | 2026-09-19 öncesi bilinen bir sorundu (root'tan sınırsız paralel `tsgo`); **artık düzeltildi**, bkz. yukarıda "Root'tan typecheck artık güvenli". Yine de oluyorsa `script/safe-concurrency.sh`'ın çalıştığını doğrula, `knowledge/incidents/2026-09-19-typecheck-donma.md`'ye yeni bulgu ekle |
 
 ---
 

@@ -17,8 +17,7 @@ if (process.versions.bun !== expectedBunVersion) {
   console.warn(`Warning: Bun version ${process.versions.bun} differs from expected ${expectedBunVersion}`);
 }
 '
-# local patch (2026-09-19, Alp — küçük VM'de donma): "bun typecheck" -> "bun turbo typecheck" her
-# workspace paketi için paralel bir tsgo süreci açıyor; 2 vCPU + swapsız bu makinede bu, RAM'i
-# tüketip makineyi tamamen donduruyor (hard-reboot gerekti, aynı gün 2. kez). nproc'a göre
-# sınırlandırıldı. Upstream'e gönderilmedi, yalnız bu ortam için.
-bun turbo typecheck --concurrency="$(nproc 2>/dev/null || echo 2)"
+# Guvenli paralellik sinirlamasi artik kokte, script/safe-concurrency.sh
+# uzerinden "typecheck" script'inin kendisinde (bkz. package.json) — burada
+# ikinci bir kopyasini tutmuyoruz ki iki yer birbirinden sapmasin.
+bun typecheck

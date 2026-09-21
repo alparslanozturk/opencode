@@ -17,6 +17,7 @@ Kod geliştirme YOK — sadece ayar + içerik. Amaç: **önce denemek**, sonuç 
 | `knowledge/skills/parked/` | Kalan **28 beceri** (2026-09-16 sadeleştirmesi, Alp kararı) — `--tum-beceriler` ile approved/ ile birlikte kurulur, bkz. `parked/README.md` |
 | `knowledge/` | Kurumsal bilgi deposu: `skills` · `runbooks` · `incidents` · `lessons-learned` · `operations-notes` · `architecture` · `roadmap` |
 | `kur.sh` | Tek komutla kurar (offline) — `opencode`+`oc` kısayollarını kurar, sonda `oc-dogrula.sh` çalıştırır |
+| `alp.sh` | **Kaynaktan derler** (saha/offline: yalnız CLI workspace + models.dev snapshot). Önce `al.sh` ile senkron, sonra `./alp.sh` — bkz. `NASIL-CALISTIRILIR.md` → "Saha kurulumu" |
 | `oc-dogrula.sh` | Kurulumu doğrular (offline; kurum ucu erişilemezse hata değil uyarı verir) |
 | `NASIL-CALISTIRILIR.md` | **Adım adım çalıştırma + sorun giderme** (önce bunu oku) |
 | `DENEYIM-AKTARIM.md` | Aider'da öğrendiklerimizin opencode karşılığı — ne aktarıldı, ne aktarılamadı |

@@ -13,6 +13,11 @@
   header'ları **manuel** kuruldu (native modül derlemesi için); kurum içi **npm proxy** ayarlanmış.
   → `NASIL-CALISTIRILIR.md`'deki "saha makinesinde ayrıca doğrulanmadı" uyarısı **artık geçerli değil**
   bu makine için (aşağıda güncellendi).
+- **Offline derleme engelleri kaldırıldı (2026-09-21):** sahada `bun install` npm **dışı** iki bağımlılıkta
+  (pkg.pr.new/@solidjs/start, github:ghostty-web) ve `bun run build` `models.dev/api.json` fetch'inde
+  duruyordu. Çözüm repoya girdi: `alp.sh` (git adımı yok, `--filter="./packages/opencode"` ile yalnız CLI
+  workspace'i + repodaki models.dev snapshot). Adım adım: `NASIL-CALISTIRILIR.md` → "Saha kurulumu
+  (saha-makinesi, offline)".
 - **ara-makine** = git kaynağı, kod buradan çekiliyor (mevcut `al.sh` akışı).
 - **ktbulut tarafında ayrı, farklı ad/IP'li bir merkezi satellite sunucu daha var** — orada da
   opencode çalıştırılacak ama **ayrı yönetilecek, ileride** (bu dosyanın kapsamı dışında).

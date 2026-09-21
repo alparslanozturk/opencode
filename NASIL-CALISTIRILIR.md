@@ -85,6 +85,114 @@ akışının bir parçası DEĞİLDİR.
 > manuel kuruldu; kurum içi npm proxy ayarlı. **Derleme tarafında bilinen bir sorun yok** — bkz.
 > `knowledge/architecture/2026-09-saha-topolojisi.md`.
 
+---
+
+## 🛠️ Saha kurulumu (saha-makinesi, offline) — `al.sh` → `alp.sh`
+
+> **Kime:** dış interneti olmayan, yalnız **kurum içi npm proxy**'sine erişen saha makinesi.
+> **Doğrulandı: 2026-09-21** — skyup'ta, `pkg.pr.new` / `api.github.com` / `github.com` / `models.dev`
+> host'ları bir mount namespace'inde karartılarak (`unshare -m` + sahte `/etc/hosts`) ve **boş bun
+> önbelleğiyle** (`BUN_INSTALL_CACHE_DIR`) gerçekten koşuldu; kanıt ölçümleri aşağıda.
+
+```bash
+# 1) kodu çek (senkron — Alp'in kendi akışı: git pull + rsync)
+./al.sh
+
+# 2) derle + kısayol kur (saha makinesinde, tek komut)
+cd /root/ai/opencode && ./alp.sh
+
+# 3) kullan
+opencode --version        # kısayol: /usr/local/bin/opencode -> dist/.../bin/opencode
+```
+
+`alp.sh` **yalnız derler** — içinde `git pull` YOKTUR (saha makinesinde git kaynağı yok; senkron `al.sh`'ın
+işi). Yaptıkları sırayla:
+
+| Adım | Ne yapar | Neden |
+|---|---|---|
+| bun bulma | PATH → `$HOME/.bun/bin` → `/root/.bun/bin` (ya da `BUN=` ile elle) | Saha makinesinde bun PATH'te olmayabiliyor |
+| `MODELS_DEV_API_JSON` | Repodaki `packages/opencode/script/models-dev-api.json` snapshot'ını gösterir | Derleme `https://models.dev/api.json`'a **hiç bağlanmasın** |
+| `bun install --filter="./packages/opencode"` | Yalnız CLI workspace'inin bağımlılıkları | Web/console paketlerinin **npm dışı** bağımlılıklarını hiç çözmez |
+| `build.ts --single --skip-embed-web-ui --skip-install` | Tek platform, web UI gömmeden | Kurum senaryosu yalnız CLI/TUI |
+| symlink | `/usr/local/bin/opencode` (yazılamazsa `~/.local/bin`) | `KISAYOL_DIZIN` ile değiştirilebilir |
+
+Ek bayraklar: `--bin-kopyala` (ikiliyi `bin/opencode`'a da kopyalar → `kur.sh` akışı),
+`--kurulum-yok` (`bun install`'ı atla), tanınmayan bayraklar `bun install`'a aktarılır
+(ör. `./alp.sh --ignore-scripts`, native derleme sorunluysa).
+
+### Kurum içi npm proxy — `~/.bunfig.toml` (repoya GİRMEZ)
+
+Registry ayarı **kişisel/makine yereldir**; repodaki `bunfig.toml` upstream opencode'un kendi install
+ayarıdır, kurum adresi oraya yazılmaz (public repo). Saha makinesinde:
+
+```toml
+# ~/.bunfig.toml
+[install]
+registry = "https://<kurum-npm-proxy>/repository/npm-proxy/"
+```
+
+Tek seferlik alternatif: `BUN_CONFIG_REGISTRY="https://<kurum-npm-proxy>/..." ./alp.sh`.
+
+### Offline'da patlayan iki şey ve çözümleri (2026-09-21, Alp'in saha hatalarından)
+
+**1) `bun install` → 2 bağımlılık inmiyor.** Kök `package.json` catalog'unda
+`@solidjs/start: https://pkg.pr.new/@solidjs/start@dfb2020`, `packages/app/package.json`'da
+`ghostty-web: github:anomalyco/ghostty-web#83c0a07...` var — ikisi de **npm registry dışı** (pkg.pr.new ve
+api.github.com), kurum proxy'si bunları aynalamıyor.
+**Çözüm: bu paketlere hiç ihtiyaç duymamak.** İkisi de yalnız `packages/app` / `packages/console/*` /
+`packages/enterprise` / `packages/stats/*` tarafında; CLI (`packages/opencode`) bunlara **hiç bağlı değil**
+(`packages/opencode/package.json`'da ne app ne console geçiyor). Bu yüzden `alp.sh`
+`bun install --filter="./packages/opencode"` kullanıyor:
+
+- kurulan paket sayısı **2708 → 1000**'e iniyor,
+- `node_modules/ghostty-web` ve `node_modules/@solidjs/start` **hiç oluşmuyor** (dolayısıyla indirilmiyor),
+- `bun.lock` **değişmiyor** (`git status` temiz kalıyor — filtreli kurulum lockfile'ı bozmuyor).
+- Daha sıkı istersen: `./alp.sh --frozen-lockfile` (lockfile ile `package.json` ayrışmışsa hata verir).
+
+**2) `bun run build` → `models.dev` ECONNRESET.** `build.ts` ilk satırlarda `./generate.ts`'i import ediyor,
+o da model kataloğunu (`https://models.dev/api.json`, ~4.7 MB) çekip derleme zamanı sabiti olarak
+(`OPENCODE_MODELS_DEV`) ikiliye gömüyor. Ağsız makinede bağlantı ECONNRESET ile kopuyor ve build duruyor.
+**Çözüm (iki katmanlı, online davranış bozulmadan):**
+
+- Repoda **snapshot**: `packages/opencode/script/models-dev-api.json` (2026-09-21 tarihli, 222 sağlayıcı).
+- `generate.ts` sırası: `MODELS_DEV_API_JSON` (açık override) → canlı `fetch` (30 sn zaman aşımı, JSON
+  doğrulaması ile) → **başarısız olursa snapshot**. Yani internetli makinede davranış eskisi gibi (taze
+  katalog), ağsız makinede sessizce snapshot'a düşüyor (uyarı satırı basarak).
+- `alp.sh` ayrıca `MODELS_DEV_API_JSON`'u snapshot'a ayarlıyor → sahada **fetch hiç denenmiyor** (zaman
+  aşımı beklemesi de yok).
+
+**Snapshot'ı tazelemek** (internetli makinede, ör. skyup; sonra commit'le):
+```bash
+curl -sSf https://models.dev/api.json -o packages/opencode/script/models-dev-api.json
+```
+> Yeni bir model/sağlayıcı sahada görünmüyorsa nedeni budur: ikiliye gömülü katalog, snapshot'ın
+> tarihindeki hâlidir. Kurum ucu (`openai-compatible`) zaten `opencode.json`'dan tanımlandığı için
+> günlük kullanımda snapshot tazeliği kritik değildir.
+
+### Doğrulama koşumu (2026-09-21, skyup — gerçek çıktı)
+
+Kurulum ve derleme, **boş bun önbelleğiyle** ve `pkg.pr.new` / `api.github.com` / `github.com` /
+`models.dev` host'ları karartılmış bir mount namespace'inde koşuldu (npm registry açık — kurum proxy'si
+senaryosu):
+
+```
+==> bun: /root/.bun/bin/bun (1.4.2)
+==> models.dev snapshot: .../packages/opencode/script/models-dev-api.json
+==> bun install --filter=./packages/opencode        -> 1000 packages installed [20.65s]
+==> build.ts --single --skip-embed-web-ui --skip-install
+Loaded models.dev snapshot
+building opencode-linux-x64
+Smoke test passed: 0.0.0--202609211229
+==> ikili: .../dist/opencode-linux-x64/bin/opencode (135M)
+real 0m35s   (kurulum + derleme toplamı)
+```
+
+- `node_modules/ghostty-web` ve `node_modules/@solidjs/start` **oluşmadı**, `bun.lock` **değişmedi**.
+- Üretilen ikili **ağı tamamen kapalı** ortamda (`unshare -n opencode models`) model listesini bastı →
+  katalog gerçekten ikiliye gömülü.
+- `generate.ts`'in iki yolu ayrı ayrı denendi: internetli koşumda canlı `fetch` (uyarı yok), `unshare -n`
+  koşumunda `models.dev unreachable ... falling back to snapshot` + başarılı devam.
+
 ### Ön koşullar
 
 - **Bun.** Repo kökü `package.json` → `"packageManager": "bun@1.3.14"` istiyor; bu makinede kurulu olan
@@ -101,10 +209,16 @@ akışının bir parçası DEĞİLDİR.
 
 ### 1) Bağımlılıkları kur
 
+> Aşağısı **elle/tam workspace** koşumunu anlatır (2026-09-17 ölçümü). Saha/offline makinesinde bunun
+> yerine `./alp.sh` kullan — o, filtreli kurulumu ve models.dev snapshot'ını kendisi ayarlar
+> (yukarıdaki "Saha kurulumu").
+
 ```bash
 cd /root/ai/opencode-build   # repo kökü (workspace bütünlüğü için şart — bkz. aşağı "kaynak yoksa")
 export PATH="/root/.bun/bin:$PATH"   # bun PATH'te değilse
-bun install
+bun install                          # tam workspace (2708 paket) — internet gerekir (pkg.pr.new + github)
+# offline/kurum ağı: yalnız CLI (1000 paket, npm dışı kaynak istemez)
+bun install --filter="./packages/opencode"
 ```
 
 **Bu makinede düz `bun install` yarıda kesildi:** `tree-sitter-powershell`'in native `node-gyp` derlemesi
@@ -186,6 +300,11 @@ BUN_CONFIG_REGISTRY="https://<nexus-kurum-ici>/repository/npm-proxy/" bun instal
 
 Bu ayar bu depoda **denenmedi** (kurum Nexus adresi bu makineden erişilebilir değil) — söz dizimi bun'ın kendi
 dokümantasyonuna dayanıyor, saha koşumunda gerçek bir Nexus npm-proxy'sine karşı doğrulanmalı.
+
+> **Ama registry tek başına yetmez:** kurum proxy'si npm'i aynalasa bile, tam `bun install` **npm dışı** iki
+> kaynağa (pkg.pr.new, api.github.com) gitmeye çalışır ve orada patlar. Offline çözüm yukarıdaki
+> "Saha kurulumu" bölümünde: `bun install --filter="./packages/opencode"` + models.dev snapshot (`alp.sh`
+> ikisini de kendisi yapar).
 
 ### Kaynak yoksa / erişim yoksa (derleme senaryosu, kurulum değil)
 

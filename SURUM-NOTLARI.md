@@ -1,5 +1,32 @@
 # SÜRÜM NOTLARI — opencode ajan kiti
 
+## 2026-09-21 — Offline (saha) derleme çalışır hâle getirildi: `alp.sh` + models.dev snapshot
+
+**Sorun (Alp, saha-makinesi):** kaynaktan derleme iki yerde duruyordu — (1) `bun install`, npm **dışı** iki
+bağımlılığı çekemiyordu (`pkg.pr.new/@solidjs/start`, `github:anomalyco/ghostty-web`), (2) `bun run build`
+`https://models.dev/api.json`'a bağlanmaya çalışıp ECONNRESET ile ölüyordu.
+
+**Ne değişti:**
+- **`alp.sh` yeniden yazıldı** — artık **yalnız derler** (içindeki `git pull` kaldırıldı; senkron `al.sh`'ın
+  işi, saha makinesinde git kaynağı yok). bun'ı PATH dışında da bulur, `bun install --filter="./packages/opencode"`
+  ile **yalnız CLI workspace'ini** kurar (2708 → 1000 paket; web/console paketlerinin npm dışı bağımlılıkları
+  hiç çözülmez), `build.ts --single --skip-embed-web-ui --skip-install` ile derler, `/usr/local/bin/opencode`
+  (yazılamazsa `~/.local/bin`) symlink'ini kurar. Bayraklar: `--bin-kopyala`, `--kurulum-yok`, gerisi
+  `bun install`'a aktarılır. Kurum registry'si/hostname'i **betiğe girmedi** — o, `~/.bunfig.toml`'da kalır.
+- **`packages/opencode/script/generate.ts`**: sıra artık `MODELS_DEV_API_JSON` → canlı `fetch`
+  (30 sn zaman aşımı + JSON doğrulaması) → **repodaki snapshot**. Online davranış aynı, ağsız makinede
+  build artık durmuyor.
+- **`packages/opencode/script/models-dev-api.json`** (4.7 MB, 222 sağlayıcı, 2026-09-21) repoya eklendi;
+  tazelemek: `curl -sSf https://models.dev/api.json -o packages/opencode/script/models-dev-api.json`.
+- **Dokümanlar:** `NASIL-CALISTIRILIR.md` → yeni "🛠️ Saha kurulumu (saha-makinesi, offline)" bölümü
+  (adım adım `al.sh` → `alp.sh`, `~/.bunfig.toml` örneği, iki sorunun kök nedeni + çözümü, doğrulama
+  çıktısı); `ALP-README.md` dosya tablosuna `alp.sh` eklendi.
+
+**Doğrulama (tahmin yok):** boş bun önbelleği + `pkg.pr.new`/`api.github.com`/`github.com`/`models.dev`
+karartılmış mount namespace'inde tam koşum — `1000 packages installed [20.65s]`, derleme+smoke test
+geçti, 135 MB ikili; `bun.lock` değişmedi, `ghostty-web`/`@solidjs/start` hiç kurulmadı; ikili ağı
+tamamen kapalı ortamda (`unshare -n`) model listesini bastı.
+
 ## 2026-09-16 — Paket sadeleştirmesi: bin/ git'ten çıkarıldı + beceri parkı (Alp kararları)
 
 **Ne değişti (`faz0-yuzeye-getir` branch, `notlar/FAZ0-KARARLAR-RAPORU.md`):**

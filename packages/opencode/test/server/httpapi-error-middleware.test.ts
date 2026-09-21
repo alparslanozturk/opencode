@@ -11,11 +11,10 @@ import { testEffect } from "../lib/effect"
 const it = testEffect(Layer.mergeAll(NodeHttpServer.layerTest, NodeServices.layer))
 
 function expectUnknownErrorBody(body: unknown) {
-  expect(body).toMatchObject({
-    name: "UnknownError",
-    data: { message: "Unexpected server error. Check server logs for details." },
-  })
-  expect((body as { data?: { ref?: unknown } }).data?.ref).toMatch(/^err_[0-9a-f-]{8}$/)
+  expect(body).toMatchObject({ name: "UnknownError" })
+  const data = (body as { data?: { message?: unknown; ref?: unknown } }).data
+  expect(data?.ref).toMatch(/^err_[0-9a-f-]{8}$/)
+  expect(data?.message).toBe(`Unexpected server error. Check server logs for details. (ref: ${data?.ref})`)
 }
 
 describe("HttpApi error middleware", () => {
@@ -80,6 +79,34 @@ describe("HttpApi error middleware", () => {
       })
       expect(serialized).toContain("/tmp/opencode.json")
       expect(serialized).toContain("anthropic")
+    }),
+  )
+
+  it.live("surfaces a typed status and short reason for known provider defects", () =>
+    Effect.gen(function* () {
+      const defect = Object.assign(new TypeError("fetch failed"), {
+        cause: Object.assign(new Error("connect ECONNREFUSED"), {
+          code: "ECONNREFUSED",
+          hostname: "llm.internal",
+        }),
+      })
+
+      yield* HttpRouter.add("GET", "/unreachable", Effect.die(defect)).pipe(
+        Layer.provide(errorLayer),
+        HttpRouter.serve,
+        Layer.build,
+      )
+
+      const response = yield* HttpClientRequest.get("/unreachable").pipe(HttpClient.execute)
+      const body = (yield* response.json) as { name?: string; data?: { message?: string; ref?: string } }
+
+      expect(response.status).toBe(502)
+      expect(body.name).toBe("ProviderConnectionError")
+      expect(body.data?.ref).toMatch(/^err_[0-9a-f-]{8}$/)
+      expect(body.data?.message).toContain("ECONNREFUSED")
+      expect(body.data?.message).toContain("llm.internal")
+      // the ref must be visible in the message itself — that is all the TUI toast shows
+      expect(body.data?.message).toContain(`(ref: ${body.data?.ref})`)
     }),
   )
 

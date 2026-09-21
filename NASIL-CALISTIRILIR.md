@@ -369,10 +369,63 @@ başka bir ajan) aynı korumadan geçiyor. Bu fix repoya gömülü olduğu için
 
 ---
 
+## Teşhis — `oc-teshis.sh` (kurum ucunu test eder)
+
+> **Ne zaman:** TUI `Failed to send prompt` / `Unexpected server error` dediğinde, `/models`
+> boş geldiğinde, cevap yarıda kesildiğinde — yani **"uç mu bozuk, opencode mu?"** sorusunda.
+
+```bash
+/root/ai/opencode/oc-teshis.sh          # tek satır; env'deki KURUM_URL/KURUM_KEY/MODEL_ID ile
+```
+
+Tek seferlik başka bir uç denemek istersen:
+`./oc-teshis.sh --url https://sunucu:8000/v1 --model <model-id> [--key <anahtar>] [--zaman-asimi 120]`
+
+**İki script'i karıştırma:**
+
+| Script | Neyi doğrular | Ağ gerekir mi |
+|---|---|---|
+| `oc-dogrula.sh` | **Kurulum** — ikili, ayar dosyası, beceriler, `rg` | hayır |
+| `oc-teshis.sh` | **Kurum AI ucu** — DNS, TCP, `/models`, sohbet, akış, araç çağrısı, bağlam penceresi | evet |
+
+**Ne yapar (8 adım):** URL biçimi → DNS → TCP → `GET /models` (uçtaki **tüm** model listesi +
+`MODEL_ID` listede mi) → `POST /chat/completions` (akışsız) → **akış testi** (`"stream": true` —
+opencode her istekte akış kullanır) → **araç çağrısı** (`tools`) → bağlam penceresi
+(`max_model_len`) + kurulu `opencode.json` ile karşılaştırma.
+
+**Güvenlik:** salt okunur (sistemde/ayarlarda hiçbir şeyi değiştirmez), uca yalnız 16 token'lık
+kısa istekler gider. `KURUM_KEY` **ekrana basılmaz** (`abc****yz (uzunluk: 20)` şeklinde maskelenir)
+ve `ps` çıktısında görünmesin diye curl'e geçici, 600 izinli config dosyasıyla verilir. Çıktının
+tamamını olduğu gibi kopyalayıp gönderebilirsin.
+
+**Çıktı nasıl okunur** — son satırdaki `SONUÇ:` yeter:
+
+| SONUÇ | Anlamı | Ne yapılır |
+|---|---|---|
+| `uç sağlıklı` | Uç akışlı+akışsız yanıt veriyor, model doğru | Sorun **opencode tarafında**: toast'taki `err_xxxxxxxx` ref'ini al, `grep -r 'err_xxxxxxxx' ~/.local/share/opencode/log` → o satırdaki `cause` alanını gönder |
+| `uç sorunlu — AĞ/ERİŞİM` | DNS/TCP/proxy | **Uç/ağ tarafı.** opencode'u kurcalama; `getent hosts`, güvenlik duvarı, `http_proxy` |
+| `uç sorunlu — KİMLİK DOĞRULAMA` | HTTP 401/403 | `env` içindeki `KURUM_KEY` yanlış → düzelt, `./kur.sh` |
+| `uç ayakta ama YAPILANDIRMA yanlış` | `MODEL_ID` uçtaki listede yok | Listeden **birebir** kopyala → `env` → `./kur.sh` |
+| `uç sorunlu — AKIŞ çalışmıyor` | Akışsız çalışıyor, `stream: true` çalışmıyor | Uç/proxy tarafı: nginx `proxy_buffering off`, ya da uç SSE desteklemiyor. opencode akışsız çalışamaz |
+
+Ayrıca **araç çağrısı reddedilirse** (`tools` → HTTP 4xx) ayrıca uyarır: opencode her isteğe araç
+şeması eklediği için bu tek başına `Failed to send prompt` sebebi olabilir (ALP-README "Bilmeceler" #2).
+
+**Çıkış kodu:** `0` sağlıklı · `1` uç sorunlu · `2` env/kullanım hatası · `3` `curl` yok.
+
+> **Not:** 2026-09-21'den itibaren sunucu, tanıdığı hataları artık `Unexpected server error`
+> yerine **gerçek sebebiyle** döndürüyor (ör. `Model not found: kurum/... (ref: err_1a2b3c4d)`,
+> `Cannot reach the provider endpoint (llm.internal): ECONNREFUSED (ref: ...)`). Toast'ta artık
+> `ref` de yazıyor — log'da onu aratmak en hızlı yol. Tanınmayan hatalar hâlâ genel 500 döner
+> (güvenlik: rastgele yığın izi istemciye sızmaz), tam `cause` yine log'dadır.
+
+---
+
 ## Sorun giderme
 
 | Belirti | Ne yapılır |
 |---|---|
+| `Failed to send prompt` → `Unexpected server error. Check server logs for details.` | **Önce `./oc-teshis.sh`** (yukarıdaki "Teşhis"). Toast'ta `(ref: err_xxxxxxxx)` varsa: `grep -r 'err_xxxxxxxx' ~/.local/share/opencode/log` |
 | `Endpoint 180 sn'dir yeni içerik göndermedi` | Zaman aşımları 900/300/180 sn'ye çekildi; sorun model tarafında — aynı isteği üst üste yineleme |
 | Uzun dosya/log okurken kesilme | Pencere kurulumda tespit edilen değer kadar (bkz. "Ortam değişkenleri"); model `offset`/`limit` ile parça parça okumalı |
 | Beceriler görünmüyor | `~/.config/opencode/skills/` altında mı? `opencode debug skill` ile say. Varsayılan kurulum yalnız **10 çekirdek beceri** kurar — ihtiyacın olan beceri yoksa `kur.sh --tum-beceriler` ile 38'inin tümünü kur |

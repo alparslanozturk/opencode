@@ -18,7 +18,8 @@ Kod geliştirme YOK — sadece ayar + içerik. Amaç: **önce denemek**, sonuç 
 | `knowledge/` | Kurumsal bilgi deposu: `skills` · `runbooks` · `incidents` · `lessons-learned` · `operations-notes` · `architecture` · `roadmap` |
 | `kur.sh` | **TEK GİRİŞ NOKTASI** — gerekirse kaynaktan derler (`alp.sh`'ı çağırır), kurar (ayar+beceri+plugin+rg), `opencode`+`oc` kısayollarını kurar (**kısayolun tek sahibi budur**), sonda `oc-dogrula.sh` çalıştırır |
 | `alp.sh` | *İç detay — derleyici.* Kaynaktan derler (saha/offline: yalnız CLI workspace + models.dev snapshot), **kısayol kurmaz**. Normalde elle çalıştırılmaz; `kur.sh` çağırır — bkz. `NASIL-CALISTIRILIR.md` → "Saha kurulumu" |
-| `oc-dogrula.sh` | Kurulumu doğrular (offline; kurum ucu erişilemezse hata değil uyarı verir) |
+| `oc-dogrula.sh` | **Kurulumu** doğrular (offline; kurum ucu erişilemezse hata değil uyarı verir) |
+| `oc-teshis.sh` | **Kurum AI ucunu** test eder (DNS/TCP/`/models`/sohbet/akış/araç çağrısı) — "uç mu bozuk, opencode mu?" sorusunun cevabı |
 | `NASIL-CALISTIRILIR.md` | **Adım adım çalıştırma + sorun giderme** (önce bunu oku) |
 | `DENEYIM-AKTARIM.md` | Aider'da öğrendiklerimizin opencode karşılığı — ne aktarıldı, ne aktarılamadı |
 
@@ -41,6 +42,17 @@ opencode          # kısa ad: oc
 
 **Elle doğrulamak istersen:** `./oc-dogrula.sh` (internet gerektirmez, kurum ucuna erişemezse hata değil uyarı verir).
 
+## Bir şey çalışmıyorsa: `./oc-teshis.sh`
+TUI `Failed to send prompt` / `Unexpected server error` dediyse **tek satır**:
+```bash
+/root/ai/opencode/oc-teshis.sh
+```
+Kurum ucunu 8 adımda test eder (URL biçimi · DNS · TCP · `/models` + uçtaki **tüm** model listesi ·
+sohbet · **akış** · **araç çağrısı** · bağlam penceresi), sonunda net bir `SONUÇ:` satırıyla
+**"sorun uç tarafında mı, opencode tarafında mı"** der. Salt okunur; anahtar maskelenir
+(`abc****yz`), çıktının tamamını olduğu gibi kopyalayıp gönderebilirsin.
+Ayrıntı + çıktının nasıl okunacağı: `NASIL-CALISTIRILIR.md` → **"Teşhis"**.
+
 ## Offline güvence
 `opencode.json`'daki `"npm": "@ai-sdk/openai-compatible"` alanı **çalışma anında npm/network tetiklemez** —
 bu SDK opencode'un 185 MB'lık tek ikilisine **derleme zamanında gömülü**dür (binary içinde `strings` ile
@@ -57,6 +69,7 @@ adresine bağlanamamak olmuş (beklenen) — npm/node_modules/lockfile hiç olu�
 ## Bilmeceler (denemede bakılacaklar)
 1. ~~`@ai-sdk/openai-compatible` eklentisi offline yüklenebiliyor mu?~~ **Çözüldü:** evet, ikiliye gömülü — npm gerekmiyor.
 2. Kurum ucu **araç çağrısı (tool calling)** destekliyor mu? Desteklemiyorsa ajan modu çalışmaz → haber ver.
+   **Ölçmek için:** `./oc-teshis.sh` → "7/8 araç çağrısı (tool_call) testi" adımı bunu tek başına yanıtlar.
 3. Küçük pencerede uzun envanter okuma: kırpma/özetleme opencode'un kendi bağlam yönetimine bırakıldı (aider'daki elle bütçe yok). **Bilinen sınır (Aşama 2 ile ölçüldü):** taban bağlam (sistem promptu + AGENTS.md + beceri listesi + araç şemaları) tek başına 16384'lük bir pencerenin %60'ından fazlasını dolduruyor — bkz. `NASIL-CALISTIRILIR.md` → "Compaction thrash".
 
 ## Motor (Engine) ve fork kararı

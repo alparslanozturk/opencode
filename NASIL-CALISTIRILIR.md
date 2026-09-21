@@ -18,8 +18,9 @@
 tar xJf opencode-paket.tar.xz -C /root      # -> /root/ai/opencode/   (.tar.gz ise: tar xzf ...)
 vi /root/ai/opencode/env                    # KURUM_URL=http(s)://sunucu:port/v1 (+ KURUM_KEY, MODEL_ID)
 
-# 2) kur (offline; ikili + ayar + 10 çekirdek beceri + oc/opencode kısayolları + rg kurulur,
-#    bağlam penceresi kurum uçtan otomatik tespit edilir, sonda otomatik doğrulama çalışır)
+# 2) kur — TEK GİRİŞ NOKTASI (offline; ikili + ayar + 10 çekirdek beceri + oc/opencode kısayolları
+#    + rg kurulur, bağlam penceresi kurum uçtan otomatik tespit edilir, sonda otomatik doğrulama;
+#    hazır ikili yoksa ve kaynak ağacı varsa kaynaktan DERLER — bkz. "Saha kurulumu")
 /root/ai/opencode/kur.sh
 #    38 becerinin tümünü istiyorsan: /root/ai/opencode/kur.sh --tum-beceriler
 
@@ -87,26 +88,45 @@ akışının bir parçası DEĞİLDİR.
 
 ---
 
-## 🛠️ Saha kurulumu (saha-makinesi, offline) — `al.sh` → `alp.sh`
+## 🛠️ Saha kurulumu (saha-makinesi, offline) — `al.sh` → **`kur.sh`**
 
 > **Kime:** dış interneti olmayan, yalnız **kurum içi npm proxy**'sine erişen saha makinesi.
 > **Doğrulandı: 2026-09-21** — skyup'ta, `pkg.pr.new` / `api.github.com` / `github.com` / `models.dev`
 > host'ları bir mount namespace'inde karartılarak (`unshare -m` + sahte `/etc/hosts`) ve **boş bun
 > önbelleğiyle** (`BUN_INSTALL_CACHE_DIR`) gerçekten koşuldu; kanıt ölçümleri aşağıda.
+> **2026-09-21 (ikinci tur):** tek giriş noktası `kur.sh` oldu — derleme+kurulum+doğrulama tek komutta.
 
 ```bash
 # 1) kodu çek (senkron — Alp'in kendi akışı: git pull + rsync)
 ./al.sh
 
-# 2) derle + kısayol kur (saha makinesinde, tek komut)
-cd /root/ai/opencode && ./alp.sh
+# 2) TEK KOMUT: gerekirse derler, sonra kurar (ayar+beceri+plugin+rg+kısayol) ve doğrular
+cd /root/ai/opencode && ./kur.sh
 
 # 3) kullan
-opencode --version        # kısayol: /usr/local/bin/opencode -> dist/.../bin/opencode
+cd <veri/proje dizini> && opencode        # kısa ad: oc
 ```
 
-`alp.sh` **yalnız derler** — içinde `git pull` YOKTUR (saha makinesinde git kaynağı yok; senkron `al.sh`'ın
-işi). Yaptıkları sırayla:
+**Tek giriş noktası `kur.sh`'tır.** `bin/opencode` yoksa kaynaktan derlemeyi kendisi yürütür
+(`alp.sh`'ı çağırır), varsa derlemeden doğrudan kurar. İlgili bayraklar:
+
+| Bayrak | Ne yapar |
+|---|---|
+| (yok) | `bin/opencode` varsa kur, yoksa **derle + kur** |
+| `--derle` (`--kaynak`) | `bin/opencode` olsa bile kaynaktan **yeniden derle** |
+| `--derleme-yok` | Derlemeyi hiç deneme (yalnız hazır ikili; yoksa net hata) |
+| `-- <bayraklar>` | `--` sonrası her şey derleyiciye aktarılır, ör. `./kur.sh --derle -- --ignore-scripts` |
+| `--tum-beceriler` · `--baglanti-yok` · `--baglanti-zorla` · `--ikili-indir` | eskisi gibi |
+
+> **Kısayolun tek sahibi `kur.sh`'tır** (kural): `/usr/local/bin/opencode` (+ `oc`) →
+> `~/.opencode/bin/opencode`. `alp.sh` **kısayol kurmaz**; eskiden ikisi de aynı kısayolu farklı hedefe
+> kuruyordu ve "son çalışan kazanıyordu" — hangi ikilinin çalıştığı belirsizdi. Derleyicinin kısayolu
+> (dist ikilisine) gerçekten gerekiyorsa: `./alp.sh --kisayol`.
+
+### Derleyici (iç detay): `alp.sh`
+
+`alp.sh` **yalnız derler** — normalde elle çalıştırılmaz, `kur.sh` onu çağırır. İçinde `git pull` YOKTUR
+(saha makinesinde git kaynağı yok; senkron `al.sh`'ın işi). Yaptıkları sırayla:
 
 | Adım | Ne yapar | Neden |
 |---|---|---|
@@ -114,11 +134,12 @@ işi). Yaptıkları sırayla:
 | `MODELS_DEV_API_JSON` | Repodaki `packages/opencode/script/models-dev-api.json` snapshot'ını gösterir | Derleme `https://models.dev/api.json`'a **hiç bağlanmasın** |
 | `bun install --filter="./packages/opencode"` | Yalnız CLI workspace'inin bağımlılıkları | Web/console paketlerinin **npm dışı** bağımlılıklarını hiç çözmez |
 | `build.ts --single --skip-embed-web-ui --skip-install` | Tek platform, web UI gömmeden | Kurum senaryosu yalnız CLI/TUI |
-| symlink | `/usr/local/bin/opencode` (yazılamazsa `~/.local/bin`) | `KISAYOL_DIZIN` ile değiştirilebilir |
+| symlink | **kurmaz** (sahibi `kur.sh`); `--kisayol` ile istenirse `/usr/local/bin/opencode` | Tek sahip kuralı — kısayol çakışması bitti |
 
-Ek bayraklar: `--bin-kopyala` (ikiliyi `bin/opencode`'a da kopyalar → `kur.sh` akışı),
-`--kurulum-yok` (`bun install`'ı atla), tanınmayan bayraklar `bun install`'a aktarılır
-(ör. `./alp.sh --ignore-scripts`, native derleme sorunluysa).
+Ek bayraklar: `--bin-kopyala` (ikiliyi `bin/opencode`'a da kopyalar — `kur.sh` bunu kullanır),
+`--kurulum-yok` (`bun install`'ı atla), `--kisayol` (istisna: kısayolu dist ikilisine kur),
+tanınmayan bayraklar `bun install`'a aktarılır (ör. `./alp.sh --ignore-scripts`, native derleme
+sorunluysa — `kur.sh` üzerinden: `./kur.sh --derle -- --ignore-scripts`).
 
 ### Kurum içi npm proxy — `~/.bunfig.toml` (repoya GİRMEZ)
 
@@ -131,7 +152,8 @@ ayarıdır, kurum adresi oraya yazılmaz (public repo). Saha makinesinde:
 registry = "https://<kurum-npm-proxy>/repository/npm-proxy/"
 ```
 
-Tek seferlik alternatif: `BUN_CONFIG_REGISTRY="https://<kurum-npm-proxy>/..." ./alp.sh`.
+Tek seferlik alternatif: `BUN_CONFIG_REGISTRY="https://<kurum-npm-proxy>/..." ./kur.sh`
+(değişken `kur.sh` → `alp.sh` zincirine olduğu gibi geçer).
 
 ### Offline'da patlayan iki şey ve çözümleri (2026-09-21, Alp'in saha hatalarından)
 
@@ -147,7 +169,7 @@ api.github.com), kurum proxy'si bunları aynalamıyor.
 - kurulan paket sayısı **2708 → 1000**'e iniyor,
 - `node_modules/ghostty-web` ve `node_modules/@solidjs/start` **hiç oluşmuyor** (dolayısıyla indirilmiyor),
 - `bun.lock` **değişmiyor** (`git status` temiz kalıyor — filtreli kurulum lockfile'ı bozmuyor).
-- Daha sıkı istersen: `./alp.sh --frozen-lockfile` (lockfile ile `package.json` ayrışmışsa hata verir).
+- Daha sıkı istersen: `./kur.sh --derle -- --frozen-lockfile` (lockfile ile `package.json` ayrışmışsa hata verir).
 
 **2) `bun run build` → `models.dev` ECONNRESET.** `build.ts` ilk satırlarda `./generate.ts`'i import ediyor,
 o da model kataloğunu (`https://models.dev/api.json`, ~4.7 MB) çekip derleme zamanı sabiti olarak
@@ -210,8 +232,8 @@ real 0m35s   (kurulum + derleme toplamı)
 ### 1) Bağımlılıkları kur
 
 > Aşağısı **elle/tam workspace** koşumunu anlatır (2026-09-17 ölçümü). Saha/offline makinesinde bunun
-> yerine `./alp.sh` kullan — o, filtreli kurulumu ve models.dev snapshot'ını kendisi ayarlar
-> (yukarıdaki "Saha kurulumu").
+> yerine `./kur.sh` kullan — gerekirse `alp.sh`'ı çağırıp filtreli kurulumu ve models.dev snapshot'ını
+> kendisi ayarlar, ardından kurulumu ve doğrulamayı da yapar (yukarıdaki "Saha kurulumu").
 
 ```bash
 cd /root/ai/opencode-build   # repo kökü (workspace bütünlüğü için şart — bkz. aşağı "kaynak yoksa")

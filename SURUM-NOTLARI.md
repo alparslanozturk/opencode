@@ -1,5 +1,39 @@
 # SÜRÜM NOTLARI — opencode ajan kiti
 
+## 2026-09-21 (ikinci tur) — `kur.sh` tek giriş noktası oldu; kısayol çakışması bitti
+
+**Sorun (Alp):** *"Niye iki tane kurulum dosyası var?"* — `alp.sh` derleyip `/usr/local/bin/opencode`'u
+**repo dist ikilisine**, `kur.sh` ise aynı kısayolu **`~/.opencode/bin/opencode`**'a bağlıyordu. İkisi de
+aynı adı sahiplendiği için **son çalışan kazanıyor**, hangi ikilinin çalıştığı belirsiz kalıyordu
+(sahadaki `NOT: onceki kisayol degistirildi` satırının sebebi).
+
+**Ne değişti:**
+- **`kur.sh` = tek giriş noktası.** `bin/opencode` yoksa ve kaynak ağacı varsa (`bun.lock` +
+  `packages/opencode` + `alp.sh`) **kendisi derler** (`alp.sh --bin-kopyala`), sonra her zamanki
+  kurulumu yapar (ayar + beceri + plugin + ripgrep + kısayol) ve `oc-dogrula.sh` ile doğrular.
+  İkili arama sırası: `bin/opencode.tar.xz` → `--ikili-indir` (Release asset) → **kaynaktan derleme**.
+- **Yeni bayraklar:** `--derle` / `--kaynak` (ikili olsa bile yeniden derle), `--derleme-yok`
+  (derlemeyi hiç deneme), `-- <bayraklar>` (`--` sonrası her şey `alp.sh`'a aktarılır, ör.
+  `./kur.sh --derle -- --ignore-scripts`). Çelişkili kombinasyon (`--derle --derleme-yok`) hata verir.
+- **Tek sahip kuralı:** kısayolu (`opencode`, `oc`) yalnız `kur.sh` kurar → `~/.opencode/bin/opencode`.
+  `alp.sh` varsayılan olarak **kısayol kurmaz** (gerekirse `./alp.sh --kisayol`, o da artık uyarı basıyor).
+- **Sonda net özet:** `derlendi / kuruldu / doğrulandı` satırları + kısayol sahibi + çalıştırılacak komut.
+- **Küçük düzeltme:** `--ikili-indir` ile `--baglanti-yok` artık çelişkili sayılmıyor — `--baglanti-yok`
+  "kısayol kurma" demek, "ağ yok" demek değil; eskiden bu ikisi birlikte verilince indirme sessizce
+  atlanıyordu.
+- **Dokümanlar:** `ALP-README.md`, `NASIL-CALISTIRILIR.md` ("Saha kurulumu" artık `al.sh` → **`kur.sh`**),
+  bu dosya. `alp.sh` her yerde "iç detay / derleyici" olarak geçiyor.
+
+**Doğrulama (gerçek koşum, izole `HOME` ile — tahmin yok):**
+- `bin/opencode` **yokken** `./kur.sh` → alp.sh ile derledi (135 MB), kurdu, `oc-dogrula.sh` "paket sağlam", çıkış 0.
+- `bin/opencode` **varken** `./kur.sh --tum-beceriler` → derlemedi, 38 beceri kurdu, çıkış 0.
+- `--derle -- --kurulum-yok` → zorla derledi, `bun install` atlandı (aktarım çalışıyor).
+- `--derleme-yok` + ikili yok → net hata, çıkış 1. `--ikili-indir` (yerel `file://` asset ile) → indirdi, derlemedi.
+- `--baglanti-yok` → kısayol kurulmadı; `./alp.sh --kisayol` → yalnız istendiğinde kısayol kurdu.
+- Sistemin gerçek `/usr/local/bin/opencode` kısayolu testler boyunca **değişmedi**.
+- `bash -n` temiz; `shellcheck -S warning kur.sh alp.sh oc-dogrula.sh` → **0 bulgu** (kalan bulgular
+  info düzeyinde ve önceden de vardı: SC1091 `env` source, SC2012 `ls | wc -l`).
+
 ## 2026-09-21 — Offline (saha) derleme çalışır hâle getirildi: `alp.sh` + models.dev snapshot
 
 **Sorun (Alp, saha-makinesi):** kaynaktan derleme iki yerde duruyordu — (1) `bun install`, npm **dışı** iki

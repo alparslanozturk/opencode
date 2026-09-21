@@ -16,8 +16,8 @@ Kod geliştirme YOK — sadece ayar + içerik. Amaç: **önce denemek**, sonuç 
 | `knowledge/skills/approved/` | **10 çekirdek beceri** — opencode'un **okuduğu tek yer**, `kur.sh` varsayılan olarak bunları kurar |
 | `knowledge/skills/parked/` | Kalan **28 beceri** (2026-09-16 sadeleştirmesi, Alp kararı) — `--tum-beceriler` ile approved/ ile birlikte kurulur, bkz. `parked/README.md` |
 | `knowledge/` | Kurumsal bilgi deposu: `skills` · `runbooks` · `incidents` · `lessons-learned` · `operations-notes` · `architecture` · `roadmap` |
-| `kur.sh` | Tek komutla kurar (offline) — `opencode`+`oc` kısayollarını kurar, sonda `oc-dogrula.sh` çalıştırır |
-| `alp.sh` | **Kaynaktan derler** (saha/offline: yalnız CLI workspace + models.dev snapshot). Önce `al.sh` ile senkron, sonra `./alp.sh` — bkz. `NASIL-CALISTIRILIR.md` → "Saha kurulumu" |
+| `kur.sh` | **TEK GİRİŞ NOKTASI** — gerekirse kaynaktan derler (`alp.sh`'ı çağırır), kurar (ayar+beceri+plugin+rg), `opencode`+`oc` kısayollarını kurar (**kısayolun tek sahibi budur**), sonda `oc-dogrula.sh` çalıştırır |
+| `alp.sh` | *İç detay — derleyici.* Kaynaktan derler (saha/offline: yalnız CLI workspace + models.dev snapshot), **kısayol kurmaz**. Normalde elle çalıştırılmaz; `kur.sh` çağırır — bkz. `NASIL-CALISTIRILIR.md` → "Saha kurulumu" |
 | `oc-dogrula.sh` | Kurulumu doğrular (offline; kurum ucu erişilemezse hata değil uyarı verir) |
 | `NASIL-CALISTIRILIR.md` | **Adım adım çalıştırma + sorun giderme** (önce bunu oku) |
 | `DENEYIM-AKTARIM.md` | Aider'da öğrendiklerimizin opencode karşılığı — ne aktarıldı, ne aktarılamadı |
@@ -26,12 +26,17 @@ Kod geliştirme YOK — sadece ayar + içerik. Amaç: **önce denemek**, sonuç 
 ```bash
 # 1) 3 satırı doldur:
 vi env            # KURUM_URL=http(s)://sunucu:port/v1 (+ KURUM_KEY, MODEL_ID)
-# 2) kur (ikili + ayar + 10 çekirdek beceri kurulur, bağlam penceresi otomatik tespit edilir,
-#    sonda otomatik doğrulama çalışır, kısayollar: opencode + oc; hepsi için: --tum-beceriler):
+# 2) kur — tek komut (gerekirse kaynaktan derler; ikili + ayar + 10 çekirdek beceri kurulur,
+#    bağlam penceresi otomatik tespit edilir, sonda otomatik doğrulama çalışır,
+#    kısayollar: opencode + oc; hepsi için: --tum-beceriler):
 ./kur.sh
 # 3) çalıştır:
 opencode          # kısa ad: oc
 ```
+**Sahada (offline) akış:** `./al.sh` (senkron) → **`./kur.sh`** (derle + kur + doğrula) → `opencode`.
+`bin/opencode` yoksa `kur.sh` kaynaktan derler; zorlamak için `./kur.sh --derle`, hiç derlememek için
+`--derleme-yok`. **Kısayolun tek sahibi `kur.sh`'tır** (`/usr/local/bin/opencode` →
+`~/.opencode/bin/opencode`); `alp.sh` kısayol kurmaz.
 İlk açılışta **`/models`** → `kurum / Qwen3.6-35B-A3B-FP8` seç. Beceriler otomatik görünür.
 
 **Elle doğrulamak istersen:** `./oc-dogrula.sh` (internet gerektirmez, kurum ucuna erişemezse hata değil uyarı verir).

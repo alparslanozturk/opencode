@@ -18,6 +18,9 @@
   duruyordu. Çözüm repoya girdi: `alp.sh` (git adımı yok, `--filter="./packages/opencode"` ile yalnız CLI
   workspace'i + repodaki models.dev snapshot). Adım adım: `NASIL-CALISTIRILIR.md` → "Saha kurulumu
   (saha-makinesi, offline)".
+  **Güncelleme (2026-09-21, ikinci tur):** sahada çalıştırılacak tek komut **`./kur.sh`** oldu —
+  gerekirse `alp.sh`'ı kendisi çağırıp derler, sonra kurar ve doğrular; kısayolun (`opencode`/`oc`)
+  tek sahibi `kur.sh`'tır (`alp.sh` artık kısayol kurmuyor).
 - **ara-makine** = git kaynağı, kod buradan çekiliyor (mevcut `al.sh` akışı).
 - **ktbulut tarafında ayrı, farklı ad/IP'li bir merkezi satellite sunucu daha var** — orada da
   opencode çalıştırılacak ama **ayrı yönetilecek, ileride** (bu dosyanın kapsamı dışında).

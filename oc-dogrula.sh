@@ -112,7 +112,7 @@ if [ -d "$HOME/.config/opencode/skills" ]; then
   [ "$cekirdek_sayisi" -gt 0 ] 2>/dev/null || cekirdek_sayisi="?"
   ok "kurulu beceri (~/.config/opencode/skills): $nk adet (çekirdek varsayılan: $cekirdek_sayisi; hepsi için: ./kur.sh --tum-beceriler)"
 else
-  uyar "~/.config/opencode/skills yok — kur.sh henüz çalıştırılmamış olabilir"
+  uyar "$HOME/.config/opencode/skills yok — kur.sh henüz çalıştırılmamış olabilir"
 fi
 if [ -f "$KOK/engine/AGENTS.md" ]; then
   ok "AGENTS.md var"

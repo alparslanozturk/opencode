@@ -1,12 +1,30 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  kur.sh — opencode paketi kurucusu (kurum içi, offline; ağ/npm gerekmez).
+#  kur.sh — opencode paketinin TEK GİRİŞ NOKTASI (kurum içi, offline; ağ/npm gerekmez).
+#
+#  Gerekirse kaynaktan DERLER (alp.sh'ı çağırarak), sonra KURAR (ikili + ayar +
+#  beceri + plugin + ripgrep + kısayollar) ve sonunda DOĞRULAR (oc-dogrula.sh).
+#  Sahada tek komut yeter:  ./kur.sh
 #
 #  Kullanım:  cd /root/ai/opencode && ./kur.sh   (dizin adı önemli değil, script kendi yolunu bulur)
+#    --derle | --kaynak bin/opencode olsa bile kaynaktan yeniden derle
+#    --derleme-yok      kaynaktan derlemeyi hiç deneme (yalnız hazır ikili kullan)
 #    --baglanti-yok     kısayolları kurma (yalnız ikili + ayar + beceri)
 #    --baglanti-zorla   mevcut başka bir 'opencode'/'oc' varsa yedekle ve üzerine yaz
 #    --tum-beceriler    tüm becerileri kur (varsayılan: 10 çekirdek beceri, bkz. CORE_SKILLS)
 #    --ikili-indir      bin/opencode yoksa GitHub Release asset'inden (token'sız HTTPS) indir
+#    -- <bayraklar>     '--' sonrası her şey derleyiciye (alp.sh) aktarılır, ör:
+#                       ./kur.sh --derle -- --ignore-scripts
+#
+#  İkili nereden gelir (bin/opencode yoksa, sırayla):
+#    1) bin/opencode.tar.xz varsa açılır
+#    2) --ikili-indir verildiyse Release asset'inden indirilir
+#    3) kaynak ağacı varsa (bun.lock + packages/opencode) alp.sh ile DERLENİR  ← saha akışı
+#
+#  Kısayol sahibi TEK betiktir: kur.sh. alp.sh varsayılan olarak kısayol kurmaz
+#  (isteyen `./alp.sh --kisayol` der) — böylece /usr/local/bin/opencode'un hangi
+#  ikiliyi gösterdiği belirsiz kalmaz.
+#
 #  Ortam değişkeni: KISAYOL_DIZIN (varsayılan /usr/local/bin, yazılamıyorsa ~/.local/bin)
 #                   IKILI_RELEASE_URL (--ikili-indir için varsayılan asset URL'ini ezer)
 # =============================================================================
@@ -20,16 +38,28 @@ BAGLANTI_YOK=0
 BAGLANTI_ZORLA=0
 TUM_BECERILER=0
 IKILI_INDIR=0
-for arg in "$@"; do
-  case "$arg" in
+DERLE=0
+DERLEME_YOK=0
+ALP_EK=()   # '--' sonrası: derleyiciye (alp.sh) aktarılacak bayraklar
+while [ $# -gt 0 ]; do
+  case "$1" in
     --baglanti-yok)   BAGLANTI_YOK=1 ;;
     --baglanti-zorla) BAGLANTI_ZORLA=1 ;;
     --tum-beceriler)  TUM_BECERILER=1 ;;
     --ikili-indir)    IKILI_INDIR=1 ;;
-    -h|--help) echo "Kullanım: $0 [--baglanti-yok] [--baglanti-zorla] [--tum-beceriler] [--ikili-indir]"; exit 0 ;;
-    *) echo "Bilinmeyen argüman: $arg" >&2; exit 2 ;;
+    --derle|--kaynak) DERLE=1 ;;
+    --derleme-yok)    DERLEME_YOK=1 ;;
+    --) shift; ALP_EK=("$@"); break ;;
+    -h|--help) sed -n '2,30p' "$0"; exit 0 ;;
+    *) echo "Bilinmeyen argüman: $1" >&2; exit 2 ;;
   esac
+  shift
 done
+
+if [ "$DERLE" = 1 ] && [ "$DERLEME_YOK" = 1 ]; then
+  echo "!! --derle ve --derleme-yok birlikte verilemez." >&2
+  exit 2
+fi
 
 # Çekirdek beceri listesi (Aşama 2, danışma-2 kararı: 38 → 10; 2026-09-16 Alp kararıyla
 # kalan 28 beceri knowledge/skills/parked/'a taşındı, bkz. parked/README.md). --tum-beceriler
@@ -73,18 +103,52 @@ if ! command -v python3 >/dev/null 2>&1; then
   exit 1
 fi
 
+# ---------------------------------------------------------------------------
+#  0) İkili nereden gelecek? (bkz. başlıktaki sıra)
+#     Saha akışı: al.sh ile senkron -> bin/ boş -> burada alp.sh ile derlenir.
+# ---------------------------------------------------------------------------
+DERLENDI=0
+IKILI_KAYNAGI=""
+
+kaynak_agaci_var() {
+  [ -x "$KOK/alp.sh" ] && [ -f "$KOK/bun.lock" ] && [ -d "$KOK/packages/opencode" ]
+}
+
+derle_kaynaktan() {
+  echo "== 0/4  kaynaktan derleme (alp.sh) =="
+  # alp.sh kısayol KURMAZ (tek sahip kur.sh); --bin-kopyala ile ikiliyi bin/opencode'a bırakır.
+  if "$KOK/alp.sh" --bin-kopyala ${ALP_EK[@]+"${ALP_EK[@]}"}; then
+    DERLENDI=1
+    IKILI_KAYNAGI="kaynaktan derlendi (alp.sh)"
+    return 0
+  fi
+  echo "!! derleme başarısız (alp.sh) — yukarıdaki çıktıya bak." >&2
+  return 1
+}
+
+if [ "$DERLE" = 1 ]; then
+  if ! kaynak_agaci_var; then
+    echo "!! --derle istendi ama kaynak ağacı yok (alp.sh / bun.lock / packages/opencode eksik)." >&2
+    echo "   Bu dizin yalnız ikili paket olabilir; --derle olmadan çalıştır." >&2
+    exit 1
+  fi
+  derle_kaynaktan || exit 1
+fi
+
 if [ ! -x "$KOK/bin/opencode" ] && [ -f "$KOK/bin/opencode.tar.xz" ]; then
   echo ">> bin/opencode yok — bin/opencode.tar.xz aciliyor (bir kez)..."
   tar xJf "$KOK/bin/opencode.tar.xz" -C "$KOK/bin" && chmod +x "$KOK/bin/opencode"
+  [ -x "$KOK/bin/opencode" ] && IKILI_KAYNAGI="bin/opencode.tar.xz açıldı"
 fi
 
 if [ ! -f "$KOK/bin/opencode" ] && [ "$IKILI_INDIR" = "1" ]; then
-  if [ "$BAGLANTI_YOK" = "1" ]; then
-    echo "!! --ikili-indir ve --baglanti-yok birlikte verildi — çelişkili, indirme atlanıyor." >&2
-  elif command -v curl >/dev/null 2>&1; then
+  # NOT: --baglanti-yok = "kısayol (symlink) kurma" demektir, "ağ yok" demek DEĞİL —
+  # eskiden burada ikisi çelişkili sayılıp indirme atlanıyordu (adın yanlış okunması).
+  if command -v curl >/dev/null 2>&1; then
     echo ">> bin/opencode yok — Release asset'inden indiriliyor (token'sız HTTPS): $IKILI_RELEASE_URL"
     if curl -fSL -o "$KOK/bin/opencode" "$IKILI_RELEASE_URL" && chmod +x "$KOK/bin/opencode"; then
       echo "   indirildi: $KOK/bin/opencode"
+      IKILI_KAYNAGI="Release asset'inden indirildi"
     else
       echo "!! indirme başarısız — $IKILI_RELEASE_URL adresini/erişimi kontrol et." >&2
       rm -f "$KOK/bin/opencode"
@@ -94,15 +158,25 @@ if [ ! -f "$KOK/bin/opencode" ] && [ "$IKILI_INDIR" = "1" ]; then
   fi
 fi
 
+# Hazır ikili yok ama kaynak ağacı var -> sahada beklenen davranış: derle (tek komut).
+if [ ! -f "$KOK/bin/opencode" ] && [ "$DERLEME_YOK" = 0 ] && kaynak_agaci_var; then
+  echo ">> bin/opencode yok, kaynak ağacı var — kaynaktan derleniyor (atlamak için: --derleme-yok)"
+  derle_kaynaktan || true
+fi
+
 if [ ! -f "$KOK/bin/opencode" ]; then
   echo "!! $KOK/bin/opencode yok." >&2
   echo "   $KOK/bin/*.tar.xz git'e commitli DEĞİL (2026-09-16'dan itibaren; .gitignore'da bin/)." >&2
+  if kaynak_agaci_var; then
+    echo "   Cozum 0: kaynaktan derleme denendi/atlandi  ->  ./kur.sh --derle   (bun gerekir, bkz. alp.sh)" >&2
+  fi
   echo "   Cozum 1: --ikili-indir ile calistir  ->  Release asset'inden token'sız HTTPS indirir." >&2
   echo "   Cozum 2: ikiliyi ayrı paketten al (opencode-paket.tar.xz veya kurumun dağıtım yerinden)," >&2
   echo "      $KOK/bin/opencode.tar.xz olarak koy, sonra tekrar calistir  ->  tar xJf $KOK/bin/opencode.tar.xz -C $KOK/bin" >&2
   echo "      ya da kurumda kurulu opencode ikilisini dogrudan $KOK/bin/opencode olarak koy." >&2
   exit 1
 fi
+[ -n "$IKILI_KAYNAGI" ] || IKILI_KAYNAGI="hazır bin/opencode kullanıldı (derleme yapılmadı)"
 
 yesil()   { printf '\033[32m%s\033[0m\n' "$*"; }
 kirmizi() { printf '\033[31m%s\033[0m\n' "$*"; }
@@ -306,16 +380,29 @@ DOGRULAMA_KODU=0
 "$KOK/oc-dogrula.sh" || DOGRULAMA_KODU=$?
 
 echo
-if [ "$DOGRULAMA_KODU" -ne 0 ]; then
-  kirmizi "KURULUM TAMAMLANDI AMA DOĞRULAMA BAŞARISIZ (çıkış kodu $DOGRULAMA_KODU)."
-  kirmizi "Yukarıdaki ✗ satırlarına bak; düzeltmeden 'opencode' çalıştırma."
+echo "== ÖZET =="
+if [ "$DERLENDI" = 1 ]; then
+  yesil "  derlendi:   evet — $IKILI_KAYNAGI"
 else
-  yesil "BİTTİ."
+  echo  "  derlendi:   hayır — $IKILI_KAYNAGI"
+fi
+yesil "  kuruldu:    $HOME/.opencode/bin/opencode  (+ ayar/beceri/plugin/rg)"
+if [ "$DOGRULAMA_KODU" -ne 0 ]; then
+  kirmizi "  doğrulandı: HAYIR — oc-dogrula.sh çıkış kodu $DOGRULAMA_KODU"
+  kirmizi "  Yukarıdaki ✗ satırlarına bak; düzeltmeden 'opencode' çalıştırma."
+else
+  yesil "  doğrulandı: evet — paket sağlam"
 fi
 echo "  Kurulum kökü:     $KOK"
 echo "  Kurallar/ayar:    $HOME/.config/opencode/  (AGENTS.md, opencode.json, skills/, plugins/)"
+if [ "$BAGLANTI_YOK" = 1 ]; then
+  echo "  Kısayol:          kurulmadı (--baglanti-yok) → tam yolla çalıştır: $HOME/.opencode/bin/opencode"
+else
+  echo "  Kısayol sahibi:   kur.sh — ${HEDEF_DIZIN:-/usr/local/bin}/opencode → $HOME/.opencode/bin/opencode"
+fi
 echo
-echo "  Başlat:  opencode   (kısa ad: oc)"
+echo "  ŞİMDİ ÇALIŞTIR:"
+echo "    cd <veri/proje dizini> && opencode      # kısa ad: oc"
 echo "  İlk açılışta /models → kurum / Qwen3.6-35B-A3B-FP8 seç."
 echo
 sari "  NOT: opencode'u VERİNİN OLDUĞU dizinde aç (ör. envanter işi için: cd ~/ansible && opencode)."

@@ -41,3 +41,7 @@ tsconfig.tsbuildinfo
 /env2
 /notlar/
 *.log
+# Saha makinesinde (saha-makinesi) node-gyp icin elle konulan Node header'lari —
+# repo icinde dursa bile git'e girmez.
+/node-v*-headers/
+/node-v*-headers.tar.gz

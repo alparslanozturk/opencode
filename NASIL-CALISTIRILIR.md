@@ -422,7 +422,8 @@ basar) → `POST /chat/completions` (akışsız) → **akış testi** (`"stream"
 istekte akış kullanır) → **araç çağrısı** (`tools`) → bağlam penceresi (`max_model_len`) + kurulu
 `opencode.json` karşılaştırması → opencode log'undaki son `err_`/`ERROR` satırı.
 
-**Çıktı sözleşmesi — tek ekran:** rapor **≈16 satır** ve **≤100 sütun**; uzun URL/gövde kırpılır,
+**Çıktı sözleşmesi — tek ekran:** rapor **≈16 satır** ve **≤100 sütun** (env'de `KURUM_URL_2`
+varsa karşılaştırma bloğu için **+3 satır** — aşağıdaki "İki ucu karşılaştırma"); uzun URL/gövde kırpılır,
 satır sarması olmaz. Yani ekran görüntüsünü tek karede alıp gönderebilirsin. Her şeyi görmek
 istersen `--ayrintili`.
 
@@ -445,6 +446,37 @@ tamamını olduğu gibi kopyalayıp gönderebilirsin.
 
 **Çıkış kodu:** `0` sorun yok · `1` sorun var · `2` env/kullanım hatası · `3` `curl` yok.
 (Otomasyon için; ekrana bakarken `SORUN:` satırı zaten her şeyi söyler.)
+
+### İki ucu karşılaştırma (opsiyonel — `KURUM_URL_2`)
+
+İki kurum ucun varsa hangisinin daha iyi olduğuna bakmak için **yeni komut/bayrak yok**:
+`env` (veya `env.local`) dosyasına ikinci ucu ekle, `./03-kontrol.sh` raporun sonuna
+karşılaştırma bloğunu kendiliğinden ekler.
+
+```bash
+# env — 1. uç zaten dolu; şu üç satır opsiyonel (KURUM_KEY_2/MODEL_ID_2 boşsa 1. uçunki kullanılır)
+KURUM_URL_2=https://sunucu2:8000/v1
+KURUM_KEY_2=dummy
+MODEL_ID_2=<2. uçtaki model id>
+```
+
+Rapor sonunda çıkan blok (3 satır):
+
+```
+ uc1       ✓ sunucu1:8000 · model var · baglam 32768 · medyan 41 ms
+ uc2       ✓ sunucu2:8000 · model var · baglam 131072 · medyan 88 ms
+ >> daha hizli: uc1 (41 vs 88 ms) · genis baglam: uc2 (131072 vs 32768) · uc2 modeli farkli
+```
+
+- **Gecikme:** her uç için `GET /v1/models`'e **3 örnek**, **medyan** ms. Ek sohbet isteği
+  açılmaz (en küçük istek kullanılır), `--zaman-asimi` iki uç için de geçerlidir — erişilemeyen
+  uçta ölçüm yapılmaz, rapor asılı kalmaz.
+- **`model var` / `model YOK`:** o uçtaki `/v1/models` listesinde `MODEL_ID` (uc2 için `MODEL_ID_2`)
+  var mı. **`baglam`:** uçun bildirdiği `max_model_len` (python3 yoksa `?`).
+- Son satır karar ipucudur; **çıkış kodunu ve `SORUN:` satırını değiştirmez** — 2. uç erişilemezse
+  bu yalnız `!` uyarısı olarak görünür, rapor yine 1. uca göre sonuçlanır.
+- `KURUM_URL_2` boşken **çıktı birebir eskisi gibidir** (satır satır aynı). Anahtarlar hiçbir
+  durumda ekrana basılmaz.
 
 > **Not:** 2026-09-21'den itibaren sunucu, tanıdığı hataları artık `Unexpected server error`
 > yerine **gerçek sebebiyle** döndürüyor (ör. `Model not found: kurum/... (ref: err_1a2b3c4d)`,

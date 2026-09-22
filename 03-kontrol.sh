@@ -15,6 +15,10 @@
 #  Gelişmiş (gerekmez): --ayrintili uzun rapor · --zaman-asimi <sn> yavaş uç için ·
 #  --url/--model/--key env yerine tek seferlik değer · --yardim
 #
+#  İKİ UÇ: env'de KURUM_URL_2 doluysa (opsiyonel KURUM_KEY_2/MODEL_ID_2) raporun
+#  sonuna iki ucu yan yana ölçen 3 satır eklenir: erişim · model · bağlam · medyan
+#  gecikme, sonda "daha hizli: ..." karar satırı. Boşsa rapor eskisiyle aynıdır.
+#
 #  Salt okunur: sistemde/ayarlarda hiçbir şeyi DEĞİŞTİRMEZ; uca yalnız okuma ve
 #  kısa (16 token) sohbet istekleri gider. Anahtar ASLA ekrana basılmaz ve "ps"
 #  çıktısında görünmemesi için curl'e geçici config dosyasıyla verilir.
@@ -34,7 +38,7 @@ while [ -L "$_kaynak" ]; do
 done
 KOK="$(cd "$(dirname "$_kaynak")" && pwd)"
 
-yardim() { sed -n '2,22p' "$_kaynak" | sed 's/^# \{0,1\}//'; }
+yardim() { sed -n '2,26p' "$_kaynak" | sed 's/^# \{0,1\}//'; }
 
 # ---------------------------------------------------------------------------
 #  0) argümanlar
@@ -403,6 +407,10 @@ ONCEKI_URL="${KURUM_URL:-}"
 ONCEKI_KEY="${KURUM_KEY:-}"
 ONCEKI_MODEL="${MODEL_ID:-}"
 ONCEKI_PENCERE="${KURUM_MAX_CONTEXT:-}"
+# opsiyonel ikinci uç (karşılaştırma) — yalnız KURUM_URL_2 doluysa devreye girer
+ONCEKI_URL2="${KURUM_URL_2:-}"
+ONCEKI_KEY2="${KURUM_KEY_2:-}"
+ONCEKI_MODEL2="${MODEL_ID_2:-}"
 
 ENV_DOSYASI="$KOK/env"
 if [ -f "$ENV_DOSYASI" ]; then
@@ -420,11 +428,18 @@ fi
 [ -n "$ARG_URL" ] && KURUM_URL="$ARG_URL"
 [ -n "$ARG_KEY" ] && KURUM_KEY="$ARG_KEY"
 [ -n "$ARG_MODEL" ] && MODEL_ID="$ARG_MODEL"
+[ -n "$ONCEKI_URL2" ] && KURUM_URL_2="$ONCEKI_URL2"
+[ -n "$ONCEKI_KEY2" ] && KURUM_KEY_2="$ONCEKI_KEY2"
+[ -n "$ONCEKI_MODEL2" ] && MODEL_ID_2="$ONCEKI_MODEL2"
 
 URL="${KURUM_URL:-}"
 KEY="${KURUM_KEY:-}"
 MODEL="${MODEL_ID:-}"
 PENCERE_ENV="${KURUM_MAX_CONTEXT:-}"
+# ikinci uç: yalnız URL2 doluysa karşılaştırma yapılır; anahtar/model boşsa 1. ucunki kullanılır
+URL2="${KURUM_URL_2:-}"
+KEY2="${KURUM_KEY_2:-}"
+MODEL2="${MODEL_ID_2:-}"
 
 if [ -z "$URL" ] || [ -z "$MODEL" ]; then
   if [ "$MOD" = "tam" ]; then printf '%s\n' "$CIZGI"; else printf '== opencode UC KONTROL\n'; fi
@@ -436,6 +451,8 @@ if [ -z "$URL" ] || [ -z "$MODEL" ]; then
   bitir 2 "${SORUN:-env eksik — KURUM_URL/MODEL_ID doldurulmamis ($ENV_DOSYASI)}"
 fi
 [ -n "$KEY" ] || KEY="dummy"
+[ -n "$KEY2" ] || KEY2="$KEY"
+[ -n "$MODEL2" ] || MODEL2="$MODEL"
 
 if ! command -v curl > /dev/null 2>&1; then
   if [ "$MOD" = "tam" ]; then printf '%s\n' "$CIZGI"; else printf '== opencode UC KONTROL\n'; fi
@@ -896,6 +913,118 @@ if [ -n "$SON_LOG" ]; then
   satir "log" uyar "son hata: $(kis "$SON_LOG" 70)"
 else
   satir "log" ok "son log dosyasinda err_/ERROR satiri yok ($LOG_DIZIN)"
+fi
+
+# --- 10) ikinci uç ile karşılaştırma (yalnız KURUM_URL_2 doluysa) --------
+# Bayrak yok: env'de KURUM_URL_2 yoksa bu bölüm hiç basılmaz (rapor eskisiyle birebir aynı).
+# Ölçüm en küçük istekle (GET /models) yapılır — ek sohbet isteği açılmaz.
+if [ -n "$URL2" ]; then
+  # <url> -> host:port (varsa kullanıcı bilgisi atılır; anahtar hiçbir yerde basılmaz)
+  host_port() {
+    local kalan="${1#*://}"
+    kalan="${kalan%%/*}"
+    printf '%s' "${kalan##*@}"
+  }
+
+  # medyan_ms <cfg> <adres> <ilk-ornek> — ilk istek 1. örnektir, 2 istek daha atılır;
+  # 3 örneğin medyanı (ms). Hiçbiri ölçülemezse boş döner. (Uç yavaşsa rapor en fazla
+  # 3 × --zaman-asimi bekler; erişilemeyen uçta hiç ölçüm yapılmaz.)
+  medyan_ms() {
+    local cfg="$1" adres="$2" _tur sure olcum=""
+    [ -n "${3:-}" ] && olcum="$3"$'\n'
+    for _tur in 1 2; do
+      sure="$(curl -K "$cfg" --max-time "$ZAMAN_ASIMI" -o /dev/null -w '%{time_total}' "$adres" 2> /dev/null)" || continue
+      olcum="$olcum$sure"$'\n'
+    done
+    printf '%s' "$olcum" | sed '/^$/d' | LC_ALL=C sort -n \
+      | LC_ALL=C awk '{d[NR] = $1} END {if (NR) printf "%d", d[int((NR + 1) / 2)] * 1000}'
+  }
+
+  # uc_olc <onek> <url> <key> <model> — sekmeyle ayrık: durum, host, bilgi, baglam, ms
+  uc_olc() {
+    local onek="$1" adres="$2" anahtar="$3" model="$4"
+    local cfg="$TMP/$onek.cfg" govde="$TMP/$onek-models.json"
+    {
+      printf 'silent\n'
+      printf 'show-error\n'
+      printf 'header = "Authorization: Bearer %s"\n' "$anahtar"
+      printf 'header = "Content-Type: application/json"\n'
+    } > "$cfg"
+    chmod 600 "$cfg" 2> /dev/null || true
+    local kok="${adres%/}" ilk durum ilk_sure liste ctx="" bilgi ms
+    ilk="$(curl -K "$cfg" --max-time "$ZAMAN_ASIMI" -o "$govde" -w '%{http_code} %{time_total}' \
+      "$kok/models" 2> /dev/null)" || ilk="000 "
+    durum="${ilk%% *}"
+    ilk_sure="${ilk##* }"
+    if [ "$durum" != "200" ]; then
+      # 000 = curl hic yanit alamadi (kapali port / TLS / proxy / zaman asimi)
+      [ "$durum" = "000" ] && durum="baglanti yok" || durum="HTTP $durum"
+      printf 'hata\t%s\t%s\t\t\n' "$(host_port "$adres")" "$durum"
+      return 0
+    fi
+    liste="$(json_al model-listesi "$govde" | sed '/^$/d')"
+    if [ -z "$liste" ] && [ -z "$PY" ]; then
+      liste="$(grep -o '"id"[[:space:]]*:[[:space:]]*"[^"]*"' "$govde" | sed 's/.*"\([^"]*\)"$/\1/')"
+    fi
+    if [ -z "$liste" ]; then
+      bilgi="model listesi okunamadi"
+    elif printf '%s\n' "$liste" | grep -Fxq "$model"; then
+      bilgi="model var"
+    else
+      bilgi="model YOK"
+    fi
+    ctx="$(json_al pencere "$govde" | grep -F "$model" | head -1 | cut -f3)"
+    [ -n "$ctx" ] || ctx="$(json_al pencere "$govde" | head -1 | cut -f3)"
+    ms="$(medyan_ms "$cfg" "$kok/models" "$ilk_sure")"
+    printf 'ok\t%s\t%s\t%s\t%s\n' "$(host_port "$adres")" "$bilgi" "${ctx:-?}" "${ms:-?}"
+  }
+
+  # yaz_uc <etiket> <ozet-satiri>
+  yaz_uc() {
+    local etiket="$1" durum host bilgi ctx ms
+    IFS=$'\t' read -r durum host bilgi ctx ms <<< "$2"
+    if [ "$durum" = "ok" ]; then
+      satir "$etiket" ok "$host · $bilgi · baglam $ctx · medyan $ms ms"
+    else
+      satir "$etiket" uyar "$host · erisilemedi ($bilgi)"
+    fi
+  }
+
+  OZET1="$(uc_olc uc1 "$KOK_URL" "$KEY" "$MODEL")"
+  OZET2="$(uc_olc uc2 "$URL2" "$KEY2" "$MODEL2")"
+  IFS=$'\t' read -r D1 _ _ C1 MS1 <<< "$OZET1"
+  IFS=$'\t' read -r D2 _ _ C2 MS2 <<< "$OZET2"
+
+  # ekran sozlesmesi: bu blok 4 satirdan uzun olmasin (uc1 · uc2 · karar + ayrac)
+  printf '%s\n' "$CIZGI"
+  yaz_uc "uc1" "$OZET1"
+  yaz_uc "uc2" "$OZET2"
+
+  KARAR="karar yok — iki ucun da gecikmesi olculemedi"
+  if [ "$D1" = "ok" ] && [ "$D2" = "ok" ] && [ "${MS1:-?}" != "?" ] && [ "${MS2:-?}" != "?" ]; then
+    if [ "$MS1" -lt "$MS2" ]; then
+      KARAR="daha hizli: uc1 ($MS1 vs $MS2 ms)"
+    elif [ "$MS2" -lt "$MS1" ]; then
+      KARAR="daha hizli: uc2 ($MS2 vs $MS1 ms)"
+    else
+      KARAR="hiz esit ($MS1 ms)"
+    fi
+  elif [ "$D1" = "ok" ]; then
+    KARAR="yalniz uc1 yanit veriyor — uc2 elenir"
+  elif [ "$D2" = "ok" ]; then
+    KARAR="yalniz uc2 yanit veriyor — env'deki 1. ucu degistirmeyi dusun"
+  fi
+  KARAR_NOT=""
+  if [ "${C1:-?}" != "?" ] && [ "${C2:-?}" != "?" ] && [ -n "$C1" ] && [ -n "$C2" ] && [ "$C1" != "$C2" ]; then
+    if [ "$C1" -gt "$C2" ]; then
+      KARAR_NOT=" · genis baglam: uc1 ($C1 vs $C2)"
+    else
+      KARAR_NOT=" · genis baglam: uc2 ($C2 vs $C1)"
+    fi
+  fi
+  # model kimligi uzun olabilir — karar satiri tasmasin diye yalniz "farkli" notu dusulur
+  if [ "$D2" = "ok" ] && [ "$MODEL2" != "$MODEL" ]; then KARAR_NOT="$KARAR_NOT · uc2 modeli farkli"; fi
+  duz ">> ${KARAR}${KARAR_NOT}"
 fi
 
 # --- SONUÇ ---------------------------------------------------------------

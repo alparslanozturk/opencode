@@ -387,7 +387,7 @@ RAM'i tüketince swap olmadığı için kernel OOM-killer yetişmeden makine tam
 hiçbir şey yanıt vermiyordu), kurtarmak için host seviyesinde hard-reset gerekiyordu. 2026-09-19'da bu
 şekilde ~40 dakikada 5 reboot yaşandı. Detaylı kayıt: `knowledge/incidents/2026-09-19-typecheck-donma.md`.
 
-**Kalıcı düzeltme (commit `c6f1ce7d74`):** `script/safe-concurrency.sh`, hem `nproc` hem
+**Kalıcı düzeltme (commit `18999221c4`):** `script/safe-concurrency.sh`, hem `nproc` hem
 `/proc/meminfo`'daki `MemAvailable` değerine bakıp güvenli bir concurrency hesaplıyor (~700MB/süreç
 varsayımıyla, ikisinin küçüğü kullanılıyor). Kök `package.json`'daki `typecheck` script'i artık bunu
 kullanıyor, `.husky/pre-push` de kendi kopyasını tutmadan yalnız `bun typecheck`'i çağırıyor — yani

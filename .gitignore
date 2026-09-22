@@ -33,18 +33,15 @@ logs/
 *.bun-build
 tsconfig.tsbuildinfo
 
-# --- Alp katmanı (bkz. kur.sh/NASIL-CALISTIRILIR.md) ---
+# --- Alp katmanı (bkz. kur.sh) ---
 # Yerel derleme çıktısı git'e girmez; kurulum gerekirse kaynaktan derler.
 # rg paketi izlenir, bin/opencode yerel kalır.
 /bin/opencode
 /env
 /env.local
-/env2
 /notlar/
 *.log
-# Node header'lari: ARSIV (node-v*-headers.tar.gz) IZLENIR — sahada ag yok, kaybolmasin.
-# Acilan agac (kur.sh derleme adimi arsivi `node-vX.Y.Z/` olarak acar) ve node-gyp'in bekledigi
-# `node-vX.Y.Z-headers` adi (dizin ya da bag) git'e GIRMEZ.
-/node-v*-headers/
+# Node header'lari: ARSIV (node-vX.Y.Z-headers.tar.gz) IZLENIR — sahada ag yok.
+# Acilan agac (node-vX.Y.Z/) ve `-headers` adi (dizin ya da bag) git'e GIRMEZ.
 /node-v*-headers
 /node-v[0-9]*/

@@ -20,7 +20,7 @@
      filosuna yayilmasi ek operasyonel yuk; (b) asil kok nedeni (sinirsiz paralel `tsgo`) cozmuyor, sadece
      etkisini sinirliyor — kod hala her calistirmada makineyi zorlayabilirdi, sadece host'un geri kalani
      korunurdu; (c) Alp acikca vazgecti.
-  2. *Yalniz `.husky/pre-push` hook'una concurrency siniri eklemek* (ilk deneme, commit `424809ccb6`).
+  2. *Yalniz `.husky/pre-push` hook'una concurrency siniri eklemek* (ilk deneme, commit `ef94abc938`).
      **Yetersiz bulundu**: yalniz `git push` anini kapsiyor — CI'da veya baska bir sunucuda/ajanda
      dogrudan `bun run typecheck` cagrilirsa korumasiz kaliyordu.
   3. *Swap ekleme (2-4GB).* Donma yerine yavaslama + OOM-killer'in araya girmesini saglardi ama **root

@@ -12,7 +12,7 @@
 - **Sure (tespit → cozum):** Ayni oturum icinde birkac saat (arastirma + iki asamali fix + canli dogrulama).
 - **Kalicı onlem:** `script/safe-concurrency.sh` + `package.json` degisikligi **repoya gomulu** — bu repoyu klonlayan her sunucu (kurum sunuculari dahil) otomatik olarak korunuyor, ayrica host-bazli kurulum gerekmiyor. Karar gerekcesi: `../architecture/decisions/0002-typecheck-guvenli-calisma.md`.
 - **Ilgili beceri / runbook:** `NASIL-CALISTIRILIR.md` → "Root'tan tam typecheck/build" bolumu (guncellendi); `/root/CLAUDE.md` → `/root/ai/opencode` satiri (guncellendi).
-- **Kaynak (log / ticket):** commit `424809ccb6` (ilk fix, yalniz hook), commit `c6f1ce7d74` (asil fix, koke tasindi); bu oturumun git push loglari (`bagezizjq`/`bk2zktq3c` arka plan gorev ciktilari).
+- **Kaynak (log / ticket):** commit `ef94abc938` (ilk fix, yalniz hook), commit `18999221c4` (asil fix, koke tasindi); bu oturumun git push loglari (`bagezizjq`/`bk2zktq3c` arka plan gorev ciktilari).
 
 ## Zaman cizelgesi
 - (onceki oturum) — root'tan `bun run typecheck`/`bun turbo typecheck` calistirilinca ~40 dakikada 5 hard-reboot yasandi; bu NASIL-CALISTIRILIR.md'ye "bilinen sorun" olarak zaten kaydedilmisti.

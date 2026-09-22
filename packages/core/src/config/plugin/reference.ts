@@ -25,6 +25,14 @@ export const Plugin = define({
           const directory = doc.path ? path.dirname(doc.path) : location.directory
           for (const [name, entry] of Object.entries(doc.info.references ?? {})) {
             if (!validAlias(name)) continue
+            if (!validEntry(entry)) {
+              yield* Effect.logWarning("skipping invalid reference config entry", {
+                file: doc.path ?? "<unknown>",
+                reference: name,
+                entry: truncate(typeof entry === "string" ? entry : JSON.stringify(entry)),
+              })
+              continue
+            }
             const description = typeof entry === "string" ? undefined : entry.description
             const hidden = typeof entry === "string" ? undefined : entry.hidden
             entries.set(
@@ -56,6 +64,19 @@ export const Plugin = define({
 
 function validAlias(name: string) {
   return name.length > 0 && !/[\/\s`,]/.test(name)
+}
+
+function validEntry(entry: ConfigReference.Entry) {
+  // Decode şeması türleri garanti eder; burada yalnız anlamsız boş değerleri eliyoruz
+  // (boş repository/path). Saha (err_1fe00c62): bozuk/eksik girdiler list() çıktısında
+  // tanımsız kayda dönüşüp system prompt ortamını çökertiyordu.
+  if (typeof entry === "string") return entry.length > 0
+  if ("path" in entry) return entry.path.length > 0
+  return entry.repository.length > 0
+}
+
+function truncate(value: string, max = 200) {
+  return value.length > max ? value.slice(0, max) + "…" : value
 }
 
 function local(entry: ConfigReference.Entry): entry is string | ConfigReference.Local {

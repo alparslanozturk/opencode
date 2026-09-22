@@ -69,7 +69,19 @@ const layer = Layer.effect(
       environment: Effect.fn("SystemPrompt.environment")(function* (model: Provider.Model) {
         const ctx = yield* InstanceState.context
         const references = yield* Effect.gen(function* () {
-          return (yield* (yield* Reference.Service).list()).filter((reference) => reference.description !== undefined)
+          // DAR YAMA (vendor): saha err_1fe00c62 — derlenmiş ikilide LayerNode
+          // bağımlılık ağacındaki dairesel import'lar list() çıktısına tanımsız
+          // kayıt sızdırabiliyordu (kök neden build.ts `splitting` — ayrıca
+          // bozuk config/plugin girdileri de aynı etkiyi yapabilir); aşağıdaki
+          // toSorted karşılaştırıcısındaki `a.name` erişimi tüm system prompt
+          // ortam bloğunu çökertiyordu. Geçersiz kayıtları baştan at.
+          return (yield* (yield* Reference.Service).list()).filter(
+            (reference) =>
+              reference !== undefined &&
+              typeof reference.name === "string" &&
+              typeof reference.path === "string" &&
+              reference.description !== undefined,
+          )
         }).pipe(Effect.provide(locations.get(Location.Ref.make({ directory: AbsolutePath.make(ctx.directory) }))))
         return [
           [

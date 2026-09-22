@@ -102,7 +102,11 @@ const layer = Layer.effect(
         const referenceDirs = Object.keys(cfg.references ?? cfg.reference ?? {}).length
           ? yield* Effect.gen(function* () {
               yield* (yield* PluginV2.Service).wait(PluginV2.ID.make("core/config-reference"))
-              return (yield* (yield* Reference.Service).list()).map((reference) => reference.path)
+              // DAR YAMA (vendor): saha err_1fe00c62 — list() çıktısına bozuk girdi
+              // sızabilir; path alanı eksik kayıtları whitelist dizinlerine katmadan atla.
+              return (yield* (yield* Reference.Service).list())
+                .filter((reference) => reference !== undefined && typeof reference.path === "string")
+                .map((reference) => reference.path)
             }).pipe(Effect.provide(locations.get(Location.Ref.make({ directory: AbsolutePath.make(ctx.directory) }))))
           : []
         const whitelistedDirs = [

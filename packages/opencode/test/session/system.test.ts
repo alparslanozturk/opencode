@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
-import { Effect, Layer } from "effect"
+import { Effect, Layer, LayerMap } from "effect"
 import type { Agent } from "../../src/agent/agent"
 import { NamedError } from "@opencode-ai/core/util/error"
 import { Skill } from "../../src/skill"
@@ -8,6 +8,13 @@ import { Permission } from "../../src/permission"
 import type { Provider } from "../../src/provider/provider"
 import { SystemPrompt } from "../../src/session/system"
 import { MCP } from "../../src/mcp"
+import { LocationServiceMap } from "@opencode-ai/core/location-services"
+import type { LocationError, LocationServices } from "@opencode-ai/core/location-services"
+import { Location } from "@opencode-ai/core/location"
+import { Reference } from "@opencode-ai/core/reference"
+import { AbsolutePath } from "@opencode-ai/core/schema"
+import { InstanceRef } from "../../src/effect/instance-ref"
+import type { InstanceContext } from "../../src/project/instance-context"
 import { testEffect } from "../lib/effect"
 
 const skills: Skill.Info[] = [
@@ -42,6 +49,40 @@ const build: Agent.Info = {
   permission: Permission.fromConfig({ "*": "allow" }),
   options: {},
 }
+
+// Bozuk girdi senaryosu (saha err_1fe00c62): Reference.list() çıktısına tanımsız
+// ya da eksik alanlı kayıt sızabiliyordu; ortam bloğu bunları atlayabilmeli.
+let referenceList: unknown[] = []
+
+const ctx = {
+  directory: "/tmp/test-dir",
+  worktree: "/tmp/test-dir",
+  project: { id: "proj-1", worktree: "/tmp/test-dir" },
+} as InstanceContext
+
+const validReference = new Reference.Info({
+  name: "valid-ref",
+  path: AbsolutePath.make("/tmp/valid-ref"),
+  description: "A valid reference",
+  source: Reference.LocalSource.make({
+    type: "local",
+    path: AbsolutePath.make("/tmp/valid-ref"),
+    description: "A valid reference",
+  }),
+})
+
+// LayerMap mock'u: get(ref) yalnız Reference.Service sağlayan bir katman döner.
+// Layer, Success tipinde değişmezdir (invariant); get'in beklediği tam
+// LocationServices birliğine ve servisin kendisi LayerMap arayüzüne cast gerekir.
+const locationMapMock = Layer.succeed(
+  LocationServiceMap.Service,
+  {
+    get: () =>
+      Layer.mock(Reference.Service, {
+        list: () => Effect.succeed(referenceList as Reference.Info[]),
+      }) as unknown as Layer.Layer<LocationServices, LocationError>,
+  } as unknown as LayerMap.LayerMap<Location.Ref, LocationServices, LocationError>,
+)
 
 const it = testEffect(
   LayerNode.compile(SystemPrompt.node, [
@@ -79,6 +120,10 @@ const it = testEffect(
           available: () => Effect.succeed(skills),
         }),
       ),
+    ],
+    [
+      LocationServiceMap.node,
+      locationMapMock,
     ],
   ]),
 )
@@ -163,6 +208,40 @@ describe("session.system", () => {
           "</mcp_instructions>",
         ].join("\n"),
       )
+    }),
+  )
+
+  it.effect("environment skips reference entries with missing fields instead of crashing", () =>
+    Effect.gen(function* () {
+      const prompt = yield* SystemPrompt.Service
+      referenceList = [{ description: "ghost" }, validReference]
+      const output = yield* prompt
+        .environment({ providerID: "test", api: { id: "test/model" } } as Provider.Model)
+        .pipe(Effect.provideService(InstanceRef, ctx))
+
+      const refs = output[1]
+      expect(refs).toBeDefined()
+      expect(refs).toContain("<name>valid-ref</name>")
+      expect(refs).toContain("<path>/tmp/valid-ref</path>")
+      expect(refs).toContain("A valid reference")
+      expect(refs).not.toContain("ghost")
+      expect(refs.match(/<name>/g)).toHaveLength(1)
+    }),
+  )
+
+  it.effect("environment skips undefined reference entries instead of crashing", () =>
+    Effect.gen(function* () {
+      const prompt = yield* SystemPrompt.Service
+      referenceList = [undefined, validReference]
+      const output = yield* prompt
+        .environment({ providerID: "test", api: { id: "test/model" } } as Provider.Model)
+        .pipe(Effect.provideService(InstanceRef, ctx))
+
+      const refs = output[1]
+      expect(refs).toBeDefined()
+      expect(refs).toContain("<name>valid-ref</name>")
+      expect(refs).not.toContain("undefined")
+      expect(refs.match(/<name>/g)).toHaveLength(1)
     }),
   )
 })

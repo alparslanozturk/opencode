@@ -75,4 +75,22 @@ describe("Reference", () => {
       ])
     }).pipe(Effect.scoped, Effect.provide(referenceLayer)),
   )
+
+  // Saha err_1fe00c62: bozuk/eksik draft kayıtları (config veya plugin dönüşümü
+  // kaynaklı) materialized list'e sızmamalı — uyarı loglanıp atlanır, geçerli
+  // kayıtlar etkilenmez.
+  it.effect("skips invalid draft sources instead of crashing", () =>
+    Effect.gen(function* () {
+      const references = yield* Reference.Service
+      const valid = Reference.LocalSource.make({ type: "local", path: AbsolutePath.make("/docs") })
+      yield* references.transform((editor) => {
+        editor.add("valid", valid)
+        editor.add("broken", undefined as never)
+        editor.add("git-without-repo", { type: "git" } as never)
+        editor.add("unparseable-repo", { type: "git", repository: "" } as never)
+      })
+
+      expect((yield* references.list()).map((info) => info.name)).toEqual(["valid"])
+    }).pipe(Effect.scoped, Effect.provide(referenceLayer)),
+  )
 })

@@ -40,6 +40,20 @@ export interface Interface extends State.Transformable<Draft> {
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/v2/Reference") {}
 
+/**
+ * DAR YAMA (vendor): saha err_1fe00c62 — bozuk bir reference girdisi (eski/bozuk
+ * config veya plugin dönüşümü) draft'a geçersiz kayıt ekleyebiliyor; materialized
+ * list'ine tanımsız kayıt sızarsa system prompt ortamı (a.name) tüm istemciyi
+ * çökertiyordu. Kaydı burada uyarıyla ele.
+ */
+function invalidSource(source: unknown): boolean {
+  if (typeof source !== "object" || source === null) return true
+  const record = source as { type?: unknown; repository?: unknown; path?: unknown }
+  if (record.type === "local") return typeof record.path !== "string"
+  if (record.type === "git") return typeof record.repository !== "string"
+  return true
+}
+
 const layer = Layer.effect(
   Service,
   Effect.gen(function* () {
@@ -59,6 +73,10 @@ const layer = Layer.effect(
         Effect.gen(function* () {
           materialized.clear()
           for (const [name, source] of draft.list()) {
+            if (invalidSource(source)) {
+              yield* Effect.logWarning("skipping invalid reference", { name })
+              continue
+            }
             if (source.type === "local") {
               materialized.set(
                 name,
@@ -73,11 +91,21 @@ const layer = Layer.effect(
               continue
             }
             const repository = Repository.parse(source.repository)
-            if (!repository || !Repository.isRemote(repository)) continue
+            if (!repository || !Repository.isRemote(repository)) {
+              yield* Effect.logWarning("skipping reference with invalid repository", {
+                name,
+                repository: source.repository,
+              })
+              continue
+            }
             if (source.branch) {
               try {
                 Repository.validateBranch(source.branch)
               } catch {
+                yield* Effect.logWarning("skipping reference with invalid branch", {
+                  name,
+                  branch: source.branch,
+                })
                 continue
               }
             }

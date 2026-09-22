@@ -91,6 +91,8 @@ akışının bir parçası DEĞİLDİR.
 | `KURUM_KEY` | `env` | evet | Uç kimlik doğrulaması istemiyorsa `dummy` yeterli |
 | `MODEL_ID` | `env` | evet | `/v1/models` çıktısındaki model kimliği |
 | `KURUM_MAX_CONTEXT` | `env` | hayır | Bağlam penceresi (token) — `kur.sh` önce `${KURUM_URL}/models`'ten otomatik tespit etmeyi dener; başarısız olursa bu değeri kullanır; o da yoksa mevcut `limit.context` korunur |
+| `OPENCODE_VERSION` | `env.local` / kabukta elle (kaçış kapısı) | hayır | Ürün sürümü — derleme adımı ikiliye bunu yazar; varsayılan `1.0.0` (`kur.sh` içindeki `SURUM`). Değiştir: `OPENCODE_VERSION=1.0.1 ./kur.sh derle` |
+| `OPENCODE_CHANNEL` | kabukta elle (kaçış kapısı) | hayır | Derleme kanalı — varsayılan `main`; bilerek böyle (DB dosyası adı kanala göre seçiliyor, bkz. SURUM-NOTLARI). Günlük akışta değiştirilmez |
 | `OPENCODE_DISABLE_AUTOCOMPACT` | kabukta elle (kaçış kapısı) | hayır | Auto-compaction'ı tamamen kapatır — yalnız teşhis için; context taşarsa sert hata verebilir (bkz. aşağı) |
 | `OPENCODE_LOG_LEVEL` | kabukta elle (kaçış kapısı) | hayır | `DEBUG/INFO/WARN/ERROR` — sorun ararken `--log-level DEBUG` ile aynı iş |
 
@@ -153,6 +155,7 @@ cd /root/ai/opencode && ./kur.sh kontrol
 |---|---|
 | `bin/opencode` yok | Kaynaktan **derlenir** (kur.sh derleme aşaması) |
 | Kaynak ağacı ikiliden **yeni** | Kaynaktan **yeniden derlenir** (eski ikiliyle kurulum yapılmaz) |
+| İkili sürümü **istenenden farklı** (`bin/opencode --version` ≠ `1.0.0`) | Kaynaktan **yeniden derlenir** — ürün sürümü uyuşmuyor; `al.sh` + `./kur.sh` ikiliyi kendiliğinden `1.0.0`'a geçirir |
 | İkili güncel | Derleme yok — yalnız kurulum (birkaç saniye) |
 
 > **Kısayolun tek sahibi kurulum aşamasıdır:** `/usr/local/bin/opencode` (+ `oc`) →
@@ -435,7 +438,9 @@ istekte akış kullanır) → **araç çağrısı** (`tools`) → bağlam pencer
 **Çıktı sözleşmesi — tek ekran:** rapor **≈16 satır** ve **≤100 sütun** (env'de `KURUM_URL_2`
 varsa karşılaştırma bloğu için **+3 satır** — aşağıdaki "İki ucu karşılaştırma"); uzun URL/gövde kırpılır,
 satır sarması olmaz. Yani ekran görüntüsünü tek karede alıp gönderebilirsin. Her şeyi görmek
-istersen `--ayrintili`.
+istersen `--ayrintili`. KURULUM bölümünün ilk satırı ikilinin sürümünü de söyler:
+`ikili … kurulu: ~/.opencode/bin/opencode · surum 1.0.0` (ürün sürümü — farklıysa `./kur.sh`
+yeniden derler; bkz. "Ortam değişkenleri" → `OPENCODE_VERSION`).
 
 **Güvenlik:** salt okunur (sistemde/ayarlarda hiçbir şeyi değiştirmez), uca yalnız 16 token'lık
 kısa istekler gider. `KURUM_KEY` **ekrana basılmaz** (`abc****yz (uzunluk: 20)` şeklinde maskelenir)

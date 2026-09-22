@@ -6,6 +6,36 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-09-22 — ürün sürümü 1.0.0 (kanal `main`)
+
+**Sorun (Alp):** saha ikilisinin `--version` çıktısı `0.0.0-main-202609221336` idi — kanal git
+branch adından (`main`) geldiği için "preview" sayılıyor, sürüm tarih damgalı üretiliyordu.
+*"Sürüm numarasını 1.0.0 yap iyi olmaz mı?"* → ürün sürümü **vendor sürümünden ayrıldı**: **1.0.0**.
+
+**Ne değişti**
+- `kur.sh` derleme adımı `build.ts`'i `OPENCODE_VERSION` + `OPENCODE_CHANNEL` ile çağırır; sabitler
+  bölümünde **tek yer**: `SURUM` (varsayılan `1.0.0`) ve `KANAL` (varsayılan `main`). `bin/opencode
+  --version` artık **`1.0.0`** basar.
+- **Nasıl değiştirilir:** `OPENCODE_VERSION=1.0.1 ./kur.sh derle` ya da `env.local`'a
+  `OPENCODE_VERSION=1.0.1` satırı ekleyip `./kur.sh` (kurulum akışı env'i okur, sabiti ezer).
+- **Kanal bilerek `main` kalır:** `packages/core/src/database/database.ts` DB dosyası adını kanala göre
+  seçiyor (`opencode-<kanal>.db`); kanal `latest` olursa sahadaki mevcut oturum verisi `opencode.db`'ye
+  kayar (istenmiyor). `main` kalınca davranış aynıdır, yalnız sürüm 1.0.0 olur.
+- **Sürüm uyuşmazlığı tetikleyicisi:** `kur.sh` artık `bin/opencode --version`'ı `SURUM` ile
+  karşılaştırır — farklıysa (ya da sürüm okunamıyorsa) kendiliğinden yeniden derler. Sahada
+  `al.sh` + `./kur.sh` yeterli, elle `ALP_DERLE=1` gerekmez.
+- **Vendor/upstream değişmedi:** `package.json`'lar upstream `1.18.30`'da kalır — bunlar vendor
+  sürümüdür; ürün sürümünü yalnız `kur.sh` içindeki `SURUM` satırı belirler.
+
+**Doğrulama (bu koşumda gerçekten çalıştırıldı)**
+- `bash -n` + `shellcheck -S warning` → 0 bulgu; `Script.version/Script.channel` çözümü `1.0.0 main`.
+- Gerçek derleme (`ALP_DERLE=1 ./kur.sh derle --bin-kopyala`) → `bin/opencode --version` = `1.0.0`
+  (build smoke test'i de `1.0.0`); ikinci `./kur.sh` koşumu derleme yapmadı
+  ("hazır bin/opencode güncel"); `./kur.sh kontrol` `ikili` satırı `surum 1.0.0`, satır sayısı aynı.
+- Uyuşmazlık tetikleyicisi: saha ikilisi taklit edilince (`--version` = `0.0.0-main-202609221336`)
+  `0/4` adımı **"sürüm uyuşmuyor (kurulu: …, istenen: 1.0.0)"** ile yeniden derledi ve ikili
+  kendiliğinden `1.0.0`'a döndü.
+
 ## 2026-09-22 — tek betik: `kur.sh <parametre>`; 01/02/03 kaldırıldı
 
 **Sorun (Alp):** *"Tek kur.sh yap, parametre alsın, default parametre kurmak olsun. Diğer sh'ları sil."*

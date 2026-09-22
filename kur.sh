@@ -7,7 +7,8 @@
 #    ./kur.sh            VARSAYILAN = kur: gerekirse DERLER → KURAR → kısayolu
 #                        düzeltir → EN SONDA kontrol ekranını basar
 #    ./kur.sh kur        aynı iş (açık yazım)
-#    ./kur.sh derle      yalnız kaynaktan derleme (kurulum/kısayol yok)
+#    ./kur.sh derle      yalnız kaynaktan derleme (kurulum/kısayol yok;
+#                        --bin-kopyala: çıkan ikiliyi bin/opencode'a da kopyala)
 #    ./kur.sh kontrol    yalnız kontrol/teşhis raporu (salt okunur)
 #    ./kur.sh yardim     kısa kullanım ekranı  (-h | --help de olur)
 #
@@ -27,7 +28,8 @@
 #    ALP_DERLE=1 ikili güncel olsa da derle · ALP_DERLEME_YOK=1 hiç derleme ·
 #    ALP_TUM_BECERILER=1 tüm beceriler · ALP_DERLE_EK="--ignore-scripts" bun'a ek bayrak ·
 #    KISAYOL_DIZIN (varsayılan /usr/local/bin, yazılamıyorsa ~/.local/bin) ·
-#    BUN bun ikilisinin yolu · MODELS_DEV_API_JSON models.dev anlık görüntüsü
+#    BUN bun ikilisinin yolu · MODELS_DEV_API_JSON models.dev anlık görüntüsü ·
+#    OPENCODE_VERSION/OPENCODE_CHANNEL ürün sürümü/kanalı (varsayılan 1.0.0/main)
 #
 #  Çıkış kodu: 0 = başarılı/sorun yok · 1 = hata/sorun var · 2 = kullanım/env hatası ·
 #              3 = gerekli araç yok (curl vb.). Kontrol bulguları KURULUMUN çıkış
@@ -50,6 +52,18 @@ KOK="$(cd "$(dirname "$_kaynak")" && pwd)"
 #  Sabitler
 # ---------------------------------------------------------------------------
 NODE_SURUM="v24.19.0"
+
+# Ürün sürümü/kanalı — TEK YER burasıdır: derleme adımı ikiliye bu değerleri yazar
+# (build.ts), kurulum kararı da `bin/opencode --version`'ı bununla karşılaştırır.
+# Değiştirmek için: OPENCODE_VERSION=1.0.1 ./kur.sh derle  ya da  env.local'a
+# "OPENCODE_VERSION=1.0.1" satırı ekleyip ./kur.sh (env okununca burayı ezer).
+# Kanal BİLEREK "main" kalır: database.ts kanala göre DB dosyası adı seçiyor
+# (opencode-<kanal>.db); kanal "latest" olursa sahadaki mevcut oturum verisi
+# opencode.db'ye kayar (istenmiyor). "main" kalınca davranış aynıdır, yalnız sürüm
+# 1.0.0 olur. package.json'lar upstream 1.18.30'da kalır — onlar VENDOR sürümüdür;
+# ürün sürümünü bu iki satır belirler.
+SURUM="${OPENCODE_VERSION:-1.0.0}"
+KANAL="${OPENCODE_CHANNEL:-main}"
 
 # Çekirdek beceri listesi (Aşama 2, danışma-2 kararı: 38 → 10; 2026-09-16 Alp kararıyla
 # kalan 28 beceri knowledge/skills/parked/'a taşındı, bkz. parked/README.md).
@@ -79,6 +93,8 @@ ZAMAN_ASIMI=60
 AYRINTILI=0
 # tam = kurulum + uç (varsayılan). --kurulum/--uc iç kullanım içindir.
 MOD="tam"
+# derle alt komutuna aktarılacak iç bayraklar (--bin-kopyala / --kurulum-yok)
+DERLE_EK=()
 
 # --- rapor yardımcıları (kontrol bölümü kullanır) ---
 GENISLIK=100
@@ -290,8 +306,10 @@ derle() {
   fi
 
   # --- 4) Derleme: tek platform, web UI gomulmeden ---------------------------
+  echo "==> surum: $SURUM (kanal: $KANAL)"
   echo "==> build.ts --single --skip-embed-web-ui --skip-install"
-  "$BUN_YOL" run ./packages/opencode/script/build.ts --single --skip-embed-web-ui --skip-install || return 1
+  OPENCODE_VERSION="$SURUM" OPENCODE_CHANNEL="$KANAL" \
+    "$BUN_YOL" run ./packages/opencode/script/build.ts --single --skip-embed-web-ui --skip-install || return 1
 
   # --- 5) Uretilen ikiliyi bul -----------------------------------------------
   local -a IKILILER=()
@@ -396,12 +414,18 @@ kur() {
   #  0) İkili nereden gelecek? Kararı BU BETİK verir (kullanıcı bayrak öğrenmez):
   #       bin/opencode yok            -> kaynaktan derle
   #       kaynak ağacı ikiliden yeni  -> kaynaktan yeniden derle
+  #       ikilinin sürümü uyuşmuyor   -> kaynaktan yeniden derle (ürün sürümü: SURUM)
   #       aksi halde                  -> derleme yok, doğrudan kur
   #     Hazır ikili indirme yolu YOKTUR: ikili her zaman kaynaktan üretilir.
   # -------------------------------------------------------------------------
   DERLENDI=0
   IKILI_KAYNAGI=""
   DERLE_NEDEN=""
+  local bin_surum
+  # env dosyası ürün sürümünü/kanalını ezebilir (env.local'a OPENCODE_VERSION satırı
+  # yazılmış olabilir) — kabukta export edilmiş değer daha yukarıda zaten kazanmıştı.
+  SURUM="${OPENCODE_VERSION:-$SURUM}"
+  KANAL="${OPENCODE_CHANNEL:-$KANAL}"
   if [ "$DERLEME_YOK" != 1 ] && kaynak_agaci_var; then
     if [ "$DERLE" = 1 ]; then
       DERLE_NEDEN="elle istendi (ALP_DERLE=1)"
@@ -409,6 +433,10 @@ kur() {
       DERLE_NEDEN="bin/opencode yok"
     elif kaynak_daha_yeni; then
       DERLE_NEDEN="kaynak ağacı ikiliden yeni"
+    elif ! bin_surum="$(timeout 30 "$KOK/bin/opencode" --version 2>/dev/null)"; then
+      DERLE_NEDEN="ikilinin sürümü okunamadı (bozuk olabilir)"
+    elif [ "$bin_surum" != "$SURUM" ]; then
+      DERLE_NEDEN="sürüm uyuşmuyor (kurulu: $bin_surum, istenen: $SURUM)"
     fi
   fi
   if [ -n "$DERLE_NEDEN" ]; then
@@ -1558,7 +1586,7 @@ Kullanim:  ./kur.sh [alt-komut] [secenek...]
 Alt komutlar:
   (bos)      VARSAYILAN = kur
   kur        gerekirse derler, kurar, kisayolu duzeltir, sonda kontrol ekranini basar
-  derle      yalniz kaynaktan derler (kurulum/kisayol yok)
+  derle      yalniz kaynaktan derler (kurulum/kisayol yok)  [--bin-kopyala | --kurulum-yok]
   kontrol    yalniz kontrol/teshis raporu (salt okunur: kurulum + kurum AI ucu)
   yardim     bu ekran  (-h | --help)
 
@@ -1614,6 +1642,9 @@ ana() {
         ;;
       --kurulum) MOD="kurulum" ;;
       --uc) MOD="uc" ;;
+      # derle'ye aktarılan iç bayraklar (kur() aynı bayrakları fonksiyon çağrısıyla verir;
+      # elle derlemede kolaylık: ./kur.sh derle --bin-kopyala)
+      --bin-kopyala | --kurulum-yok) DERLE_EK+=("$1") ;;
       *)
         hata "bilinmeyen parametre: $1"
         kullanim >&2
@@ -1633,7 +1664,7 @@ ana() {
   [ -n "$ALT_KOMUT" ] || ALT_KOMUT="kur"   # parametresiz cagri = kurmak
 
   case "$ALT_KOMUT" in
-    derle) derle || exit 1 ;;
+    derle) derle ${DERLE_EK[@]+"${DERLE_EK[@]}"} || exit 1 ;;
     kontrol) kontrol ;;
     kur) kur ;;
   esac

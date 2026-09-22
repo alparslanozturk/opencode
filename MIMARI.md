@@ -83,14 +83,14 @@ engine/                  # MOTOR katmanı (güncellenebilir)
   opencode.json          #   sağlayıcı + izin
   plugins/               #   araç (tool) katmanı — ilk plugin (audit-log.ts, Faz 0) kodlandı
 knowledge/               # BİLGİ katmanı (kalıcı, git tabanlı)
-  skills/approved/*/SKILL.md   # 10 çekirdek beceri (opencode'un okuduğu TEK yer, 02-kur.sh varsayılanı)
+  skills/approved/*/SKILL.md   # 10 çekirdek beceri (opencode'un okuduğu TEK yer, kur.sh varsayılanı)
   skills/parked/*/SKILL.md     # 28 park edilmiş beceri (2026-09-16 sadeleştirmesi, kurulmaz; bkz. parked/README.md)
   skills/experimental/         # onay bekleyen öneriler
   skills/generated/            # ham üretim
   runbooks/ · incidents/ · lessons-learned/ · operations-notes/
   architecture/decisions/ · roadmap/
-02-kur.sh                   # TEK KOMUT: gerekirse derler, kurar, kısayolu düzeltir, doğrular (bayraksız)
-03-kontrol.sh           # TEK KONTROL: kurulum + uç raporu, sonda tek satır SORUN: (bayraksız)
+kur.sh                  # TEK BETİK: ./kur.sh (varsayılan) derler+kurar+kontrol basar;
+                        #   alt komutlar: derle · kontrol · yardim (-h/--help)
 README.md · NASIL-CALISTIRILIR.md · DENEYIM-AKTARIM.md · MIMARI.md
 ```
 

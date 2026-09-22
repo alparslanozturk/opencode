@@ -43,7 +43,7 @@ tsconfig.tsbuildinfo
 /notlar/
 *.log
 # Node header'lari: ARSIV (node-v*-headers.tar.gz) IZLENIR — sahada ag yok, kaybolmasin.
-# Acilan agac (01-derle.sh arsivi `node-vX.Y.Z/` olarak acar) ve node-gyp'in bekledigi
+# Acilan agac (kur.sh derleme adimi arsivi `node-vX.Y.Z/` olarak acar) ve node-gyp'in bekledigi
 # `node-vX.Y.Z-headers` adi (dizin ya da bag) git'e GIRMEZ.
 /node-v*-headers/
 /node-v*-headers

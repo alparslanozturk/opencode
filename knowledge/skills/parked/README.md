@@ -4,7 +4,7 @@
 
 ## Neden park
 
-`knowledge/skills/approved/` 38 beceriden **çekirdek 10**'a indirildi (`02-kur.sh` `CORE_SKILLS`
+`knowledge/skills/approved/` 38 beceriden **çekirdek 10**'a indirildi (`kur.sh` `CORE_SKILLS`
 dizisiyle birebir aynı). Kalan 28 beceri **silinmedi** — içerikleri korunarak bu dizine
 (`git mv` ile, geçmiş korunarak) taşındı. Amaç: varsayılan kurulumda taban bağlamı (sistem
 promptu + AGENTS.md + beceri listesi + araç şemaları) küçük tutmak — küçük pencereli kurumsal
@@ -22,8 +22,8 @@ Bir beceri tekrar çekirdeğe girecekse:
 git mv knowledge/skills/parked/<ad> knowledge/skills/approved/<ad>
 ```
 
-sonra `02-kur.sh` içindeki `CORE_SKILLS` dizisine `<ad>`'ı ekle (`02-kur.sh` başındaki dizi satırı).
-`03-kontrol.sh`'un raporladığı çekirdek sayısı bu diziden **türetilir** (sabit sayı yok) — ayrıca dokunmaya
+sonra `kur.sh` içindeki `CORE_SKILLS` dizisine `<ad>`'ı ekle (`kur.sh` başındaki dizi satırı).
+`kur.sh kontrol` raporunun raporladığı çekirdek sayısı bu diziden **türetilir** (sabit sayı yok) — ayrıca dokunmaya
 gerek yok.
 
 ## Park edilmiş beceriler silinmedi

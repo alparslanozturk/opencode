@@ -56,7 +56,7 @@ Somut olarak:
   `rpm -qa`, `ss -tlnp`, `kubectl get`, …) çalıştırılabilir — ve bunlar bile v1'de **plan dışıdır** (SSH katmanı
   Faz 0'ın kapsamında değil, `PHASE0-ACCEPTANCE.md`'ye bakınız).
 - `knowledge/skills/approved/`, `knowledge/policy/` dizinlerine ajan **yazamaz**.
-- `opencode.json`, `AGENTS.md`, `02-kur.sh`, `03-kontrol.sh` gibi motor dosyalarına ajan **yazamaz** (yalnız insan,
+- `opencode.json`, `AGENTS.md`, `kur.sh` gibi motor dosyalarına ajan **yazamaz** (yalnız insan,
   PR ile).
 - **Teknik kapı (2026-09-16 doğrulandı):** yazma `permission.edit` ile yönetilir; ayrı bir `permission.write`
   kapısı **yok**. opencode 1.18.30'un config şeması (`https://opencode.ai/config.json`) `permission` altında

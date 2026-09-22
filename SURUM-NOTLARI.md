@@ -1,9 +1,41 @@
 # SÜRÜM NOTLARI — opencode ajan kiti
 
-> **Güncel saha yüzeyi (2026-09-22):** **`./kur.sh`** tek giriş komutudur; içeride
-> **`02-kur.sh`** çalışır, gerekirse **`01-derle.sh`** ile kaynaktan derler ve sonda
-> **`03-kontrol.sh`** raporunu basar. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`
-> ve önceki `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
+> **Güncel saha yüzeyi (2026-09-22):** **`./kur.sh`** TEK betiktir — parametresiz çağrı = `kur`
+> (gerekirse derler, kurar, sonda kontrol raporunu basar); alt komutlar: `derle` · `kontrol` ·
+> `yardim` (`-h`/`--help`). `01-derle.sh`/`02-kur.sh`/`03-kontrol.sh` kaldırıldı, üçü `kur.sh`
+> içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
+> `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
+
+## 2026-09-22 — tek betik: `kur.sh <parametre>`; 01/02/03 kaldırıldı
+
+**Sorun (Alp):** *"Tek kur.sh yap, parametre alsın, default parametre kurmak olsun. Diğer sh'ları sil."*
+
+**Ne değişti**
+- `01-derle.sh`, `02-kur.sh`, `03-kontrol.sh` **`git rm` ile silindi**; içerikleri `kur.sh` içine
+  bash fonksiyonu olarak taşındı (`derle()` · `kur()` · `kontrol()`; ortak yardımcılar tek yerde).
+  Kök dizinde `*.sh` olarak **yalnız `kur.sh`** kaldı.
+- **Parametre düzeni (bayrak değil, alt komut):** parametresiz = `kur`; `kur` · `derle` · `kontrol` ·
+  `yardim`/`-h`/`--help`; bilinmeyen parametre → dostça Türkçe hata + kullanım, çıkış kodu `2`.
+- Seçenekler korundu ve kontrol aşamasına bağlandı: `--zaman-asimi <sn>` · `--ayrintili` ·
+  `--url`/`--key`/`--model` (`kur`/varsayılan akışta verilirse kontrol aşamasına aktarılır).
+- `env.example` artık **gerçek saha varsayılanlarını** taşıyor (`KURUM_URL` kurum adresi,
+  `KURUM_KEY=***` yer tutucu, `MODEL_ID`; `KURUM_URL_2`/`KURUM_KEY_2`/`MODEL_ID_2` ve
+  `KURUM_MAX_CONTEXT` yorum satırı) — `env` yoksa `kur.sh` onu otomatik oluşturur (izin 600).
+- Davranış aynen korundu: env kapısı, node header tgz idempotentliği, hazır ikili yolu YOK
+  (her zaman kaynaktan derlenir; `bin/ripgrep.tar.xz` korunur), kısayol tek sahibi kurulum,
+  kontrol ekranı ≤30 satır + iki uç karşılaştırması (`KURUM_URL_2`), kurulum çıkış kodunu kontrol
+  bulguları bozmaz.
+- Dokümanlar 01/02/03 referanslarından arındırıldı (`ALP-README.md`, `NASIL-CALISTIRILIR.md`
+  — parametre tablosu + "env oluşturma adımı gerekmez" notu —, `MIMARI.md`, `DENEYIM-AKTARIM.md`,
+  `docs/CC-GECIS-KARTI.md`, `engine/`, `knowledge/`, `env.example`, `.gitignore`).
+
+**Doğrulama (bu koşumda gerçekten çalıştırıldı)**
+- `bash -n` tüm `*.sh` temiz; `shellcheck -S warning` → 0 bulgu.
+- İzole `HOME` + geçici kopya: `./kur.sh yardim` → kullanım; bilinmeyen parametre → hata + çıkış 2;
+  `env` yokken `./kur.sh` → `env` `env.example`'dan oluştu (izin 600), çıktıda anahtar yok.
+- İki yerel sahte uçla (biri yapay gecikmeli) `./kur.sh kontrol`: karşılaştırma bloğu + "daha hızlı"
+  karar satırı doğru; `KURUM_URL_2` yokken blok hiç basılmıyor. Gerçek kurum ucuna istek atılmadı,
+  derleme yapılmadı.
 
 ## 2026-09-22 — saha yüzeyi `./kur.sh`, hazır ikili yolu kaldırıldı
 

@@ -29,7 +29,7 @@ Yerel dosya plugin tercih edilir (gerekirse yanına `package.json` ile bağıml�
 |---|---|---|
 | `audit-log.ts` | `tool.execute.before`/`after` + genel `event` hook'u (`session.idle` olayını filtreler) ile her araç çağrısını `AUDIT-FORMAT.md` §2 şemasına uyan, hash zincirli (§3) bir JSONL satırı olarak `/var/log/ops-agent/audit.jsonl`'a yazar. Bağımlılıksız (yalnız Node/Bun çekirdek modülleri: `fs`, `crypto`, `child_process`, `os`, `path`). **Faz 0'ın ilk gerçek plugin'i.** | Kodlandı, smoke-test ile doğrulandı (bkz. `notlar/FAZ0-YUZEYE-GETIRME-RAPORU.md`) |
 
-`audit-log.ts`, `02-kur.sh` tarafından `~/.config/opencode/plugins/`'e kopyalanır (bkz. bu dosyanın 02-kur.sh'daki
+`audit-log.ts`, `kur.sh` tarafından `~/.config/opencode/plugins/`'e kopyalanır (bkz. kur.sh kurulum akışındaki
 "plugin" adımı) — auto-discovery mekanizmasıyla ek config'e gerek kalmadan yüklenir.
 
 ### `audit-log.ts` bilinen sınırlar (Faz 0 sonrası ele alınacak — ayrıntı: `AUDIT-FORMAT.md` "Bilinen sınırlar")

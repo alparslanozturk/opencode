@@ -6,6 +6,48 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-09-22 — derlenmiş ikili çöküyordu: `splitting: false` (build.ts)
+
+**Sorun (Alp):** sahada `oc` hiçbir prompt gönderemiyordu — TUI'de `Failed to send prompt` /
+`Unexpected server error`, log'da `TypeError: undefined is not an object (evaluating 'a.name')`
+(stack: `resolve` → `map` (×3) → `SystemPrompt.environment`). Ayarla ilgisi yoktu: boş dizin, config'te
+`references` bile yokken tetikleniyordu. `bun run packages/opencode/src/index.ts` ile **kaynaktan**
+çalıştırınca hiç çökmüyordu — yalnız `bin/opencode` (derlenmiş tek-dosya ikili) çöküyordu.
+
+**Kök neden:** `packages/opencode/script/build.ts`'deki `Bun.build(...)` çağrısı `splitting: true`
+kullanıyordu. Bu ayar tarayıcı paketlerinde gecikmeli (lazy) chunk yüklemesi için var — tek dosyalık
+`compile` çıktısında hiçbir faydası yok, ama dairesel import'ları ayrı chunk'lara bölüp değerlendirme
+sırasını bozuyor: `core/src/location-services.ts`'deki `locationServices` (bir `LayerNode.group([...])`
+dizisi, ör. `Reference.node`) elemanlarından biri, kendi modülü henüz tam başlatılmadan okunduğu için
+`undefined` kalıyordu. `LayerNode.hoist`'in `resolve: (a) => replacementMap.get(a.name) ?? a`
+fonksiyonu bu `undefined` düğümle çağrılınca `a.name` patlıyordu — ilk prompt gönderiminde
+`SystemPrompt.environment` bu ağacı (referans listesi için) kurarken tetikleniyordu.
+
+**Düzeltme:** `splitting: true` → `splitting: false` (`packages/opencode/script/build.ts`). Kod
+değişmedi, yalnız derleme bayrağı. `kur.sh`'ın derleme adımı zaten bu dosyayı çağırıyor, başka bir
+değişiklik gerekmedi.
+
+**Doğrulama (bu koşumda gerçekten çalıştırıldı)**
+- Aynı kaynağı `splitting: true`/`false` ile ayrı ayrı derleyip ikisini de minimal sahte sağlayıcı
+  config'iyle (`{"provider":{"sahte":{...}}}`, boş dizin, git deposu değil) çalıştırdım:
+  `splitting: true` → aynı `a.name` çökmesi birebir tekrarladı; `splitting: false` → çökme yok,
+  istek modele kadar gitti (sahte uca `Cannot connect to API` — beklenen, uç zaten yok).
+- Gerçek üretim derlemesi (`OPENCODE_VERSION=1.0.0 OPENCODE_CHANNEL=main bun run
+  ./packages/opencode/script/build.ts --single --skip-embed-web-ui --skip-install`, `kur.sh`'ın
+  kullandığı komutun aynısı): smoke test `1.0.0` geçti, `bin/opencode --version` → `1.0.0`,
+  aynı repro komutu artık `a.name` hatası vermeden modele kadar gidiyor.
+- `turbo typecheck` **çalıştırılmadı** (bilinen donma riski, bkz. `knowledge/incidents/2026-09-19-typecheck-donma.md`).
+
+**Ayrıca (defansif koruma, aynı sürüm):** aynı çökmeyi başka bir yoldan (bozuk/eski config'teki
+`reference` girdisi veya plugin dönüşümü) imkânsız kılan katman da eklendi — core config plugin'i
+ve Reference materialize geçersiz girdiyi **uyarı loguyla** (hangi config dosyası + hangi anahtar)
+eler; `SystemPrompt.environment` ve `Agent` ise `list()` çıktısındaki tanımsız/eksik alanlı kayıtları
+atlar. Gerileme testleri: `packages/core/test/reference.test.ts` ve
+`packages/opencode/test/session/system.test.ts` (düzeltmeden önce aynı `a.name` çökmesiyle
+kırmızıydı).
+
+Detay: `NASIL-CALISTIRILIR.md` → "Sorun giderme" tablosu.
+
 ## 2026-09-22 — ürün sürümü 1.0.0 (kanal `main`)
 
 **Sorun (Alp):** saha ikilisinin `--version` çıktısı `0.0.0-main-202609221336` idi — kanal git

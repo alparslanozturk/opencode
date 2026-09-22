@@ -168,7 +168,14 @@ for (const item of targets) {
     format: "esm",
     minify: true,
     sourcemap: sourcemapsFlag ? "linked" : "none",
-    splitting: true,
+    // Code splitting is for lazy-loaded browser chunks; it buys nothing in a
+    // `compile` (single-executable) build and reorders circular-import chunk
+    // evaluation so that entries in LayerNode dependency arrays (e.g.
+    // core/src/location-services.ts's `locationServices` group) can still be
+    // `undefined` when a later chunk reads them, crashing with
+    // "TypeError: undefined is not an object (evaluating 'a.name')" the first
+    // time a prompt is sent.
+    splitting: false,
     compile: {
       autoloadBunfig: false,
       autoloadDotenv: false,

@@ -62,7 +62,9 @@ NODE_SURUM="v24.19.0"
 # opencode.db'ye kayar (istenmiyor). "main" kalınca davranış aynıdır, yalnız sürüm
 # 1.0.0 olur. package.json'lar upstream 1.18.30'da kalır — onlar VENDOR sürümüdür;
 # ürün sürümünü bu iki satır belirler.
-SURUM="${OPENCODE_VERSION:-1.0.0}"
+# 1.0.1: derlenmiş ikilide `SystemPrompt.environment` çökmesini düzelten build.ts
+# `splitting: false` düzeltmesiyle birlikte bump edildi (bkz. SURUM-NOTLARI.md).
+SURUM="${OPENCODE_VERSION:-1.0.1}"
 KANAL="${OPENCODE_CHANNEL:-main}"
 
 # Çekirdek beceri listesi (Aşama 2, danışma-2 kararı: 38 → 10; 2026-09-16 Alp kararıyla

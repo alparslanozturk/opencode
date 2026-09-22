@@ -1,5 +1,70 @@
 # SÜRÜM NOTLARI — opencode ajan kiti
 
+> **Betik adları değişti (2026-09-21, üçüncü tur).** Aşağıdaki **eski kayıtlarda** geçen
+> `kur.sh` / `alp.sh` / `oc-teshis.sh` / `oc-dogrula.sh` adları **tarihseldir** — o günkü durumu
+> anlatır. Güncel adlar: `alp-kur.sh` · `alp-kontrol.sh` · `alp-derle.sh` (bkz. ilk başlık).
+
+## 2026-09-21 (üçüncü tur) — saha yüzeyi **2 betiğe** indi: `alp-kur.sh` + `alp-kontrol.sh`
+
+**Sorun (Alp):** *"`oc-teshis.sh` nedir? `kontrol.sh` ile iki ayrı script aynı şeyi yapıyor galiba.
+Onu da tek bir script yap. Hatta şöyle olsun: `alp-kur.sh`, `alp-kontrol.sh` olsun."* — Sahada
+kontrol için **iki ayrı betik** (`oc-teshis.sh` = uç teşhisi, `oc-dogrula.sh` = kurulum doğrulaması)
+vardı; hangisinin ne yaptığı her seferinde yeniden anlatılıyordu.
+
+**Ne değişti:**
+- **Kullanıcıya görünen yüzey TAM 2 betik:**
+  - **`alp-kur.sh`** (eski `kur.sh`) — tek kurulum/derleme girişi. Tüm bayraklar aynen çalışıyor
+    (`--derle`/`--kaynak`, `--derleme-yok`, `--baglanti-yok`, `--baglanti-zorla`, `--tum-beceriler`,
+    `--ikili-indir`, `-- <iç bayraklar>`).
+  - **`alp-kontrol.sh`** (eski `oc-teshis.sh` + `oc-dogrula.sh`) — tek kontrol betiği.
+    Varsayılan = kurum AI ucu teşhisi; **`--kurulum`** = kurulum doğrulaması (eski `oc-dogrula.sh`);
+    **`--ayrintili`** = kırpmasız uzun rapor.
+- **`alp-derle.sh`** (eski `alp.sh`) — iç detay/derleyici; `alp-kur.sh` çağırır, elle çalıştırılmaz.
+- **Tek ekran sözleşmesi (Alp'in isteği: "tek bir ekranda tüm sorunu göstersin"):**
+  `alp-kontrol.sh` raporu **≈16 satır**, **≤100 sütun** — uzun URL/gövde kırpılır, satır sarması yok.
+  Sonda tek satırlık **`SORUN:`** bloğu kök nedeni kanıtıyla söyler: `uc erisilemiyor (TCP ...)` ·
+  `MODEL_ID ucta yok — <id>` · `/chat/completions HTTP <kod> — <gövde>` · `stream calismiyor (...)` ·
+  `uc tool_call kabul etmiyor (HTTP <kod>)` · `yok — uc saglikli, sorun opencode tarafinda; log: ...`.
+  Anahtar **her zaman maskeli**. Çıkış kodu: `0` sorun yok, `1` sorun var.
+- **Uç teşhisine eklenenler:** opencode log dizinindeki son `err_`/`ERROR`/`FATAL` satırı raporda
+  (sağlıklı uçta "sorun opencode tarafında" derken elde kanıt olsun diye).
+- **Kurulum moduna eklenenler:** `env` dosyası (varlık + 3 satır dolu mu + izin 600), kurulu
+  `opencode.json` izni, kısayolun doğru hedefi gösterip göstermediği.
+- **Düzeltilen yanlış pozitif:** kurulu `opencode.json` karşılaştırması model **sözlük anahtarını**
+  (`kurum-model`) `MODEL_ID` ile kıyaslıyordu; kurulum doğruyken bile "model kimligi env ile ayni
+  DEGIL" uyarısı basıyordu. Artık `models.<anahtar>.id` alanı karşılaştırılıyor.
+- **Eski adlar:** `git mv` ile taşındı (geçmiş korundu). `kur.sh` / `oc-teshis.sh` / `oc-dogrula.sh`
+  yerine 2-3 satırlık **yönlendirici** bırakıldı (uyarı basıp yeni betiği çalıştırır) — `al.sh`'ın
+  rsync'i sahada eski kopyaları bırakabildiği için; istenirse silinebilirler.
+- **Dokümanlar:** `ALP-README.md`, `NASIL-CALISTIRILIR.md` ("Sahada kullanıcıya görünen TAM 2 KOMUT"
+  kutusu + "Saha kurulumu" + "Teşhis"), `MIMARI.md`, `docs/`, `knowledge/` → tek akış:
+  **`al.sh` → `./alp-kur.sh` → `./alp-kontrol.sh`**.
+
+**Doğrulama (gerçek koşum, izole `HOME`):**
+- `alp-kur.sh --derleme-yok` → kurdu, sonda `alp-kontrol.sh --kurulum` çalıştı, "kurulum saglam", çıkış 0.
+- `alp-kontrol.sh` sahte uca karşı 5 senaryoda koşuldu — **sağlıklı** (çıkış 0), **MODEL_ID uçta yok**,
+  **chat HTTP 500**, **stream bozuk (SSE yok)**, **tool_call reddi** — hepsinde doğru `SORUN:` satırı.
+- Erişilemez uç (DNS çözülmeyen host) ve kapalı TCP portu: çökmedi, doğru teşhis, çıkış 1.
+- Her koşumda rapor **16-18 satır**, **en uzun satır 100 sütun**, anahtar sızıntısı **0**.
+- `bash -n` temiz; `shellcheck -S warning alp-kur.sh alp-derle.sh alp-kontrol.sh kur.sh oc-teshis.sh
+  oc-dogrula.sh` → **0 bulgu**.
+
+**Kapanış koşumu (2026-09-22) — commit öncesi son doğrulama:**
+- `bash -n` (6 betik + `script/safe-concurrency.sh`) temiz; `shellcheck -S warning *.sh script/*.sh`
+  → **0 bulgu**. Ağır `turbo typecheck` bilerek **koşulmadı**.
+- İzole `HOME` + izole `KISAYOL_DIZIN` ile **parametresiz `./alp-kur.sh`** uçtan uca: hazır
+  `bin/opencode` kullanıldı (derleme yok) → ikili/ayar/10 beceri/plugin/rg/kısayol kuruldu → sonda
+  `alp-kontrol.sh --kurulum` "kurulum saglam", **çıkış 0**.
+- **Parametresiz `./alp-kontrol.sh`** (erişilemez uca karşı): **15 satırlık tek ekran**, doğru
+  `SORUN: uc erisilemiyor (TCP ...)`, çıkış 1. `--ayrintili` kırpmasız rapor veriyor, anahtar
+  `sk-****89 (uzunluk: 29)` diye **maskeli**. Üç yönlendirici (`kur.sh`, `oc-teshis.sh`,
+  `oc-dogrula.sh`) uyarı basıp doğru hedefi çalıştırıyor.
+- **Gözden kaçan eski ad referansları düzeltildi:** `env.example` (2 yer), `.gitignore` (2 yer) ve
+  `engine/plugins/logrotate.d/ops-agent-audit` hâlâ `kur.sh` diyordu → `alp-kur.sh`. Kalan `kur.sh` /
+  `alp.sh` / `oc-*.sh` geçişlerinin tamamı artık yalnız **tarihçe/"taşındı"** bağlamında.
+- Bayraklar (`--derle`, `--derleme-yok`, `--baglanti-zorla`, …) bu koşumda **bilerek korundu** —
+  parametresiz sadeleştirme ayrı bir iş.
+
 ## 2026-09-21 (ikinci tur) — `kur.sh` tek giriş noktası oldu; kısayol çakışması bitti
 
 **Sorun (Alp):** *"Niye iki tane kurulum dosyası var?"* — `alp.sh` derleyip `/usr/local/bin/opencode`'u

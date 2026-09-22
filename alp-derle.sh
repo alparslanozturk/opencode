@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  alp.sh — opencode CLI'yi KAYNAKTAN derler (saha makinesi: saha-makinesi).
+#  alp-derle.sh — opencode CLI'yi KAYNAKTAN derler (saha makinesi: saha-makinesi).
 #
 #  ⚙️  İÇ/DETAY BETİK: normalde bunu elle çalıştırmana gerek yok —
-#      `./kur.sh` gerektiğinde bunu kendisi çağırır (tek giriş noktası odur).
+#      `./alp-kur.sh` gerektiğinde bunu kendisi çağırır (tek giriş noktası odur).
 #      Doğrudan çalıştırmak yalnız derlemeyi ayrı denemek/ayıklamak içindir.
 #
 #  Bu betik YALNIZ derler. Kaynak senkronu (git pull + rsync) ayrı bir iştir:
-#  önce `al.sh` ile kodu bu makineye çek, sonra `./kur.sh` çalıştır.
+#  önce `al.sh` ile kodu bu makineye çek, sonra `./alp-kur.sh` çalıştır.
 #
 #  Kısayol (symlink) KURMAZ — `/usr/local/bin/opencode` kısayolunun tek sahibi
-#  `kur.sh`'tır (o, kısayolu `~/.opencode/bin/opencode`'a bağlar). İki betik aynı
+#  `alp-kur.sh`'tır (o, kısayolu `~/.opencode/bin/opencode`'a bağlar). İki betik aynı
 #  kısayolu farklı hedefe kurduğunda hangi ikilinin çalıştığı belirsiz kalıyordu;
 #  tek sahip kuralı bunu bitirir. Eski davranış gerekirse: `--kisayol`.
 #
@@ -20,12 +20,12 @@
 #    - web/console paketleri (ghostty-web, @solidjs/start) npm DIŞI kaynaktan geldiği için
 #      kurulum `--filter` ile yalnız CLI workspace'ine daraltılır.
 #
-#  Kullanım:  cd <repo-kökü> && ./alp.sh [ek bun install bayrakları]
-#    --bin-kopyala   derlenen ikiliyi ayrıca bin/opencode'a kopyalar (kur.sh bunu kullanır)
+#  Kullanım:  cd <repo-kökü> && ./alp-derle.sh [ek bun install bayrakları]
+#    --bin-kopyala   derlenen ikiliyi ayrıca bin/opencode'a kopyalar (alp-kur.sh bunu kullanır)
 #    --kurulum-yok   bun install adımını atla (bağımlılıklar zaten kurulu ise)
-#    --kisayol       (istisna) kısayolu doğrudan dist ikilisine kur — normalde kur.sh'ın işi
+#    --kisayol       (istisna) kısayolu doğrudan dist ikilisine kur — normalde alp-kur.sh'ın işi
 #    -h | --help     bu yardım
-#  Örnek (native derleme sorunlu makinede): ./alp.sh --ignore-scripts
+#  Örnek (native derleme sorunlu makinede): ./alp-derle.sh --ignore-scripts
 #
 #  Ortam değişkenleri:
 #    KISAYOL_DIZIN        --kisayol verildiğinde symlink dizini (varsayılan /usr/local/bin,
@@ -61,7 +61,7 @@ if [ -z "$BUN" ]; then
   elif [ -x "/root/.bun/bin/bun" ]; then
     BUN="/root/.bun/bin/bun"
   else
-    echo "!! bun bulunamadi. PATH'e ekle veya BUN=/yol/bun ./alp.sh olarak calistir." >&2
+    echo "!! bun bulunamadi. PATH'e ekle veya BUN=/yol/bun ./alp-derle.sh olarak calistir." >&2
     exit 1
   fi
 fi
@@ -111,7 +111,7 @@ fi
 IKILI="$KOK/${IKILILER[0]}"
 echo "==> ikili: $IKILI ($(du -h "$IKILI" | cut -f1))"
 
-# --- 5) Kisayol (symlink) — VARSAYILAN: KURULMAZ, sahibi kur.sh -----------------
+# --- 5) Kisayol (symlink) — VARSAYILAN: KURULMAZ, sahibi alp-kur.sh -----------------
 if [ "$KISAYOL" -eq 1 ]; then
   KISAYOL_DIZIN="${KISAYOL_DIZIN:-/usr/local/bin}"
   mkdir -p "$KISAYOL_DIZIN" 2>/dev/null || true
@@ -126,7 +126,7 @@ if [ "$KISAYOL" -eq 1 ]; then
   fi
   ln -sfn "$IKILI" "$KISAYOL_DIZIN/opencode"
   echo "==> kisayol: $KISAYOL_DIZIN/opencode -> $IKILI"
-  echo "   UYARI: bu kisayol dist ikilisini gosteriyor; sonradan ./kur.sh calistirirsan"
+  echo "   UYARI: bu kisayol dist ikilisini gosteriyor; sonradan ./alp-kur.sh calistirirsan"
   echo "          ayni kisayolu ~/.opencode/bin/opencode'a cevirir (tek sahip kurali)."
   if [ -n "$ESKI_HEDEF" ] && [ "$ESKI_HEDEF" != "$IKILI" ]; then
     echo "   NOT: onceki kisayol degistirildi (eski hedef: $ESKI_HEDEF)"
@@ -136,15 +136,15 @@ if [ "$KISAYOL" -eq 1 ]; then
     *) echo "   NOT: $KISAYOL_DIZIN PATH'te degil -> export PATH=\"$KISAYOL_DIZIN:\$PATH\"" ;;
   esac
 else
-  echo "==> kisayol kurulmadi (sahibi kur.sh) — kurulum icin: ./kur.sh"
+  echo "==> kisayol kurulmadi (sahibi alp-kur.sh) — kurulum icin: ./alp-kur.sh"
 fi
 
-# --- 6) Istege bagli: kur.sh akisi icin bin/opencode ---------------------------
+# --- 6) Istege bagli: alp-kur.sh akisi icin bin/opencode ---------------------------
 if [ "$BIN_KOPYALA" -eq 1 ]; then
   mkdir -p "$KOK/bin"
   cp -f "$IKILI" "$KOK/bin/opencode"
   chmod +x "$KOK/bin/opencode"
-  echo "==> bin/opencode guncellendi (kur.sh bunu kullanir)"
+  echo "==> bin/opencode guncellendi (alp-kur.sh bunu kullanir)"
 fi
 
 echo "==> BITTI: $("$IKILI" --version)"

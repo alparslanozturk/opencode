@@ -4,7 +4,7 @@
 
 ## Neden park
 
-`knowledge/skills/approved/` 38 beceriden **çekirdek 10**'a indirildi (`kur.sh` `CORE_SKILLS`
+`knowledge/skills/approved/` 38 beceriden **çekirdek 10**'a indirildi (`alp-kur.sh` `CORE_SKILLS`
 dizisiyle birebir aynı). Kalan 28 beceri **silinmedi** — içerikleri korunarak bu dizine
 (`git mv` ile, geçmiş korunarak) taşındı. Amaç: varsayılan kurulumda taban bağlamı (sistem
 promptu + AGENTS.md + beceri listesi + araç şemaları) küçük tutmak — küçük pencereli kurumsal
@@ -22,8 +22,8 @@ Bir beceri tekrar çekirdeğe girecekse:
 git mv knowledge/skills/parked/<ad> knowledge/skills/approved/<ad>
 ```
 
-sonra `kur.sh` içindeki `CORE_SKILLS` dizisine `<ad>`'ı ekle (`kur.sh` başındaki dizi satırı).
-`oc-dogrula.sh`'ın çekirdek sayısı bu diziden **türetilir** (sabit sayı yok) — ayrıca dokunmaya
+sonra `alp-kur.sh` içindeki `CORE_SKILLS` dizisine `<ad>`'ı ekle (`alp-kur.sh` başındaki dizi satırı).
+`alp-kontrol.sh --kurulum`'un raporladığı çekirdek sayısı bu diziden **türetilir** (sabit sayı yok) — ayrıca dokunmaya
 gerek yok.
 
 ## Tüm becerileri kurmak (park dahil)
@@ -31,7 +31,7 @@ gerek yok.
 Park edilmiş beceriler **silinmedi**, yalnız varsayılan kurulumdan çıkarıldı:
 
 ```bash
-./kur.sh --tum-beceriler   # approved/ (10) + parked/ (28) = 38 beceri kurulur
+./alp-kur.sh --tum-beceriler   # approved/ (10) + parked/ (28) = 38 beceri kurulur
 ```
 
 ## "Yetim" işaretli beceriler (2026-09-16 itibarıyla)

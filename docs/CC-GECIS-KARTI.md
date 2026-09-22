@@ -86,7 +86,7 @@ Aynı kategoride ilk eşleşen kazanır: globalde `AGENTS.md` > `~/.claude/CLAUD
 
 ## 7) Bizim pakete özel notlar
 
-- Kurulum: `./kur.sh` → kısayol `oc` → `oc-dogrula.sh` ile doğrulama.
+- Kurulum: `./alp-kur.sh` → kısayol `oc` → `alp-kontrol.sh --kurulum` ile doğrulama.
 - Kurallar global: `~/.config/opencode/AGENTS.md` + `opencode.json` (bu dosyayı elle düzenlemeyin, `engine/` altındaki kaynak güncellenir).
 - Modeller: `Qwen3.6-35B-A3B-FP8 (kurum)` — 256K pencere, `limit.context=262144` otomatik yazılır.
 - Bilinen sınır: araçsız metin yanıtında döngü riski (harness livelock) — olursa `Esc`, sonra `~/.local/share/opencode/log/` son satırları.

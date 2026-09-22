@@ -7,7 +7,7 @@ opencode bu kuralı **birebir** destekliyor. Kaynak: opencode docs (rules / skil
 
 ## Temel ilke
 
-- **Global** (`~/.config/opencode/…`) = **her dizinde** geçerli. `kur.sh` bunu kurar.
+- **Global** (`~/.config/opencode/…`) = **her dizinde** geçerli. `alp-kur.sh` bunu kurar.
 - **Proje** (`<proje>/…`) = o dizinde **ve alt dizinlerinde** geçerli.
 - İkisi **birleşir (additive)** — proje dosyası global'i **silmez**, üstüne eklenir.
 - Proje tarafı, açılış dizininden **git worktree köküne** kadar yukarı taranır → proje köküne koymak yeterlidir.
@@ -41,7 +41,7 @@ opencode'da Claude Code'daki `#` ile hafızaya ekleme kısayolu **yok**. Kalıc�
    ```json
    { "$schema": "https://opencode.ai/config.json", "instructions": ["PROJE-NOTLAR.md"] }
    ```
-3. Aynı mantık **global** hafıza için: `~/.config/opencode/AGENTS.md` (kur.sh'ın kurduğu dosya; elle düzenlemek
+3. Aynı mantık **global** hafıza için: `~/.config/opencode/AGENTS.md` (alp-kur.sh'ın kurduğu dosya; elle düzenlemek
    yerine `engine/AGENTS.md` kaynağı güncellenir).
 
 ## Örnek proje iskeleti
@@ -68,7 +68,7 @@ Kullanım: `cd /root/ai/work/opencode/<proje-adi> && oc` (örn. `cd /root/ai/wor
 ## "Umumi" olunca ne olur
 
 Projede olgunlaşan beceri/kural **global'e terfi eder**:
-`<proje>/.opencode/skills/<ad>/` → paketin `knowledge/skills/approved/<ad>/` altına alınır → `kur.sh` ile
+`<proje>/.opencode/skills/<ad>/` → paketin `knowledge/skills/approved/<ad>/` altına alınır → `alp-kur.sh` ile
 kurulur → **tüm projelerde** hazır olur. (Bu taşıma bir **Doktor** kalemidir; proje tarafı Alp'in çalışma alanında kalır.)
 
 ## İş tipi → klasör + beceri (Alp'in çalışma düzeni)
@@ -87,7 +87,7 @@ Tüm çalışmalar tek çalışma alanında (`~/ai/work/`) durabilir; ayrım **k
 
 **Beceri kurulumu:** varsayılan olarak 10 çekirdek beceri kurulur
 (`ansible k8s-rancher rhel-yonetim filo-durum-kontrolu rapor-uret rapor-excel-pdf hata-ayikla performans sistem-guncelleme depolama`);
-tümünü (38) kurmak için `./kur.sh --tum-beceriler`. Pencere 256K olduğu için bağlam kaygısı yok.
+tümünü (38) kurmak için `./alp-kur.sh --tum-beceriler`. Pencere 256K olduğu için bağlam kaygısı yok.
 
 **SSH / uzak sistem notu (önemli):** İzin listesinde salt-okunur yerel komutlar var
 (`ls cat head tail wc file stat pwd whoami hostname uname uptime date df du free ps pvs vgs lvs lsblk blkid
@@ -158,9 +158,9 @@ Beceri: `rapor-excel-pdf` (pakette **var**, varsayılan **10 çekirdek** beceri 
 **PDF Türkçe font tuzağı:** hazır fontlar latin-1 → `ş ğ İ` hata verir. Unicode TTF gerekir; **yolunu sabit yazma**, ara:
 `find /usr/share/fonts -name "*.ttf" | head`. (`dejavu-sans-fonts` baseos'ta, EPEL gerekmez.)
 
-**Beceriyi kurma:** varsayılan `./kur.sh` artık yeterli — `rapor-excel-pdf` 10 çekirdek beceri içinde
+**Beceriyi kurma:** varsayılan `./alp-kur.sh` artık yeterli — `rapor-excel-pdf` 10 çekirdek beceri içinde
 (2026-09-15'ten beri). Elle `cp -r knowledge/skills/approved/<ad> ~/.config/opencode/skills/`
-**geçicidir** — `kur.sh` beceri dizinini baştan yazdığı için sonraki çalıştırmada silinir; tek bir
+**geçicidir** — `alp-kur.sh` beceri dizinini baştan yazdığı için sonraki çalıştırmada silinir; tek bir
 becerinin kalıcı kurulumu için henüz `--beceri <ad>` gibi bir bayrak yok, ya varsayılan/`--tum-beceriler`
 kullanılır ya da `CORE_SKILLS` dizisi elle düzenlenir.
 

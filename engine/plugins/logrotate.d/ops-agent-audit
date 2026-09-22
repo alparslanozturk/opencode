@@ -1,6 +1,6 @@
 # logrotate örneği — audit-log.ts plugin'inin yazdığı /var/log/ops-agent/audit.jsonl için.
 # Kaynak: ../../../knowledge/policy/AUDIT-FORMAT.md §1.
-# Bu dosya bir ÖRNEKTİR — uygulama (kur.sh entegrasyonu, /etc/logrotate.d/'e kopyalama,
+# Bu dosya bir ÖRNEKTİR — uygulama (alp-kur.sh entegrasyonu, /etc/logrotate.d/'e kopyalama,
 # aiops kullanıcı/grubunun oluşturulması, postrotate imzalama scripti) Faz 0 kapsamı dışıdır
 # (bkz. notlar/FAZ0-RAPOR.md "açık kalanlar").
 /var/log/ops-agent/audit.jsonl {

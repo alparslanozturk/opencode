@@ -14,11 +14,11 @@ Kod geliştirme YOK — sadece ayar + içerik. Amaç: **önce denemek**, sonuç 
 | `engine/AGENTS.md` | Kurum kuralları: dil, envanter disiplini, güvenlik, beceri disiplini, pencere/endpoint notu |
 | `engine/plugins/` | Araç (tool) katmanı — yerel TS plugin'ler; ilk plugin (`audit-log.ts`, Faz 0) kodlandı |
 | `knowledge/skills/approved/` | **10 çekirdek beceri** — opencode'un **okuduğu tek yer**, `alp-kur.sh` varsayılan olarak bunları kurar |
-| `knowledge/skills/parked/` | Kalan **28 beceri** (2026-09-16 sadeleştirmesi, Alp kararı) — `--tum-beceriler` ile approved/ ile birlikte kurulur, bkz. `parked/README.md` |
+| `knowledge/skills/parked/` | Kalan **28 beceri** (2026-09-16 sadeleştirmesi, Alp kararı) — varsayılan kurulumda kurulmaz, bkz. `parked/README.md` |
 | `knowledge/` | Kurumsal bilgi deposu: `skills` · `runbooks` · `incidents` · `lessons-learned` · `operations-notes` · `architecture` · `roadmap` |
-| `alp-kur.sh` | **TEK GİRİŞ NOKTASI** — gerekirse kaynaktan derler (`alp-derle.sh`'ı çağırır), kurar (ayar+beceri+plugin+rg), `opencode`+`oc` kısayollarını kurar (**kısayolun tek sahibi budur**), sonda `alp-kontrol.sh --kurulum` çalıştırır |
+| `alp-kur.sh` | **TEK KOMUT — bayrak almaz.** Gerekirse kaynaktan derler (kararı kendi verir), kurar (ayar+beceri+plugin+rg), `opencode`+`oc` kısayollarını kurar/düzeltir (**kısayolun tek sahibi budur**), sonda doğrular ve tek ekran özet basar |
 | `alp-derle.sh` | *İç detay — derleyici.* Kaynaktan derler (saha/offline: yalnız CLI workspace + models.dev snapshot), **kısayol kurmaz**. Normalde elle çalıştırılmaz; `alp-kur.sh` çağırır — bkz. `NASIL-CALISTIRILIR.md` → "Saha kurulumu" |
-| `alp-kontrol.sh` | **TEK KONTROL BETİĞİ.** Varsayılan: kurum AI ucunu test eder (DNS/TCP/`/models`/sohbet/akış/araç çağrısı). `--kurulum`: paketin kurulumunu doğrular (ağ gerekmez). Çıktı tek ekrana sığar, sonda tek satır `SORUN:` |
+| `alp-kontrol.sh` | **TEK KONTROL BETİĞİ — bayrak almaz.** Bayraksız çağrı tüm raporu verir: kurulum (ikili/env/ayar/beceri/`rg`/izin/kısayol) + kurum AI ucu (DNS/TCP/`/models`/sohbet/akış/araç çağrısı). Çıktı tek ekrana sığar, sonda tek satır `SORUN:` |
 | `NASIL-CALISTIRILIR.md` | **Adım adım çalıştırma + sorun giderme** (önce bunu oku) |
 | `DENEYIM-AKTARIM.md` | Aider'da öğrendiklerimizin opencode karşılığı — ne aktarıldı, ne aktarılamadı |
 
@@ -26,38 +26,36 @@ Kod geliştirme YOK — sadece ayar + içerik. Amaç: **önce denemek**, sonuç 
 ```bash
 # 1) 3 satırı doldur:
 vi env            # KURUM_URL=http(s)://sunucu:port/v1 (+ KURUM_KEY, MODEL_ID)
-# 2) kur — tek komut (gerekirse kaynaktan derler; ikili + ayar + 10 çekirdek beceri kurulur,
-#    bağlam penceresi otomatik tespit edilir, sonda otomatik doğrulama çalışır,
-#    kısayollar: opencode + oc; hepsi için: --tum-beceriler):
+# 2) kur — TEK KOMUT, bayrak yok (gerekirse derler, kurar, kısayolu düzeltir, doğrular):
 ./alp-kur.sh
 # 3) çalıştır:
 opencode          # kısa ad: oc
 ```
-**Sahada (offline) akış:** `./al.sh` (senkron) → **`./alp-kur.sh`** (derle + kur + doğrula) → `opencode`.
-`bin/opencode` yoksa `alp-kur.sh` kaynaktan derler; zorlamak için `./alp-kur.sh --derle`, hiç derlememek için
-`--derleme-yok`. **Kısayolun tek sahibi `alp-kur.sh`'tır** (`/usr/local/bin/opencode` →
-`~/.opencode/bin/opencode`); `alp-derle.sh` kısayol kurmaz.
+**Sahada (offline) akış:** `./al.sh` (senkron) → **`./alp-kur.sh`** → `opencode`.
+`alp-kur.sh` kararı kendi verir: ikili yoksa **veya** kaynak ağacı ikiliden yeniyse derler,
+aksi halde yalnız kurar (birkaç saniye). **Kısayolun tek sahibi `alp-kur.sh`'tır**
+(`/usr/local/bin/opencode` → `~/.opencode/bin/opencode`); başka bir yeri gösteren `opencode`/`oc`
+kısayolunu soru sormadan yedekler (`.bak-<tarih>`) ve düzeltir.
 İlk açılışta **`/models`** → `kurum / Qwen3.6-35B-A3B-FP8` seç. Beceriler otomatik görünür.
 
-**Elle doğrulamak istersen:** `./alp-kontrol.sh --kurulum` (internet gerektirmez, kurum ucuna erişemezse hata değil uyarı verir).
+**Elle doğrulamak istersen:** `./alp-kontrol.sh` (kurulum bölümü ağ gerektirmez).
 
 ## Bir şey çalışmıyorsa: `./alp-kontrol.sh`
 TUI `Failed to send prompt` / `Unexpected server error` dediyse **tek satır**:
 ```bash
 /root/ai/opencode/alp-kontrol.sh
 ```
-Kurum ucunu sırayla test eder (URL biçimi · DNS · TCP · `/models` + MODEL_ID listede mi ·
+Önce kurulumu, sonra kurum ucunu sırayla test eder (URL biçimi · DNS · TCP · `/models` + MODEL_ID listede mi ·
 sohbet · **akış** · **araç çağrısı** · bağlam penceresi · log'daki son `err_`/ERROR satırı).
-**Çıktı tek ekrana sığar** (≈16 satır, ≤100 sütun) ve sonda tek satırlık `SORUN:` teşhisi verir —
+**Çıktı tek ekrana sığar** (≈30 satır, ≤100 sütun) ve sonda tek satırlık `SORUN:` teşhisi verir —
 kök nedeni kanıtıyla söyler ("uç erişilemiyor", "MODEL_ID uçta yok", "stream çalışmıyor" ya da
 "yok — uç sağlıklı, sorun opencode tarafında"). Ekran görüntüsü alıp olduğu gibi gönderebilirsin.
 Salt okunur; **anahtar her zaman maskelidir** (`abc****yz`).
 
 | Komut | Ne yapar | Ağ ister mi |
 |---|---|---|
-| `./alp-kontrol.sh` | Kurum AI ucu teşhisi (varsayılan) | evet |
-| `./alp-kontrol.sh --kurulum` | Paketin kurulumu sağlam mı (ikili, env, ayar, beceri, `rg`, izin, kısayol) | hayır |
-| `./alp-kontrol.sh --ayrintili` | Aynı rapor, kırpma yok — tüm model listesi, tam gövdeler | duruma göre |
+| `./alp-kontrol.sh` | **Tüm rapor:** kurulum (ikili, env, ayar, beceri, `rg`, izin, kısayol) + kurum AI ucu teşhisi | kurulum bölümü hayır, uç bölümü evet |
+| `./alp-kontrol.sh --ayrintili` | (gelişmiş) Aynı rapor, kırpma yok — tüm model listesi, tam gövdeler | duruma göre |
 
 Çıkış kodu: `0` = sorun yok · `1` = sorun var. Ayrıntı: `NASIL-CALISTIRILIR.md` → **"Teşhis"**.
 

@@ -23,16 +23,15 @@ git mv knowledge/skills/parked/<ad> knowledge/skills/approved/<ad>
 ```
 
 sonra `alp-kur.sh` içindeki `CORE_SKILLS` dizisine `<ad>`'ı ekle (`alp-kur.sh` başındaki dizi satırı).
-`alp-kontrol.sh --kurulum`'un raporladığı çekirdek sayısı bu diziden **türetilir** (sabit sayı yok) — ayrıca dokunmaya
+`alp-kontrol.sh`'un raporladığı çekirdek sayısı bu diziden **türetilir** (sabit sayı yok) — ayrıca dokunmaya
 gerek yok.
 
-## Tüm becerileri kurmak (park dahil)
+## Park edilmiş beceriler silinmedi
 
-Park edilmiş beceriler **silinmedi**, yalnız varsayılan kurulumdan çıkarıldı:
-
-```bash
-./alp-kur.sh --tum-beceriler   # approved/ (10) + parked/ (28) = 38 beceri kurulur
-```
+Yalnız kurulumdan çıkarıldılar; içerik burada duruyor. Bir tanesi gerekiyorsa yukarıdaki gibi
+`approved/`'a taşı ve `./alp-kur.sh`'ı tekrar çalıştır (kurulum hep `approved/`'u yansıtır).
+Tümünü birden kurmak istisnai bir ayıklama işidir; `ALP_TUM_BECERILER=1 ./alp-kur.sh` ile yapılır
+(taban bağlam büyür — günlük akışın parçası değildir).
 
 ## "Yetim" işaretli beceriler (2026-09-16 itibarıyla)
 

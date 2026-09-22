@@ -2,20 +2,18 @@
 # =============================================================================
 #  alp-kontrol.sh — sahadaki TEK kontrol/teşhis betiği.
 #
-#  İki mod:
-#    (varsayılan)  kurum AI UCU sağlıklı mı — DNS/TCP/models/chat/stream/tool_call
-#    --kurulum     bu paketin KURULUMU sağlam mı — ikili/ayar/beceri/rg (ağ gerekmez)
+#  Kullanım:  ./alp-kontrol.sh        ← hepsi bu, BAYRAK YOK
 #
-#  Çıktı TEK EKRANA sığar (≈20 satır, ≤100 sütun) ve sonda tek satırlık "SORUN:"
+#  Bayraksız çağrı TÜM raporu verir:
+#    1) KURULUM sağlam mı — ikili/env/ayar/beceri/rg/izin/kısayol (ağ gerekmez)
+#    2) kurum AI UCU sağlıklı mı — DNS/TCP/models/sohbet/akış/araç çağrısı
+#
+#  Çıktı TEK EKRANA sığar (≈30 satır, ≤100 sütun) ve sonda tek satırlık "SORUN:"
 #  teşhisi verir — ekran görüntüsü alıp olduğu gibi gönderebilirsin.
+#  Anahtar ekrana ASLA açık basılmaz (maskelenir).
 #
-#  Kullanım:
-#    ./alp-kontrol.sh                       # uç teşhisi (env dosyasındaki değerlerle)
-#    ./alp-kontrol.sh --kurulum             # kurulum doğrulaması (ağ gerekmez)
-#    ./alp-kontrol.sh --ayrintili           # uzun rapor (kırpma yok, tüm ayrıntı)
-#    ./alp-kontrol.sh --url https://x/v1 --model MODEL --key ANAHTAR
-#    ./alp-kontrol.sh --zaman-asimi 120     # yavaş uçlar için (varsayılan 60 sn)
-#    ./alp-kontrol.sh --yardim
+#  Gelişmiş (gerekmez): --ayrintili uzun rapor · --zaman-asimi <sn> yavaş uç için ·
+#  --url/--model/--key env yerine tek seferlik değer · --yardim
 #
 #  Salt okunur: sistemde/ayarlarda hiçbir şeyi DEĞİŞTİRMEZ; uca yalnız okuma ve
 #  kısa (16 token) sohbet istekleri gider. Anahtar ASLA ekrana basılmaz ve "ps"
@@ -36,7 +34,7 @@ while [ -L "$_kaynak" ]; do
 done
 KOK="$(cd "$(dirname "$_kaynak")" && pwd)"
 
-yardim() { sed -n '2,24p' "$_kaynak" | sed 's/^# \{0,1\}//'; }
+yardim() { sed -n '2,22p' "$_kaynak" | sed 's/^# \{0,1\}//'; }
 
 # ---------------------------------------------------------------------------
 #  0) argümanlar
@@ -46,11 +44,14 @@ ARG_KEY=""
 ARG_MODEL=""
 ZAMAN_ASIMI=60
 AYRINTILI=0
-MOD="uc"
+# tam = kurulum + uç (bayraksız varsayılan). --kurulum/--uc iç kullanım içindir
+# (alp-kur.sh kurulum sonrası yalnız kurulum bölümünü çalıştırır — ağ beklemez).
+MOD="tam"
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --kurulum) MOD="kurulum" ;;
+    --uc) MOD="uc" ;;
     --ayrintili | --uzun) AYRINTILI=1 ;;
     --url)
       ARG_URL="${2:-}"
@@ -154,7 +155,7 @@ bitir() {
   printf '%s\n' "$CIZGI"
   if [ "$kod" -eq 0 ]; then printf ' %s\n' "$(renk 32 "$metin")"; else printf ' %s\n' "$(renk 31 "$metin")"; fi
   if [ "$AYRINTILI" -eq 0 ]; then
-    duz "ayrinti: ./alp-kontrol.sh --ayrintili · kurulum: ./alp-kontrol.sh --kurulum"
+    duz "ayrinti icin: ./alp-kontrol.sh --ayrintili   ·   yeniden kurmak icin: ./alp-kur.sh"
   fi
   exit "$kod"
 }
@@ -181,10 +182,17 @@ mod_kurulum() {
   local kurulu_cfg="$ayar_dizin/opencode.json"
   local rg_dizin="${XDG_CACHE_HOME:-$HOME/.cache}/opencode/bin"
 
-  printf '== opencode KURULUM KONTROL · %s · %s\n' "$(date '+%Y-%m-%d %H:%M')" "$(hostname 2> /dev/null || echo '?')"
-  duz "kok      : $KOK"
-  duz "ayar     : $ayar_dizin"
-  printf '%s\n' "$CIZGI"
+  if [ "$MOD" = "tam" ]; then
+    printf '== opencode KONTROL · %s · %s · kok: %s\n' \
+      "$(date '+%Y-%m-%d %H:%M')" "$(hostname 2> /dev/null || echo '?')" "$KOK"
+    printf '%s\n' "$CIZGI"
+    duz "KURULUM (ag gerekmez)"
+  else
+    printf '== opencode KURULUM KONTROL · %s · %s\n' "$(date '+%Y-%m-%d %H:%M')" "$(hostname 2> /dev/null || echo '?')"
+    duz "kok      : $KOK"
+    duz "ayar     : $ayar_dizin"
+    printf '%s\n' "$CIZGI"
+  fi
 
   # 1) ikili (kurulu olan asıl önemli; repo içindeki kaynak ikili ek bilgi)
   if [ -x "$kurulu_bin" ]; then
@@ -371,18 +379,20 @@ PY
       satir "kisayol" uyar "PATH'teki '$kisayol' baska hedefi gosteriyor: $(kis_son "$hedef" 35)"
       ayr "beklenen: $kurulu_bin"
       ayr "bulunan : $hedef"
-      ayr "duzeltmek icin: ./alp-kur.sh --baglanti-zorla (yedek alinir)"
+      ayr "duzeltmek icin: ./alp-kur.sh (eskisini yedekler, kisayolu cevirir)"
     fi
   else
     satir "kisayol" uyar "'opencode' PATH'te yok — ./alp-kur.sh veya tam yolla calistir"
   fi
 
+  # tam modda burada bitmez — uç teşhisi de aynı rapora eklenir, tek SORUN satırı sonda.
+  if [ "$MOD" != "kurulum" ]; then return 0; fi
   if [ -n "$SORUN" ]; then bitir 1 "$SORUN"; fi
   if [ "$HATA" -gt 0 ]; then bitir 1 "kurulumda $HATA hata — yukaridaki ✗ satirlarina bak"; fi
   bitir 0 "yok — kurulum saglam ($UYARI uyari). Uc testi icin: ./alp-kontrol.sh"
 }
 
-if [ "$MOD" = "kurulum" ]; then mod_kurulum; fi
+if [ "$MOD" = "kurulum" ] || [ "$MOD" = "tam" ]; then mod_kurulum; fi
 
 # ===========================================================================
 #  MOD: uç teşhisi (varsayılan)
@@ -417,19 +427,19 @@ MODEL="${MODEL_ID:-}"
 PENCERE_ENV="${KURUM_MAX_CONTEXT:-}"
 
 if [ -z "$URL" ] || [ -z "$MODEL" ]; then
-  printf '== opencode UC KONTROL\n'
+  if [ "$MOD" = "tam" ]; then printf '%s\n' "$CIZGI"; else printf '== opencode UC KONTROL\n'; fi
   satir "env" hata "$ENV_DOSYASI — KURUM_URL ve/veya MODEL_ID bos"
   if [ ! -f "$ENV_DOSYASI" ]; then
     duz "olustur: cp $KOK/env.example $KOK/env && vi $KOK/env"
   fi
   duz "gerekli satirlar: KURUM_URL=http(s)://<uc>:<port>/v1 · KURUM_KEY=dummy · MODEL_ID=<uctaki id>"
-  bitir 2 "env eksik — KURUM_URL/MODEL_ID doldurulmamis ($ENV_DOSYASI)"
+  bitir 2 "${SORUN:-env eksik — KURUM_URL/MODEL_ID doldurulmamis ($ENV_DOSYASI)}"
 fi
 [ -n "$KEY" ] || KEY="dummy"
 
 if ! command -v curl > /dev/null 2>&1; then
-  printf '== opencode UC KONTROL\n'
-  bitir 3 "curl yok — uc teshisi curl olmadan calisamaz (dnf install curl)"
+  if [ "$MOD" = "tam" ]; then printf '%s\n' "$CIZGI"; else printf '== opencode UC KONTROL\n'; fi
+  bitir 3 "${SORUN:-curl yok — uc teshisi curl olmadan calisamaz (dnf install curl)}"
 fi
 
 maskele() {
@@ -551,10 +561,16 @@ elif mod == "arac-cagrisi":
 PY
 }
 
-# --- başlık (3 satır) ---
-printf '== opencode UC KONTROL · %s · %s\n' "$(date '+%Y-%m-%d %H:%M')" "$(hostname 2> /dev/null || echo '?')"
-duz "uc/model : $KOK_URL  ·  $MODEL"
-duz "anahtar  : $(maskele "$KEY") · zaman asimi ${ZAMAN_ASIMI} sn · ayar: $ENV_KAYNAK"
+# --- başlık ---
+if [ "$MOD" = "tam" ]; then
+  printf '%s\n' "$CIZGI"
+  duz "KURUM AI UCU : $KOK_URL · $MODEL"
+  duz "anahtar      : $(maskele "$KEY") · zaman asimi ${ZAMAN_ASIMI} sn"
+else
+  printf '== opencode UC KONTROL · %s · %s\n' "$(date '+%Y-%m-%d %H:%M')" "$(hostname 2> /dev/null || echo '?')"
+  duz "uc/model : $KOK_URL  ·  $MODEL"
+  duz "anahtar  : $(maskele "$KEY") · zaman asimi ${ZAMAN_ASIMI} sn · ayar: $ENV_KAYNAK"
+fi
 printf '%s\n' "$CIZGI"
 [ -n "$PY" ] || satir "python3" uyar "python3 yok — JSON ayrintilari (model listesi, pencere) sinirli"
 

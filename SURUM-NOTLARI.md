@@ -4,6 +4,52 @@
 > `kur.sh` / `alp.sh` / `oc-teshis.sh` / `oc-dogrula.sh` adları **tarihseldir** — o günkü durumu
 > anlatır. Güncel adlar: `alp-kur.sh` · `alp-kontrol.sh` · `alp-derle.sh` (bkz. ilk başlık).
 
+## 2026-09-22 — **bayraklar kaldırıldı**: parametresiz tek komut (`./alp-kur.sh`)
+
+**Sorun (Alp):** *"scriptlerin parametre almasına gerek yok; zaten amaç kurmak :-) Ne gerekçeyle
+`--derle` ekledin? Zaten build + setup yapmasını bekliyorum."* — Kullanıcıya dönük bayrak listesi
+(bkz. bir alttaki kayıt) sahada öğrenilmesi gereken bir yüzeydi; kararı betiğin kendisi vermeliydi.
+
+**Ne değişti**
+- **`./alp-kur.sh` bayrak almaz.** Parametresiz çağrı tam işi yapar: (gerekirse) derler → kurar
+  (ayar + kurallar + beceri + plugin + rg) → kısayolu düzeltir → doğrular → **tek ekran özet**
+  ("HAZIR — çalıştır: ..." ya da "HAZIR DEĞİL").
+- **Derleme kararı otomatik:** `bin/opencode` yok → (paketten aç / kaynaktan derle); kaynak ağacı
+  (`packages/opencode/src|script`, `package.json`, `bun.lock`) ikiliden **yeni** → yeniden derle;
+  aksi halde derleme yok, yalnız kurulum (**~1.4 sn** ölçüldü). Derleme başarısız olur ama elde
+  ikili varsa kurulum eski ikiliyle devam eder ve bunu açıkça söyler.
+- **Kısayol çakışması artık soru sormuyor:** `opencode`/`oc` başka bir hedefi gösteriyorsa
+  `.bak-<tarih>` olarak yedeklenir ve doğru ikiliye çevrilir (eski davranış: uyarıp dokunmamak +
+  `--baglanti-zorla` istemek). Ayrıca PATH'te **önce** gelen başka bir `opencode` varsa uyarı basar.
+- **`./alp-kontrol.sh` bayraksız çağrıda TÜM raporu verir:** önce KURULUM (ağ gerekmez), sonra
+  KURUM AI UCU; tek ekran (**29 satır** ölçüldü, ≤100 sütun), sonda tek satır `SORUN:`, anahtar maskeli.
+  `--ayrintili` gelişmiş seçenek olarak duruyor; `--kurulum`/`--uc` yalnız **iç** kullanımdır
+  (`alp-kur.sh` kurulum sonrası doğrulamada `--kurulum` çağırır — ağ beklemesin diye).
+- **`alp-derle.sh` sadeleşti:** kullanıcıya dönük `--kisayol` bayrağı kaldırıldı (kısayolun tek
+  sahibi `alp-kur.sh`); dosya başlığında "İÇ DETAY — KULLANICI BUNU ÇAĞIRMAZ" yazıyor.
+- **Gizli kaçış kapıları** (dokümanda yok, yalnız ayıklama için ortam değişkeni): `ALP_DERLE=1`,
+  `ALP_DERLEME_YOK=1`, `ALP_TUM_BECERILER=1`, `ALP_IKILI_INDIR=1`, `ALP_DERLE_EK="..."`,
+  `KISAYOL_DIZIN`, `IKILI_RELEASE_URL`.
+- **Dokümanlar:** akış her yerde `al.sh` → **`./alp-kur.sh`** → **`./alp-kontrol.sh`**; bayrak
+  tabloları kaldırıldı (`ALP-README.md`, `NASIL-CALISTIRILIR.md`, `MIMARI.md`, `docs/`, `knowledge/`).
+  Yan düzeltme: aider fork'unun kendi `kur.sh`'ına giden iki atıf yanlışlıkla `alp-kur.sh` diye
+  yeniden adlandırılmıştı — geri düzeltildi.
+
+**Doğrulama (bu koşumda gerçekten çalıştırıldı)**
+- İzole `HOME` + izole `KISAYOL_DIZIN`, sahte kaynak ağacı: ikili **yokken** parametresiz
+  `./alp-kur.sh` derledi + kurdu (çıkış 0); ikili **güncelken** derlemedi; kaynak dosyaya `touch`
+  sonrası yeniden derledi.
+- Gerçek depoda parametresiz koşum: kaynak ağacı ikiliden yeni olduğu için **gerçekten derledi**
+  (`alp-derle.sh`, 140 MB ikili), kurdu, doğruladı, çıkış 0. Hemen ardından ikinci koşum: derleme
+  yok, **1.4 sn**, çıkış 0 (derleme döngüsüne girmiyor).
+- Kısayol çakışması: `opencode → /bin/true`, `oc → /bin/false` iken parametresiz koşum ikisini de
+  `.bak-20260922-…` olarak yedekleyip doğru ikiliye çevirdi.
+- `./alp-kontrol.sh` parametresiz: 29 satır, sonda `SORUN:`, anahtar `dummy (yer tutucu)` diye
+  maskeli. Hiç kurulum yapılmamış boş `HOME` ile de çökmedi (`SORUN: kurulum yapilmamis`).
+- `./alp-kur.sh --derle` gibi bir çağrı artık **çıkış 2** + "bayrak almaz" mesajı veriyor.
+- `bash -n` temiz; `shellcheck -S warning alp-kur.sh alp-kontrol.sh alp-derle.sh` → **0 bulgu**.
+  Ağır turbo typecheck **çalıştırılmadı** (bilerek — bkz. 2026-09-19 donma olayı).
+
 ## 2026-09-21 (üçüncü tur) — saha yüzeyi **2 betiğe** indi: `alp-kur.sh` + `alp-kontrol.sh`
 
 **Sorun (Alp):** *"`oc-teshis.sh` nedir? `kontrol.sh` ile iki ayrı script aynı şeyi yapıyor galiba.

@@ -25,7 +25,7 @@ Bu dizin **motor değil, hafızadır**. Motor (opencode + Qwen) değişebilir; b
 
 - **`skills/approved/`** = opencode'un **okuduğu tek yer** (alp-kur.sh varsayılan olarak buradan kurar). Buradakiler canlıdır.
 - **`skills/parked/`** = onaylanmış ama varsayılan kurulumdan çıkarılmış beceriler (2026-09-16 sadeleştirmesi,
-  bkz. `parked/README.md`) — içerik silinmedi, `--tum-beceriler` ile approved/ ile birlikte kurulur.
+  bkz. `parked/README.md`) — içerik silinmedi; gereken beceri `approved/`'a taşınıp `./alp-kur.sh` ile kurulur.
 - **`skills/experimental/`** ve **`skills/generated/`** = opencode **okumaz** → onaysız içerik davranışı değiştiremez.
 
 ## Kim, neyi, nereye besler?

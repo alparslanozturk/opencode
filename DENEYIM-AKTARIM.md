@@ -5,7 +5,7 @@ Aider fork'unda 15 fazda öğrendiğimiz her şeyin opencode'daki durumu.
 ## Doğrudan aktarıldı (bu pakette var)
 | Aider'daki çalışma | opencode'da karşılığı | Durum |
 |---|---|---|
-| 38 beceri (`aider/beceriler/*/SKILL.md`) | `knowledge/skills/approved/*/SKILL.md` (**10 çekirdek**) + `knowledge/skills/parked/*/SKILL.md` (**28 park**, 2026-09-16 sadeleştirmesi) — **aynı frontmatter (`name`+`description`)**; varsayılan kurulum yalnız approved/'daki 10'u kurar (bağlam tasarrufu, Aşama 2 + 2026-09-15 rapor-excel-pdf eklemesi), `--tum-beceriler` ile hepsi | ✅ birebir kopya (havuz), seçici kurulum (varsayılan) |
+| 38 beceri (`aider/beceriler/*/SKILL.md`) | `knowledge/skills/approved/*/SKILL.md` (**10 çekirdek**) + `knowledge/skills/parked/*/SKILL.md` (**28 park**, 2026-09-16 sadeleştirmesi) — **aynı frontmatter (`name`+`description`)**; kurulum yalnız approved/'daki 10'u kurar (bağlam tasarrufu, Aşama 2 + 2026-09-15 rapor-excel-pdf eklemesi); park edilmiş beceri gerekirse approved/'a taşınır | ✅ birebir kopya (havuz), seçici kurulum (varsayılan) |
 | Proje kuralları / davranış rehberi | `~/.config/opencode/AGENTS.md` (CLAUDE.md de okunuyor) | ✅ |
 | Envanter işinde "araç çalıştırma, sadece oku" dersi (Canlı Test #3 / T-04) | AGENTS.md kural **hiyerarşisi** (Aşama 2: mutlak yasak yerine "açıkça istenirse serbest") + `permission.bash` (salt-okunur komutlar allow, gerisi ask) | ✅ |
 | Beceri tetikleme disiplini (B-20/T-03: "envanter" kelimesini tetikleyiciden çıkarma) | Beceriler artık **talep üzerine** yükleniyor; description'lar aynen taşındı | ✅ (daha iyi: otomatik tetikleme yok) |

@@ -1,64 +1,52 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  alp-kur.sh — opencode paketinin TEK KURULUM GİRİŞİ (kurum içi, offline; ağ/npm gerekmez).
+#  alp-kur.sh — opencode kurulumunun TEK KOMUTU (kurum içi, offline; ağ/npm gerekmez).
 #
-#  Gerekirse kaynaktan DERLER (alp-derle.sh'ı çağırarak), sonra KURAR (ikili + ayar +
-#  beceri + plugin + ripgrep + kısayollar) ve sonunda DOĞRULAR (alp-kontrol.sh --kurulum).
-#  Sahada tek komut yeter:  ./alp-kur.sh      (kontrol/teşhis için: ./alp-kontrol.sh)
+#  Kullanım:  cd /root/ai/opencode && ./alp-kur.sh     ← hepsi bu, BAYRAK YOK
+#             (dizin adı önemli değil, betik kendi yolunu bulur)
 #
-#  Kullanım:  cd /root/ai/opencode && ./alp-kur.sh   (dizin adı önemli değil, script kendi yolunu bulur)
-#    --derle | --kaynak bin/opencode olsa bile kaynaktan yeniden derle
-#    --derleme-yok      kaynaktan derlemeyi hiç deneme (yalnız hazır ikili kullan)
-#    --baglanti-yok     kısayolları kurma (yalnız ikili + ayar + beceri)
-#    --baglanti-zorla   mevcut başka bir 'opencode'/'oc' varsa yedekle ve üzerine yaz
-#    --tum-beceriler    tüm becerileri kur (varsayılan: 10 çekirdek beceri, bkz. CORE_SKILLS)
-#    --ikili-indir      bin/opencode yoksa GitHub Release asset'inden (token'sız HTTPS) indir
-#    -- <bayraklar>     '--' sonrası her şey derleyiciye (alp-derle.sh) aktarılır, ör:
-#                       ./alp-kur.sh --derle -- --ignore-scripts
+#  Bayraksız çağrı TAM İŞİ yapar:
+#    1) gerekirse DERLER  — ikili yoksa ya da kaynak ağacı ikiliden yeniyse (kararı kendi verir)
+#    2) KURAR             — ikili + ayar + kurallar (AGENTS.md) + beceriler + plugin + ripgrep
+#    3) KISAYOLU DÜZELTİR — 'opencode' ve 'oc'; başka yeri gösteriyorsa yedekler ve çevirir
+#    4) DOĞRULAR          — sonda tek ekran özet ("kuruldu / hazır")
 #
-#  İkili nereden gelir (bin/opencode yoksa, sırayla):
-#    1) bin/opencode.tar.xz varsa açılır
-#    2) --ikili-indir verildiyse Release asset'inden indirilir
-#    3) kaynak ağacı varsa (bun.lock + packages/opencode) alp-derle.sh ile DERLENİR ← saha akışı
+#  İkili nereden gelir (sırayla): bin/opencode → bin/opencode.tar.xz → kaynaktan derleme.
+#  Sonrasında kontrol/teşhis için tek komut:  ./alp-kontrol.sh
 #
-#  Kısayol sahibi TEK betiktir: alp-kur.sh. alp-derle.sh varsayılan olarak kısayol kurmaz
-#  (isteyen `./alp-derle.sh --kisayol` der) — böylece /usr/local/bin/opencode'un hangi
-#  ikiliyi gösterdiği belirsiz kalmaz.
-#
-#  Ortam değişkeni: KISAYOL_DIZIN (varsayılan /usr/local/bin, yazılamıyorsa ~/.local/bin)
-#                   IKILI_RELEASE_URL (--ikili-indir için varsayılan asset URL'ini ezer)
+#  İç detay (kullanıcının bilmesine gerek yok; yalnız ayıklama için ortam değişkenleri):
+#    ALP_DERLE=1 ikili güncel olsa da derle · ALP_DERLEME_YOK=1 hiç derleme ·
+#    ALP_TUM_BECERILER=1 tüm beceriler · ALP_IKILI_INDIR=1 Release asset'inden indir ·
+#    ALP_DERLE_EK="--ignore-scripts" derleyiciye ek bun bayrağı ·
+#    KISAYOL_DIZIN (varsayılan /usr/local/bin, yazılamıyorsa ~/.local/bin) · IKILI_RELEASE_URL
+#  Derlemeyi alp-derle.sh yapar; onu bu betik çağırır, elle çalıştırmaya gerek yoktur.
 # =============================================================================
 set -euo pipefail
 KOK="$(cd "$(dirname "$0")" && pwd)"
 
-# --ikili-indir varsayılanı: repo Release asset'i (token'sız HTTPS, 185 MB ikili git'e girmez).
+# İndirme (ALP_IKILI_INDIR) varsayılanı: repo Release asset'i (token'sız HTTPS, 185 MB ikili git'e girmez).
 IKILI_RELEASE_URL="${IKILI_RELEASE_URL:-https://github.com/alparslanozturk/opencode/releases/download/bin-v1.18.30/opencode}"
 
-BAGLANTI_YOK=0
-BAGLANTI_ZORLA=0
-TUM_BECERILER=0
-IKILI_INDIR=0
-DERLE=0
-DERLEME_YOK=0
-ALP_EK=()   # '--' sonrası: derleyiciye (alp-derle.sh) aktarılacak bayraklar
-while [ $# -gt 0 ]; do
+# Kullanıcıya dönük bayrak YOK (Alp, 2026-09-22: "scriptlerin parametre almasına gerek yok;
+# zaten amaç kurmak"). Yardım dışında argüman kabul edilmez.
+if [ $# -gt 0 ]; then
   case "$1" in
-    --baglanti-yok)   BAGLANTI_YOK=1 ;;
-    --baglanti-zorla) BAGLANTI_ZORLA=1 ;;
-    --tum-beceriler)  TUM_BECERILER=1 ;;
-    --ikili-indir)    IKILI_INDIR=1 ;;
-    --derle|--kaynak) DERLE=1 ;;
-    --derleme-yok)    DERLEME_YOK=1 ;;
-    --) shift; ALP_EK=("$@"); break ;;
-    -h|--help) sed -n '2,30p' "$0"; exit 0 ;;
-    *) echo "Bilinmeyen argüman: $1" >&2; exit 2 ;;
+    -h|--help|--yardim) sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *)
+      echo "!! alp-kur.sh bayrak almaz — tek komut yeter:  ./alp-kur.sh" >&2
+      echo "   (kurulum zaten gerekirse derler, kurar, kısayolu düzeltir ve doğrular)" >&2
+      echo "   Kontrol/teşhis için:  ./alp-kontrol.sh" >&2
+      exit 2 ;;
   esac
-  shift
-done
+fi
 
-if [ "$DERLE" = 1 ] && [ "$DERLEME_YOK" = 1 ]; then
-  echo "!! --derle ve --derleme-yok birlikte verilemez." >&2
-  exit 2
+TUM_BECERILER="${ALP_TUM_BECERILER:-0}"
+IKILI_INDIR="${ALP_IKILI_INDIR:-0}"
+DERLE="${ALP_DERLE:-0}"
+DERLEME_YOK="${ALP_DERLEME_YOK:-0}"
+ALP_EK=()   # derleyiciye (alp-derle.sh) aktarılacak ek bayraklar — ALP_DERLE_EK ile
+if [ -n "${ALP_DERLE_EK:-}" ]; then
+  read -r -a ALP_EK <<< "${ALP_DERLE_EK}"
 fi
 
 # Çekirdek beceri listesi (Aşama 2, danışma-2 kararı: 38 → 10; 2026-09-16 Alp kararıyla
@@ -104,79 +92,101 @@ if ! command -v python3 >/dev/null 2>&1; then
 fi
 
 # ---------------------------------------------------------------------------
-#  0) İkili nereden gelecek? (bkz. başlıktaki sıra)
-#     Saha akışı: al.sh ile senkron -> bin/ boş -> burada alp-derle.sh ile derlenir.
+#  0) İkili nereden gelecek? Kararı BU BETİK verir (kullanıcı bayrak öğrenmez):
+#       bin/opencode yok            -> paketten aç / (istenirse indir) / kaynaktan derle
+#       kaynak ağacı ikiliden yeni  -> kaynaktan yeniden derle
+#       aksi halde                  -> derleme yok, doğrudan kur
 # ---------------------------------------------------------------------------
 DERLENDI=0
 IKILI_KAYNAGI=""
+IKILI_PAKETTEN=0
 
 kaynak_agaci_var() {
   [ -x "$KOK/alp-derle.sh" ] && [ -f "$KOK/bun.lock" ] && [ -d "$KOK/packages/opencode" ]
 }
 
+# Kaynak ağacında bin/opencode'dan YENİ bir dosya var mı? (tek dosya bulunca durur — ucuz)
+kaynak_daha_yeni() {
+  local yeni hedefler=()
+  local p
+  for p in "$KOK/packages/opencode/src" "$KOK/packages/opencode/script" \
+           "$KOK/packages/opencode/package.json" "$KOK/bun.lock"; do
+    [ -e "$p" ] && hedefler+=("$p")
+  done
+  [ "${#hedefler[@]}" -gt 0 ] || return 1
+  yeni="$(find "${hedefler[@]}" -newer "$KOK/bin/opencode" -print -quit 2>/dev/null || true)"
+  [ -n "$yeni" ]
+}
+
 derle_kaynaktan() {
-  echo "== 0/4  kaynaktan derleme (alp-derle.sh) =="
+  echo "== 0/4  kaynaktan derleme ($DERLE_NEDEN) =="
   # alp-derle.sh kısayol KURMAZ (tek sahip alp-kur.sh); --bin-kopyala ile ikiliyi bin/opencode'a bırakır.
   if "$KOK/alp-derle.sh" --bin-kopyala ${ALP_EK[@]+"${ALP_EK[@]}"}; then
     DERLENDI=1
-    IKILI_KAYNAGI="kaynaktan derlendi (alp-derle.sh)"
+    IKILI_KAYNAGI="kaynaktan derlendi — $DERLE_NEDEN"
     return 0
   fi
   echo "!! derleme başarısız (alp-derle.sh) — yukarıdaki çıktıya bak." >&2
   return 1
 }
 
-if [ "$DERLE" = 1 ]; then
-  if ! kaynak_agaci_var; then
-    echo "!! --derle istendi ama kaynak ağacı yok (alp-derle.sh / bun.lock / packages/opencode eksik)." >&2
-    echo "   Bu dizin yalnız ikili paket olabilir; --derle olmadan çalıştır." >&2
-    exit 1
-  fi
-  derle_kaynaktan || exit 1
-fi
-
 if [ ! -x "$KOK/bin/opencode" ] && [ -f "$KOK/bin/opencode.tar.xz" ]; then
   echo ">> bin/opencode yok — bin/opencode.tar.xz aciliyor (bir kez)..."
   tar xJf "$KOK/bin/opencode.tar.xz" -C "$KOK/bin" && chmod +x "$KOK/bin/opencode"
-  [ -x "$KOK/bin/opencode" ] && IKILI_KAYNAGI="bin/opencode.tar.xz açıldı"
+  if [ -x "$KOK/bin/opencode" ]; then
+    IKILI_KAYNAGI="bin/opencode.tar.xz açıldı"
+    IKILI_PAKETTEN=1   # paketten gelen ikiliyi tazelik kontrolüyle yeniden derlemeye kalkma
+  fi
 fi
 
 if [ ! -f "$KOK/bin/opencode" ] && [ "$IKILI_INDIR" = "1" ]; then
-  # NOT: --baglanti-yok = "kısayol (symlink) kurma" demektir, "ağ yok" demek DEĞİL —
-  # eskiden burada ikisi çelişkili sayılıp indirme atlanıyordu (adın yanlış okunması).
   if command -v curl >/dev/null 2>&1; then
     echo ">> bin/opencode yok — Release asset'inden indiriliyor (token'sız HTTPS): $IKILI_RELEASE_URL"
     if curl -fSL -o "$KOK/bin/opencode" "$IKILI_RELEASE_URL" && chmod +x "$KOK/bin/opencode"; then
       echo "   indirildi: $KOK/bin/opencode"
       IKILI_KAYNAGI="Release asset'inden indirildi"
+      IKILI_PAKETTEN=1
     else
       echo "!! indirme başarısız — $IKILI_RELEASE_URL adresini/erişimi kontrol et." >&2
       rm -f "$KOK/bin/opencode"
     fi
   else
-    echo "!! curl yok — --ikili-indir için curl gerekli." >&2
+    echo "!! curl yok — ikili indirme için curl gerekli." >&2
   fi
 fi
 
-# Hazır ikili yok ama kaynak ağacı var -> sahada beklenen davranış: derle (tek komut).
-if [ ! -f "$KOK/bin/opencode" ] && [ "$DERLEME_YOK" = 0 ] && kaynak_agaci_var; then
-  echo ">> bin/opencode yok, kaynak ağacı var — kaynaktan derleniyor (atlamak için: --derleme-yok)"
-  derle_kaynaktan || true
+# --- derleme kararı (otomatik) ---
+DERLE_NEDEN=""
+if [ "$DERLEME_YOK" != 1 ] && kaynak_agaci_var; then
+  if [ "$DERLE" = 1 ]; then
+    DERLE_NEDEN="elle istendi (ALP_DERLE=1)"
+  elif [ ! -f "$KOK/bin/opencode" ]; then
+    DERLE_NEDEN="bin/opencode yok"
+  elif [ "$IKILI_PAKETTEN" = 0 ] && kaynak_daha_yeni; then
+    DERLE_NEDEN="kaynak ağacı ikiliden yeni"
+  fi
+fi
+if [ -n "$DERLE_NEDEN" ]; then
+  if ! derle_kaynaktan; then
+    if [ -f "$KOK/bin/opencode" ]; then
+      echo "!! derleme başarısız — mevcut bin/opencode ile devam ediliyor (eski sürüm olabilir)." >&2
+      IKILI_KAYNAGI="derleme başarısız, mevcut bin/opencode kullanıldı"
+    fi
+  fi
 fi
 
 if [ ! -f "$KOK/bin/opencode" ]; then
-  echo "!! $KOK/bin/opencode yok." >&2
+  echo "!! $KOK/bin/opencode yok ve uretilemedi." >&2
   echo "   $KOK/bin/*.tar.xz git'e commitli DEĞİL (2026-09-16'dan itibaren; .gitignore'da bin/)." >&2
   if kaynak_agaci_var; then
-    echo "   Cozum 0: kaynaktan derleme denendi/atlandi  ->  ./alp-kur.sh --derle   (bun gerekir, bkz. alp-derle.sh)" >&2
+    echo "   Cozum 0: kaynaktan derleme denendi ve basarisiz oldu — yukaridaki derleme ciktisina bak (bun gerekir)." >&2
   fi
-  echo "   Cozum 1: --ikili-indir ile calistir  ->  Release asset'inden token'sız HTTPS indirir." >&2
-  echo "   Cozum 2: ikiliyi ayrı paketten al (opencode-paket.tar.xz veya kurumun dağıtım yerinden)," >&2
-  echo "      $KOK/bin/opencode.tar.xz olarak koy, sonra tekrar calistir  ->  tar xJf $KOK/bin/opencode.tar.xz -C $KOK/bin" >&2
+  echo "   Cozum 1: ikiliyi ayrı paketten al (opencode-paket.tar.xz veya kurumun dağıtım yerinden)," >&2
+  echo "      $KOK/bin/opencode.tar.xz olarak koy, sonra tekrar calistir  ->  ./alp-kur.sh" >&2
   echo "      ya da kurumda kurulu opencode ikilisini dogrudan $KOK/bin/opencode olarak koy." >&2
   exit 1
 fi
-[ -n "$IKILI_KAYNAGI" ] || IKILI_KAYNAGI="hazır bin/opencode kullanıldı (derleme yapılmadı)"
+[ -n "$IKILI_KAYNAGI" ] || IKILI_KAYNAGI="hazır bin/opencode güncel (derleme gerekmedi)"
 
 yesil()   { printf '\033[32m%s\033[0m\n' "$*"; }
 kirmizi() { printf '\033[31m%s\033[0m\n' "$*"; }
@@ -207,7 +217,7 @@ if [ "$TUM_BECERILER" = 1 ]; then
       [ -d "$d" ] && cp -r "$d" "$HOME/.config/opencode/skills/$(basename "$d")"
     done
   fi
-  sari "  --tum-beceriler: tüm beceriler kuruldu (taban bağlam büyür)"
+  sari "  tüm beceriler kuruldu (taban bağlam büyür)"
 else
   for ad in "${CORE_SKILLS[@]}"; do
     if [ -d "$KOK/knowledge/skills/approved/$ad" ]; then
@@ -218,7 +228,7 @@ else
   done
 fi
 toplam_mevcut=$(( $(find "$KOK/knowledge/skills/approved" -mindepth 1 -maxdepth 1 -type d | wc -l) + $(find "$KOK/knowledge/skills/parked" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l) ))
-yesil "  beceri: $(ls "$HOME/.config/opencode/skills" | wc -l) adet kuruldu (toplam mevcut: $toplam_mevcut, tümü için: --tum-beceriler)"
+yesil "  beceri: $(ls "$HOME/.config/opencode/skills" | wc -l) adet kuruldu (repoda mevcut: $toplam_mevcut)"
 
 # ---------------------------------------------------------------------------
 #  Bağlam penceresi tespiti — uydurma değer yok, kurum uçtan ölç (best-effort)
@@ -333,45 +343,46 @@ fi
 
 # ---------------------------------------------------------------------------
 #  4) 'opencode' + 'oc' kısayolları
+#     Çakışma otomatik çözülür: kısayol başka bir hedefi gösteriyorsa soru sorulmadan
+#     yedeklenir (.bak-<tarih>) ve doğru ikiliye çevrilir. Kısayolun tek sahibi bu betik.
 # ---------------------------------------------------------------------------
 echo "== 4/4  'opencode' + 'oc' kısayolları =="
-if [ "$BAGLANTI_YOK" = 1 ]; then
-  sari "  atlandı (--baglanti-yok)"
-else
-  HEDEF_DIZIN="${KISAYOL_DIZIN:-/usr/local/bin}"
-  if [ ! -d "$HEDEF_DIZIN" ] || { [ ! -w "$HEDEF_DIZIN" ] && [ "$(id -u)" != 0 ]; }; then
-    HEDEF_DIZIN="$HOME/.local/bin"; mkdir -p "$HEDEF_DIZIN"
-    sari "  ${KISAYOL_DIZIN:-/usr/local/bin} yazılamıyor → $HEDEF_DIZIN kullanılıyor"
+HEDEF_DIZIN="${KISAYOL_DIZIN:-/usr/local/bin}"
+if [ ! -d "$HEDEF_DIZIN" ] || { [ ! -w "$HEDEF_DIZIN" ] && [ "$(id -u)" != 0 ]; }; then
+  HEDEF_DIZIN="$HOME/.local/bin"; mkdir -p "$HEDEF_DIZIN"
+  sari "  ${KISAYOL_DIZIN:-/usr/local/bin} yazılamıyor → $HEDEF_DIZIN kullanılıyor"
+fi
+BENIM="$HOME/.opencode/bin/opencode"
+
+kisayol_kur() { # <ad>
+  local ad="$1" baglanti="$HEDEF_DIZIN/$1" mevcut yedek
+  mevcut="$(readlink -f "$baglanti" 2>/dev/null || true)"
+  if [ ! -e "$baglanti" ] && [ ! -L "$baglanti" ]; then
+    ln -sfn "$BENIM" "$baglanti"
+    yesil "  kısayol kuruldu: $baglanti → $BENIM"
+  elif [ "$mevcut" = "$BENIM" ]; then
+    yesil "  kısayol zaten doğru: $baglanti"
+  else
+    yedek="$baglanti.bak-$(date +%Y%m%d-%H%M%S)"
+    mv "$baglanti" "$yedek"
+    sari "  '$ad' başka hedefi gösteriyordu (${mevcut:-<çözülemedi>}) → yedeklendi: $yedek"
+    ln -sfn "$BENIM" "$baglanti"
+    yesil "  kısayol düzeltildi: $baglanti → $BENIM"
   fi
-  BENIM="$HOME/.opencode/bin/opencode"
+}
+kisayol_kur opencode
+kisayol_kur oc
 
-  kisayol_kur() { # <ad>
-    local ad="$1" baglanti="$HEDEF_DIZIN/$1" mevcut
-    mevcut="$(readlink -f "$baglanti" 2>/dev/null || true)"
-    if [ ! -e "$baglanti" ] && [ ! -L "$baglanti" ]; then
-      ln -sfn "$BENIM" "$baglanti"
-      yesil "  kısayol kuruldu: $baglanti → $BENIM"
-    elif [ "$mevcut" = "$BENIM" ]; then
-      yesil "  kısayol zaten doğru: $baglanti"
-    elif [ "$BAGLANTI_ZORLA" = 1 ]; then
-      local yedek
-      yedek="$baglanti.bak-$(date +%Y%m%d-%H%M%S)"
-      mv "$baglanti" "$yedek"
-      sari "  mevcut '$ad' yedeklendi: $yedek"
-      ln -sfn "$BENIM" "$baglanti"
-      yesil "  kısayol kuruldu: $baglanti → $BENIM"
-    else
-      sari "  $baglanti zaten var ve başka bir kurulumu gösteriyor: ${mevcut:-<çözülemedi>}"
-      echo  "    Üzerine yazmak isterseniz: $0 --baglanti-zorla   (yedek alınır)"
-    fi
-  }
-  kisayol_kur opencode
-  kisayol_kur oc
+case ":$PATH:" in
+  *":$HEDEF_DIZIN:"*) ;;
+  *) sari "  NOT: $HEDEF_DIZIN PATH'te değil (export PATH=\"$HEDEF_DIZIN:\$PATH\")" ;;
+esac
 
-  case ":$PATH:" in
-    *":$HEDEF_DIZIN:"*) ;;
-    *) sari "  NOT: $HEDEF_DIZIN PATH'te değil (export PATH=\"$HEDEF_DIZIN:\$PATH\")" ;;
-  esac
+# PATH'te ÖNCE gelen başka bir 'opencode' varsa kısayolu düzeltmek yetmez — söyle.
+PATH_OPENCODE="$(command -v opencode 2>/dev/null || true)"
+if [ -n "$PATH_OPENCODE" ] && [ "$(readlink -f "$PATH_OPENCODE" 2>/dev/null || echo "$PATH_OPENCODE")" != "$(readlink -f "$BENIM" 2>/dev/null || echo "$BENIM")" ]; then
+  sari "  NOT: PATH'te önce '$PATH_OPENCODE' geliyor (kurulan: $HEDEF_DIZIN/opencode)."
+  sari "       Doğru olanı çalıştırmak için: $HEDEF_DIZIN/opencode  (ya da PATH sırasını düzelt)"
 fi
 
 echo
@@ -382,31 +393,17 @@ DOGRULAMA_KODU=0
 echo
 echo "== ÖZET =="
 if [ "$DERLENDI" = 1 ]; then
-  yesil "  derlendi:   evet — $IKILI_KAYNAGI"
+  yesil "  derlendi : evet — $IKILI_KAYNAGI"
 else
-  echo  "  derlendi:   hayır — $IKILI_KAYNAGI"
+  echo  "  derlendi : hayır — $IKILI_KAYNAGI"
 fi
-yesil "  kuruldu:    $HOME/.opencode/bin/opencode  (+ ayar/beceri/plugin/rg)"
+yesil "  kuruldu  : $HOME/.opencode/bin/opencode · ayar $HOME/.config/opencode/ · kısayol $HEDEF_DIZIN/opencode (oc)"
 if [ "$DOGRULAMA_KODU" -ne 0 ]; then
-  kirmizi "  doğrulandı: HAYIR — alp-kontrol.sh --kurulum çıkış kodu $DOGRULAMA_KODU"
-  kirmizi "  Yukarıdaki ✗ satırlarına bak; düzeltmeden 'opencode' çalıştırma."
+  kirmizi "  HAZIR DEĞİL — yukarıdaki ✗ satırlarını düzelt, sonra yine ./alp-kur.sh"
 else
-  yesil "  doğrulandı: evet — paket sağlam"
+  yesil "  HAZIR — çalıştır:  cd <veri/proje dizini> && opencode     (kısa ad: oc)"
+  echo  "  İlk açılışta /models → kurum / Qwen3.6-35B-A3B-FP8 seç."
 fi
-echo "  Kurulum kökü:     $KOK"
-echo "  Kurallar/ayar:    $HOME/.config/opencode/  (AGENTS.md, opencode.json, skills/, plugins/)"
-if [ "$BAGLANTI_YOK" = 1 ]; then
-  echo "  Kısayol:          kurulmadı (--baglanti-yok) → tam yolla çalıştır: $HOME/.opencode/bin/opencode"
-else
-  echo "  Kısayol sahibi:   alp-kur.sh — ${HEDEF_DIZIN:-/usr/local/bin}/opencode → $HOME/.opencode/bin/opencode"
-fi
-echo
-echo "  ŞİMDİ ÇALIŞTIR:"
-echo "    cd <veri/proje dizini> && opencode      # kısa ad: oc"
-echo "  İlk açılışta /models → kurum / Qwen3.6-35B-A3B-FP8 seç."
-echo "  Bir şey ters giderse TEK kontrol komutu:  ./alp-kontrol.sh   (kurulum için: --kurulum)"
-echo
-sari "  NOT: opencode'u VERİNİN OLDUĞU dizinde aç (ör. envanter işi için: cd ~/ansible && opencode)."
-sari "       Proje kökü dışına çıkmak 'external_directory' izin kapısı çıkarır; boş bir dizinden"
-sari "       açıp üst dizinleri aratmak yerine doğrudan ilgili dizinde başlat."
+echo "  Bir şey ters giderse tek kontrol komutu:  ./alp-kontrol.sh"
+sari "  NOT: opencode'u VERİNİN OLDUĞU dizinde aç (ör: cd ~/ansible && opencode) — dışarı çıkmak izin kapısı açar."
 exit "$DOGRULAMA_KODU"

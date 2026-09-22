@@ -87,7 +87,8 @@ Tüm çalışmalar tek çalışma alanında (`~/ai/work/`) durabilir; ayrım **k
 
 **Beceri kurulumu:** varsayılan olarak 10 çekirdek beceri kurulur
 (`ansible k8s-rancher rhel-yonetim filo-durum-kontrolu rapor-uret rapor-excel-pdf hata-ayikla performans sistem-guncelleme depolama`);
-tümünü (38) kurmak için `./alp-kur.sh --tum-beceriler`. Pencere 256K olduğu için bağlam kaygısı yok.
+park edilmiş bir beceri gerekiyorsa `knowledge/skills/parked/<ad>`'ı `approved/`'a taşıyıp
+`./alp-kur.sh`'ı tekrar çalıştır. Pencere 256K olduğu için bağlam kaygısı yok.
 
 **SSH / uzak sistem notu (önemli):** İzin listesinde salt-okunur yerel komutlar var
 (`ls cat head tail wc file stat pwd whoami hostname uname uptime date df du free ps pvs vgs lvs lsblk blkid
@@ -160,9 +161,8 @@ Beceri: `rapor-excel-pdf` (pakette **var**, varsayılan **10 çekirdek** beceri 
 
 **Beceriyi kurma:** varsayılan `./alp-kur.sh` artık yeterli — `rapor-excel-pdf` 10 çekirdek beceri içinde
 (2026-09-15'ten beri). Elle `cp -r knowledge/skills/approved/<ad> ~/.config/opencode/skills/`
-**geçicidir** — `alp-kur.sh` beceri dizinini baştan yazdığı için sonraki çalıştırmada silinir; tek bir
-becerinin kalıcı kurulumu için henüz `--beceri <ad>` gibi bir bayrak yok, ya varsayılan/`--tum-beceriler`
-kullanılır ya da `CORE_SKILLS` dizisi elle düzenlenir.
+**geçicidir** — `alp-kur.sh` beceri dizinini baştan yazdığı için sonraki çalıştırmada silinir; bir becerinin
+kalıcı kurulumu `knowledge/skills/approved/` + `CORE_SKILLS` dizisi üzerinden yapılır.
 
 ## Hızlı doğrulama
 

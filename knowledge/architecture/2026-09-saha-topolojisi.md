@@ -23,10 +23,13 @@
   tek sahibi `alp-kur.sh`'tır (`alp-derle.sh` artık kısayol kurmuyor).
   **Güncelleme (2026-09-21, üçüncü tur — Alp talebi):** sahada kullanıcıya görünen yüzey **tam 2 betik**:
   **`./alp-kur.sh`** (kurulum) + **`./alp-kontrol.sh`** (kontrol/teşhis). Aynı işi yapan ikinci bir
-  kontrol betiği yok: eski `oc-teshis.sh` (uç teşhisi) ile `oc-dogrula.sh` (kurulum doğrulaması)
-  tek betikte birleşti (`alp-kontrol.sh` / `alp-kontrol.sh --kurulum`). `alp-derle.sh` iç detaydır.
+  kontrol betiği yok; `alp-derle.sh` iç detaydır.
+  **Güncelleme (2026-09-22, dördüncü tur — Alp talebi "parametre almasına gerek yok"):** iki betik de
+  **bayraksız** çalışır. `./alp-kur.sh` derleme kararını kendi verir (ikili yok veya kaynak ikiliden
+  yeni → derle) ve kısayol çakışmasını soru sormadan yedekleyip düzeltir; `./alp-kontrol.sh` bayraksız
+  çağrıda **kurulum + uç** raporunu birlikte verir.
   Saha akışı: **`al.sh` → `./alp-kur.sh` → `./alp-kontrol.sh`**. Kontrol raporu **tek ekrana** sığar
-  (≈16 satır, ≤100 sütun) ve sonda tek satırlık `SORUN:` teşhisi verir — Alp çıktıyı Telegram'a
+  (≈30 satır, ≤100 sütun) ve sonda tek satırlık `SORUN:` teşhisi verir — Alp çıktıyı Telegram'a
   **ekran görüntüsü** olarak gönderdiği için bu sözleşme kasıtlıdır.
 - **ara-makine** = git kaynağı, kod buradan çekiliyor (mevcut `al.sh` akışı).
 - **ktbulut tarafında ayrı, farklı ad/IP'li bir merkezi satellite sunucu daha var** — orada da

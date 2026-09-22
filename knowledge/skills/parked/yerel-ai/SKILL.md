@@ -92,7 +92,7 @@ Fork'un kurulumu editable DEĞİL (`pip install .`). Depoyu `git pull`
 Değişiklikler etkili olsun diye:
 
 ```bash
-./alp-kur.sh                      # ya da:
+./kur.sh                          # aider fork'unun kendi kurulumu (opencode'unki degil), ya da:
 venv/bin/pip install . -q
 ```
 

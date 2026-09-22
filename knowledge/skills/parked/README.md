@@ -29,8 +29,8 @@ gerek yok.
 ## Park edilmiş beceriler silinmedi
 
 Yalnız kurulumdan çıkarıldılar; içerik burada duruyor. Bir tanesi gerekiyorsa yukarıdaki gibi
-`approved/`'a taşı ve `./02-kur.sh`'ı tekrar çalıştır (kurulum hep `approved/`'u yansıtır).
-Tümünü birden kurmak istisnai bir ayıklama işidir; `ALP_TUM_BECERILER=1 ./02-kur.sh` ile yapılır
+`approved/`'a taşı ve `./kur.sh`'ı tekrar çalıştır (kurulum hep `approved/`'u yansıtır).
+Tümünü birden kurmak istisnai bir ayıklama işidir; `ALP_TUM_BECERILER=1 ./kur.sh` ile yapılır
 (taban bağlam büyür — günlük akışın parçası değildir).
 
 ## "Yetim" işaretli beceriler (2026-09-16 itibarıyla)

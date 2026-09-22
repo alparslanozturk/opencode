@@ -23,9 +23,9 @@ Bu dizin **motor değil, hafızadır**. Motor (opencode + Qwen) değişebilir; b
           → İNSAN inceler → skills/approved/ → opencode kullanır
                          ↘ reddedilirse silinir (kullanılmayan biriktirilmez)
 
-- **`skills/approved/`** = opencode'un **okuduğu tek yer** (02-kur.sh varsayılan olarak buradan kurar). Buradakiler canlıdır.
+- **`skills/approved/`** = opencode'un **okuduğu tek yer** (`kur.sh` varsayılan olarak buradan kurar). Buradakiler canlıdır.
 - **`skills/parked/`** = onaylanmış ama varsayılan kurulumdan çıkarılmış beceriler (2026-09-16 sadeleştirmesi,
-  bkz. `parked/README.md`) — içerik silinmedi; gereken beceri `approved/`'a taşınıp `./02-kur.sh` ile kurulur.
+  bkz. `parked/README.md`) — içerik silinmedi; gereken beceri `approved/`'a taşınıp `./kur.sh` ile kurulur.
 - **`skills/experimental/`** ve **`skills/generated/`** = opencode **okumaz** → onaysız içerik davranışı değiştiremez.
 
 ## Kim, neyi, nereye besler?

@@ -1,9 +1,28 @@
 # SÜRÜM NOTLARI — opencode ajan kiti
 
-> **Betik adları değişti (2026-09-22, dördüncü tur).** Güncel adlar: **`01-derle.sh`** (iç) ·
-> **`02-kur.sh`** (tek giriş) · **`03-kontrol.sh`** (teşhis). Aşağıdaki **eski kayıtlarda** geçen
-> `kur.sh` / `alp.sh` / `oc-teshis.sh` / `oc-dogrula.sh` ve `alp-kur.sh` / `alp-kontrol.sh` /
-> `alp-derle.sh` adları **tarihseldir** — o günkü durumu anlatır, bilerek değiştirilmedi.
+> **Güncel saha yüzeyi (2026-09-22):** **`./kur.sh`** tek giriş komutudur; içeride
+> **`02-kur.sh`** çalışır, gerekirse **`01-derle.sh`** ile kaynaktan derler ve sonda
+> **`03-kontrol.sh`** raporunu basar. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`
+> ve önceki `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
+
+## 2026-09-22 — saha yüzeyi `./kur.sh`, hazır ikili yolu kaldırıldı
+
+**Sorun (Alp):** *"tek giriş `./kur.sh` olsun; binary durmasın, kaynaktan derliyoruz; env'i sahada elle yazmayalım."*
+
+**Ne değişti**
+- **`./kur.sh` saha komutu oldu.** `02-kur.sh` iç uygulama adımı olarak kalır; kurulum bitince
+  bayraksız `03-kontrol.sh` raporu basılır.
+- **Hazır ikili arşiv/indirme yolu kaldırıldı.** Çözümleme sırası artık yalnız:
+  `bin/opencode` varsa kullan → yoksa `01-derle.sh` ile kaynaktan derle.
+- `env` yoksa ve `env.local` varsa `env.local` → `env` kopyalanır, izin `600` yapılır. İkisi de yoksa
+  dostça hata verilir; kontrol raporu çağrılmaz.
+- `node-v24.19.0-headers.tar.gz` **repoya alınır** (sahada ağ yok, kaybolmasın). `.gitignore` artık
+  yalnız *açılan* ağacı dışlar: `/node-v[0-9]*/` + `/node-v*-headers` (dizin ya da bağ).
+- `01-derle.sh` derleme öncesi header ağacını hazırlar. **Dikkat:** resmi arşiv `node-v24.19.0/`
+  dizinine açılır (içinde `include/node/`), adında `-headers` **geçmez**; node-gyp ise sahada
+  `node-v24.19.0-headers` adını bekliyor. Betik bu yüzden arşivi açar ve `-headers` adını o dizine
+  **symlink** ile bağlar — sahada elle konulmuş gerçek `node-v24.19.0-headers/` dizinine **dokunmaz**.
+  Hazırsa tekrar açmaz (idempotent); hata olursa **tek satır uyarı** verip kuruluma devam eder.
 
 ## 2026-09-22 — betik adları **numaralandı**: `01-derle.sh` · `02-kur.sh` · `03-kontrol.sh`
 
@@ -55,8 +74,7 @@ hakkında hiçbir şey söylemiyordu; `ls` çıktısı alfabetik sıralıyordu (
 - **`alp-derle.sh` sadeleşti:** kullanıcıya dönük `--kisayol` bayrağı kaldırıldı (kısayolun tek
   sahibi `alp-kur.sh`); dosya başlığında "İÇ DETAY — KULLANICI BUNU ÇAĞIRMAZ" yazıyor.
 - **Gizli kaçış kapıları** (dokümanda yok, yalnız ayıklama için ortam değişkeni): `ALP_DERLE=1`,
-  `ALP_DERLEME_YOK=1`, `ALP_TUM_BECERILER=1`, `ALP_IKILI_INDIR=1`, `ALP_DERLE_EK="..."`,
-  `KISAYOL_DIZIN`, `IKILI_RELEASE_URL`.
+  `ALP_DERLEME_YOK=1`, `ALP_TUM_BECERILER=1`, `ALP_DERLE_EK="..."`, `KISAYOL_DIZIN`.
 - **Dokümanlar:** akış her yerde `al.sh` → **`./alp-kur.sh`** → **`./alp-kontrol.sh`**; bayrak
   tabloları kaldırıldı (`ALP-README.md`, `NASIL-CALISTIRILIR.md`, `MIMARI.md`, `docs/`, `knowledge/`).
   Yan düzeltme: aider fork'unun kendi `kur.sh`'ına giden iki atıf yanlışlıkla `alp-kur.sh` diye
@@ -149,7 +167,7 @@ aynı adı sahiplendiği için **son çalışan kazanıyor**, hangi ikilinin ça
 - **`kur.sh` = tek giriş noktası.** `bin/opencode` yoksa ve kaynak ağacı varsa (`bun.lock` +
   `packages/opencode` + `alp.sh`) **kendisi derler** (`alp.sh --bin-kopyala`), sonra her zamanki
   kurulumu yapar (ayar + beceri + plugin + ripgrep + kısayol) ve `oc-dogrula.sh` ile doğrular.
-  İkili arama sırası: `bin/opencode.tar.xz` → `--ikili-indir` (Release asset) → **kaynaktan derleme**.
+  Güncel davranışta hazır ikili arşivi/indirmesi yoktur; ikili yoksa **kaynaktan derleme** yolu kullanılır.
 - **Yeni bayraklar:** `--derle` / `--kaynak` (ikili olsa bile yeniden derle), `--derleme-yok`
   (derlemeyi hiç deneme), `-- <bayraklar>` (`--` sonrası her şey `alp.sh`'a aktarılır, ör.
   `./kur.sh --derle -- --ignore-scripts`). Çelişkili kombinasyon (`--derle --derleme-yok`) hata verir.
@@ -202,9 +220,9 @@ tamamen kapalı ortamda (`unshare -n`) model listesini bastı.
 ## 2026-09-16 — Paket sadeleştirmesi: bin/ git'ten çıkarıldı + beceri parkı (Alp kararları)
 
 **Ne değişti (`faz0-yuzeye-getir` branch, `notlar/FAZ0-KARARLAR-RAPORU.md`):**
-- **`bin/opencode.tar.xz` + `bin/ripgrep.tar.xz` git izlemesinden çıkarıldı** (`git rm --cached`,
-  `.gitignore`'da zaten `bin/` vardı) — dosyalar **diskte kaldı**, yalnız git geçmişine yeni commit
-  girmiyor. `kur.sh` artık ikili yoksa "git'ten gelmez, ayrı paketten al" diye net mesaj veriyor.
+- **Hazır opencode ikilisi git izlemesinden çıkarıldı** (`git rm --cached`,
+  `.gitignore`'da zaten `bin/` vardı) — dosya **diskte kaldı**, yalnız git geçmişine yeni commit
+  girmiyor. `bin/ripgrep.tar.xz` ise saha `rg` kurulumu için izlenen paket olarak kaldı.
 - **Beceriler sadeleştirildi:** `knowledge/skills/approved/` 38 → **10 çekirdek** (kur.sh `CORE_SKILLS`
   ile birebir); kalan 28 beceri **silinmeden** `knowledge/skills/parked/`'a taşındı (`git mv`, bkz.
   `parked/README.md`). `kur.sh --tum-beceriler` approved/+parked/ birlikte kurar (toplam hâlâ 38).

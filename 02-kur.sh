@@ -2,30 +2,27 @@
 # =============================================================================
 #  02-kur.sh — opencode kurulumunun TEK KOMUTU (kurum içi, offline; ağ/npm gerekmez).
 #
-#  Kullanım:  cd /root/ai/opencode && ./02-kur.sh     ← hepsi bu, BAYRAK YOK
-#             (dizin adı önemli değil, betik kendi yolunu bulur)
+#  Kullanım:  cd /root/ai/opencode && ./kur.sh     ← hepsi bu, BAYRAK YOK
+#             (./kur.sh bu betiği çalıştırır; dizin adı önemli değil, betik kendi yolunu bulur)
 #
 #  Bayraksız çağrı TAM İŞİ yapar:
 #    1) gerekirse DERLER  — ikili yoksa ya da kaynak ağacı ikiliden yeniyse (kararı kendi verir)
 #    2) KURAR             — ikili + ayar + kurallar (AGENTS.md) + beceriler + plugin + ripgrep
 #    3) KISAYOLU DÜZELTİR — 'opencode' ve 'oc'; başka yeri gösteriyorsa yedekler ve çevirir
-#    4) DOĞRULAR          — sonda tek ekran özet ("kuruldu / hazır")
+#    4) KONTROL EKRANI    — kurulum başarılıysa en sonda ./03-kontrol.sh çalışır (kurulum + uç raporu)
 #
-#  İkili nereden gelir (sırayla): bin/opencode → bin/opencode.tar.xz → kaynaktan derleme.
-#  Sonrasında kontrol/teşhis için tek komut:  ./03-kontrol.sh
+#  İkili nereden gelir (sırayla): bin/opencode → kaynaktan derleme.
+#  Kontrolü tek başına çalıştırmak istersen:  ./03-kontrol.sh
 #
 #  İç detay (kullanıcının bilmesine gerek yok; yalnız ayıklama için ortam değişkenleri):
 #    ALP_DERLE=1 ikili güncel olsa da derle · ALP_DERLEME_YOK=1 hiç derleme ·
-#    ALP_TUM_BECERILER=1 tüm beceriler · ALP_IKILI_INDIR=1 Release asset'inden indir ·
+#    ALP_TUM_BECERILER=1 tüm beceriler ·
 #    ALP_DERLE_EK="--ignore-scripts" derleyiciye ek bun bayrağı ·
-#    KISAYOL_DIZIN (varsayılan /usr/local/bin, yazılamıyorsa ~/.local/bin) · IKILI_RELEASE_URL
+#    KISAYOL_DIZIN (varsayılan /usr/local/bin, yazılamıyorsa ~/.local/bin)
 #  Derlemeyi 01-derle.sh yapar; onu bu betik çağırır, elle çalıştırmaya gerek yoktur.
 # =============================================================================
 set -euo pipefail
 KOK="$(cd "$(dirname "$0")" && pwd)"
-
-# İndirme (ALP_IKILI_INDIR) varsayılanı: repo Release asset'i (token'sız HTTPS, 185 MB ikili git'e girmez).
-IKILI_RELEASE_URL="${IKILI_RELEASE_URL:-https://github.com/alparslanozturk/opencode/releases/download/bin-v1.18.30/opencode}"
 
 # Kullanıcıya dönük bayrak YOK (Alp, 2026-09-22: "scriptlerin parametre almasına gerek yok;
 # zaten amaç kurmak"). Yardım dışında argüman kabul edilmez.
@@ -33,15 +30,14 @@ if [ $# -gt 0 ]; then
   case "$1" in
     -h|--help|--yardim) sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *)
-      echo "!! 02-kur.sh bayrak almaz — tek komut yeter:  ./02-kur.sh" >&2
-      echo "   (kurulum zaten gerekirse derler, kurar, kısayolu düzeltir ve doğrular)" >&2
+      echo "!! 02-kur.sh bayrak almaz — tek komut yeter:  ./kur.sh" >&2
+      echo "   (kurulum zaten gerekirse derler, kurar, kısayolu düzeltir ve sonda kontrol ekranını basar)" >&2
       echo "   Kontrol/teşhis için:  ./03-kontrol.sh" >&2
       exit 2 ;;
   esac
 fi
 
 TUM_BECERILER="${ALP_TUM_BECERILER:-0}"
-IKILI_INDIR="${ALP_IKILI_INDIR:-0}"
 DERLE="${ALP_DERLE:-0}"
 DERLEME_YOK="${ALP_DERLEME_YOK:-0}"
 ALP_EK=()   # derleyiciye (01-derle.sh) aktarılacak ek bayraklar — ALP_DERLE_EK ile
@@ -54,18 +50,24 @@ fi
 # approved/ + parked/ birlikte kurar (hepsi).
 CORE_SKILLS=(ansible k8s-rancher rhel-yonetim filo-durum-kontrolu rapor-uret rapor-excel-pdf hata-ayikla performans sistem-guncelleme depolama)
 if [ ! -f "$KOK/env" ]; then
-  echo "!! $KOK/env bulunamadi." >&2
-  echo "   Olustur ve 3 satiri doldur:" >&2
-  if [ -f "$KOK/env.example" ]; then
-    echo "     cp $KOK/env.example $KOK/env && vi $KOK/env" >&2
+  if [ -f "$KOK/env.local" ]; then
+    cp "$KOK/env.local" "$KOK/env"
+    chmod 600 "$KOK/env"
+    echo ">> env yoktu — env.local'dan alındı: $KOK/env"
   else
-    echo "     Su 3 satirla olustur (degerleri kurumdan al):" >&2
-    echo "       KURUM_URL=http(s)://<endpoint>:<port>/v1" >&2
-    echo "       KURUM_KEY=dummy" >&2
-    echo "       MODEL_ID=MODEL_ID_YER_TUTUCU" >&2
+    echo "!! $KOK/env bulunamadi." >&2
+    echo "   Olustur ve 3 satiri doldur:" >&2
+    if [ -f "$KOK/env.example" ]; then
+      echo "     cp $KOK/env.example $KOK/env && vi $KOK/env" >&2
+    else
+      echo "     Su 3 satirla olustur (degerleri kurumdan al):" >&2
+      echo "       KURUM_URL=https://SUNUCU:8000/v1" >&2
+      echo "       KURUM_KEY=dummy" >&2
+      echo "       MODEL_ID=MODEL_ID_YER_TUTUCU" >&2
+    fi
+    echo "   (env bilerek git'te degil: URL + anahtar repoda durmasin.)" >&2
+    exit 1
   fi
-  echo "   (env bilerek git'te degil: URL + anahtar repoda durmasin.)" >&2
-  exit 1
 fi
 # shellcheck disable=SC1090
 . "$KOK/env"
@@ -93,13 +95,12 @@ fi
 
 # ---------------------------------------------------------------------------
 #  0) İkili nereden gelecek? Kararı BU BETİK verir (kullanıcı bayrak öğrenmez):
-#       bin/opencode yok            -> paketten aç / (istenirse indir) / kaynaktan derle
+#       bin/opencode yok            -> kaynaktan derle
 #       kaynak ağacı ikiliden yeni  -> kaynaktan yeniden derle
 #       aksi halde                  -> derleme yok, doğrudan kur
 # ---------------------------------------------------------------------------
 DERLENDI=0
 IKILI_KAYNAGI=""
-IKILI_PAKETTEN=0
 
 kaynak_agaci_var() {
   [ -x "$KOK/01-derle.sh" ] && [ -f "$KOK/bun.lock" ] && [ -d "$KOK/packages/opencode" ]
@@ -130,31 +131,6 @@ derle_kaynaktan() {
   return 1
 }
 
-if [ ! -x "$KOK/bin/opencode" ] && [ -f "$KOK/bin/opencode.tar.xz" ]; then
-  echo ">> bin/opencode yok — bin/opencode.tar.xz aciliyor (bir kez)..."
-  tar xJf "$KOK/bin/opencode.tar.xz" -C "$KOK/bin" && chmod +x "$KOK/bin/opencode"
-  if [ -x "$KOK/bin/opencode" ]; then
-    IKILI_KAYNAGI="bin/opencode.tar.xz açıldı"
-    IKILI_PAKETTEN=1   # paketten gelen ikiliyi tazelik kontrolüyle yeniden derlemeye kalkma
-  fi
-fi
-
-if [ ! -f "$KOK/bin/opencode" ] && [ "$IKILI_INDIR" = "1" ]; then
-  if command -v curl >/dev/null 2>&1; then
-    echo ">> bin/opencode yok — Release asset'inden indiriliyor (token'sız HTTPS): $IKILI_RELEASE_URL"
-    if curl -fSL -o "$KOK/bin/opencode" "$IKILI_RELEASE_URL" && chmod +x "$KOK/bin/opencode"; then
-      echo "   indirildi: $KOK/bin/opencode"
-      IKILI_KAYNAGI="Release asset'inden indirildi"
-      IKILI_PAKETTEN=1
-    else
-      echo "!! indirme başarısız — $IKILI_RELEASE_URL adresini/erişimi kontrol et." >&2
-      rm -f "$KOK/bin/opencode"
-    fi
-  else
-    echo "!! curl yok — ikili indirme için curl gerekli." >&2
-  fi
-fi
-
 # --- derleme kararı (otomatik) ---
 DERLE_NEDEN=""
 if [ "$DERLEME_YOK" != 1 ] && kaynak_agaci_var; then
@@ -162,7 +138,7 @@ if [ "$DERLEME_YOK" != 1 ] && kaynak_agaci_var; then
     DERLE_NEDEN="elle istendi (ALP_DERLE=1)"
   elif [ ! -f "$KOK/bin/opencode" ]; then
     DERLE_NEDEN="bin/opencode yok"
-  elif [ "$IKILI_PAKETTEN" = 0 ] && kaynak_daha_yeni; then
+  elif kaynak_daha_yeni; then
     DERLE_NEDEN="kaynak ağacı ikiliden yeni"
   fi
 fi
@@ -177,13 +153,12 @@ fi
 
 if [ ! -f "$KOK/bin/opencode" ]; then
   echo "!! $KOK/bin/opencode yok ve uretilemedi." >&2
-  echo "   $KOK/bin/*.tar.xz git'e commitli DEĞİL (2026-09-16'dan itibaren; .gitignore'da bin/)." >&2
   if kaynak_agaci_var; then
     echo "   Cozum 0: kaynaktan derleme denendi ve basarisiz oldu — yukaridaki derleme ciktisina bak (bun gerekir)." >&2
+  else
+    echo "   Cozum 0: kaynak agaci eksik — al.sh/git senkronu ile depoyu eksiksiz getir." >&2
   fi
-  echo "   Cozum 1: ikiliyi ayrı paketten al (opencode-paket.tar.xz veya kurumun dağıtım yerinden)," >&2
-  echo "      $KOK/bin/opencode.tar.xz olarak koy, sonra tekrar calistir  ->  ./02-kur.sh" >&2
-  echo "      ya da kurumda kurulu opencode ikilisini dogrudan $KOK/bin/opencode olarak koy." >&2
+  echo "   Sonra tekrar calistir: ./kur.sh" >&2
   exit 1
 fi
 [ -n "$IKILI_KAYNAGI" ] || IKILI_KAYNAGI="hazır bin/opencode güncel (derleme gerekmedi)"
@@ -386,11 +361,6 @@ if [ -n "$PATH_OPENCODE" ] && [ "$(readlink -f "$PATH_OPENCODE" 2>/dev/null || e
 fi
 
 echo
-echo "== doğrulama =="
-DOGRULAMA_KODU=0
-"$KOK/03-kontrol.sh" --kurulum || DOGRULAMA_KODU=$?
-
-echo
 echo "== ÖZET =="
 if [ "$DERLENDI" = 1 ]; then
   yesil "  derlendi : evet — $IKILI_KAYNAGI"
@@ -398,12 +368,23 @@ else
   echo  "  derlendi : hayır — $IKILI_KAYNAGI"
 fi
 yesil "  kuruldu  : $HOME/.opencode/bin/opencode · ayar $HOME/.config/opencode/ · kısayol $HEDEF_DIZIN/opencode (oc)"
-if [ "$DOGRULAMA_KODU" -ne 0 ]; then
-  kirmizi "  HAZIR DEĞİL — yukarıdaki ✗ satırlarını düzelt, sonra yine ./02-kur.sh"
-else
-  yesil "  HAZIR — çalıştır:  cd <veri/proje dizini> && opencode     (kısa ad: oc)"
-  echo  "  İlk açılışta /models → kurum / Qwen3.6-35B-A3B-FP8 seç."
-fi
-echo "  Bir şey ters giderse tek kontrol komutu:  ./03-kontrol.sh"
+echo  "  çalıştır : cd <veri/proje dizini> && opencode     (kısa ad: oc)"
+echo  "  İlk açılışta /models → kurum / Qwen3.6-35B-A3B-FP8 seç."
 sari "  NOT: opencode'u VERİNİN OLDUĞU dizinde aç (ör: cd ~/ansible && opencode) — dışarı çıkmak izin kapısı açar."
-exit "$DOGRULAMA_KODU"
+
+# ---------------------------------------------------------------------------
+#  Kurulum başarıyla bitti (başarısız yollar yukarıda erken çıkar). Alp'in
+#  isteği (2026-09-22): "derleme+kurulum bittikten sonra en sonda kontrol
+#  ekranını da bassın" — bayraksız 03-kontrol.sh = kurulum + uç raporu, tek ekran.
+#  Kontrolün "sorun var" çıkışı KURULUMU başarısız göstermez: kurulum oldu,
+#  rapor yalnız sağlık durumunu anlatır. Bu yüzden çıkış kodu 0.
+# ---------------------------------------------------------------------------
+echo
+if [ -x "$KOK/03-kontrol.sh" ]; then
+  "$KOK/03-kontrol.sh" || true
+else
+  sari "  ! $KOK/03-kontrol.sh bulunamadı/çalıştırılamadı — sağlık kontrolü atlandı (kurulum etkilenmedi)."
+fi
+echo
+yesil "kurulum tamam — yukarıdaki rapor sağlık kontrolüdür."
+exit 0

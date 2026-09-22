@@ -3,11 +3,12 @@
 #  01-derle.sh — opencode CLI'yi KAYNAKTAN derler (saha makinesi: saha-makinesi).
 #
 #  ⚙️  İÇ DETAY — KULLANICI BUNU ÇAĞIRMAZ: `./02-kur.sh` gerektiğinde (ikili yok ya da
-#      kaynak ikiliden yeni) bunu kendisi çağırır. Tek komut odur: ./02-kur.sh
+#      kaynak ikiliden yeni) bunu kendisi çağırır. Saha komutu ./kur.sh'tır
+#      (içeride bu betiğe 02-kur.sh üzerinden gelir).
 #      Buraya yalnız derlemeyi ayrıca ayıklamak için bakılır.
 #
 #  Bu betik YALNIZ derler. Kaynak senkronu (git pull + rsync) ayrı bir iştir:
-#  önce `al.sh` ile kodu bu makineye çek, sonra `./02-kur.sh` çalıştır.
+#  önce `al.sh` ile kodu bu makineye çek, sonra `./kur.sh` çalıştır.
 #
 #  Kısayol (symlink) KURMAZ — `/usr/local/bin/opencode` kısayolunun tek sahibi
 #  `02-kur.sh`'tır (o, kısayolu `~/.opencode/bin/opencode`'a bağlar ve çakışmayı
@@ -69,7 +70,40 @@ if [ ! -f "$KOK/bun.lock" ]; then
   exit 1
 fi
 
-# --- 1) models.dev anlik goruntusu (ag yok -> fetch denenmesin) -----------------
+# --- 1) Node header'lari: offline node-gyp icin hazirla ----------------------
+# Resmi arsiv (node-vX.Y.Z-headers.tar.gz) icinde `node-vX.Y.Z/` dizini vardir
+# (`include/node/...`) — adinda "-headers" GECMEZ. Sahada Alp ayni agaci elle
+# `node-vX.Y.Z-headers/` adiyla koymus olabilir (node-gyp'in nodedir'i oraya bakar).
+# Bu yuzden: once acilan GERCEK dizine bakilir, gerekirse arsiv acilir, sonra
+# "-headers" adi o dizine baglanir. Elle konulmus gercek dizine DOKUNULMAZ.
+NODE_SURUM="v24.19.0"
+node_headerlari_hazirla() {
+  local arsiv="$KOK/node-$NODE_SURUM-headers.tar.gz"
+  local gercek="$KOK/node-$NODE_SURUM"          # arsivin actigi dizin
+  local takma="$KOK/node-$NODE_SURUM-headers"   # sahada beklenen ad
+
+  # Sahada elle konulmus gercek bir dizin varsa hazir kabul et, dokunma.
+  if [ -d "$takma" ] && [ ! -L "$takma" ]; then return 0; fi
+  # Daha once bu betigin kurdugu bag hala saglamsa is yok (idempotent).
+  if [ -L "$takma" ] && [ -d "$takma/include/node" ]; then return 0; fi
+
+  if [ ! -d "$gercek/include/node" ]; then
+    if [ ! -f "$arsiv" ]; then return 0; fi     # arsiv de yok -> sessizce gec
+    tar xzf "$arsiv" -C "$KOK" >/dev/null 2>&1 || return 1   # gurultu yok: tek satir uyari yeter
+    if [ ! -d "$gercek/include/node" ]; then return 1; fi
+  fi
+
+  if [ -L "$takma" ]; then rm -f "$takma"; fi   # kirik bag -> yenile
+  if [ ! -e "$takma" ]; then
+    ln -s "node-$NODE_SURUM" "$takma" || return 1
+  fi
+  if [ ! -d "$takma/include/node" ]; then return 1; fi
+  echo "==> node header'lari hazir: $takma -> node-$NODE_SURUM"
+}
+node_headerlari_hazirla || \
+  echo "!! node-$NODE_SURUM header'lari hazirlanamadi — derlemeye devam ediliyor (node-gyp gerekirse kirilabilir)." >&2
+
+# --- 2) models.dev anlik goruntusu (ag yok -> fetch denenmesin) -----------------
 SNAPSHOT="$KOK/packages/opencode/script/models-dev-api.json"
 if [ -z "${MODELS_DEV_API_JSON:-}" ] && [ -f "$SNAPSHOT" ]; then
   export MODELS_DEV_API_JSON="$SNAPSHOT"
@@ -80,7 +114,7 @@ else
   echo "!! models.dev snapshot yok; derleme https://models.dev/api.json'a baglanmayi deneyecek." >&2
 fi
 
-# --- 2) Bagimliliklar: YALNIZ CLI workspace'i ----------------------------------
+# --- 3) Bagimliliklar: YALNIZ CLI workspace'i ----------------------------------
 # (--filter olmadan bun, web/console paketlerinin npm DISI bagimliliklarini da cozmeye
 #  calisir: pkg.pr.new/@solidjs/start ve github:anomalyco/ghostty-web -> offline'da patlar.)
 if [ "$KURULUM_YOK" -eq 0 ]; then
@@ -90,11 +124,11 @@ else
   echo "==> bun install atlandi (--kurulum-yok)"
 fi
 
-# --- 3) Derleme: tek platform, web UI gomulmeden -------------------------------
+# --- 4) Derleme: tek platform, web UI gomulmeden -------------------------------
 echo "==> build.ts --single --skip-embed-web-ui --skip-install"
 "$BUN" run ./packages/opencode/script/build.ts --single --skip-embed-web-ui --skip-install
 
-# --- 4) Uretilen ikiliyi bul ---------------------------------------------------
+# --- 5) Uretilen ikiliyi bul ---------------------------------------------------
 shopt -s nullglob
 IKILILER=(packages/opencode/dist/opencode-*/bin/opencode)
 shopt -u nullglob
@@ -106,10 +140,10 @@ fi
 IKILI="$KOK/${IKILILER[0]}"
 echo "==> ikili: $IKILI ($(du -h "$IKILI" | cut -f1))"
 
-# --- 5) Kisayol (symlink) KURULMAZ — sahibi 02-kur.sh -------------------------
-echo "==> kisayol kurulmadi (sahibi 02-kur.sh) — kurulum icin: ./02-kur.sh"
+# --- 6) Kisayol (symlink) KURULMAZ — sahibi 02-kur.sh -------------------------
+echo "==> kisayol kurulmadi (sahibi 02-kur.sh) — kurulum icin: ./kur.sh"
 
-# --- 6) Istege bagli: 02-kur.sh akisi icin bin/opencode ---------------------------
+# --- 7) Istege bagli: 02-kur.sh akisi icin bin/opencode ---------------------------
 if [ "$BIN_KOPYALA" -eq 1 ]; then
   mkdir -p "$KOK/bin"
   cp -f "$IKILI" "$KOK/bin/opencode"

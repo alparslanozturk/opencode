@@ -33,15 +33,18 @@ logs/
 *.bun-build
 tsconfig.tsbuildinfo
 
-# --- Alp katmanı (bkz. 02-kur.sh/NASIL-CALISTIRILIR.md) ---
-# 185 MB ikili git'e girmez — Release asset'ten (ALP_IKILI_INDIR=1 ./02-kur.sh) veya
-# elle bin/opencode.tar.xz ile kurulur (bin/ripgrep.tar.xz İZLENİR, ignore edilmez).
+# --- Alp katmanı (bkz. kur.sh/NASIL-CALISTIRILIR.md) ---
+# Yerel derleme çıktısı git'e girmez; kurulum gerekirse kaynaktan derler.
+# rg paketi izlenir, bin/opencode yerel kalır.
 /bin/opencode
 /env
+/env.local
 /env2
 /notlar/
 *.log
-# Saha makinesinde (saha-makinesi) node-gyp icin elle konulan Node header'lari —
-# repo icinde dursa bile git'e girmez.
+# Node header'lari: ARSIV (node-v*-headers.tar.gz) IZLENIR — sahada ag yok, kaybolmasin.
+# Acilan agac (01-derle.sh arsivi `node-vX.Y.Z/` olarak acar) ve node-gyp'in bekledigi
+# `node-vX.Y.Z-headers` adi (dizin ya da bag) git'e GIRMEZ.
 /node-v*-headers/
-/node-v*-headers.tar.gz
+/node-v*-headers
+/node-v[0-9]*/

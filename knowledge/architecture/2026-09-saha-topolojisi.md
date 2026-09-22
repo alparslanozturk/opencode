@@ -28,7 +28,9 @@
   **bayraksız** çalışır. `./02-kur.sh` derleme kararını kendi verir (ikili yok veya kaynak ikiliden
   yeni → derle) ve kısayol çakışmasını soru sormadan yedekleyip düzeltir; `./03-kontrol.sh` bayraksız
   çağrıda **kurulum + uç** raporunu birlikte verir.
-  Saha akışı: **`al.sh` → `./02-kur.sh` → `./03-kontrol.sh`**. Kontrol raporu **tek ekrana** sığar
+  **Güncelleme (2026-09-22, saha yüzeyi):** kullanıcı komutu yeniden **`./kur.sh`** oldu; içeride
+  `02-kur.sh` çalışır ve en sonda `03-kontrol.sh` raporunu basar.
+  Saha akışı: **`al.sh` → `./kur.sh` → `./03-kontrol.sh`**. Kontrol raporu **tek ekrana** sığar
   (≈30 satır, ≤100 sütun) ve sonda tek satırlık `SORUN:` teşhisi verir — Alp çıktıyı Telegram'a
   **ekran görüntüsü** olarak gönderdiği için bu sözleşme kasıtlıdır.
 - **ara-makine** = git kaynağı, kod buradan çekiliyor (mevcut `al.sh` akışı).

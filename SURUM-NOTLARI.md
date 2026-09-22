@@ -6,7 +6,7 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
-## 2026-09-22 — derlenmiş ikili çöküyordu: `splitting: false` (build.ts)
+## 2026-09-22 — derlenmiş ikili çöküyordu: `splitting: false` (build.ts) — sürüm 1.0.1
 
 **Sorun (Alp):** sahada `oc` hiçbir prompt gönderemiyordu — TUI'de `Failed to send prompt` /
 `Unexpected server error`, log'da `TypeError: undefined is not an object (evaluating 'a.name')`
@@ -45,6 +45,10 @@ eler; `SystemPrompt.environment` ve `Agent` ise `list()` çıktısındaki tanım
 atlar. Gerileme testleri: `packages/core/test/reference.test.ts` ve
 `packages/opencode/test/session/system.test.ts` (düzeltmeden önce aynı `a.name` çökmesiyle
 kırmızıydı).
+
+**Sürüm:** asıl düzeltme `cca807db28` (`splitting: false` + sürüm 1.0.1), defansif koruma
+`9ad34675c6` (bozuk `reference` girdisi guard'ı) — ikisi de aynı sürümde (1.0.1) birlikte gitti.
+Olay kaydı: `knowledge/incidents/2026-09-22-derlenmis-ikili-a-name-cokmesi.md`.
 
 Detay: `NASIL-CALISTIRILIR.md` → "Sorun giderme" tablosu.
 

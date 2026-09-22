@@ -407,6 +407,13 @@ başka bir ajan) aynı korumadan geçiyor. Bu fix repoya gömülü olduğu için
 - **Açık kalem (henüz uygulanmadı, zorunlu değil):** bu sınıf makinelerde swap yok — en az 2-4GB swap
   eklemek ek bir savunma katmanı olurdu, ama kök neden zaten kod seviyesinde kapatıldığı için acil değil.
 
+### Geliştirici duman testi — derlenmiş ikili (`script/smoke-ikili.sh`)
+
+Her `bun run packages/opencode/script/build.ts` sonrası (veya `./kur.sh derle` sonrası), 2026-09-22'deki
+`a.name` çökmesi sınıfı bir regresyonu saniyeler içinde yakalamak için: `./script/smoke-ikili.sh
+[ikili-yolu]` (varsayılan: `bin/opencode`, yoksa `packages/opencode/dist/opencode-linux-x64/bin/opencode`).
+Yalnız geliştirici aracıdır — `kur.sh`'a bağlı değildir, sahada koşmaz. Detay: `knowledge/incidents/2026-09-22-derlenmis-ikili-a-name-cokmesi.md`.
+
 ---
 
 ## Teşhis — `kur.sh kontrol` (kurum ucunu test eder)

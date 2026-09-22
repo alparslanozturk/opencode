@@ -1,7 +1,10 @@
 # MİMARİ — opencode ajan kiti
 
 Aider fork'unda (15 faz) biriken tecrübeyi **opencode**'a taşıyan ajan kiti.
-Bundan sonraki kodlama ajanı geliştirmesi bu depo üzerinden yürür. Referans sürüm: **opencode 1.18.30**.
+Bundan sonraki kodlama ajanı geliştirmesi bu depo üzerinden yürür. Referans sürüm: **opencode 1.18.30**
+(vendor/upstream — `package.json`'lar burada sabit). **Ürün sürümü ayrı**: `kur.sh`'ın derlediği
+ikili **1.0.1**'i basar (`SURUM` sabiti, `kur.sh` içinde; bkz. `SURUM-NOTLARI.md` "ürün sürümü 1.0.0"
+ve "derlenmiş ikili çöküyordu" kayıtları).
 
 > **Motor ≠ Bilgi.** Motor (`engine/`) güncellenebilir; bilgi (`knowledge/`) kalıcıdır. Kurumsal değer bilgide birikir.
 
@@ -89,9 +92,17 @@ knowledge/               # BİLGİ katmanı (kalıcı, git tabanlı)
   skills/generated/            # ham üretim
   runbooks/ · incidents/ · lessons-learned/ · operations-notes/
   architecture/decisions/ · roadmap/
-kur.sh                  # TEK BETİK: ./kur.sh (varsayılan) derler+kurar+kontrol basar;
-                        #   alt komutlar: derle · kontrol · yardim (-h/--help)
-README.md · NASIL-CALISTIRILIR.md · DENEYIM-AKTARIM.md · MIMARI.md
+kur.sh                  # TEK BETİK, kökte tek .sh dosyası: ./kur.sh <derle|kur|kontrol|yardim>
+                        #   parametresiz çağrı = kur (varsayılan); 01/02/03 betikleri KALDIRILDI
+node-v24.19.0-headers.tar.gz   # node-gyp header arşivi (depoda izlenir, kur.sh acar/symlink kurar)
+bin/ripgrep.tar.xz       # bin/ altında TEK izlenen dosya (statik rg); opencode ikilisi repoya girmez
+README.md · NASIL-CALISTIRILIR.md · DENEYIM-AKTARIM.md · MIMARI.md · SURUM-NOTLARI.md
 ```
 
-> `bin/` (185 MB opencode ikilisi) ve `env` (sırlar) **repoya girmez**; ikili ayrı paketle taşınır.
+> `bin/opencode` (185 MB derlenmiş ikili) ve `env` (sırlar) **repoya girmez** — `bin/` içinde git'e
+> giren tek dosya `ripgrep.tar.xz`'dir, ikili ayrı paketle taşınır.
+>
+> **Derleme bayrağı (2026-09-22):** `packages/opencode/script/build.ts`'de `Bun.build(...)` çağrısı
+> `splitting: false` kullanır — `splitting: true` tek-dosya `compile` çıktısında dairesel import
+> sırasını bozup `a.name` çökmesine yol açtığı için (sürüm 1.0.1'de düzeltildi). Bu bayrağı bir daha
+> açma; detay: `knowledge/incidents/2026-09-22-derlenmis-ikili-a-name-cokmesi.md`.

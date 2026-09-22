@@ -15,20 +15,20 @@
   bu makine için (aşağıda güncellendi).
 - **Offline derleme engelleri kaldırıldı (2026-09-21):** sahada `bun install` npm **dışı** iki bağımlılıkta
   (pkg.pr.new/@solidjs/start, github:ghostty-web) ve `bun run build` `models.dev/api.json` fetch'inde
-  duruyordu. Çözüm repoya girdi: `alp-derle.sh` (git adımı yok, `--filter="./packages/opencode"` ile yalnız CLI
+  duruyordu. Çözüm repoya girdi: `01-derle.sh` (git adımı yok, `--filter="./packages/opencode"` ile yalnız CLI
   workspace'i + repodaki models.dev snapshot). Adım adım: `NASIL-CALISTIRILIR.md` → "Saha kurulumu
   (saha-makinesi, offline)".
-  **Güncelleme (2026-09-21, ikinci tur):** sahada çalıştırılacak tek komut **`./alp-kur.sh`** oldu —
-  gerekirse `alp-derle.sh`'ı kendisi çağırıp derler, sonra kurar ve doğrular; kısayolun (`opencode`/`oc`)
-  tek sahibi `alp-kur.sh`'tır (`alp-derle.sh` artık kısayol kurmuyor).
+  **Güncelleme (2026-09-21, ikinci tur):** sahada çalıştırılacak tek komut **`./02-kur.sh`** oldu —
+  gerekirse `01-derle.sh`'ı kendisi çağırıp derler, sonra kurar ve doğrular; kısayolun (`opencode`/`oc`)
+  tek sahibi `02-kur.sh`'tır (`01-derle.sh` artık kısayol kurmuyor).
   **Güncelleme (2026-09-21, üçüncü tur — Alp talebi):** sahada kullanıcıya görünen yüzey **tam 2 betik**:
-  **`./alp-kur.sh`** (kurulum) + **`./alp-kontrol.sh`** (kontrol/teşhis). Aynı işi yapan ikinci bir
-  kontrol betiği yok; `alp-derle.sh` iç detaydır.
+  **`./02-kur.sh`** (kurulum) + **`./03-kontrol.sh`** (kontrol/teşhis). Aynı işi yapan ikinci bir
+  kontrol betiği yok; `01-derle.sh` iç detaydır.
   **Güncelleme (2026-09-22, dördüncü tur — Alp talebi "parametre almasına gerek yok"):** iki betik de
-  **bayraksız** çalışır. `./alp-kur.sh` derleme kararını kendi verir (ikili yok veya kaynak ikiliden
-  yeni → derle) ve kısayol çakışmasını soru sormadan yedekleyip düzeltir; `./alp-kontrol.sh` bayraksız
+  **bayraksız** çalışır. `./02-kur.sh` derleme kararını kendi verir (ikili yok veya kaynak ikiliden
+  yeni → derle) ve kısayol çakışmasını soru sormadan yedekleyip düzeltir; `./03-kontrol.sh` bayraksız
   çağrıda **kurulum + uç** raporunu birlikte verir.
-  Saha akışı: **`al.sh` → `./alp-kur.sh` → `./alp-kontrol.sh`**. Kontrol raporu **tek ekrana** sığar
+  Saha akışı: **`al.sh` → `./02-kur.sh` → `./03-kontrol.sh`**. Kontrol raporu **tek ekrana** sığar
   (≈30 satır, ≤100 sütun) ve sonda tek satırlık `SORUN:` teşhisi verir — Alp çıktıyı Telegram'a
   **ekran görüntüsü** olarak gönderdiği için bu sözleşme kasıtlıdır.
 - **ara-makine** = git kaynağı, kod buradan çekiliyor (mevcut `al.sh` akışı).

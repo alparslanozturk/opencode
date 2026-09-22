@@ -6,7 +6,7 @@ description: Yerel bir modelle (Ollama, llama.cpp, LM Studio) agent modunu çal�
 > ⚠️ **opencode-agent notu (2026-09-16, denetim bulgusu #1):** Bu beceri **aider fork'undan** aktarılmıştır.
 > `/model-ekle`, `~/.aider.conf.yml`, `aider --version`, `.venv/bin/pip install .` gibi komutlar/dosyalar
 > **aider'a özgüdür**, opencode-agent'ta karşılığı yok. opencode-agent'ta model tanımı `engine/opencode.json`
-> → `provider.<ad>.options` (baseURL/apiKey) + `models.<ad>.limit` üzerinden yapılır (bkz. `alp-kur.sh`, bağlam
+> → `provider.<ad>.options` (baseURL/apiKey) + `models.<ad>.limit` üzerinden yapılır (bkz. `02-kur.sh`, bağlam
 > penceresini `${KURUM_URL}/models`'ten otomatik tespit eder — elle `/model-ekle` yok). Araç-çağırma
 > matrisindeki genel bilgi (hangi model boyutu tool-call destekler, 4B altı modellerin güvenilmez olduğu)
 > **hâlâ geçerli bir referans**; yalnız komutları opencode-agent'ta çalıştırmaya kalkma.

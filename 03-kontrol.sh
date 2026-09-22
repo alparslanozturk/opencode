@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  alp-kontrol.sh — sahadaki TEK kontrol/teşhis betiği.
+#  03-kontrol.sh — sahadaki TEK kontrol/teşhis betiği.
 #
-#  Kullanım:  ./alp-kontrol.sh        ← hepsi bu, BAYRAK YOK
+#  Kullanım:  ./03-kontrol.sh        ← hepsi bu, BAYRAK YOK
 #
 #  Bayraksız çağrı TÜM raporu verir:
 #    1) KURULUM sağlam mı — ikili/env/ayar/beceri/rg/izin/kısayol (ağ gerekmez)
@@ -45,7 +45,7 @@ ARG_MODEL=""
 ZAMAN_ASIMI=60
 AYRINTILI=0
 # tam = kurulum + uç (bayraksız varsayılan). --kurulum/--uc iç kullanım içindir
-# (alp-kur.sh kurulum sonrası yalnız kurulum bölümünü çalıştırır — ağ beklemez).
+# (02-kur.sh kurulum sonrası yalnız kurulum bölümünü çalıştırır — ağ beklemez).
 MOD="tam"
 
 while [ $# -gt 0 ]; do
@@ -155,7 +155,7 @@ bitir() {
   printf '%s\n' "$CIZGI"
   if [ "$kod" -eq 0 ]; then printf ' %s\n' "$(renk 32 "$metin")"; else printf ' %s\n' "$(renk 31 "$metin")"; fi
   if [ "$AYRINTILI" -eq 0 ]; then
-    duz "ayrinti icin: ./alp-kontrol.sh --ayrintili   ·   yeniden kurmak icin: ./alp-kur.sh"
+    duz "ayrinti icin: ./03-kontrol.sh --ayrintili   ·   yeniden kurmak icin: ./02-kur.sh"
   fi
   exit "$kod"
 }
@@ -201,14 +201,14 @@ mod_kurulum() {
       satir "ikili" ok "kurulu: ~/.opencode/bin/opencode · surum $surum"
     else
       satir "ikili" hata "kurulu ikili calismiyor: $(kis "$surum" 60)"
-      sorun_kaydet "kurulu ikili calismiyor — ./alp-kur.sh ile yeniden kur"
+      sorun_kaydet "kurulu ikili calismiyor — ./02-kur.sh ile yeniden kur"
     fi
   elif [ -f "$repo_bin" ]; then
-    satir "ikili" hata "bin/opencode var ama kurulmamis (~/.opencode/bin/opencode yok) — ./alp-kur.sh"
-    sorun_kaydet "kurulum yapilmamis — once ./alp-kur.sh calistir"
+    satir "ikili" hata "bin/opencode var ama kurulmamis (~/.opencode/bin/opencode yok) — ./02-kur.sh"
+    sorun_kaydet "kurulum yapilmamis — once ./02-kur.sh calistir"
   else
-    satir "ikili" hata "ne bin/opencode ne ~/.opencode/bin/opencode var — ./alp-kur.sh"
-    sorun_kaydet "ikili yok — ./alp-kur.sh (gerekirse kaynaktan derler)"
+    satir "ikili" hata "ne bin/opencode ne ~/.opencode/bin/opencode var — ./02-kur.sh"
+    sorun_kaydet "ikili yok — ./02-kur.sh (gerekirse kaynaktan derler)"
   fi
 
   # 2) ikili biçimi (ELF + glibc) — hangi ikili varsa onu incele
@@ -264,23 +264,23 @@ mod_kurulum() {
       gecerli=0
     fi
     if [ "$gecerli" -eq 0 ]; then
-      satir "ayar" hata "$kurulu_cfg GECERSIZ JSON — ./alp-kur.sh"
-      sorun_kaydet "kurulu opencode.json bozuk — ./alp-kur.sh yeniden yazar"
+      satir "ayar" hata "$kurulu_cfg GECERSIZ JSON — ./02-kur.sh"
+      sorun_kaydet "kurulu opencode.json bozuk — ./02-kur.sh yeniden yazar"
     elif grep -q 'KURUM_ENDPOINT' "$kurulu_cfg"; then
-      satir "ayar" hata "kurulu opencode.json'da sablon degeri duruyor — ./alp-kur.sh"
-      sorun_kaydet "kurulu ayar sablon halinde — ./alp-kur.sh calistir"
+      satir "ayar" hata "kurulu opencode.json'da sablon degeri duruyor — ./02-kur.sh"
+      sorun_kaydet "kurulu ayar sablon halinde — ./02-kur.sh calistir"
     else
       satir "ayar" ok "opencode.json gecerli · sablon dolu · izin $izin"
       [ "$izin" = "600" ] || satir "ayar" uyar "opencode.json izni $izin — apiKey iceriyor, 600 olmali"
     fi
   else
-    satir "ayar" hata "$kurulu_cfg YOK — ./alp-kur.sh calistirilmamis"
-    sorun_kaydet "kurulum yapilmamis — ./alp-kur.sh calistir"
+    satir "ayar" hata "$kurulu_cfg YOK — ./02-kur.sh calistirilmamis"
+    sorun_kaydet "kurulum yapilmamis — ./02-kur.sh calistir"
   fi
 
   # 5) beceriler + AGENTS.md
   local cekirdek onayli park kurulu_beceri
-  cekirdek="$(grep -oP '^CORE_SKILLS=\(\K[^)]*' "$KOK/alp-kur.sh" 2> /dev/null | wc -w)"
+  cekirdek="$(grep -oP '^CORE_SKILLS=\(\K[^)]*' "$KOK/02-kur.sh" 2> /dev/null | wc -w)"
   [ "$cekirdek" -gt 0 ] 2> /dev/null || cekirdek="?"
   onayli="$(find "$KOK/knowledge/skills/approved" -mindepth 1 -maxdepth 1 -type d 2> /dev/null | wc -l)"
   park="$(find "$KOK/knowledge/skills/parked" -mindepth 1 -maxdepth 1 -type d 2> /dev/null | wc -l)"
@@ -289,17 +289,17 @@ mod_kurulum() {
     if [ "$kurulu_beceri" -gt 0 ]; then
       satir "beceri" ok "kurulu $kurulu_beceri (cekirdek $cekirdek) · repo: approved $onayli + parked $park"
     else
-      satir "beceri" uyar "kurulu beceri dizini bos — ./alp-kur.sh"
+      satir "beceri" uyar "kurulu beceri dizini bos — ./02-kur.sh"
     fi
   else
-    satir "beceri" hata "$ayar_dizin/skills YOK — ./alp-kur.sh calistirilmamis"
-    sorun_kaydet "beceriler kurulmamis — ./alp-kur.sh calistir"
+    satir "beceri" hata "$ayar_dizin/skills YOK — ./02-kur.sh calistirilmamis"
+    sorun_kaydet "beceriler kurulmamis — ./02-kur.sh calistir"
   fi
   if [ -f "$ayar_dizin/AGENTS.md" ]; then
     satir "AGENTS" ok "kurulu: ~/.config/opencode/AGENTS.md"
   else
-    satir "AGENTS" hata "AGENTS.md kurulu degil (kurum kurallari yuklenmez) — ./alp-kur.sh"
-    sorun_kaydet "AGENTS.md kurulu degil — ./alp-kur.sh calistir"
+    satir "AGENTS" hata "AGENTS.md kurulu degil (kurum kurallari yuklenmez) — ./02-kur.sh"
+    sorun_kaydet "AGENTS.md kurulu degil — ./02-kur.sh calistir"
   fi
 
   # 6) knowledge iskeleti
@@ -322,8 +322,8 @@ mod_kurulum() {
   elif [ -x "$rg_dizin/rg" ]; then
     satir "rg" ok "kurulu: ~/.cache/opencode/bin/rg ($("$rg_dizin/rg" --version 2> /dev/null | head -1))"
   else
-    satir "rg" hata "rg YOK — grep/glob araclari kurum aginda kirilir (./alp-kur.sh)"
-    sorun_kaydet "ripgrep yok — ./alp-kur.sh (bin/ripgrep.tar.xz gerekir)"
+    satir "rg" hata "rg YOK — grep/glob araclari kurum aginda kirilir (./02-kur.sh)"
+    sorun_kaydet "ripgrep yok — ./02-kur.sh (bin/ripgrep.tar.xz gerekir)"
   fi
 
   # 8) izin özeti + bağlam penceresi
@@ -354,7 +354,7 @@ PY
     metin="$(printf '%s\n' "$ozet" | grep '^ozet' | cut -f2-)"
     if printf '%s\n' "$ozet" | grep -q '^ihlal'; then
       satir "izin" hata "$(printf '%s\n' "$ozet" | grep '^ihlal' | cut -f2-)"
-      sorun_kaydet "izin ihlali: edit=allow — engine/opencode.json duzelt, ./alp-kur.sh"
+      sorun_kaydet "izin ihlali: edit=allow — engine/opencode.json duzelt, ./02-kur.sh"
     elif printf '%s\n' "$ozet" | grep -q '^uyari'; then
       satir "izin" uyar "$(printf '%s\n' "$ozet" | grep '^uyari' | cut -f2-)"
       ayr "$metin"
@@ -379,17 +379,17 @@ PY
       satir "kisayol" uyar "PATH'teki '$kisayol' baska hedefi gosteriyor: $(kis_son "$hedef" 35)"
       ayr "beklenen: $kurulu_bin"
       ayr "bulunan : $hedef"
-      ayr "duzeltmek icin: ./alp-kur.sh (eskisini yedekler, kisayolu cevirir)"
+      ayr "duzeltmek icin: ./02-kur.sh (eskisini yedekler, kisayolu cevirir)"
     fi
   else
-    satir "kisayol" uyar "'opencode' PATH'te yok — ./alp-kur.sh veya tam yolla calistir"
+    satir "kisayol" uyar "'opencode' PATH'te yok — ./02-kur.sh veya tam yolla calistir"
   fi
 
   # tam modda burada bitmez — uç teşhisi de aynı rapora eklenir, tek SORUN satırı sonda.
   if [ "$MOD" != "kurulum" ]; then return 0; fi
   if [ -n "$SORUN" ]; then bitir 1 "$SORUN"; fi
   if [ "$HATA" -gt 0 ]; then bitir 1 "kurulumda $HATA hata — yukaridaki ✗ satirlarina bak"; fi
-  bitir 0 "yok — kurulum saglam ($UYARI uyari). Uc testi icin: ./alp-kontrol.sh"
+  bitir 0 "yok — kurulum saglam ($UYARI uyari). Uc testi icin: ./03-kontrol.sh"
 }
 
 if [ "$MOD" = "kurulum" ] || [ "$MOD" = "tam" ]; then mod_kurulum; fi
@@ -456,7 +456,7 @@ maskele() {
   fi
 }
 
-TMP="$(mktemp -d "${TMPDIR:-/tmp}/alp-kontrol.XXXXXX")" || {
+TMP="$(mktemp -d "${TMPDIR:-/tmp}/03-kontrol.XXXXXX")" || {
   echo "!! geçici dizin oluşturulamadı" >&2
   exit 3
 }
@@ -689,7 +689,7 @@ elif [ "$MODELS_DURUM" = "200" ]; then
       satir "/models" ok "HTTP 200 · $(sn "$MODELS_SURE") sn · $MODEL_SAYISI model · MODEL_ID listede"
     else
       satir "/models" hata "HTTP 200 · $MODEL_SAYISI model · MODEL_ID listede YOK"
-      sorun_kaydet "MODEL_ID ucta yok — $MODEL (listeden birebir kopyala, sonra ./alp-kur.sh)"
+      sorun_kaydet "MODEL_ID ucta yok — $MODEL (listeden birebir kopyala, sonra ./02-kur.sh)"
       # hata durumunda aday modelleri göster (kısa modda en fazla 3)
       if [ "$AYRINTILI" -eq 1 ]; then
         printf '%s\n' "$MODEL_LISTESI" | sed 's/^/             - /'
@@ -880,9 +880,9 @@ PY
 fi
 PENCERE_METIN="uc: ${PENCERE_UC:-bildirmiyor} · kurulu ayar: ${KURULU_CTX:-yok} · env: ${PENCERE_ENV:-yok}"
 if [ -n "$AYAR_NOT" ]; then
-  satir "ayar" uyar "$PENCERE_METIN · $AYAR_NOT — ./alp-kur.sh"
+  satir "ayar" uyar "$PENCERE_METIN · $AYAR_NOT — ./02-kur.sh"
 elif [ -n "$PENCERE_UC" ] && [ -n "${KURULU_CTX:-}" ] && [ "$PENCERE_UC" != "${KURULU_CTX:-}" ]; then
-  satir "ayar" uyar "$PENCERE_METIN · uc ile kurulu deger farkli — ./alp-kur.sh"
+  satir "ayar" uyar "$PENCERE_METIN · uc ile kurulu deger farkli — ./02-kur.sh"
 elif [ "$MODELS_DURUM" != "200" ]; then
   # uç yanıt vermediyse "✓" basmak yanıltıcı olur — yalnız bilgi satırı
   satir "ayar" bilgi "baglam $PENCERE_METIN (uc yanit vermedi, karsilastirma yapilamadi)"

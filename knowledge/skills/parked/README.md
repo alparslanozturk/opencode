@@ -4,7 +4,7 @@
 
 ## Neden park
 
-`knowledge/skills/approved/` 38 beceriden **çekirdek 10**'a indirildi (`alp-kur.sh` `CORE_SKILLS`
+`knowledge/skills/approved/` 38 beceriden **çekirdek 10**'a indirildi (`02-kur.sh` `CORE_SKILLS`
 dizisiyle birebir aynı). Kalan 28 beceri **silinmedi** — içerikleri korunarak bu dizine
 (`git mv` ile, geçmiş korunarak) taşındı. Amaç: varsayılan kurulumda taban bağlamı (sistem
 promptu + AGENTS.md + beceri listesi + araç şemaları) küçük tutmak — küçük pencereli kurumsal
@@ -22,15 +22,15 @@ Bir beceri tekrar çekirdeğe girecekse:
 git mv knowledge/skills/parked/<ad> knowledge/skills/approved/<ad>
 ```
 
-sonra `alp-kur.sh` içindeki `CORE_SKILLS` dizisine `<ad>`'ı ekle (`alp-kur.sh` başındaki dizi satırı).
-`alp-kontrol.sh`'un raporladığı çekirdek sayısı bu diziden **türetilir** (sabit sayı yok) — ayrıca dokunmaya
+sonra `02-kur.sh` içindeki `CORE_SKILLS` dizisine `<ad>`'ı ekle (`02-kur.sh` başındaki dizi satırı).
+`03-kontrol.sh`'un raporladığı çekirdek sayısı bu diziden **türetilir** (sabit sayı yok) — ayrıca dokunmaya
 gerek yok.
 
 ## Park edilmiş beceriler silinmedi
 
 Yalnız kurulumdan çıkarıldılar; içerik burada duruyor. Bir tanesi gerekiyorsa yukarıdaki gibi
-`approved/`'a taşı ve `./alp-kur.sh`'ı tekrar çalıştır (kurulum hep `approved/`'u yansıtır).
-Tümünü birden kurmak istisnai bir ayıklama işidir; `ALP_TUM_BECERILER=1 ./alp-kur.sh` ile yapılır
+`approved/`'a taşı ve `./02-kur.sh`'ı tekrar çalıştır (kurulum hep `approved/`'u yansıtır).
+Tümünü birden kurmak istisnai bir ayıklama işidir; `ALP_TUM_BECERILER=1 ./02-kur.sh` ile yapılır
 (taban bağlam büyür — günlük akışın parçası değildir).
 
 ## "Yetim" işaretli beceriler (2026-09-16 itibarıyla)

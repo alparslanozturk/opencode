@@ -10,7 +10,7 @@ Aider fork'unda 15 fazda öğrendiğimiz her şeyin opencode'daki durumu.
 | Envanter işinde "araç çalıştırma, sadece oku" dersi (Canlı Test #3 / T-04) | AGENTS.md kural **hiyerarşisi** (Aşama 2: mutlak yasak yerine "açıkça istenirse serbest") + `permission.bash` (salt-okunur komutlar allow, gerisi ask) | ✅ |
 | Beceri tetikleme disiplini (B-20/T-03: "envanter" kelimesini tetikleyiciden çıkarma) | Beceriler artık **talep üzerine** yükleniyor; description'lar aynen taşındı | ✅ (daha iyi: otomatik tetikleme yok) |
 | Uzun yanıt/endpoint yavaşlığı (T-01/T-02: 180 sn bekleme, erken pes etme) | `provider.options.timeout=900000`, `headerTimeout=300000`, `chunkTimeout=180000` | ✅ ayarlandı |
-| Bağlam penceresi bilgisi | `models.<m>.limit.context` — Aşama 2'den beri `alp-kur.sh` tarafından `${KURUM_URL}/models`'ten **otomatik tespit** ediliyor (uydurma `16384` yalnız tespit başarısız olursa kalıyor) | ✅ ölçülüyor, varsayılmıyor |
+| Bağlam penceresi bilgisi | `models.<m>.limit.context` — Aşama 2'den beri `02-kur.sh` tarafından `${KURUM_URL}/models`'ten **otomatik tespit** ediliyor (uydurma `16384` yalnız tespit başarısız olursa kalıyor) | ✅ ölçülüyor, varsayılmıyor |
 | Yıkıcı komut koruması | `permission.bash`: `rm -rf *` / `mkfs*` / force push = **deny**; 37 salt-okunur kalıp (`ls*`, `git log*`, ...) = **allow**; gerisi **ask** | ✅ |
 
 ## Çevirici (cc'deki `cevirici/`) — **GEREKMİYOR**
@@ -28,7 +28,7 @@ opencode zaten OpenAI uyumlu konuşuyor; kurum ucu da OpenAI uyumlu → aradan �
 | Onay ekranı numaralandırması (CC paritesi) | TUI içinde | UI işi sırasında |
 
 ## Sıradaki adım
-1. hedef makinede `./alp-kur.sh && opencode` → aynı 3 görevi koştur, **fork ile kıyasla**: doğru cevap · süre · token · gereksiz araç çağrısı.
+1. hedef makinede `./02-kur.sh && opencode` → aynı 3 görevi koştur, **fork ile kıyasla**: doğru cevap · süre · token · gereksiz araç çağrısı.
 2. Sonuç iyiyse: yukarıdaki "açık kalanlar" listesinden hangisi canımızı yakıyorsa **plugin** yazarız.
 3. Plugin de yetmezse (UI paritesi) → fork'a kod. **Not: çeviri/Türkçeleştirme iş kalemi DEĞİL (Alp, 16:44).**
 

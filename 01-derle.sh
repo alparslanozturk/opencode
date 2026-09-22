@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  alp-derle.sh — opencode CLI'yi KAYNAKTAN derler (saha makinesi: saha-makinesi).
+#  01-derle.sh — opencode CLI'yi KAYNAKTAN derler (saha makinesi: saha-makinesi).
 #
-#  ⚙️  İÇ DETAY — KULLANICI BUNU ÇAĞIRMAZ: `./alp-kur.sh` gerektiğinde (ikili yok ya da
-#      kaynak ikiliden yeni) bunu kendisi çağırır. Tek komut odur: ./alp-kur.sh
+#  ⚙️  İÇ DETAY — KULLANICI BUNU ÇAĞIRMAZ: `./02-kur.sh` gerektiğinde (ikili yok ya da
+#      kaynak ikiliden yeni) bunu kendisi çağırır. Tek komut odur: ./02-kur.sh
 #      Buraya yalnız derlemeyi ayrıca ayıklamak için bakılır.
 #
 #  Bu betik YALNIZ derler. Kaynak senkronu (git pull + rsync) ayrı bir iştir:
-#  önce `al.sh` ile kodu bu makineye çek, sonra `./alp-kur.sh` çalıştır.
+#  önce `al.sh` ile kodu bu makineye çek, sonra `./02-kur.sh` çalıştır.
 #
 #  Kısayol (symlink) KURMAZ — `/usr/local/bin/opencode` kısayolunun tek sahibi
-#  `alp-kur.sh`'tır (o, kısayolu `~/.opencode/bin/opencode`'a bağlar ve çakışmayı
+#  `02-kur.sh`'tır (o, kısayolu `~/.opencode/bin/opencode`'a bağlar ve çakışmayı
 #  kendisi yedekleyip düzeltir). İki betik aynı kısayolu farklı hedefe kurduğunda
 #  hangi ikilinin çalıştığı belirsiz kalıyordu; tek sahip kuralı bunu bitirir.
 #
@@ -20,8 +20,8 @@
 #    - web/console paketleri (ghostty-web, @solidjs/start) npm DIŞI kaynaktan geldiği için
 #      kurulum `--filter` ile yalnız CLI workspace'ine daraltılır.
 #
-#  İç bayraklar (alp-kur.sh kullanır):
-#    --bin-kopyala   derlenen ikiliyi ayrıca bin/opencode'a kopyalar (alp-kur.sh bunu kullanır)
+#  İç bayraklar (02-kur.sh kullanır):
+#    --bin-kopyala   derlenen ikiliyi ayrıca bin/opencode'a kopyalar (02-kur.sh bunu kullanır)
 #    --kurulum-yok   bun install adımını atla (bağımlılıklar zaten kurulu ise)
 #    -h | --help     bu yardım
 #  Gerisi `bun install`'a aktarılır (ör. --ignore-scripts).
@@ -56,7 +56,7 @@ if [ -z "$BUN" ]; then
   elif [ -x "/root/.bun/bin/bun" ]; then
     BUN="/root/.bun/bin/bun"
   else
-    echo "!! bun bulunamadi. PATH'e ekle veya BUN=/yol/bun ./alp-derle.sh olarak calistir." >&2
+    echo "!! bun bulunamadi. PATH'e ekle veya BUN=/yol/bun ./01-derle.sh olarak calistir." >&2
     exit 1
   fi
 fi
@@ -106,15 +106,15 @@ fi
 IKILI="$KOK/${IKILILER[0]}"
 echo "==> ikili: $IKILI ($(du -h "$IKILI" | cut -f1))"
 
-# --- 5) Kisayol (symlink) KURULMAZ — sahibi alp-kur.sh -------------------------
-echo "==> kisayol kurulmadi (sahibi alp-kur.sh) — kurulum icin: ./alp-kur.sh"
+# --- 5) Kisayol (symlink) KURULMAZ — sahibi 02-kur.sh -------------------------
+echo "==> kisayol kurulmadi (sahibi 02-kur.sh) — kurulum icin: ./02-kur.sh"
 
-# --- 6) Istege bagli: alp-kur.sh akisi icin bin/opencode ---------------------------
+# --- 6) Istege bagli: 02-kur.sh akisi icin bin/opencode ---------------------------
 if [ "$BIN_KOPYALA" -eq 1 ]; then
   mkdir -p "$KOK/bin"
   cp -f "$IKILI" "$KOK/bin/opencode"
   chmod +x "$KOK/bin/opencode"
-  echo "==> bin/opencode guncellendi (alp-kur.sh bunu kullanir)"
+  echo "==> bin/opencode guncellendi (02-kur.sh bunu kullanir)"
 fi
 
 echo "==> BITTI: $("$IKILI" --version)"

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  alp-kur.sh — opencode kurulumunun TEK KOMUTU (kurum içi, offline; ağ/npm gerekmez).
+#  02-kur.sh — opencode kurulumunun TEK KOMUTU (kurum içi, offline; ağ/npm gerekmez).
 #
-#  Kullanım:  cd /root/ai/opencode && ./alp-kur.sh     ← hepsi bu, BAYRAK YOK
+#  Kullanım:  cd /root/ai/opencode && ./02-kur.sh     ← hepsi bu, BAYRAK YOK
 #             (dizin adı önemli değil, betik kendi yolunu bulur)
 #
 #  Bayraksız çağrı TAM İŞİ yapar:
@@ -12,14 +12,14 @@
 #    4) DOĞRULAR          — sonda tek ekran özet ("kuruldu / hazır")
 #
 #  İkili nereden gelir (sırayla): bin/opencode → bin/opencode.tar.xz → kaynaktan derleme.
-#  Sonrasında kontrol/teşhis için tek komut:  ./alp-kontrol.sh
+#  Sonrasında kontrol/teşhis için tek komut:  ./03-kontrol.sh
 #
 #  İç detay (kullanıcının bilmesine gerek yok; yalnız ayıklama için ortam değişkenleri):
 #    ALP_DERLE=1 ikili güncel olsa da derle · ALP_DERLEME_YOK=1 hiç derleme ·
 #    ALP_TUM_BECERILER=1 tüm beceriler · ALP_IKILI_INDIR=1 Release asset'inden indir ·
 #    ALP_DERLE_EK="--ignore-scripts" derleyiciye ek bun bayrağı ·
 #    KISAYOL_DIZIN (varsayılan /usr/local/bin, yazılamıyorsa ~/.local/bin) · IKILI_RELEASE_URL
-#  Derlemeyi alp-derle.sh yapar; onu bu betik çağırır, elle çalıştırmaya gerek yoktur.
+#  Derlemeyi 01-derle.sh yapar; onu bu betik çağırır, elle çalıştırmaya gerek yoktur.
 # =============================================================================
 set -euo pipefail
 KOK="$(cd "$(dirname "$0")" && pwd)"
@@ -33,9 +33,9 @@ if [ $# -gt 0 ]; then
   case "$1" in
     -h|--help|--yardim) sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *)
-      echo "!! alp-kur.sh bayrak almaz — tek komut yeter:  ./alp-kur.sh" >&2
+      echo "!! 02-kur.sh bayrak almaz — tek komut yeter:  ./02-kur.sh" >&2
       echo "   (kurulum zaten gerekirse derler, kurar, kısayolu düzeltir ve doğrular)" >&2
-      echo "   Kontrol/teşhis için:  ./alp-kontrol.sh" >&2
+      echo "   Kontrol/teşhis için:  ./03-kontrol.sh" >&2
       exit 2 ;;
   esac
 fi
@@ -44,7 +44,7 @@ TUM_BECERILER="${ALP_TUM_BECERILER:-0}"
 IKILI_INDIR="${ALP_IKILI_INDIR:-0}"
 DERLE="${ALP_DERLE:-0}"
 DERLEME_YOK="${ALP_DERLEME_YOK:-0}"
-ALP_EK=()   # derleyiciye (alp-derle.sh) aktarılacak ek bayraklar — ALP_DERLE_EK ile
+ALP_EK=()   # derleyiciye (01-derle.sh) aktarılacak ek bayraklar — ALP_DERLE_EK ile
 if [ -n "${ALP_DERLE_EK:-}" ]; then
   read -r -a ALP_EK <<< "${ALP_DERLE_EK}"
 fi
@@ -87,7 +87,7 @@ if [ -n "$eksik_degisken" ]; then
 fi
 
 if ! command -v python3 >/dev/null 2>&1; then
-  echo "!! python3 bulunamadı — alp-kur.sh config yazımı (bağlam penceresi tespiti, opencode.json üretimi) için gerekli." >&2
+  echo "!! python3 bulunamadı — 02-kur.sh config yazımı (bağlam penceresi tespiti, opencode.json üretimi) için gerekli." >&2
   exit 1
 fi
 
@@ -102,7 +102,7 @@ IKILI_KAYNAGI=""
 IKILI_PAKETTEN=0
 
 kaynak_agaci_var() {
-  [ -x "$KOK/alp-derle.sh" ] && [ -f "$KOK/bun.lock" ] && [ -d "$KOK/packages/opencode" ]
+  [ -x "$KOK/01-derle.sh" ] && [ -f "$KOK/bun.lock" ] && [ -d "$KOK/packages/opencode" ]
 }
 
 # Kaynak ağacında bin/opencode'dan YENİ bir dosya var mı? (tek dosya bulunca durur — ucuz)
@@ -120,13 +120,13 @@ kaynak_daha_yeni() {
 
 derle_kaynaktan() {
   echo "== 0/4  kaynaktan derleme ($DERLE_NEDEN) =="
-  # alp-derle.sh kısayol KURMAZ (tek sahip alp-kur.sh); --bin-kopyala ile ikiliyi bin/opencode'a bırakır.
-  if "$KOK/alp-derle.sh" --bin-kopyala ${ALP_EK[@]+"${ALP_EK[@]}"}; then
+  # 01-derle.sh kısayol KURMAZ (tek sahip 02-kur.sh); --bin-kopyala ile ikiliyi bin/opencode'a bırakır.
+  if "$KOK/01-derle.sh" --bin-kopyala ${ALP_EK[@]+"${ALP_EK[@]}"}; then
     DERLENDI=1
     IKILI_KAYNAGI="kaynaktan derlendi — $DERLE_NEDEN"
     return 0
   fi
-  echo "!! derleme başarısız (alp-derle.sh) — yukarıdaki çıktıya bak." >&2
+  echo "!! derleme başarısız (01-derle.sh) — yukarıdaki çıktıya bak." >&2
   return 1
 }
 
@@ -182,7 +182,7 @@ if [ ! -f "$KOK/bin/opencode" ]; then
     echo "   Cozum 0: kaynaktan derleme denendi ve basarisiz oldu — yukaridaki derleme ciktisina bak (bun gerekir)." >&2
   fi
   echo "   Cozum 1: ikiliyi ayrı paketten al (opencode-paket.tar.xz veya kurumun dağıtım yerinden)," >&2
-  echo "      $KOK/bin/opencode.tar.xz olarak koy, sonra tekrar calistir  ->  ./alp-kur.sh" >&2
+  echo "      $KOK/bin/opencode.tar.xz olarak koy, sonra tekrar calistir  ->  ./02-kur.sh" >&2
   echo "      ya da kurumda kurulu opencode ikilisini dogrudan $KOK/bin/opencode olarak koy." >&2
   exit 1
 fi
@@ -388,7 +388,7 @@ fi
 echo
 echo "== doğrulama =="
 DOGRULAMA_KODU=0
-"$KOK/alp-kontrol.sh" --kurulum || DOGRULAMA_KODU=$?
+"$KOK/03-kontrol.sh" --kurulum || DOGRULAMA_KODU=$?
 
 echo
 echo "== ÖZET =="
@@ -399,11 +399,11 @@ else
 fi
 yesil "  kuruldu  : $HOME/.opencode/bin/opencode · ayar $HOME/.config/opencode/ · kısayol $HEDEF_DIZIN/opencode (oc)"
 if [ "$DOGRULAMA_KODU" -ne 0 ]; then
-  kirmizi "  HAZIR DEĞİL — yukarıdaki ✗ satırlarını düzelt, sonra yine ./alp-kur.sh"
+  kirmizi "  HAZIR DEĞİL — yukarıdaki ✗ satırlarını düzelt, sonra yine ./02-kur.sh"
 else
   yesil "  HAZIR — çalıştır:  cd <veri/proje dizini> && opencode     (kısa ad: oc)"
   echo  "  İlk açılışta /models → kurum / Qwen3.6-35B-A3B-FP8 seç."
 fi
-echo "  Bir şey ters giderse tek kontrol komutu:  ./alp-kontrol.sh"
+echo "  Bir şey ters giderse tek kontrol komutu:  ./03-kontrol.sh"
 sari "  NOT: opencode'u VERİNİN OLDUĞU dizinde aç (ör: cd ~/ansible && opencode) — dışarı çıkmak izin kapısı açar."
 exit "$DOGRULAMA_KODU"

@@ -40,8 +40,8 @@
 > (`engine/opencode.json`). Bu geçişin ön koşulu **audit-log plugin'in fiilen çalışır olması**
 > (bkz. `AUDIT-FORMAT.md`) — kod zaten yazılmış ve 2026-09-16'da smoke-test edilmişti, ama bu
 > makinenin (skyup) **canlı** `~/.config/opencode/` kurulumunda şu an (2026-09-19 kontrolünde)
-> `plugins/` dizini **boş** — yani `alp-kur.sh` bu makinede tam çalıştırılmamış/güncellenmemiş.
-> **`edit: "ask"` fiilen etkili olmadan önce `alp-kur.sh` bu makinede (yeniden) çalıştırılıp audit
+> `plugins/` dizini **boş** — yani `02-kur.sh` bu makinede tam çalıştırılmamış/güncellenmemiş.
+> **`edit: "ask"` fiilen etkili olmadan önce `02-kur.sh` bu makinede (yeniden) çalıştırılıp audit
 > plugin'in kurulduğu doğrulanmalı** — aksi halde yazma denemeleri onaya düşer ama audit'e düşmez.
 > SSH forced-command (§3) hâlâ **tasarım aşamasında**: `aiops` unix hesabı henüz yok, hedef
 > sunucu listesi bu repoda maskeli (`test-sunucu`/`KUME-A`/`KUME-B`) — gerçek hedefler ve hesap

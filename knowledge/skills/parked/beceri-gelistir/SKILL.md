@@ -7,7 +7,7 @@ description: Var olan becerileri denetlerken ve iyileştirirken kullan. Komutlar
 > opencode-agent'ta geçersiz olanlar: `aider/beceriler/*/SKILL.md` yolu (gerçek yol:
 > `knowledge/skills/approved/*/SKILL.md`) ve "Bitirmeden önce" bölümündeki `pytest`/`fork_dogrula.py`/
 > `flake8` komutları (bu depoda `aider/`, `tests/`, `scripts/` yok — bkz. `upstream-birlestir` notu).
-> "CLAUDE.md ve AGENT.md içindeki tabloyu güncelle" yerine: beceri sayısı değiştiyse `alp-kur.sh`'daki
+> "CLAUDE.md ve AGENT.md içindeki tabloyu güncelle" yerine: beceri sayısı değiştiyse `02-kur.sh`'daki
 > `CORE_SKILLS` dizisini ve `README.md`/`NASIL-CALISTIRILIR.md`/`SURUM-NOTLARI.md`'deki sayıyı güncelle
 > (örnek: 2026-09-15, 9→10 geçişi — bkz. `notlar/EXCEL-PDF-RAPOR.md`). Denetim/doğrulama yöntemi (gerçek
 > sunucuda komut çalıştırma, "doğrulanmadı" işaretleme, 4000 karakter sınırı) **aynen geçerlidir**.

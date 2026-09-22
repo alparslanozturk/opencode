@@ -14,30 +14,39 @@
 
 | Komut | Ne işe yarar |
 |---|---|
-| **`./alp-kur.sh`** | **Bayrak yok.** Gerekirse derler → kurar → kısayolu düzeltir → doğrular → tek ekran özet |
-| **`./alp-kontrol.sh`** | **Bayrak yok.** Tüm rapor: kurulum + kurum AI ucu; sonda tek satır `SORUN:` |
+| **`./02-kur.sh`** | **Bayrak yok.** Gerekirse derler → kurar → kısayolu düzeltir → doğrular → tek ekran özet |
+| **`./03-kontrol.sh`** | **Bayrak yok.** Tüm rapor: kurulum + kurum AI ucu; sonda tek satır `SORUN:` |
 
-Saha akışı: **`al.sh`** (senkron, git+rsync) → **`./alp-kur.sh`** → (sorun varsa) **`./alp-kontrol.sh`**.
-`alp-derle.sh` yalnız **iç detaydır** (derleyici) — `alp-kur.sh` onu kendisi çağırır, elle çalıştırmana gerek yok.
+Saha akışı: **`al.sh`** (senkron, git+rsync) → **`./02-kur.sh`** → (sorun varsa) **`./03-kontrol.sh`**.
+`01-derle.sh` yalnız **iç detaydır** (derleyici) — `02-kur.sh` onu kendisi çağırır, elle çalıştırmana gerek yok.
 
 > **Neden bayrak yok (Alp, 2026-09-22):** *"scriptlerin parametre almasına gerek yok; zaten amaç kurmak."*
 > Kararları betik verir: ikili yok **veya** kaynak ağacı ikiliden yeniyse derler, aksi halde yalnız kurar;
 > başka yeri gösteren `opencode`/`oc` kısayolunu soru sormadan yedekler ve düzeltir.
+
+> **Neden numara (Alp, 2026-09-22):** *"Başına alp yerine 01-derle yaz bari."* — Kişi adı yerine
+> **sıra numarası**: `ls` çıktısı akış sırasını gösteriyor (01 → 02 → 03) ve hangisinin önce
+> geldiği ezberlenmiyor.
+>
+> **Eski adlar:** `alp-kur.sh` → **`02-kur.sh`** · `alp-kontrol.sh` → **`03-kontrol.sh`** ·
+> `alp-derle.sh` → **`01-derle.sh`**. `kur.sh` / `oc-teshis.sh` / `oc-dogrula.sh` yönlendirici
+> olarak duruyor (çalıştırınca yeni betiği çağırır). Daha eski `alp.sh` **artık yok** — sahada
+> rsync'ten kalmış bir kopya görürsen yok say, **`./02-kur.sh`** kullan.
 
 ---
 
 ## 3 adımda kurulum
 
 ```bash
-# 1) paketi getir ve 3 satırı doldur (KOK = alp-kur.sh'ın bulunduğu dizin, adı önemli değil —
-#    alp-kur.sh kendi yolunu otomatik bulur; aşağıda örnek olarak /root/ai/opencode kullanıldı)
+# 1) paketi getir ve 3 satırı doldur (KOK = 02-kur.sh'ın bulunduğu dizin, adı önemli değil —
+#    02-kur.sh kendi yolunu otomatik bulur; aşağıda örnek olarak /root/ai/opencode kullanıldı)
 tar xJf opencode-paket.tar.xz -C /root      # -> /root/ai/opencode/   (.tar.gz ise: tar xzf ...)
 vi /root/ai/opencode/env                    # KURUM_URL=http(s)://sunucu:port/v1 (+ KURUM_KEY, MODEL_ID)
 
 # 2) kur — TEK KOMUT, bayrak yok (offline; gerekirse kaynaktan derler, sonra ikili + ayar +
 #    10 çekirdek beceri + oc/opencode kısayolları + rg kurulur, bağlam penceresi kurum uçtan
 #    otomatik tespit edilir, sonda otomatik doğrulama + tek ekran özet)
-/root/ai/opencode/alp-kur.sh
+/root/ai/opencode/02-kur.sh
 
 # 3) çalıştır
 cd /root/ai/work/opencode/<proje-adi>   # örn. /root/ai/work/opencode/envanter — bkz. docs/PROJE-YAPISI.md
@@ -47,12 +56,12 @@ opencode              # kısa ad: oc
 ```bash
 cd /root/ai/opencode   # repo nerede ise
 cp env.example env 2>/dev/null || vi env   # env oluştur + 3 satırı doldur
-./alp-kur.sh
+./02-kur.sh
 ```
 > ℹ️ **2026-09-16'dan itibaren `bin/*.tar.xz` git'e commitli DEĞİL** (`.gitignore`'da `bin/`, K1 kararı —
-> repo boyutu şişmesin). Taze bir `git clone` sonrası `bin/` dizini **boş** olur. `alp-kur.sh` bunu net bir
+> repo boyutu şişmesin). Taze bir `git clone` sonrası `bin/` dizini **boş** olur. `02-kur.sh` bunu net bir
 > hata mesajıyla söyler (`bin/opencode yok`). Çözüm: `bin/opencode.tar.xz` + `bin/ripgrep.tar.xz`'yi ayrı
-> bir kanaldan (paket dağıtımı / kurumun dosya paylaşımı) al, `bin/` altına koy, `./alp-kur.sh`'ı tekrar
+> bir kanaldan (paket dağıtımı / kurumun dosya paylaşımı) al, `bin/` altına koy, `./02-kur.sh`'ı tekrar
 > çalıştır — o zaman kendisi açar. Diskte zaten bu dosyalar varsa (ör. bu paket `tar xJf opencode-paket.tar.xz`
 > ile geldiyse) hiçbir şey yapmana gerek yok.
 
@@ -60,23 +69,23 @@ cp env.example env 2>/dev/null || vi env   # env oluştur + 3 satırı doldur
 
 **Doğrulama** (istediğin zaman tekrar çalıştırılabilir; kurulum bölümü internet gerektirmez):
 ```bash
-/root/ai/opencode/alp-kontrol.sh
+/root/ai/opencode/03-kontrol.sh
 ```
 
 ---
 
 ## Ortam değişkenleri
 
-**Ana yol yalnız `env` dosyasıdır** — alp-kur.sh onu okur, sen elle hiçbir şey export etmezsin.
+**Ana yol yalnız `env` dosyasıdır** — 02-kur.sh onu okur, sen elle hiçbir şey export etmezsin.
 Aşağıdaki `OPENCODE_*` değişkenleri yalnız **kaçış kapısı / teşhis** amaçlıdır, günlük kullanım
 akışının bir parçası DEĞİLDİR.
 
 | Değişken | Nerede | Zorunlu mu | Ne işe yarar |
 |---|---|---|---|
-| `KURUM_URL` | `env` | evet | Kurum vLLM ucu, `/v1` ile biter (`alp-kur.sh` bunu okuyup `opencode.json`'a yazar) |
+| `KURUM_URL` | `env` | evet | Kurum vLLM ucu, `/v1` ile biter (`02-kur.sh` bunu okuyup `opencode.json`'a yazar) |
 | `KURUM_KEY` | `env` | evet | Uç kimlik doğrulaması istemiyorsa `dummy` yeterli |
 | `MODEL_ID` | `env` | evet | `/v1/models` çıktısındaki model kimliği |
-| `KURUM_MAX_CONTEXT` | `env` | hayır | Bağlam penceresi (token) — `alp-kur.sh` önce `${KURUM_URL}/models`'ten otomatik tespit etmeyi dener; başarısız olursa bu değeri kullanır; o da yoksa mevcut `limit.context` korunur |
+| `KURUM_MAX_CONTEXT` | `env` | hayır | Bağlam penceresi (token) — `02-kur.sh` önce `${KURUM_URL}/models`'ten otomatik tespit etmeyi dener; başarısız olursa bu değeri kullanır; o da yoksa mevcut `limit.context` korunur |
 | `OPENCODE_DISABLE_AUTOCOMPACT` | kabukta elle (kaçış kapısı) | hayır | Auto-compaction'ı tamamen kapatır — yalnız teşhis için; context taşarsa sert hata verebilir (bkz. aşağı) |
 | `OPENCODE_LOG_LEVEL` | kabukta elle (kaçış kapısı) | hayır | `DEBUG/INFO/WARN/ERROR` — sorun ararken `--log-level DEBUG` ile aynı iş |
 
@@ -89,7 +98,7 @@ akışının bir parçası DEĞİLDİR.
 | **Motor** | `engine/` | `AGENTS.md` (kurallar) · `opencode.json` (ayar) · `plugins/` (araç) |
 | **Bilgi** | `knowledge/` | `skills/approved/` (canlı beceriler) · `experimental/` · `generated/` · `runbooks/` · `incidents/` · `lessons-learned/` · `operations-notes/` · `architecture/` · `roadmap/` |
 
-`alp-kur.sh` becerileri **yalnız `knowledge/skills/approved/`**'dan kurar; ajan `experimental/` + `generated/`'ı okumaz
+`02-kur.sh` becerileri **yalnız `knowledge/skills/approved/`**'dan kurar; ajan `experimental/` + `generated/`'ı okumaz
 (onay kapısı — *"AI kendi kendine öğrenmez, öğrenme önerir"*).
 
 ---
@@ -103,44 +112,44 @@ akışının bir parçası DEĞİLDİR.
 
 ---
 
-## 🛠️ Saha kurulumu (saha-makinesi, offline) — `al.sh` → **`alp-kur.sh`** → **`alp-kontrol.sh`**
+## 🛠️ Saha kurulumu (saha-makinesi, offline) — `al.sh` → **`02-kur.sh`** → **`03-kontrol.sh`**
 
 > **Kime:** dış interneti olmayan, yalnız **kurum içi npm proxy**'sine erişen saha makinesi.
 > **Doğrulandı: 2026-09-21** — skyup'ta, `pkg.pr.new` / `api.github.com` / `github.com` / `models.dev`
 > host'ları bir mount namespace'inde karartılarak (`unshare -m` + sahte `/etc/hosts`) ve **boş bun
 > önbelleğiyle** (`BUN_INSTALL_CACHE_DIR`) gerçekten koşuldu; kanıt ölçümleri aşağıda.
-> **2026-09-21 (ikinci tur):** tek giriş noktası `alp-kur.sh` oldu — derleme+kurulum+doğrulama tek komutta.
+> **2026-09-21 (ikinci tur):** tek giriş noktası `02-kur.sh` oldu — derleme+kurulum+doğrulama tek komutta.
 
 ```bash
 # 1) kodu çek (senkron — Alp'in kendi akışı: git pull + rsync)
 ./al.sh
 
 # 2) TEK KOMUT: gerekirse derler, sonra kurar (ayar+beceri+plugin+rg+kısayol) ve doğrular
-cd /root/ai/opencode && ./alp-kur.sh
+cd /root/ai/opencode && ./02-kur.sh
 
 # 3) kullan
 cd <veri/proje dizini> && opencode        # kısa ad: oc
 
 # 4) bir şey ters giderse — TEK kontrol komutu (tek ekranlık rapor + "SORUN:" satırı)
-cd /root/ai/opencode && ./alp-kontrol.sh
+cd /root/ai/opencode && ./03-kontrol.sh
 ```
 
-**Kararı `alp-kur.sh` verir, sen bayrak öğrenmezsin:**
+**Kararı `02-kur.sh` verir, sen bayrak öğrenmezsin:**
 
 | Durum | Ne olur |
 |---|---|
-| `bin/opencode` yok | Varsa `bin/opencode.tar.xz` açılır, yoksa kaynaktan **derlenir** (`alp-derle.sh`) |
+| `bin/opencode` yok | Varsa `bin/opencode.tar.xz` açılır, yoksa kaynaktan **derlenir** (`01-derle.sh`) |
 | Kaynak ağacı ikiliden **yeni** | Kaynaktan **yeniden derlenir** (eski ikiliyle kurulum yapılmaz) |
 | İkili güncel | Derleme yok — yalnız kurulum (birkaç saniye) |
 
-> **Kısayolun tek sahibi `alp-kur.sh`'tır** (kural): `/usr/local/bin/opencode` (+ `oc`) →
+> **Kısayolun tek sahibi `02-kur.sh`'tır** (kural): `/usr/local/bin/opencode` (+ `oc`) →
 > `~/.opencode/bin/opencode`. Kısayol başka bir hedefi gösteriyorsa **soru sormadan** yedeklenir
-> (`.bak-<tarih>`) ve doğru ikiliye çevrilir. `alp-derle.sh` kısayol kurmaz — eskiden iki betik aynı
+> (`.bak-<tarih>`) ve doğru ikiliye çevrilir. `01-derle.sh` kısayol kurmaz — eskiden iki betik aynı
 > kısayolu farklı hedefe kuruyordu ve "son çalışan kazanıyordu"; tek sahip kuralı bunu bitirdi.
 
-### Derleyici (iç detay): `alp-derle.sh`
+### Derleyici (iç detay): `01-derle.sh`
 
-`alp-derle.sh` **yalnız derler** — normalde elle çalıştırılmaz, `alp-kur.sh` onu çağırır. İçinde `git pull` YOKTUR
+`01-derle.sh` **yalnız derler** — normalde elle çalıştırılmaz, `02-kur.sh` onu çağırır. İçinde `git pull` YOKTUR
 (saha makinesinde git kaynağı yok; senkron `al.sh`'ın işi). Yaptıkları sırayla:
 
 | Adım | Ne yapar | Neden |
@@ -149,11 +158,11 @@ cd /root/ai/opencode && ./alp-kontrol.sh
 | `MODELS_DEV_API_JSON` | Repodaki `packages/opencode/script/models-dev-api.json` snapshot'ını gösterir | Derleme `https://models.dev/api.json`'a **hiç bağlanmasın** |
 | `bun install --filter="./packages/opencode"` | Yalnız CLI workspace'inin bağımlılıkları | Web/console paketlerinin **npm dışı** bağımlılıklarını hiç çözmez |
 | `build.ts --single --skip-embed-web-ui --skip-install` | Tek platform, web UI gömmeden | Kurum senaryosu yalnız CLI/TUI |
-| symlink | **kurmaz** — sahibi `alp-kur.sh` | Tek sahip kuralı — kısayol çakışması bitti |
+| symlink | **kurmaz** — sahibi `02-kur.sh` | Tek sahip kuralı — kısayol çakışması bitti |
 
-İç bayrakları `alp-kur.sh` verir (`--bin-kopyala`, gerekirse `--kurulum-yok`); tanınmayan bayraklar
+İç bayrakları `02-kur.sh` verir (`--bin-kopyala`, gerekirse `--kurulum-yok`); tanınmayan bayraklar
 `bun install`'a aktarılır. Native derleme sorunlu bir makinede ek bun bayrağı gerekiyorsa
-`ALP_DERLE_EK="--ignore-scripts" ./alp-kur.sh` (ayıklama kaçış kapısı — normal akışta gerekmez).
+`ALP_DERLE_EK="--ignore-scripts" ./02-kur.sh` (ayıklama kaçış kapısı — normal akışta gerekmez).
 
 ### Kurum içi npm proxy — `~/.bunfig.toml` (repoya GİRMEZ)
 
@@ -166,8 +175,8 @@ ayarıdır, kurum adresi oraya yazılmaz (public repo). Saha makinesinde:
 registry = "https://<kurum-npm-proxy>/repository/npm-proxy/"
 ```
 
-Tek seferlik alternatif: `BUN_CONFIG_REGISTRY="https://<kurum-npm-proxy>/..." ./alp-kur.sh`
-(değişken `alp-kur.sh` → `alp-derle.sh` zincirine olduğu gibi geçer).
+Tek seferlik alternatif: `BUN_CONFIG_REGISTRY="https://<kurum-npm-proxy>/..." ./02-kur.sh`
+(değişken `02-kur.sh` → `01-derle.sh` zincirine olduğu gibi geçer).
 
 ### Offline'da patlayan iki şey ve çözümleri (2026-09-21, Alp'in saha hatalarından)
 
@@ -177,13 +186,13 @@ Tek seferlik alternatif: `BUN_CONFIG_REGISTRY="https://<kurum-npm-proxy>/..." ./
 api.github.com), kurum proxy'si bunları aynalamıyor.
 **Çözüm: bu paketlere hiç ihtiyaç duymamak.** İkisi de yalnız `packages/app` / `packages/console/*` /
 `packages/enterprise` / `packages/stats/*` tarafında; CLI (`packages/opencode`) bunlara **hiç bağlı değil**
-(`packages/opencode/package.json`'da ne app ne console geçiyor). Bu yüzden `alp-derle.sh`
+(`packages/opencode/package.json`'da ne app ne console geçiyor). Bu yüzden `01-derle.sh`
 `bun install --filter="./packages/opencode"` kullanıyor:
 
 - kurulan paket sayısı **2708 → 1000**'e iniyor,
 - `node_modules/ghostty-web` ve `node_modules/@solidjs/start` **hiç oluşmuyor** (dolayısıyla indirilmiyor),
 - `bun.lock` **değişmiyor** (`git status` temiz kalıyor — filtreli kurulum lockfile'ı bozmuyor).
-- Daha sıkı istersen (ayıklama): `ALP_DERLE_EK="--frozen-lockfile" ./alp-kur.sh` — lockfile ile
+- Daha sıkı istersen (ayıklama): `ALP_DERLE_EK="--frozen-lockfile" ./02-kur.sh` — lockfile ile
   `package.json` ayrışmışsa hata verir.
 
 **2) `bun run build` → `models.dev` ECONNRESET.** `build.ts` ilk satırlarda `./generate.ts`'i import ediyor,
@@ -195,7 +204,7 @@ o da model kataloğunu (`https://models.dev/api.json`, ~4.7 MB) çekip derleme z
 - `generate.ts` sırası: `MODELS_DEV_API_JSON` (açık override) → canlı `fetch` (30 sn zaman aşımı, JSON
   doğrulaması ile) → **başarısız olursa snapshot**. Yani internetli makinede davranış eskisi gibi (taze
   katalog), ağsız makinede sessizce snapshot'a düşüyor (uyarı satırı basarak).
-- `alp-derle.sh` ayrıca `MODELS_DEV_API_JSON`'u snapshot'a ayarlıyor → sahada **fetch hiç denenmiyor** (zaman
+- `01-derle.sh` ayrıca `MODELS_DEV_API_JSON`'u snapshot'a ayarlıyor → sahada **fetch hiç denenmiyor** (zaman
   aşımı beklemesi de yok).
 
 **Snapshot'ı tazelemek** (internetli makinede, ör. skyup; sonra commit'le):
@@ -247,7 +256,7 @@ real 0m35s   (kurulum + derleme toplamı)
 ### 1) Bağımlılıkları kur
 
 > Aşağısı **elle/tam workspace** koşumunu anlatır (2026-09-17 ölçümü). Saha/offline makinesinde bunun
-> yerine `./alp-kur.sh` kullan — gerekirse `alp-derle.sh`'ı çağırıp filtreli kurulumu ve models.dev snapshot'ını
+> yerine `./02-kur.sh` kullan — gerekirse `01-derle.sh`'ı çağırıp filtreli kurulumu ve models.dev snapshot'ını
 > kendisi ayarlar, ardından kurulumu ve doğrulamayı da yapar (yukarıdaki "Saha kurulumu").
 
 ```bash
@@ -309,16 +318,16 @@ packages/opencode/dist/opencode-linux-x64/bin/opencode
   paket önbelleği (`~/.bun/install/cache`) muhtemelen başka bir işten zaten ısınmıştı — **bu süre soğuk
   önbellek/gerçek ağ ile karşılaştırılabilir değil**, saha koşumunda yeniden ölçülmeli.
 
-### 3) `alp-kur.sh` ile kullan
+### 3) `02-kur.sh` ile kullan
 
-`alp-kur.sh`, ikilinin nereden geldiğini ayırt etmez — derlenmiş ikiliyi doğrudan `bin/opencode` yerine koyman
-yeterli (bu koşumda denendi, `alp-kur.sh` + `alp-kontrol.sh` ile uçtan uca doğrulandı, bkz. aşağıdaki
-"alp-kur.sh uyumluluğu"):
+`02-kur.sh`, ikilinin nereden geldiğini ayırt etmez — derlenmiş ikiliyi doğrudan `bin/opencode` yerine koyman
+yeterli (bu koşumda denendi, `02-kur.sh` + `03-kontrol.sh` ile uçtan uca doğrulandı, bkz. aşağıdaki
+"02-kur.sh uyumluluğu"):
 
 ```bash
 cp packages/opencode/dist/opencode-linux-x64/bin/opencode bin/opencode
 chmod +x bin/opencode
-./alp-kur.sh
+./02-kur.sh
 ```
 
 ### Offline / Nexus npm proxy notu
@@ -340,7 +349,7 @@ dokümantasyonuna dayanıyor, saha koşumunda gerçek bir Nexus npm-proxy'sine k
 
 > **Ama registry tek başına yetmez:** kurum proxy'si npm'i aynalasa bile, tam `bun install` **npm dışı** iki
 > kaynağa (pkg.pr.new, api.github.com) gitmeye çalışır ve orada patlar. Offline çözüm yukarıdaki
-> "Saha kurulumu" bölümünde: `bun install --filter="./packages/opencode"` + models.dev snapshot (`alp-derle.sh`
+> "Saha kurulumu" bölümünde: `bun install --filter="./packages/opencode"` + models.dev snapshot (`01-derle.sh`
 > ikisini de kendisi yapar).
 
 ### Kaynak yoksa / erişim yoksa (derleme senaryosu, kurulum değil)
@@ -384,17 +393,17 @@ başka bir ajan) aynı korumadan geçiyor. Bu fix repoya gömülü olduğu için
 
 ---
 
-## Teşhis — `alp-kontrol.sh` (kurum ucunu test eder)
+## Teşhis — `03-kontrol.sh` (kurum ucunu test eder)
 
 > **Ne zaman:** TUI `Failed to send prompt` / `Unexpected server error` dediğinde, `/models`
 > boş geldiğinde, cevap yarıda kesildiğinde — yani **"uç mu bozuk, opencode mu?"** sorusunda.
 
 ```bash
-/root/ai/opencode/alp-kontrol.sh          # tek satır; env'deki KURUM_URL/KURUM_KEY/MODEL_ID ile
+/root/ai/opencode/03-kontrol.sh          # tek satır; env'deki KURUM_URL/KURUM_KEY/MODEL_ID ile
 ```
 
 Tek seferlik başka bir uç denemek istersen:
-`./alp-kontrol.sh --url https://sunucu:8000/v1 --model <model-id> [--key <anahtar>] [--zaman-asimi 120]`
+`./03-kontrol.sh --url https://sunucu:8000/v1 --model <model-id> [--key <anahtar>] [--zaman-asimi 120]`
 
 **Tek betik, tek komut — bayraksız çağrı iki bölümü birden raporlar:**
 
@@ -425,8 +434,8 @@ tamamını olduğu gibi kopyalayıp gönderebilirsin.
 |---|---|---|
 | `yok — uc saglikli, sorun opencode tarafinda` | Uç akışlı+akışsız yanıt veriyor, model doğru | Sorun **opencode tarafında**: satırın sonundaki log alıntısına bak; toast'taki `err_xxxxxxxx` ref'ini `grep -r 'err_xxxxxxxx' ~/.local/share/opencode/log` ile ara → `cause` alanını gönder |
 | `uc erisilemiyor (TCP <host>:<port> kapali)` / `DNS cozulemiyor` | Ağ/erişim | **Uç/ağ tarafı.** opencode'u kurcalama; `getent hosts`, güvenlik duvarı, `http_proxy` |
-| `kimlik dogrulama — /models HTTP 401` | Anahtar yanlış/eksik | `env` içindeki `KURUM_KEY`'i düzelt → `./alp-kur.sh` |
-| `MODEL_ID ucta yok — <id>` | Model uçtaki listede yok | Raporun bastığı listeden **birebir** kopyala → `env` → `./alp-kur.sh` |
+| `kimlik dogrulama — /models HTTP 401` | Anahtar yanlış/eksik | `env` içindeki `KURUM_KEY`'i düzelt → `./02-kur.sh` |
+| `MODEL_ID ucta yok — <id>` | Model uçtaki listede yok | Raporun bastığı listeden **birebir** kopyala → `env` → `./02-kur.sh` |
 | `/chat/completions HTTP <kod> — <gövde>` | Uç sohbet isteğini reddetti | Gövdedeki mesajı uç ekibine gönder |
 | `stream calismiyor (HTTP 200, SSE parcasi 0)` / `stream <kod>` | Akış kırık | Uç/proxy tarafı: nginx `proxy_buffering off`, ya da uç SSE desteklemiyor. opencode akışsız çalışamaz |
 | `uc tool_call kabul etmiyor (HTTP <kod>)` | `tools` reddedildi | opencode her isteğe araç şeması ekler; bu tek başına `Failed to send prompt` sebebi olabilir (ALP-README "Bilmeceler" #2) |
@@ -446,19 +455,19 @@ tamamını olduğu gibi kopyalayıp gönderebilirsin.
 
 | Belirti | Ne yapılır |
 |---|---|
-| `Failed to send prompt` → `Unexpected server error. Check server logs for details.` | **Önce `./alp-kontrol.sh`** (yukarıdaki "Teşhis"). Toast'ta `(ref: err_xxxxxxxx)` varsa: `grep -r 'err_xxxxxxxx' ~/.local/share/opencode/log` |
+| `Failed to send prompt` → `Unexpected server error. Check server logs for details.` | **Önce `./03-kontrol.sh`** (yukarıdaki "Teşhis"). Toast'ta `(ref: err_xxxxxxxx)` varsa: `grep -r 'err_xxxxxxxx' ~/.local/share/opencode/log` |
 | `Endpoint 180 sn'dir yeni içerik göndermedi` | Zaman aşımları 900/300/180 sn'ye çekildi; sorun model tarafında — aynı isteği üst üste yineleme |
 | Uzun dosya/log okurken kesilme | Pencere kurulumda tespit edilen değer kadar (bkz. "Ortam değişkenleri"); model `offset`/`limit` ile parça parça okumalı |
-| Beceriler görünmüyor | `~/.config/opencode/skills/` altında mı? `opencode debug skill` ile say. Kurulum **10 çekirdek beceriyi** kurar; park edilmiş bir beceri gerekiyorsa `knowledge/skills/parked/<ad>`'ı `approved/`'a taşı ve `./alp-kur.sh`'ı tekrar çalıştır |
+| Beceriler görünmüyor | `~/.config/opencode/skills/` altında mı? `opencode debug skill` ile say. Kurulum **10 çekirdek beceriyi** kurar; park edilmiş bir beceri gerekiyorsa `knowledge/skills/parked/<ad>`'ı `approved/`'a taşı ve `./02-kur.sh`'ı tekrar çalıştır |
 | Ayar değişti, etki yok | opencode ayarı açılışta bir kez okunur, sıcak yükleme yok → opencode'u tamamen kapat-aç |
 | TUI bozuk görünüyor (glif/kutu) | Terminal fontu/UTF-8; `TERM=xterm-256color` |
-| `opencode`/`oc` PATH'te yok | `alp-kur.sh` çıktısındaki NOT satırına bak; `export PATH="<kısayol-dizini>:$PATH"` |
-| Var olan başka bir `opencode`/`oc` kısayolu var | `./alp-kur.sh` bunu **kendisi çözer**: eskisini `.bak-<tarih>` olarak yedekler, kısayolu doğru ikiliye çevirir |
+| `opencode`/`oc` PATH'te yok | `02-kur.sh` çıktısındaki NOT satırına bak; `export PATH="<kısayol-dizini>:$PATH"` |
+| Var olan başka bir `opencode`/`oc` kısayolu var | `./02-kur.sh` bunu **kendisi çözer**: eskisini `.bak-<tarih>` olarak yedekler, kısayolu doğru ikiliye çevirir |
 | Ekranda sürekli `⠋ Thinking` + `Compaction`/`Build` art arda dönüyor, hiç ilerlemiyor | **Bilinen sorun, aşağıya bak** ("Compaction thrash / sonsuz döngü") |
 | Çalışma dizini boş (`ll` → `total 0`) ama opencode yine de çalışıyor | Paket o makinede **açılmamış olabilir** — aşağıdaki "Dağıtım kontrolü"ne bak |
-| `ripgrep execution failed` / arama (grep/glob) çalışmıyor | `rg` eksik. `./alp-kontrol.sh` çalıştır → `rg` satırına bak. `alp-kur.sh` normalde `bin/ripgrep.tar.xz`'yi `~/.cache/opencode/bin/rg`'ye kurar; hâlâ yoksa elle bir statik `rg` ikilisini o yola koy |
-| Çıplak `ls`/`cat`/`git log` gibi salt-okunur komutlar hâlâ izin soruyor | `~/.config/opencode/opencode.json` güncel mi? (`alp-kur.sh`'ı tekrar çalıştır) — Aşama 2'den önceki paketlerde bu kalıplar yoktu |
-| Aynı görevde defalarca "Plan" ajanına düşüyor, komut denemiyor | `Tab` ile **Build** ajanına geç; `alp-kur.sh` artık `default_agent: build` yazıyor ama TUI önceki oturumdan Plan'da kalmış olabilir |
+| `ripgrep execution failed` / arama (grep/glob) çalışmıyor | `rg` eksik. `./03-kontrol.sh` çalıştır → `rg` satırına bak. `02-kur.sh` normalde `bin/ripgrep.tar.xz`'yi `~/.cache/opencode/bin/rg`'ye kurar; hâlâ yoksa elle bir statik `rg` ikilisini o yola koy |
+| Çıplak `ls`/`cat`/`git log` gibi salt-okunur komutlar hâlâ izin soruyor | `~/.config/opencode/opencode.json` güncel mi? (`02-kur.sh`'ı tekrar çalıştır) — Aşama 2'den önceki paketlerde bu kalıplar yoktu |
+| Aynı görevde defalarca "Plan" ajanına düşüyor, komut denemiyor | `Tab` ile **Build** ajanına geç; `02-kur.sh` artık `default_agent: build` yazıyor ama TUI önceki oturumdan Plan'da kalmış olabilir |
 | Makine tamamen donuyor / SSH yanıt vermiyor (reboot gerekiyor) | 2026-09-19 öncesi bilinen bir sorundu (root'tan sınırsız paralel `tsgo`); **artık düzeltildi**, bkz. yukarıda "Root'tan typecheck artık güvenli". Yine de oluyorsa `script/safe-concurrency.sh`'ın çalıştığını doğrula, `knowledge/incidents/2026-09-19-typecheck-donma.md`'ye yeni bulgu ekle |
 
 ---
@@ -536,7 +545,7 @@ kesmek gerekiyor.
 - `engine/AGENTS.md`: "Tek adım disiplini", "Çalışma dizini boşsa", "Dosya arama" kuralları — modelin
   araç çağırmayıp plan metni üretme/tüm diski tarama ihtimalini azaltmayı hedefler; harness hatasını
   düzeltmez.
-- `compaction.prune=true` (+ `reserved`/`preserve_recent_tokens`) artık `alp-kur.sh` tarafından otomatik
+- `compaction.prune=true` (+ `reserved`/`preserve_recent_tokens`) artık `02-kur.sh` tarafından otomatik
   yazılıyor. **Etkisi bu ortamda izole ölçülemedi:** büyüyen-geçmiş senaryosunu simüle eden test,
   compaction eşiğine ulaşmadan **önce** yukarıdaki #2 livelock hatasına düştü (0 compaction olayı
   gözlendi) — yani hatanın kendisi o kadar agresif ki, compaction ayarının devreye girme şansı bile
@@ -545,7 +554,7 @@ kesmek gerekiyor.
   sunulmuyor.
 
 ### Gerçek context penceresini ölçme — artık otomatik (Aşama 2, Paket A)
-`alp-kur.sh` artık kurulum anında `${KURUM_URL}/models`'e sorup `max_model_len` /`context_length` /
+`02-kur.sh` artık kurulum anında `${KURUM_URL}/models`'e sorup `max_model_len` /`context_length` /
 `max_context_length` / `context_window` alanlarından **otomatik tespit** ediyor ve `limit.context`'e
 yazıyor (kaynağıyla birlikte ekrana basar). Tespit başarısız olursa `KURUM_MAX_CONTEXT` (env) kullanılır;
 o da yoksa mevcut değer (`16384`) korunur ve sarı uyarı basılır. Elle doğrulamak istersen:
@@ -560,10 +569,10 @@ opencode debug config | grep -A3 '"limit"'
 matematiksel olarak ulaşılamaz" bulgusunu da hafifletir: gerçek pencere 262144 ise taban bağlam oranı
 otomatik olarak ~%4'e düşer (16 kat büyüme). Şablondaki `16384` değeri **bilinçli olarak değiştirilmedi**
 — bu, kurum uca erişimi olmayan/ölçüm yapmamış bir kurulumda kullanılacak worst-case varsayımdır; gerçek
-değer her zaman `alp-kur.sh`'ın kurulum-anı tespitiyle ezilir.
+değer her zaman `02-kur.sh`'ın kurulum-anı tespitiyle ezilir.
 
 ### Dağıtım kontrolü (Vaka 2: saha-sunucu.ornek.local'da boş çalışma dizini)
-`/root/ai/work/opencode-agent` gibi bir dizinin **boş olması normaldir** — `alp-kur.sh`, `AGENTS.md`'yi ve
+`/root/ai/work/opencode-agent` gibi bir dizinin **boş olması normaldir** — `02-kur.sh`, `AGENTS.md`'yi ve
 becerileri **global** `~/.config/opencode/`'a kurar, proje dizinine değil (yukarıdaki "3 adımda kurulum"a
 bak: adım 3'te `cd` edilen dizin keyfi bir çalışma dizinidir, paketin kendisi değil). Yani **boş dizin
 başlı başına "kurallar yüklenmedi" anlamına gelmez** — test ederken bunu doğrula:
@@ -571,8 +580,8 @@ başlı başına "kurallar yüklenmedi" anlamına gelmez** — test ederken bunu
 ls ~/.config/opencode/AGENTS.md          # varsa: global kurallar kurulu
 opencode debug skill 2>&1 | grep -c '"name"'   # 10 çekirdek beceri + yerleşikler
 ```
-Eğer bu ikisi de boşsa/yoksa, o makinede **`alp-kur.sh` hiç çalıştırılmamış** demektir — paket açılmış olsa
-bile kurulum adımı atlanmış olabilir; `alp-kur.sh`'ı çalıştır.
+Eğer bu ikisi de boşsa/yoksa, o makinede **`02-kur.sh` hiç çalıştırılmamış** demektir — paket açılmış olsa
+bile kurulum adımı atlanmış olabilir; `02-kur.sh`'ı çalıştır.
 
 ---
 
@@ -607,7 +616,7 @@ aider             # ya da venv/bin/aider
 | opencode ayarı | `~/.config/opencode/opencode.json` |
 | kurallar | `~/.config/opencode/AGENTS.md` |
 | beceriler | `~/.config/opencode/skills/<ad>/SKILL.md` (10 çekirdek beceri) |
-| rg (ripgrep) | `~/.cache/opencode/bin/rg` (`alp-kur.sh` `bin/ripgrep.tar.xz`'den kurar) |
+| rg (ripgrep) | `~/.cache/opencode/bin/rg` (`02-kur.sh` `bin/ripgrep.tar.xz`'den kurar) |
 | paket (kaynak dosyalar) | `/root/ai/opencode/` |
 | kaynak klonu (çalıştırmak için gerekmez) | `/root/work/opencode` |
 | aider fork + venv | `/root/ai/aider/` |

@@ -1,8 +1,35 @@
 # SÜRÜM NOTLARI — opencode ajan kiti
 
-> **Betik adları değişti (2026-09-21, üçüncü tur).** Aşağıdaki **eski kayıtlarda** geçen
-> `kur.sh` / `alp.sh` / `oc-teshis.sh` / `oc-dogrula.sh` adları **tarihseldir** — o günkü durumu
-> anlatır. Güncel adlar: `alp-kur.sh` · `alp-kontrol.sh` · `alp-derle.sh` (bkz. ilk başlık).
+> **Betik adları değişti (2026-09-22, dördüncü tur).** Güncel adlar: **`01-derle.sh`** (iç) ·
+> **`02-kur.sh`** (tek giriş) · **`03-kontrol.sh`** (teşhis). Aşağıdaki **eski kayıtlarda** geçen
+> `kur.sh` / `alp.sh` / `oc-teshis.sh` / `oc-dogrula.sh` ve `alp-kur.sh` / `alp-kontrol.sh` /
+> `alp-derle.sh` adları **tarihseldir** — o günkü durumu anlatır, bilerek değiştirilmedi.
+
+## 2026-09-22 — betik adları **numaralandı**: `01-derle.sh` · `02-kur.sh` · `03-kontrol.sh`
+
+**Sorun (Alp):** *"Başına alp yerine 01-derle yaz bari."* — Kişi adı ön eki (`alp-`) saha akışı
+hakkında hiçbir şey söylemiyordu; `ls` çıktısı alfabetik sıralıyordu (`alp-derle` → `alp-kontrol`
+→ `alp-kur`), yani **yanlış** sırayı gösteriyordu.
+
+**Ne değişti (yalnız adlandırma — davranış birebir aynı):**
+- `alp-derle.sh` → **`01-derle.sh`** · `alp-kur.sh` → **`02-kur.sh`** · `alp-kontrol.sh` →
+  **`03-kontrol.sh`** (`git mv`, geçmiş korundu). `ls` artık akış sırasını gösteriyor.
+- Yönlendiriciler güncellendi: `kur.sh` → `./02-kur.sh`, `oc-teshis.sh` → `./03-kontrol.sh`,
+  `oc-dogrula.sh` → `./03-kontrol.sh --kurulum`. Repoya `alp` adlı yeni dosya **eklenmedi**;
+  daha eski `alp.sh` depoda zaten yok (sahada rsync'ten kalan kopya varsa yok sayılır).
+- Dokümanlarda `alp-*` geçişlerinin tamamı yeni adlara çevrildi (`ALP-README.md`,
+  `NASIL-CALISTIRILIR.md`, `MIMARI.md`, `DENEYIM-AKTARIM.md`, `docs/`, `knowledge/`, `engine/`,
+  `env.example`, `.gitignore`). Bu dosyadaki **eski kayıtlar** tarihçe olduğu için olduğu gibi
+  bırakıldı (yukarıdaki not).
+- Saha akışı tek komut olarak aynı: `al.sh` → **`./02-kur.sh`** → **`./03-kontrol.sh`**.
+
+**Doğrulama (bu koşumda gerçekten çalıştırıldı)**
+- `bash -n` tüm `*.sh` temiz; `shellcheck -S warning *.sh` → **0 bulgu**.
+- İzole `HOME` + izole `KISAYOL_DIZIN`: ikili **yokken** parametresiz `./02-kur.sh` derledi + kurdu
+  (çıkış 0); hemen ardından ikinci koşum derleme yapmadan yalnız kurdu (çıkış 0).
+- Parametresiz `./03-kontrol.sh`: tek ekran, sonda tek satır `SORUN:`, anahtar maskeli, çökme yok.
+- Eski adlarla çağrı (`./kur.sh`, `./oc-teshis.sh`, `./oc-dogrula.sh`) yeni betiğe yönleniyor.
+- Ağır turbo typecheck **çalıştırılmadı** (bilerek — bkz. 2026-09-19 donma olayı).
 
 ## 2026-09-22 — **bayraklar kaldırıldı**: parametresiz tek komut (`./alp-kur.sh`)
 

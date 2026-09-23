@@ -6,6 +6,65 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-09-23 — saha raporu & sürüm izlenebilirliği (T2 + T3 + T4)
+
+Üçü de `kur.sh` içinde; kökte yeni dosya yok, yardımcılar `script/` altında.
+
+**T2 — kontrol raporu her modda ≤29 satır.** İki uç tanımlıyken (`KURUM_URL_2`) rapor 33 satıra
+çıkıyordu. Bilgi kaybı olmadan kısaltıldı:
+
+- Bölüm ayracı + bölüm başlığı **tek satırda** birleşti (`bolum()`): `-- KURULUM (ag gerekmez) ---`.
+  Hem KURULUM hem KURUM AI UCU bölümünde birer satır kazandı.
+- Uç başlığı iki satırdan bire indi: `-- KURUM AI UCU · <url> ---` + `model: … · anahtar: … ·
+  zaman asimi …`. (`ayar kaynagi` satırı `-a`'ya taşındı.)
+- `DNS` ve `TCP` satırları tek `ag` satırında birleşti — aynı veri: çözümlenen IP'ler, port açık mı,
+  tanımlı proxy değişkenleri.
+- İki uç bloğu **4 satırdan 2 satıra** indi: ayraç kaldırıldı, iki uç **iki sütunda** tek satırda
+  basılıyor, altında karar satırı. Uç başına veri korundu (erişim · model listede mi · bağlam ·
+  3 ölçümün medyanı). Sütun taşarsa **yalnız host kısalır**, ölçüm sayıları hep görünür; iki ucun
+  bağlam penceresi ayrıca karar satırına yazılıyor. Tam döküm (uç başına 3 satır) `--ayrintili`/
+  yeni kısa yazımı **`-a`** ile.
+
+**Ölçüm (sahte uçla, `wc -l`):** tek uçlu **25**, iki uçlu **27** satır — ikisi de ≤29. Ölçüm
+`script/duman-kontrol-rapor.sh` içinde bir test olarak duruyor, elle sayılmıyor.
+
+**T3 — çıktı (output) sınırı artık uçtan öğreniliyor.** `opencode.json`'daki `limit.output`
+şablondan gelen sabit 4096'ydı. Sıra: (1) `/v1/models` alanları (`max_output_tokens`,
+`max_completion_tokens`, `max_output_len`, `max_generated_tokens`, `max_tokens`, `output_limit`,
+`limit.output`) → (2) **probe**: tek istek, `max_tokens` bilerek aşırı büyük; uç reddedip sınırını
+hata mesajında söylerse oradan okunur → (3) `env` → `KURUM_MAX_OUTPUT` → (4) **güvenli varsayılan
+4096**. Probe `stream: true` gider ve uç isteği kabul ederse akış ilk parçada kesilir (uçta uzun
+üretim başlamaz); vLLM'in "maximum **context** length is N" mesajı bilerek eşleşmez — o sayı çıktı
+sınırı değildir. Bulunan değer bağlam penceresini aşarsa kırpılır, 512'nin altındaysa yok sayılır.
+**Sessizce sabit kalmaz:** kurulum hangi basamağın kazandığını `~/.config/opencode/kur-durum`
+künyesine yazar, kontrol raporu da `ayar` satırında basar — fallback hâlinde
+`cikti 4096 (uctan alinamadi → 4096)`. `env.example` **şablon kaldı** (yer tutucu `KURUM_MAX_OUTPUT`
+satırı yorumlu); gerçek değer `env`/`env.local`'a yazılır.
+
+**T4 — ikili ↔ sürüm ↔ commit (denetim bulgusu 3).** Derleme anında ikilinin yanına künye yazılıyor
+(`bin/opencode.derleme`: `surum`/`kanal`/`commit`/`kirli`/`boyut`/`tarih`); kurulum onu ikiliyle
+birlikte `~/.opencode/bin/`'e taşıyor. Rapor `ikili` satırında `surum … · commit … (=HEAD) ·
+derleme <tarih> · HEAD …` gösteriyor. Tutarsızlıkta tek satırlık `surum !` uyarısı düşüyor:
+ikili sürümü `kur.sh`'ın beklediğinden farklı · ikili commit'i repo HEAD'inden farklı · künye yok
+(izlenemiyor) · künye başka ikiliye ait (boyut tutmuyor) · derleme anında çalışma ağacı kirliydi.
+**Sağlam kurulumda bu satır basılmaz**, bütçe korunur. Künye `.gitignore`'da (yerel derleme çıktısı).
+
+**Testler.** Yeni `script/duman-kontrol-rapor.sh` — sahte uç (`script/sahte-uc.py`, loopback) ile
+22 durum: T3'ün dört basamağı (alan/probe/env/varsayılan) uçtan uca (`opencode.json` + künye +
+rapor metni), T2 satır bütçesi `wc -l` ile (tek uç/iki uç), 100 sütun taşması, `-a` dökümü, uç
+başına verinin korunduğu, T4'ün beş uyarı yolu + `kunye_yaz`. Her durum kendi geçici `HOME`'unda
+koşar; gerçek `~/.opencode` ve `~/.config/opencode` değişmez. `kur.sh` `source` edilince ana akışı
+çalıştırmıyor (`BASH_SOURCE`/`$0` kapısı) — fonksiyonlar derleme yapmadan sınanabiliyor.
+
+**Doğrulama:** `bash -n kur.sh` temiz · `shellcheck -S warning` temiz · `script/smoke-ikili.sh`
+geçti · `script/duman-kontrol-rapor.sh` 22/22 geçti.
+
+**CANLI DOĞRULANMADI:** kurum ağına erişim yok. Gerçek kurum ucunda doğrulanmayanlar: (a) uçun
+`/v1/models` yanıtında çıktı sınırı alanı **gerçekten var mı**, adı hangisi; (b) probe'un gerçek
+uçtaki hata mesajı biçimi — kalıplar tutmazsa 4096'ya düşer ve rapor bunu yazar (sessiz sabit yok);
+(c) iki uç karşılaştırmasının gerçek gecikme değerleri. Ölçülen satır sayıları sahte uçla alındı;
+gerçek uçta satır **sayısı** değişmez (içerik uzunluğu değişir, kırpma devrede).
+
 ## 2026-09-22 — derlenmiş ikili çöküyordu: `splitting: false` (build.ts) — sürüm 1.0.1
 
 **Sorun (Alp):** sahada `oc` hiçbir prompt gönderemiyordu — TUI'de `Failed to send prompt` /

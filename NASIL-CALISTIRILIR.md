@@ -459,19 +459,32 @@ Tek seferlik başka bir uç denemek istersen:
 | KURULUM | ikili, env, ayar dosyası, beceriler, `rg`, izinler, kısayol | hayır |
 | KURUM AI UCU | DNS, TCP, `/models`, sohbet, akış, araç çağrısı, bağlam penceresi, log | evet |
 
-(Gelişmiş: `--ayrintili` aynı raporu kırpmadan basar — uçtaki tüm model listesi, tam gövdeler, ham süreler.)
+(Gelişmiş: `--ayrintili` — kısa yazımı `-a` — aynı raporu kırpmadan basar: uçtaki tüm model listesi,
+tam gövdeler, ham süreler, iki uçlu modda uç başına 3 satırlık tam döküm.)
 
-**Ne yapar:** URL biçimi → DNS → TCP → `GET /models` (`MODEL_ID` listede mi; yoksa aday modelleri
-basar) → `POST /chat/completions` (akışsız) → **akış testi** (`"stream": true` — opencode her
-istekte akış kullanır) → **araç çağrısı** (`tools`) → bağlam penceresi (`max_model_len`) + kurulu
-`opencode.json` karşılaştırması → opencode log'undaki son `err_`/`ERROR` satırı.
+**Ne yapar:** URL biçimi → ağ (DNS + TCP, tek satır) → `GET /models` (`MODEL_ID` listede mi; yoksa
+aday modelleri basar) → `POST /chat/completions` (akışsız) → **akış testi** (`"stream": true` —
+opencode her istekte akış kullanır) → **araç çağrısı** (`tools`) → bağlam penceresi (`max_model_len`)
++ **çıktı sınırı** + kurulu `opencode.json` karşılaştırması → opencode log'undaki son
+`err_`/`ERROR` satırı.
 
-**Çıktı sözleşmesi — tek ekran:** rapor **≈16 satır** ve **≤100 sütun** (env'de `KURUM_URL_2`
-varsa karşılaştırma bloğu için **+3 satır** — aşağıdaki "İki ucu karşılaştırma"); uzun URL/gövde kırpılır,
-satır sarması olmaz. Yani ekran görüntüsünü tek karede alıp gönderebilirsin. Her şeyi görmek
-istersen `--ayrintili`. KURULUM bölümünün ilk satırı ikilinin sürümünü de söyler:
-`ikili … kurulu: ~/.opencode/bin/opencode · surum 1.0.0` (ürün sürümü — farklıysa `./kur.sh`
-yeniden derler; bkz. "Ortam değişkenleri" → `OPENCODE_VERSION`).
+**Çıktı sözleşmesi — tek ekran:** rapor **her modda ≤29 satır** ve **≤100 sütun** — tek uçlu da,
+iki uçlu da (`KURUM_URL_2`). Uzun URL/gövde kırpılır, satır sarması olmaz; ekran görüntüsünü tek
+karede alıp gönderebilirsin. Her şeyi görmek istersen `-a`. Bütçe elle korunmuyor: her koşumda
+`script/duman-kontrol-rapor.sh` sahte bir uçla raporu üretip `wc -l` ile ölçüyor.
+
+**Sürüm izlenebilirliği (`ikili` satırı):** KURULUM bölümünün ilk satırı üç şeyi birden söyler —
+`ikili ✓ surum 1.0.1 · commit c6f1ce7 (=HEAD) · derleme 2026-09-23 14:02 · HEAD c6f1ce7`.
+`commit`/`derleme`, derleme anında ikilinin yanına yazılan künyeden (`bin/opencode.derleme`,
+kurulumla `~/.opencode/bin/opencode.derleme`'ye taşınır) gelir. **Tutarsızlık varsa** — ikili
+başka bir commit'ten, sürüm `kur.sh`'ın beklediğiyle uyuşmuyor, künye yok ya da künye başka bir
+ikiliye ait — alta tek bir `surum !` uyarı satırı düşer:
+
+```
+ surum     ! ikili commit 9a1b2c3, repo HEAD c6f1ce7 — ./kur.sh (gerekirse ALP_DERLE=1 ./kur.sh)
+```
+
+Sağlam kurulumda bu satır **hiç basılmaz** (rapor bütçesi korunur).
 
 **Güvenlik:** salt okunur (sistemde/ayarlarda hiçbir şeyi değiştirmez), uca yalnız 16 token'lık
 kısa istekler gider. `KURUM_KEY` **ekrana basılmaz** (`abc****yz (uzunluk: 20)` şeklinde maskelenir)
@@ -501,28 +514,50 @@ karşılaştırma bloğunu kendiliğinden ekler.
 
 ```bash
 # env — 1. uç zaten dolu; şu üç satır opsiyonel (KURUM_KEY_2/MODEL_ID_2 boşsa 1. uçunki kullanılır)
-KURUM_URL_2=https://sunucu2:8000/v1
+KURUM_URL_2=https://<kurum-uç-2>:8000/v1
 KURUM_KEY_2=dummy
 MODEL_ID_2=<2. uçtaki model id>
 ```
 
-Rapor sonunda çıkan blok (3 satır):
+Rapor sonunda çıkan blok — **iki sütun, toplam 2 satır** (eskiden 4 satırdı; rapor 33 satıra
+çıkıyordu, artık ≤29'da kalıyor):
 
 ```
- uc1       ✓ sunucu1:8000 · model var · baglam 32768 · medyan 41 ms
- uc2       ✓ sunucu2:8000 · model var · baglam 131072 · medyan 88 ms
- >> daha hizli: uc1 (41 vs 88 ms) · genis baglam: uc2 (131072 vs 32768) · uc2 modeli farkli
+ ✓ uc1 uc-a:8000 · mdl ✓ · ctx32768 · 41ms     | ✓ uc2 uc-b:8000 · mdl ✓ · ctx131072 · 88ms
+ >> daha hizli: uc1 (41 vs 88 ms) · baglam uc2 131072 > uc1 32768 · uc2 modeli farkli
 ```
+
+(Sütun genişliği sabittir: `|` ayracı hep aynı sütunda durur, toplam ≤100 sütun. `uc-a`/`uc-b`
+yerine gerçekte `env`'deki host:port yazar.)
 
 - **Gecikme:** her uç için `GET /v1/models`'e **3 örnek**, **medyan** ms. Ek sohbet isteği
   açılmaz (en küçük istek kullanılır), `--zaman-asimi` iki uç için de geçerlidir — erişilemeyen
   uçta ölçüm yapılmaz, rapor asılı kalmaz.
-- **`model var` / `model YOK`:** o uçtaki `/v1/models` listesinde `MODEL_ID` (uc2 için `MODEL_ID_2`)
-  var mı. **`baglam`:** uçun bildirdiği `max_model_len` (python3 yoksa `?`).
+- **`mdl ✓` / `mdl ✗`:** o uçtaki `/v1/models` listesinde `MODEL_ID` (uc2 için `MODEL_ID_2`)
+  var mı. **`ctx…`:** uçun bildirdiği `max_model_len` (python3 yoksa `?`).
+- Sütun taşarsa **yalnız host kısalır** — ölçüm sayıları hep görünür kalır; iki ucun bağlam
+  penceresi ayrıca karar satırında yazılıdır. **Tam adres + model + ölçüm dökümü** için
+  `./kur.sh kontrol -a` (uç başına 3 satır).
 - Son satır karar ipucudur; **çıkış kodunu ve `SORUN:` satırını değiştirmez** — 2. uç erişilemezse
   bu yalnız `!` uyarısı olarak görünür, rapor yine 1. uca göre sonuçlanır.
-- `KURUM_URL_2` boşken **çıktı birebir eskisi gibidir** (satır satır aynı). Anahtarlar hiçbir
-  durumda ekrana basılmaz.
+- `KURUM_URL_2` boşken rapor **tek uçlu haliyle** basılır. Anahtarlar hiçbir durumda ekrana
+  basılmaz.
+
+### Çıktı (output) sınırı nereden geliyor?
+
+`opencode.json`'daki `limit.output` eskiden şablondan gelen sabit **4096**'ydı. Artık `./kur.sh`
+bunu sırayla öğrenmeye çalışır ve **hangi basamağın kazandığını raporda yazar**:
+
+| Sıra | Kaynak | Raporda görünen |
+|---|---|---|
+| 1 | `/v1/models` alanları (`max_output_tokens`, `max_completion_tokens`, `max_output_len`, `max_generated_tokens`, `max_tokens`, `output_limit`, `limit.output`) | `cikti 8192 (uc alani max_output_tokens)` |
+| 2 | **Probe:** tek bir istek, `max_tokens` bilerek aşırı büyük; uç reddedip sınırını hata mesajında söylerse oradan okunur | `cikti 8192 (uc probe)` |
+| 3 | `env` → `KURUM_MAX_OUTPUT=<token>` | `cikti 8192 (env KURUM_MAX_OUTPUT)` |
+| 4 | Hiçbiri → **güvenli varsayılan 4096** | `cikti 4096 (uctan alinamadi → 4096)` |
+
+Yani 4096 **sessizce** kalmaz: raporun `ayar` satırı her zaman değerin nereden geldiğini söyler.
+Probe ucu yormaz — istek `stream: true` gider ve uç isteği kabul ederse akış ilk parçada kesilir,
+uçta uzun üretim başlamaz. Bulunan değer bağlam penceresini aşarsa ona kırpılır.
 
 > **Not:** 2026-09-21'den itibaren sunucu, tanıdığı hataları artık `Unexpected server error`
 > yerine **gerçek sebebiyle** döndürüyor (ör. `Model not found: kurum/... (ref: err_1a2b3c4d)`,

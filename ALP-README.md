@@ -17,7 +17,7 @@ Kod geliştirme YOK — sadece ayar + içerik. Amaç: **önce denemek**, sonuç 
 | `knowledge/skills/parked/` | Kalan **28 beceri** (2026-09-16 sadeleştirmesi, Alp kararı) — varsayılan kurulumda kurulmaz, bkz. `parked/README.md` |
 | `knowledge/` | Kurumsal bilgi deposu: `skills` · `runbooks` · `incidents` · `lessons-learned` · `operations-notes` · `architecture` · `roadmap` |
 | `kur.sh` | **TEK BETİK.** Parametresiz çağrı (= `kur`) gerekirse derler, kurar, `opencode`+`oc` kısayollarını düzeltir ve en sonda kontrol raporunu basar. Alt komutlar: `kur` · `derle` · `kontrol` · `yardim` |
-| `kur.sh kontrol` | **Tek kontrol/teşhis.** Kurulum (ikili/env/ayar/beceri/`rg`/izin/kısayol) + kurum AI ucu (DNS/TCP/`/models`/sohbet/akış/araç çağrısı). Çıktı tek ekrana sığar, sonda tek satır `SORUN:`; `env`'de `KURUM_URL_2` varsa iki ucu yan yana ölçüp "daha hızlı" karar satırını basar |
+| `kur.sh kontrol` | **Tek kontrol/teşhis.** Kurulum (ikili/sürüm-commit/env/ayar/beceri/`rg`/izin/kısayol) + kurum AI ucu (ağ/`/models`/sohbet/akış/araç çağrısı/bağlam+çıktı sınırı). Çıktı **her modda ≤29 satır**, sonda tek satır `SORUN:`; `env`'de `KURUM_URL_2` varsa iki ucu **iki sütunda** ölçüp "daha hızlı" karar satırını basar |
 | `NASIL-CALISTIRILIR.md` | **Adım adım çalıştırma + sorun giderme** (önce bunu oku) |
 | `DENEYIM-AKTARIM.md` | Aider'da öğrendiklerimizin opencode karşılığı — ne aktarıldı, ne aktarılamadı |
 
@@ -48,13 +48,18 @@ TUI `Failed to send prompt` / `Unexpected server error` dediyse **tek satır**:
 ```bash
 /root/ai/opencode/kur.sh kontrol
 ```
-Önce kurulumu, sonra kurum ucunu sırayla test eder (URL biçimi · DNS · TCP · `/models` + MODEL_ID listede mi ·
-sohbet · **akış** · **araç çağrısı** · bağlam penceresi · log'daki son `err_`/ERROR satırı).
-**Çıktı tek ekrana sığar** (≈30 satır, ≤100 sütun) ve sonda tek satırlık `SORUN:` teşhisi verir —
-kök nedeni kanıtıyla söyler ("uç erişilemiyor", "MODEL_ID uçta yok", "stream çalışmıyor" ya da
-"yok — uç sağlıklı, sorun opencode tarafında"). `env`'de `KURUM_URL_2` varsa raporun sonuna
-iki ucu yan yana ölçen karşılaştırma + "daha hızlı" karar satırı eklenir. Ekran görüntüsü alıp
-olduğu gibi gönderebilirsin. Salt okunur; **anahtar her zaman maskelidir** (`abc****yz`).
+Önce kurulumu, sonra kurum ucunu sırayla test eder (URL biçimi · ağ (DNS+TCP) · `/models` + MODEL_ID
+listede mi · sohbet · **akış** · **araç çağrısı** · bağlam penceresi + **çıktı sınırı** · log'daki son
+`err_`/ERROR satırı). **Çıktı tek ekrana sığar** — **her modda ≤29 satır**, ≤100 sütun — ve sonda tek
+satırlık `SORUN:` teşhisi verir; kök nedeni kanıtıyla söyler ("uç erişilemiyor", "MODEL_ID uçta yok",
+"stream çalışmıyor" ya da "yok — uç sağlıklı, sorun opencode tarafında"). `env`'de `KURUM_URL_2` varsa
+raporun sonuna iki ucu **iki sütunda** ölçen karşılaştırma + "daha hızlı" karar satırı eklenir
+(toplam 2 satır; uç başına tam döküm için `-a`). Ekran görüntüsü alıp olduğu gibi gönderebilirsin.
+Salt okunur; **anahtar her zaman maskelidir** (`abc****yz`).
+
+İlk satır **sürüm izlenebilirliğini** de verir: `ikili ✓ surum 1.0.1 · commit c6f1ce7 (=HEAD) ·
+derleme <tarih> · HEAD c6f1ce7`. İkili başka bir commit'ten geldiyse (ya da derleme künyesi yoksa)
+hemen altına tek satırlık `surum !` uyarısı düşer — sağlamsa hiç basılmaz.
 
 | Komut | Ne yapar | Ağ ister mi |
 |---|---|---|

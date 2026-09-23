@@ -14,7 +14,7 @@
 #
 #  Seçenekler (kur/varsayılan akışta kontrol aşamasına aktarılır):
 #    --zaman-asimi <sn>   uç isteklerinde bekleme (varsayılan 60)
-#    --ayrintili          kontrol raporunu kırpmadan bas
+#    --ayrintili | -a     kontrol raporunu kırpmadan bas
 #    --url · --key · --model   kontrolde env yerine tek seferlik değer
 #    --kurulum | --uc     kontrol raporunun yalnız bir bölümü (iç kullanım)
 #
@@ -27,6 +27,7 @@
 #  İç detay (ortam değişkenleri — yalnız ayıklama için):
 #    ALP_DERLE=1 ikili güncel olsa da derle · ALP_DERLEME_YOK=1 hiç derleme ·
 #    ALP_TUM_BECERILER=1 tüm beceriler · ALP_DERLE_EK="--ignore-scripts" bun'a ek bayrak ·
+#    KURUM_MAX_CONTEXT/KURUM_MAX_OUTPUT (env) uç bildirmezse bağlam/çıktı sınırı ·
 #    KISAYOL_DIZIN (varsayılan /usr/local/bin, yazılamıyorsa ~/.local/bin) ·
 #    BUN bun ikilisinin yolu · MODELS_DEV_API_JSON models.dev anlık görüntüsü ·
 #    OPENCODE_VERSION/OPENCODE_CHANNEL ürün sürümü/kanalı (varsayılan 1.0.0/main)
@@ -156,6 +157,17 @@ duz() { printf ' %s\n' "$(kis "$1" $((GENISLIK - 1)))"; }
 # ayr <metin> — yalnız --ayrintili modunda basılır
 ayr() { [ "$AYRINTILI" -eq 1 ] && printf '             %s\n' "$1"; return 0; }
 
+# bolum <baslik> — ayraç + bölüm başlığını TEK satırda basar.
+# (Eskiden ayrı `CIZGI` + `duz "<baslik>"` iki satır harcıyordu; rapor satır
+#  bütçesi ≤29 olduğu için ikisi birleştirildi — bilgi kaybı yok.)
+bolum() {
+  local baslik dolgu
+  baslik="$(kis "$1" 70)"
+  dolgu=$((74 - ${#baslik}))
+  [ "$dolgu" -lt 3 ] && dolgu=3
+  printf -- '-- %s %s\n' "$baslik" "$(printf '%*s' "$dolgu" '' | tr ' ' '-')"
+}
+
 # bitir <cikis-kodu> <sorun-metni>
 bitir() {
   local kod="$1" metin
@@ -241,6 +253,39 @@ node_headerlari_hazirla() {
   fi
   if [ ! -d "$takma/include/node" ]; then return 1; fi
   echo "==> node header'lari hazir: $takma -> node-$NODE_SURUM"
+}
+
+# ---------------------------------------------------------------------------
+#  T4 — sürüm/derleme künyesi (denetim bulgusu 3: "ikili ↔ sürüm ↔ commit"
+#  izlenebilir değil). Derleme anında ikilinin yanına `opencode.derleme` adlı
+#  düz metin künye yazılır; kurulum onu ikiliyle birlikte ~/.opencode/bin'e
+#  taşır, kontrol raporu da oradan okur. Künye YOKSA rapor bunu uyarı olarak
+#  basar (sessizce "her şey yolunda" demez).
+#  Dosya biçimi bilerek `anahtar=deger` — jq/python gerektirmez.
+# ---------------------------------------------------------------------------
+kunye_yaz() { # <ikili-yolu> <kunye-yolu>
+  local ikili="$1" hedef="$2" commit="" kirli=0 boyut=""
+  [ -f "$ikili" ] || return 0
+  if command -v git > /dev/null 2>&1 && [ -d "$KOK/.git" ]; then
+    commit="$(git -C "$KOK" rev-parse --short HEAD 2> /dev/null || true)"
+    [ -n "$(git -C "$KOK" status --porcelain 2> /dev/null)" ] && kirli=1
+  fi
+  boyut="$(stat -c '%s' "$ikili" 2> /dev/null || echo '')"
+  {
+    printf 'surum=%s\n' "$SURUM"
+    printf 'kanal=%s\n' "$KANAL"
+    printf 'commit=%s\n' "$commit"
+    printf 'kirli=%s\n' "$kirli"
+    printf 'boyut=%s\n' "$boyut"
+    printf 'tarih=%s\n' "$(date '+%Y-%m-%d %H:%M')"
+  } > "$hedef" 2> /dev/null || return 0
+  chmod 644 "$hedef" 2> /dev/null || true
+}
+
+# kunye_oku <anahtar> — KUNYE_DOSYA'dan tek alan okur (yoksa boş döner)
+kunye_oku() {
+  [ -n "${KUNYE_DOSYA:-}" ] && [ -f "$KUNYE_DOSYA" ] || return 0
+  sed -n "s/^$1=//p" "$KUNYE_DOSYA" 2> /dev/null | head -1
 }
 
 # derle [--bin-kopyala] [--kurulum-yok] [bun install'a ek bayraklar...]
@@ -335,7 +380,9 @@ derle() {
     cp -f "$IKILI" "$KOK/bin/opencode" || return 1
     chmod +x "$KOK/bin/opencode" || return 1
     echo "==> bin/opencode guncellendi (kurulum asamasi bunu kullanir)"
+    kunye_yaz "$KOK/bin/opencode" "$KOK/bin/opencode.derleme"
   fi
+  kunye_yaz "$IKILI" "$(dirname "$IKILI")/opencode.derleme"
 
   echo "==> BITTI: $("$IKILI" --version)"
 }
@@ -376,6 +423,134 @@ kisayol_kur() { # <ad>
     ln -sfn "$BENIM" "$baglanti"
     yesil "  kısayol düzeltildi: $baglanti → $BENIM"
   fi
+}
+
+# ---------------------------------------------------------------------------
+#  T3 — çıktı (output) sınırını uçtan öğren.
+#
+#  `uc_alanlari <model-id>` : stdin'deki /v1/models gövdesinden bağlam penceresi
+#  ve (varsa) çıktı sınırı alanlarını sekmeli olarak basar. MODEL_ID ile eşleşen
+#  kayıt önceliklidir; yoksa ilk kayda düşülür.
+#
+#  `cikti_probe <url> <key> <model> [baglam]` : uç alanı bildirmiyorsa TEK bir
+#  küçük istekle sorar — `max_tokens` bilerek aşırı büyük gönderilir, uç bunu
+#  reddedip sınırı hata mesajında söylerse sayı oradan okunur. İstek `stream:true`
+#  ve kısa zaman aşımıyla atılır: uç isteği KABUL ederse akış ilk parçada kesilir
+#  (uçta uzun üretim başlatmaz). Sınır okunamazsa boş döner — çağıran 4096'ya düşer.
+#  Bağlam penceresi mesajları (vLLM "maximum context length is N") BİLEREK
+#  eşleşmez: o sayı çıktı sınırı değildir.
+# ---------------------------------------------------------------------------
+uc_alanlari() { # <model-id> <models-govdesi>
+  [ -n "$PY" ] || return 0
+  "$PY" - "$1" "$2" << 'PY' 2> /dev/null || true
+import json, sys
+
+mid = sys.argv[1]
+BAGLAM = ("max_model_len", "context_length", "max_context_length", "context_window", "max_seq_len")
+CIKTI = ("max_output_tokens", "max_completion_tokens", "max_output_len",
+         "max_generated_tokens", "max_tokens", "output_limit")
+try:
+    d = json.loads(sys.argv[2])
+except Exception:
+    sys.exit(0)
+
+kayitlar = []
+if isinstance(d, dict):
+    for alt in ("data", "models"):
+        if isinstance(d.get(alt), list):
+            kayitlar.extend(x for x in d[alt] if isinstance(x, dict))
+    kayitlar.append(d)
+elif isinstance(d, list):
+    kayitlar.extend(x for x in d if isinstance(x, dict))
+
+# MODEL_ID ile eşleşen kayıt önce denenir (uçta birden çok model olabilir).
+kayitlar.sort(key=lambda k: 0 if (k.get("id") or k.get("name")) == mid else 1)
+
+def havuz(k):
+    h = dict(k)
+    for alt in ("meta", "metadata", "config", "limit", "limits"):
+        if isinstance(k.get(alt), dict):
+            h.update(k[alt])
+    if isinstance(k.get("limit"), dict) and isinstance(k["limit"].get("output"), int):
+        h["max_output_tokens"] = k["limit"]["output"]
+    return h
+
+def bul(anahtarlar):
+    for k in kayitlar:
+        h = havuz(k)
+        for a in anahtarlar:
+            v = h.get(a)
+            if isinstance(v, bool):
+                continue
+            if isinstance(v, (int, float)) and 0 < v < 10_000_000:
+                return a, int(v)
+    return None, None
+
+a, v = bul(BAGLAM)
+if v:
+    print("baglam\t%d" % v)
+a, v = bul(CIKTI)
+if v:
+    print("cikti\t%d" % v)
+    print("cikti-alan\t%s" % a)
+PY
+}
+
+cikti_probe() { # <url> <key> <model> [baglam]
+  local kok="${1%/}" anahtar="$2" model="$3" baglam="${4:-}" istek govde
+  [ -n "$PY" ] || return 0
+  command -v curl > /dev/null 2>&1 || return 0
+  istek="$("$PY" - "$model" << 'PY' 2> /dev/null || true
+import json, sys
+print(json.dumps({"model": sys.argv[1],
+                  "messages": [{"role": "user", "content": "ok"}],
+                  "max_tokens": 100000000, "temperature": 0, "stream": True}))
+PY
+)"
+  [ -n "$istek" ] || return 0
+  govde="$(curl -sS -N --max-time 12 \
+    -H "Authorization: Bearer $anahtar" -H 'Content-Type: application/json' \
+    -d "$istek" "$kok/chat/completions" 2> /dev/null | head -c 2000 || true)"
+  [ -n "$govde" ] || return 0
+  "$PY" - "${baglam:-0}" "$govde" << 'PY' 2> /dev/null || true
+import json, re, sys
+
+baglam = int(sys.argv[1] or 0)
+ham = sys.argv[2]
+if ham.lstrip().startswith("data:"):
+    sys.exit(0)          # uç isteği kabul etti -> mesajdan sınır öğrenilemez
+try:
+    mesaj = json.loads(ham)
+    hata = mesaj.get("error")
+    if isinstance(hata, dict):
+        mesaj = str(hata.get("message") or "")
+    elif isinstance(hata, str):
+        mesaj = hata
+    else:
+        mesaj = str(mesaj.get("message") or "")
+except Exception:
+    mesaj = ham
+if not mesaj:
+    sys.exit(0)
+
+KALIPLAR = (
+    r"max_tokens\D{0,40}?(\d{2,9})",
+    r"max_completion_tokens\D{0,40}?(\d{2,9})",
+    r"(?:completion|output|generat\w*)\D{0,40}?(?:at most|maximum|limit)\D{0,20}?(\d{2,9})",
+    r"(?:at most|maximum of|limit of)\D{0,20}?(\d{2,9})\s*(?:completion|output|generated)\s*tokens",
+)
+for kalip in KALIPLAR:
+    esles = re.search(kalip, mesaj, re.I)
+    if not esles:
+        continue
+    n = int(esles.group(1))
+    if n < 16 or n > 10_000_000:
+        continue
+    if baglam and n > baglam:
+        continue
+    print(n)
+    break
+PY
 }
 
 kur() {
@@ -475,6 +650,13 @@ kur() {
   echo "== 1/4  ikili =="
   mkdir -p "$HOME/.opencode/bin"
   install -m 0755 "$KOK/bin/opencode" "$HOME/.opencode/bin/opencode"
+  # T4: derleme künyesi ikiliyle birlikte taşınır — kontrol raporu "ikili ↔ surum
+  # ↔ commit" tutarlılığını oradan okur. Künye yoksa (eski bin/opencode) eskisi
+  # silinir ki rapor "künye yok" desin, bayat künyeye bakıp yanlış onay vermesin.
+  rm -f "$HOME/.opencode/bin/opencode.derleme"
+  if [ -f "$KOK/bin/opencode.derleme" ]; then
+    install -m 0644 "$KOK/bin/opencode.derleme" "$HOME/.opencode/bin/opencode.derleme"
+  fi
   yesil "  kuruldu: $HOME/.opencode/bin/opencode"
 
   echo "== 2/4  ayar + kurallar + beceriler =="
@@ -511,36 +693,26 @@ kur() {
   yesil "  beceri: $(ls "$HOME/.config/opencode/skills" | wc -l) adet kuruldu (repoda mevcut: $toplam_mevcut)"
 
   # -------------------------------------------------------------------------
-  #  Bağlam penceresi tespiti — uydurma değer yok, kurum uçtan ölç (best-effort)
+  #  Bağlam penceresi + ÇIKTI SINIRI tespiti — uydurma değer yok, kurum uçtan
+  #  öğrenilir (best-effort). Sıra (T3):
+  #    1) /v1/models alanları  2) küçük bir probe isteği  3) env  4) 4096
+  #  Hangi basamağın kazandığı `kur-durum` künyesine yazılır; kontrol raporu
+  #  "uctan alinamadi → 4096" ayrımını oradan basar (sessizce sabit kalmaz).
   # -------------------------------------------------------------------------
   local TESPIT_EDILEN_PENCERE="" TESPIT_KAYNAK="" MODELS_JSON=""
+  local CIKTI_SINIRI="" CIKTI_KAYNAK="" UC_ALANLARI=""
   case "$KURUM_URL" in
     ""|*KURUM_ENDPOINT*) ;;
     *)
       MODELS_JSON="$(curl -sS --max-time 10 -H "Authorization: Bearer $KURUM_KEY" "${KURUM_URL%/}/models" 2>/dev/null || true)"
       if [ -n "$MODELS_JSON" ]; then
-        TESPIT_EDILEN_PENCERE="$("$PY" - "$MODELS_JSON" <<'PY' 2>/dev/null || true
-import json, sys
-raw = sys.argv[1]
-KEYS = ("max_model_len", "context_length", "max_context_length", "context_window")
-try:
-    d = json.loads(raw)
-except Exception:
-    sys.exit(0)
-candidates = []
-if isinstance(d, dict):
-    candidates.append(d)
-    if isinstance(d.get("data"), list):
-        candidates.extend(x for x in d["data"] if isinstance(x, dict))
-for c in candidates:
-    for k in KEYS:
-        v = c.get(k)
-        if isinstance(v, (int, float)) and v > 0:
-            print(int(v))
-            sys.exit(0)
-PY
-)"
+        UC_ALANLARI="$(uc_alanlari "$MODEL_ID" "$MODELS_JSON")"
+        TESPIT_EDILEN_PENCERE="$(printf '%s\n' "$UC_ALANLARI" | sed -n 's/^baglam\t//p' | head -1)"
+        CIKTI_SINIRI="$(printf '%s\n' "$UC_ALANLARI" | sed -n 's/^cikti\t//p' | head -1)"
         [ -n "$TESPIT_EDILEN_PENCERE" ] && TESPIT_KAYNAK="${KURUM_URL%/}/models"
+        if [ -n "$CIKTI_SINIRI" ]; then
+          CIKTI_KAYNAK="uc alani $(printf '%s\n' "$UC_ALANLARI" | sed -n 's/^cikti-alan\t//p' | head -1)"
+        fi
       fi
       ;;
   esac
@@ -555,15 +727,52 @@ PY
     sari "    İstersen $KOK/env içine KURUM_MAX_CONTEXT=<token> ekleyip yeniden çalıştır."
   fi
 
-  "$PY" - "$KOK/engine/opencode.json" "$HOME/.config/opencode/opencode.json" "$KURUM_URL" "$KURUM_KEY" "$MODEL_ID" "$TESPIT_EDILEN_PENCERE" <<'PY'
+  # --- çıktı sınırı: alan yoksa probe, o da yoksa env, o da yoksa 4096 ------
+  if [ -z "$CIKTI_SINIRI" ]; then
+    case "$KURUM_URL" in
+      ""|*KURUM_ENDPOINT*) ;;
+      *)
+        CIKTI_SINIRI="$(cikti_probe "$KURUM_URL" "$KURUM_KEY" "$MODEL_ID" "$TESPIT_EDILEN_PENCERE")"
+        [ -n "$CIKTI_SINIRI" ] && CIKTI_KAYNAK="uc probe"
+        ;;
+    esac
+  fi
+  if [ -z "$CIKTI_SINIRI" ] && [ -n "${KURUM_MAX_OUTPUT:-}" ]; then
+    CIKTI_SINIRI="${KURUM_MAX_OUTPUT}"
+    CIKTI_KAYNAK="env KURUM_MAX_OUTPUT"
+  fi
+  case "$CIKTI_SINIRI" in
+    ''|*[!0-9]*) CIKTI_SINIRI=""; CIKTI_KAYNAK="" ;;
+  esac
+  # çıktı sınırı bağlam penceresini aşamaz (uç saçmalarsa kırp), tabanı 512
+  if [ -n "$CIKTI_SINIRI" ]; then
+    if [ -n "$TESPIT_EDILEN_PENCERE" ] && [ "$CIKTI_SINIRI" -gt "$TESPIT_EDILEN_PENCERE" ]; then
+      CIKTI_SINIRI="$TESPIT_EDILEN_PENCERE"
+      CIKTI_KAYNAK="$CIKTI_KAYNAK, baglama kirpildi"
+    fi
+    [ "$CIKTI_SINIRI" -lt 512 ] && { CIKTI_SINIRI=""; CIKTI_KAYNAK=""; }
+  fi
+  if [ -n "$CIKTI_SINIRI" ]; then
+    yesil "  çıktı sınırı    : $CIKTI_SINIRI token (kaynak: $CIKTI_KAYNAK)"
+  else
+    CIKTI_SINIRI=4096
+    CIKTI_KAYNAK="uctan alinamadi → 4096"
+    sari "  ! çıktı sınırı uçtan alınamadı → güvenli varsayılan 4096 token kullanıldı"
+    sari "    Uç değeri bildirmiyorsa $KOK/env içine KURUM_MAX_OUTPUT=<token> ekleyip yeniden çalıştır."
+  fi
+
+  "$PY" - "$KOK/engine/opencode.json" "$HOME/.config/opencode/opencode.json" "$KURUM_URL" "$KURUM_KEY" "$MODEL_ID" "$TESPIT_EDILEN_PENCERE" "$CIKTI_SINIRI" <<'PY'
 import json, os, sys
-src, dst, url, key, mid, ctx = sys.argv[1:7]
+src, dst, url, key, mid, ctx, out = sys.argv[1:8]
 d = json.load(open(src, encoding="utf-8"))
 p = d["provider"]["kurum"]
 p["options"]["baseURL"] = url
 p["options"]["apiKey"] = key
 m = list(p["models"])[0]
 p["models"][m]["id"] = mid
+
+if out:
+    p["models"][m].setdefault("limit", {})["output"] = int(out)
 
 if ctx:
     ctx_n = int(ctx)
@@ -583,6 +792,18 @@ json.dump(d, open(dst, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
 os.chmod(dst, 0o600)
 PY
   yesil "  config: $HOME/.config/opencode/opencode.json (izin: 600)"
+
+  # T3 künyesi: değerin NEREDEN geldiği (uç alanı / probe / env / varsayılan).
+  # opencode.json'a şema dışı alan eklemiyoruz; kaynak bilgisi ayrı dosyada durur
+  # ve yalnız kontrol raporunun "cikti: N (kaynak)" parantezini beslemek için var.
+  {
+    printf 'baglam=%s\n' "${TESPIT_EDILEN_PENCERE:-}"
+    printf 'baglam_kaynak=%s\n' "${TESPIT_KAYNAK:-tespit edilemedi}"
+    printf 'cikti=%s\n' "$CIKTI_SINIRI"
+    printf 'cikti_kaynak=%s\n' "$CIKTI_KAYNAK"
+    printf 'tarih=%s\n' "$(date '+%Y-%m-%d %H:%M')"
+  } > "$HOME/.config/opencode/kur-durum" 2>/dev/null || true
+  chmod 600 "$HOME/.config/opencode/kur-durum" 2>/dev/null || true
 
   mkdir -p "$HOME/.config/opencode/plugins"
   if compgen -G "$KOK/engine/plugins/*.ts" > /dev/null || compgen -G "$KOK/engine/plugins/*.js" > /dev/null; then
@@ -682,13 +903,18 @@ PY
 #    1) KURULUM sağlam mı — ikili/env/ayar/beceri/rg/izin/kısayol (ağ gerekmez)
 #    2) kurum AI UCU sağlıklı mı — DNS/TCP/models/sohbet/akış/araç çağrısı
 #
-#  Çıktı TEK EKRANA sığar (≈30 satır, ≤100 sütun) ve sonda tek satırlık "SORUN:"
-#  teşhisi verir. Anahtar ekrana ASLA açık basılmaz (maskelenir) ve "ps" çıktısında
-#  görünmemesi için curl'e geçici config dosyasıyla verilir.
+#  EKRAN SÖZLEŞMESİ: çıktı HER MODDA ≤29 satır ve ≤100 sütundur; sonda tek
+#  satırlık "SORUN:" teşhisi verilir. Bütçe `script/duman-kontrol-rapor.sh` ile
+#  `wc -l` üzerinden sınanır — yeni satır eklerken ya bir satır birleştir ya da
+#  satırı "yalnız sorun varsa bas" (sessiz kural) yap. Anahtar ekrana ASLA açık
+#  basılmaz (maskelenir) ve "ps" çıktısında görünmemesi için curl'e geçici config
+#  dosyasıyla verilir.
 #
-#  İKİ UÇ: env'de KURUM_URL_2 doluysa (opsiyonel KURUM_KEY_2/MODEL_ID_2) raporun
-#  sonuna iki ucu yan yana ölçen 3 satır eklenir: erişim · model · bağlam · medyan
-#  gecikme, sonda "daha hizli: ..." karar satırı. Boşsa rapor eskisiyle aynıdır.
+#  İKİ UÇ: env'de KURUM_URL_2 doluysa (opsiyonel KURUM_KEY_2/MODEL_ID_2) rapora
+#  İKİ SÜTUNLU tek bir satır + karar satırı eklenir (toplam 2 satır): erişim ·
+#  model listede mi · bağlam penceresi · 3 ölçümün medyan gecikmesi, sonda
+#  "daha hizli: ..." kararı + iki ucun bağlam penceresi. Uç başına tam döküm
+#  (3 satır) --ayrintili/-a ile açılır. Boşsa rapor tek uçlu haliyle basılır.
 # ===========================================================================
 son_log_hatasi() {
   [ -d "$LOG_DIZIN" ] || return 0
@@ -794,23 +1020,70 @@ kontrol_kurulum() {
   if [ "$MOD" = "tam" ]; then
     printf '== opencode KONTROL · %s · %s · kok: %s\n' \
       "$(date '+%Y-%m-%d %H:%M')" "$(hostname 2> /dev/null || echo '?')" "$KOK"
-    printf '%s\n' "$CIZGI"
-    duz "KURULUM (ag gerekmez)"
+    bolum "KURULUM (ag gerekmez)"
   else
-    printf '== opencode KURULUM KONTROL · %s · %s\n' "$(date '+%Y-%m-%d %H:%M')" "$(hostname 2> /dev/null || echo '?')"
-    duz "kok      : $KOK"
-    duz "ayar     : $ayar_dizin"
-    printf '%s\n' "$CIZGI"
+    printf '== opencode KURULUM KONTROL · %s · %s · kok: %s\n' \
+      "$(date '+%Y-%m-%d %H:%M')" "$(hostname 2> /dev/null || echo '?')" "$KOK"
+    bolum "ayar: $ayar_dizin"
+  fi
+
+  # --- T4: derleme künyesi + repo HEAD (ikili ↔ surum ↔ commit) -------------
+  # Künye kurulu ikilinin yanındadır; yoksa repo kopyasına düşülür. Boyut alanı
+  # künyenin gerçekten BU ikiliye ait olduğunu doğrular (elle kopyalanmış ikili
+  # bayat künyeyle "tutarlı" görünmesin).
+  KUNYE_DOSYA=""
+  if [ -f "$kurulu_bin.derleme" ]; then
+    KUNYE_DOSYA="$kurulu_bin.derleme"
+  elif [ -f "$repo_bin.derleme" ]; then
+    KUNYE_DOSYA="$repo_bin.derleme"
+  fi
+  local k_commit k_tarih k_kirli k_boyut k_surum repo_head="" gercek_boyut="" kunye_uyar=""
+  k_commit="$(kunye_oku commit)"
+  k_tarih="$(kunye_oku tarih)"
+  k_kirli="$(kunye_oku kirli)"
+  k_boyut="$(kunye_oku boyut)"
+  k_surum="$(kunye_oku surum)"
+  if command -v git > /dev/null 2>&1 && [ -d "$KOK/.git" ]; then
+    repo_head="$(git -C "$KOK" rev-parse --short HEAD 2> /dev/null || true)"
+  fi
+  [ -f "$kurulu_bin" ] && gercek_boyut="$(stat -c '%s' "$kurulu_bin" 2> /dev/null || echo '')"
+  if [ -n "$KUNYE_DOSYA" ] && [ -n "$k_boyut" ] && [ -n "$gercek_boyut" ] && [ "$k_boyut" != "$gercek_boyut" ]; then
+    kunye_uyar="derleme kunyesi ikiliyle eslesmiyor (boyut $gercek_boyut ≠ kunye $k_boyut)"
+    k_commit=""; k_tarih=""
   fi
 
   # 1) ikili (kurulu olan asıl önemli; repo içindeki kaynak ikili ek bilgi)
   if [ -x "$kurulu_bin" ]; then
     local surum
     if surum="$(timeout 30 "$kurulu_bin" --version 2>&1)"; then
-      satir "ikili" ok "kurulu: ~/.opencode/bin/opencode · surum $surum"
+      local esit=""
+      [ -n "$k_commit" ] && [ -n "$repo_head" ] && [ "$k_commit" = "$repo_head" ] && esit=" (=HEAD)"
+      satir "ikili" ok "surum $surum · commit ${k_commit:-?}${esit} · derleme ${k_tarih:-?} · HEAD ${repo_head:-?}"
     else
       satir "ikili" hata "kurulu ikili calismiyor: $(kis "$surum" 60)"
       sorun_kaydet "kurulu ikili calismiyor — ./kur.sh ile yeniden kur"
+    fi
+    # Tutarsızlık varsa TEK uyarı satırı (denetim bulgusu 3). Sağlam kurulumda
+    # bu satır hiç basılmaz — rapor satır bütçesi (≤29) korunur.
+    local tutarsiz=""
+    if [ -n "${surum:-}" ] && [ "$surum" != "$SURUM" ]; then
+      tutarsiz="ikili surum $surum, kur.sh bekleneni $SURUM"
+    fi
+    if [ -n "$k_surum" ] && [ -n "${surum:-}" ] && [ "$k_surum" != "$surum" ]; then
+      tutarsiz="${tutarsiz:+$tutarsiz · }kunye surumu $k_surum, ikili $surum"
+    fi
+    if [ -n "$kunye_uyar" ]; then
+      tutarsiz="${tutarsiz:+$tutarsiz · }$kunye_uyar"
+    elif [ -z "$KUNYE_DOSYA" ]; then
+      tutarsiz="${tutarsiz:+$tutarsiz · }derleme kunyesi yok (ikili hangi commit'ten geldigi izlenemiyor)"
+    elif [ -n "$k_commit" ] && [ -n "$repo_head" ] && [ "$k_commit" != "$repo_head" ]; then
+      tutarsiz="${tutarsiz:+$tutarsiz · }ikili commit $k_commit, repo HEAD $repo_head"
+    fi
+    [ "$k_kirli" = "1" ] && tutarsiz="${tutarsiz:+$tutarsiz · }derleme aninda calisma agaci kirliydi"
+    if [ -n "$tutarsiz" ]; then
+      satir "surum" uyar "$tutarsiz — ./kur.sh (gerekirse ALP_DERLE=1 ./kur.sh)"
+      ayr "kunye dosyasi: ${KUNYE_DOSYA:-yok}"
+      ayr "kur.sh SURUM=$SURUM · KANAL=$KANAL · repo HEAD=${repo_head:-?}"
     fi
   elif [ -f "$repo_bin" ]; then
     satir "ikili" hata "bin/opencode var ama kurulmamis (~/.opencode/bin/opencode yok) — ./kur.sh"
@@ -1112,17 +1385,13 @@ kontrol() {
 
   KOK_URL="${URL%/}"
 
-  # --- başlık ---
-  if [ "$MOD" = "tam" ]; then
-    printf '%s\n' "$CIZGI"
-    duz "KURUM AI UCU : $KOK_URL · $MODEL"
-    duz "anahtar      : $(maskele "$KEY") · zaman asimi ${ZAMAN_ASIMI} sn"
-  else
+  # --- başlık (bölüm ayracı + başlık TEK satır: rapor bütçesi ≤29) ---------
+  if [ "$MOD" != "tam" ]; then
     printf '== opencode UC KONTROL · %s · %s\n' "$(date '+%Y-%m-%d %H:%M')" "$(hostname 2> /dev/null || echo '?')"
-    duz "uc/model : $KOK_URL  ·  $MODEL"
-    duz "anahtar  : $(maskele "$KEY") · zaman asimi ${ZAMAN_ASIMI} sn · ayar: $ENV_KAYNAK"
   fi
-  printf '%s\n' "$CIZGI"
+  bolum "KURUM AI UCU · $KOK_URL"
+  duz "model: $MODEL · anahtar: $(maskele "$KEY") · zaman asimi ${ZAMAN_ASIMI} sn"
+  ayr "ayar kaynagi: $ENV_KAYNAK"
   [ -n "$PY" ] || satir "python3" uyar "python3 yok — JSON ayrintilari (model listesi, pencere) sinirli"
 
   # --- 1) URL biçimi -------------------------------------------------------
@@ -1174,15 +1443,18 @@ kontrol() {
     ayr "istekler: $(uc_ver models) · $(uc_ver chat/completions)"
   fi
 
-  # --- 2) DNS --------------------------------------------------------------
+  # --- 2+3) ag: DNS + TCP (tek satirda) -----------------------------------
+  # İki ayrı satırdı; rapor bütçesi (≤29) için birleştirildi. Bilgi aynı:
+  # çözümlenen IP('ler) · portun açık olup olmadığı · tanımlı proxy değişkenleri.
+  DNS_DURUM="ok"; DNS_METIN=""
   if printf '%s' "$HOST" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
-    satir "DNS" ok "host zaten IP: $HOST (DNS gerekmiyor)"
+    DNS_METIN="IP $HOST (DNS gerekmiyor)"
   elif command -v getent > /dev/null 2>&1; then
     IPLER="$(getent ahosts "$HOST" 2> /dev/null | awk '{print $1}' | sort -u | tr '\n' ' ')"
     if [ -n "${IPLER// /}" ]; then
-      satir "DNS" ok "$HOST -> ${IPLER% }"
+      DNS_METIN="DNS $HOST -> ${IPLER% }"
     else
-      satir "DNS" hata "$HOST cozumlenemedi — opencode da ayni hatayi alir"
+      DNS_DURUM="hata"; DNS_METIN="DNS $HOST cozumlenemedi (opencode da ayni hatayi alir)"
       sorun_kaydet "DNS cozulemiyor — $HOST (kontrol: cat /etc/resolv.conf · grep $HOST /etc/hosts)"
     fi
   elif [ -n "$PY" ]; then
@@ -1192,27 +1464,34 @@ try:
 except Exception:
     pass' "$HOST" 2> /dev/null)"
     if [ -n "$IPLER" ]; then
-      satir "DNS" ok "$HOST -> $IPLER"
+      DNS_METIN="DNS $HOST -> $IPLER"
     else
-      satir "DNS" hata "$HOST cozumlenemedi (DNS)"
+      DNS_DURUM="hata"; DNS_METIN="DNS $HOST cozumlenemedi"
       sorun_kaydet "DNS cozulemiyor — $HOST"
     fi
   else
-    satir "DNS" uyar "getent/python3 yok — DNS kontrolu atlandi"
+    DNS_DURUM="uyar"; DNS_METIN="DNS kontrolu atlandi (getent/python3 yok)"
   fi
 
-  # --- 3) TCP --------------------------------------------------------------
   PROXY_NOT=""
   for degisken in http_proxy https_proxy HTTP_PROXY HTTPS_PROXY no_proxy NO_PROXY; do
     [ -n "${!degisken:-}" ] && PROXY_NOT="$PROXY_NOT $degisken"
   done
-  [ -n "$PROXY_NOT" ] && PROXY_NOT=" · proxy degiskeni tanimli:$PROXY_NOT"
+  [ -n "$PROXY_NOT" ] && PROXY_NOT=" · proxy:$PROXY_NOT"
+  TCP_DURUM="ok"
   if timeout 10 bash -c "exec 3<>/dev/tcp/$HOST/$PORT" 2> /dev/null; then
-    satir "TCP" ok "$HOST:$PORT acik${PROXY_NOT}"
+    TCP_METIN="TCP $PORT acik"
   else
-    satir "TCP" hata "$HOST:$PORT kapali — guvenlik duvari, yanlis port veya proxy${PROXY_NOT}"
+    TCP_DURUM="hata"; TCP_METIN="TCP $PORT KAPALI (guvenlik duvari/yanlis port/proxy)"
     sorun_kaydet "uc erisilemiyor (TCP $HOST:$PORT kapali) — ping $HOST · ss -tlnp (uc makinede)"
   fi
+
+  AG_DURUM="ok"
+  case "$DNS_DURUM$TCP_DURUM" in
+    *hata*) AG_DURUM="hata" ;;
+    *uyar*) AG_DURUM="uyar" ;;
+  esac
+  satir "ag" "$AG_DURUM" "$DNS_METIN · ${TCP_METIN}${PROXY_NOT}"
 
   # --- 4) GET /models ------------------------------------------------------
   MODELS_GOVDE="$TMP/models.json"
@@ -1412,11 +1691,13 @@ for ad, saglayici in (cfg.get("provider") or {}).items():
         # sözlük anahtarı (ör. "kurum-model") şablondan gelir ve env ile eşleşmez.
         # (Eskiden anahtar karşılaştırılıyordu -> kurulum doğruyken bile "ayni DEGIL" uyarısı.)
         sinir = (model.get("limit") or {}).get("context") or "?"
-        print("%s\t%s\t%s\t%s" % (ad, model.get("id") or anahtar, taban, sinir))
+        cikti = (model.get("limit") or {}).get("output") or "?"
+        print("%s\t%s\t%s\t%s\t%s" % (ad, model.get("id") or anahtar, taban, sinir, cikti))
 PY
 )"
     if [ -n "$kurulu" ]; then
       KURULU_CTX="$(printf '%s\n' "$kurulu" | head -1 | cut -f4)"
+      KURULU_OUT="$(printf '%s\n' "$kurulu" | head -1 | cut -f5)"
       if ! printf '%s\n' "$kurulu" | cut -f3 | grep -Fxq "$KOK_URL"; then
         AYAR_NOT="baseURL env ile ayni DEGIL"
       elif ! printf '%s\n' "$kurulu" | cut -f2 | grep -Fxq "$MODEL"; then
@@ -1429,16 +1710,44 @@ PY
       fi
     fi
   fi
-  PENCERE_METIN="uc: ${PENCERE_UC:-bildirmiyor} · kurulu ayar: ${KURULU_CTX:-yok} · env: ${PENCERE_ENV:-yok}"
+  # T3: çıktı sınırı — kurulu değer opencode.json'dan, "nereden geldiği" kurulum
+  # künyesinden (kur-durum) okunur. Künye yoksa/eskimişse sessizce "4096 zaten
+  # böyleydi" demeyiz: kaynak "bilinmiyor" diye basılır.
+  CIKTI_UC=""
+  if [ -s "$MODELS_GOVDE" ] && [ -n "$PY" ]; then
+    # gövde argümanla geçiyor: uzun model listelerinde ARG_MAX'a dayanmasın diye kırpılır
+    CIKTI_UC="$(uc_alanlari "$MODEL" "$(head -c 200000 "$MODELS_GOVDE")" | sed -n 's/^cikti\t//p' | head -1)"
+  fi
+  DURUM_DOSYA="${XDG_CONFIG_HOME:-$HOME/.config}/opencode/kur-durum"
+  CIKTI_NOT="kaynak bilinmiyor"
+  if [ -f "$DURUM_DOSYA" ]; then
+    d_cikti="$(sed -n 's/^cikti=//p' "$DURUM_DOSYA" 2> /dev/null | head -1)"
+    d_kaynak="$(sed -n 's/^cikti_kaynak=//p' "$DURUM_DOSYA" 2> /dev/null | head -1)"
+    if [ -n "$d_cikti" ] && [ "$d_cikti" = "${KURULU_OUT:-}" ] && [ -n "$d_kaynak" ]; then
+      CIKTI_NOT="$d_kaynak"
+    fi
+  fi
+  if [ -n "$CIKTI_UC" ] && [ -n "${KURULU_OUT:-}" ] && [ "$KURULU_OUT" != "?" ] \
+    && [ "$CIKTI_UC" != "$KURULU_OUT" ]; then
+    AYAR_NOT="${AYAR_NOT:+$AYAR_NOT · }uc cikti siniri $CIKTI_UC, kurulu $KURULU_OUT"
+  fi
+
+  PENCERE_METIN="baglam uc ${PENCERE_UC:-yok} · kurulu ${KURULU_CTX:-yok} · env ${PENCERE_ENV:-yok}"
+  PENCERE_METIN="$PENCERE_METIN · cikti ${KURULU_OUT:-yok} ($CIKTI_NOT)"
+  # Uyarı varken sayılar kısaltılır: eylem cümlesi ("... — ./kur.sh") satır
+  # kırpmasına kurban gitmesin; tam metin --ayrintili'da basılır.
+  PENCERE_KISA="baglam ${PENCERE_UC:-yok}/${KURULU_CTX:-yok} · cikti ${KURULU_OUT:-yok}"
   if [ -n "$AYAR_NOT" ]; then
-    satir "ayar" uyar "$PENCERE_METIN · $AYAR_NOT — ./kur.sh"
+    satir "ayar" uyar "$AYAR_NOT — ./kur.sh · $PENCERE_KISA"
+    ayr "$PENCERE_METIN"
   elif [ -n "$PENCERE_UC" ] && [ -n "${KURULU_CTX:-}" ] && [ "$PENCERE_UC" != "${KURULU_CTX:-}" ]; then
-    satir "ayar" uyar "$PENCERE_METIN · uc ile kurulu deger farkli — ./kur.sh"
+    satir "ayar" uyar "uc ile kurulu baglam farkli — ./kur.sh · $PENCERE_KISA"
+    ayr "$PENCERE_METIN"
   elif [ "$MODELS_DURUM" != "200" ]; then
     # uç yanıt vermediyse "✓" basmak yanıltıcı olur — yalnız bilgi satırı
-    satir "ayar" bilgi "baglam $PENCERE_METIN (uc yanit vermedi, karsilastirma yapilamadi)"
+    satir "ayar" bilgi "$PENCERE_METIN (uc yanit vermedi, karsilastirma yapilamadi)"
   else
-    satir "ayar" ok "baglam $PENCERE_METIN"
+    satir "ayar" ok "$PENCERE_METIN"
   fi
 
   # --- 9) log --------------------------------------------------------------
@@ -1458,10 +1767,15 @@ PY
     IFS=$'\t' read -r D1 _ _ C1 MS1 <<< "$OZET1"
     IFS=$'\t' read -r D2 _ _ C2 MS2 <<< "$OZET2"
 
-    # ekran sozlesmesi: bu blok 4 satirdan uzun olmasin (uc1 · uc2 · karar + ayrac)
-    printf '%s\n' "$CIZGI"
-    yaz_uc "uc1" "$OZET1"
-    yaz_uc "uc2" "$OZET2"
+    # Ekran sözleşmesi (T2): iki uç TEK bölümde, İKİ SÜTUN — kısa modda bu blok
+    # toplam 2 satır (sütunlar + karar); eskiden 4 satırdı (ayrac + uc1 + uc2 +
+    # karar) ve rapor 33 satıra çıkıyordu. Uç başına veri KORUNUR: erişim ·
+    # model listede mi · bağlam penceresi · 3 ölçümün medyanı. Tam liste
+    # --ayrintili/-a ile (uç başına 3 satır) açılır.
+    printf ' %s | %s\n' "$(uc_sutun uc1 "$OZET1")" "$(uc_sutun uc2 "$OZET2")"
+    uc_ayrinti uc1 "$KOK_URL" "$MODEL" "$OZET1"
+    uc_ayrinti uc2 "${URL2%/}" "$MODEL2" "$OZET2"
+    if [ "$D1" != "ok" ] || [ "$D2" != "ok" ]; then UYARI=$((UYARI + 1)); fi
 
     KARAR="karar yok — iki ucun da gecikmesi olculemedi"
     if [ "$D1" = "ok" ] && [ "$D2" = "ok" ] && [ "${MS1:-?}" != "?" ] && [ "${MS2:-?}" != "?" ]; then
@@ -1477,12 +1791,16 @@ PY
     elif [ "$D2" = "ok" ]; then
       KARAR="yalniz uc2 yanit veriyor — env'deki 1. ucu degistirmeyi dusun"
     fi
+    # Bağlam penceresi karar satırında HER ZAMAN yazılır: sütunlarda uzun host
+    # yüzünden kırpılsa bile uç başına bağlam verisi raporda kalsın.
     KARAR_NOT=""
-    if [ "${C1:-?}" != "?" ] && [ "${C2:-?}" != "?" ] && [ -n "$C1" ] && [ -n "$C2" ] && [ "$C1" != "$C2" ]; then
-      if [ "$C1" -gt "$C2" ]; then
-        KARAR_NOT=" · genis baglam: uc1 ($C1 vs $C2)"
+    if [ "${C1:-?}" != "?" ] && [ "${C2:-?}" != "?" ] && [ -n "$C1" ] && [ -n "$C2" ]; then
+      if [ "$C1" -gt "$C2" ] 2> /dev/null; then
+        KARAR_NOT=" · baglam uc1 $C1 > uc2 $C2"
+      elif [ "$C2" -gt "$C1" ] 2> /dev/null; then
+        KARAR_NOT=" · baglam uc2 $C2 > uc1 $C1"
       else
-        KARAR_NOT=" · genis baglam: uc2 ($C2 vs $C1)"
+        KARAR_NOT=" · baglam ikisi de $C1"
       fi
     fi
     # model kimligi uzun olabilir — karar satiri tasmasin diye yalniz "farkli" notu dusulur
@@ -1579,15 +1897,41 @@ uc_olc() {
   printf 'ok\t%s\t%s\t%s\t%s\n' "$(host_port "$adres")" "$bilgi" "${ctx:-?}" "${ms:-?}"
 }
 
-# yaz_uc <etiket> <ozet-satiri>
-yaz_uc() {
-  local etiket="$1" durum host bilgi ctx ms
+# uc_sutun <etiket> <ozet-satiri> — iki uçlu raporun TEK SÜTUNU.
+# Genişlik sabit: simge(1) + boşluk(1) + gövde(45) = 47; iki sütun + " | " = 97
+# sütun, 100'lük ekrana sığar. Taşma olursa SADECE host kısalır — ölçüm sayıları
+# (bağlam, medyan) her zaman görünür kalır; tam adres --ayrintili'da basılır.
+# (Renk kodu yalnız baştaki simgede; gövde renksiz ki kırpma hesabı bozulmasın.)
+uc_sutun() {
+  local etiket="$1" durum host bilgi ctx ms govde simge bas kuyruk hw
   IFS=$'\t' read -r durum host bilgi ctx ms <<< "$2"
   if [ "$durum" = "ok" ]; then
-    satir "$etiket" ok "$host · $bilgi · baglam $ctx · medyan $ms ms"
+    case "$bilgi" in
+      "model var") bilgi="mdl ✓" ;;
+      "model YOK") bilgi="mdl ✗" ;;
+      *) bilgi="mdl ?" ;;
+    esac
+    simge="$(renk 32 '✓')"
+    kuyruk=" · $bilgi · ctx${ctx:-?} · ${ms:-?}ms"
   else
-    satir "$etiket" uyar "$host · erisilemedi ($bilgi)"
+    simge="$(renk 33 '!')"
+    kuyruk=" · erisilemedi ($bilgi)"
   fi
+  bas="$etiket "
+  hw=$((45 - ${#bas} - ${#kuyruk}))
+  [ "$hw" -lt 8 ] && hw=8
+  govde="$bas$(kis "$host" "$hw")$kuyruk"
+  printf '%s %s' "$simge" "$(printf '%-45s' "$(kis "$govde" 45)")"
+}
+
+# uc_ayrinti <etiket> <url> <model> <ozet> — yalnız --ayrintili: uç başına 3 satır
+uc_ayrinti() {
+  [ "$AYRINTILI" -eq 1 ] || return 0
+  local etiket="$1" url="$2" model="$3" durum host bilgi ctx ms
+  IFS=$'\t' read -r durum host bilgi ctx ms <<< "$4"
+  ayr "$etiket uc    : $url ($host)"
+  ayr "$etiket model : $model — $bilgi"
+  ayr "$etiket olcum : baglam ${ctx:-?} · medyan ${ms:-?} ms (3 ornek, GET /models)"
 }
 
 # ===========================================================================
@@ -1608,7 +1952,7 @@ Alt komutlar:
 
 Secenekler (kur/varsayilan akista kontrol asamasina aktarilir):
   --zaman-asimi <sn>   uc isteklerinde bekleme suresi (varsayilan 60)
-  --ayrintili          kontrol raporunu kirpmadan bas
+  --ayrintili | -a     kontrol raporunu kirpmadan bas (iki uc: uc basina 3 satir)
   --url <adres>        kontrolde env yerine tek seferlik uc adresi
   --key <anahtar>      kontrolde env yerine tek seferlik anahtar
   --model <id>         kontrolde env yerine tek seferlik model kimligi
@@ -1639,7 +1983,7 @@ ana() {
         kullanim
         exit 0
         ;;
-      --ayrintili | --uzun) AYRINTILI=1 ;;
+      --ayrintili | --uzun | -a) AYRINTILI=1 ;;
       --zaman-asimi)
         ZAMAN_ASIMI="${2:-}"
         shift
@@ -1686,4 +2030,9 @@ ana() {
   esac
 }
 
-ana "$@"
+# Doğrudan çalıştırıldığında ana akış koşar. `source kur.sh` ile alındığında
+# koşmaz — böylece tek tek fonksiyonlar (ör. kunye_yaz) derleme yapmadan
+# sınanabilir (bkz. script/duman-kontrol-rapor.sh).
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+  ana "$@"
+fi

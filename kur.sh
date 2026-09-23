@@ -205,7 +205,7 @@ env_hazirla() {
   bilgi "Ya da su 3 satirla elle olustur (degerleri kurumdan al):"
   bilgi "  KURUM_URL=https://SUNUCU:8000/v1"
   bilgi "  KURUM_KEY=dummy"
-  bilgi "  MODEL_ID=MODEL_ID_YER_TUTUCU"
+  bilgi "  MODEL_ID=\"<model-kimligi>\"   # /v1/models ciktisindan birebir"
   bilgi "(env bilerek git'te degil: URL + anahtar repoda durmasin.)"
   return 1
 }
@@ -645,6 +645,12 @@ kur() {
 
   case "$KURUM_URL" in
     *KURUM_ENDPOINT*) hata "Önce $KOK/env içindeki KURUM_URL'i doldur."; exit 1 ;;
+  esac
+  # T12: MODEL_ID de şablonda yer tutucudur (`<model-kimligi>`); gerçek ad uçtan
+  # (`/v1/models`) birebir kopyalanır. Yer tutucuyla kurulursa opencode.json'a
+  # geçersiz bir model kimliği yazılır, hata ancak ilk istekte görünür.
+  case "$MODEL_ID" in
+    *'<'* | *MODEL_ID_YER_TUTUCU*) hata "Önce $KOK/env içindeki MODEL_ID'yi doldur (/v1/models çıktısından birebir)."; exit 1 ;;
   esac
 
   echo "== 1/4  ikili =="
@@ -1125,7 +1131,14 @@ kontrol_kurulum() {
     # shellcheck disable=SC1090
     (. "$KOK/env" 2> /dev/null; for d in KURUM_URL KURUM_KEY MODEL_ID; do [ -n "${!d:-}" ] || exit 1; done) \
       || eksik="eksik satir var"
-    if grep -q 'KURUM_ENDPOINT' "$KOK/env" 2> /dev/null; then eksik="sablon degeri duruyor (KURUM_ENDPOINT)"; fi
+    # Doldurulmamış şablon: KURUM_URL'de `KURUM_ENDPOINT`, MODEL_ID'de `<...>`
+    # (T12 — gerçek model yolu repoda durmaz, uçtan `/v1/models` ile alınır).
+    local sablon=""
+    if grep -q 'KURUM_ENDPOINT' "$KOK/env" 2> /dev/null; then sablon="KURUM_ENDPOINT"; fi
+    if grep -qE '^[[:space:]]*MODEL_ID=["'"'"']?<' "$KOK/env" 2> /dev/null; then
+      sablon="${sablon:+$sablon + }MODEL_ID=<...>"
+    fi
+    if [ -n "$sablon" ]; then eksik="sablon degeri duruyor ($sablon)"; fi
     if [ -n "$eksik" ]; then
       satir "env" hata "$KOK/env — $eksik"
       sorun_kaydet "env doldurulmamis — $KOK/env icindeki 3 satiri doldur"
@@ -1148,7 +1161,7 @@ kontrol_kurulum() {
     if [ "$gecerli" -eq 0 ]; then
       satir "ayar" hata "$kurulu_cfg GECERSIZ JSON — ./kur.sh"
       sorun_kaydet "kurulu opencode.json bozuk — ./kur.sh yeniden yazar"
-    elif grep -q 'KURUM_ENDPOINT' "$kurulu_cfg"; then
+    elif grep -qE 'KURUM_ENDPOINT|MODEL_ID_YER_TUTUCU' "$kurulu_cfg"; then
       satir "ayar" hata "kurulu opencode.json'da sablon degeri duruyor — ./kur.sh"
       sorun_kaydet "kurulu ayar sablon halinde — ./kur.sh calistir"
     else
@@ -1348,9 +1361,14 @@ kontrol() {
   KEY2="${KURUM_KEY_2:-}"
   MODEL2="${MODEL_ID_2:-}"
 
-  if [ -z "$URL" ] || [ -z "$MODEL" ]; then
+  # T12: MODEL_ID şablonda `<model-kimligi>` yer tutucusudur — boş değil ama dolu da
+  # değil; doldurulmuş bir değerden `<` ile ayrılır (URL için aynı desen: satır ~1410).
+  MODEL_SABLON=0
+  case "$MODEL" in *'<'*) MODEL_SABLON=1 ;; esac
+
+  if [ -z "$URL" ] || [ -z "$MODEL" ] || [ "$MODEL_SABLON" = 1 ]; then
     if [ "$MOD" = "tam" ]; then printf '%s\n' "$CIZGI"; else printf '== opencode UC KONTROL\n'; fi
-    satir "env" hata "$ENV_DOSYASI — KURUM_URL ve/veya MODEL_ID bos"
+    satir "env" hata "$ENV_DOSYASI — KURUM_URL ve/veya MODEL_ID bos/sablon"
     if [ ! -f "$ENV_DOSYASI" ]; then
       duz "olustur: ./kur.sh (env.local, yoksa env.example sablonundan env uretir — sonra doldur)"
     fi

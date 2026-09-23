@@ -138,7 +138,7 @@ akışının bir parçası DEĞİLDİR.
 cat > /root/ai/opencode/env.local <<'EOF'
 KURUM_URL=https://SUNUCU:8000/v1
 KURUM_KEY=dummy
-MODEL_ID=MODEL_ID_YER_TUTUCU
+MODEL_ID="<model-kimligi>"   # /v1/models ciktisindan birebir kopyala
 EOF
 
 # 2) TEK KOMUT: gerekirse derler, sonra kurar (ayar+beceri+plugin+rg+kısayol) ve doğrular

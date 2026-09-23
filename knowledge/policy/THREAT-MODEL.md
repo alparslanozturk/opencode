@@ -6,8 +6,9 @@
 > **Not (2026-09-16):** `/root/ai-danis/` bu makinede **mevcut değil** — harici kaynak, bu repoda tutulmaz.
 > Referans silinmedi (izlenebilirlik için), içerik zaten bu politika dosyasına özetlenmiş durumda.
 >
-> **Maskeleme kuralı:** gerçek IP/hostname/domain/kullanıcı adı yazılmaz. Bu dosyada: sunucu → `test-sunucu`,
-> küme → `KUME-A` / `KUME-B`, IP → `10.0.0.x`, kurum → `kurum`.
+> **Maskeleme kuralı:** gerçek IP/hostname/domain/kullanıcı adı **ve kuruma özgü mutlak yol** yazılmaz.
+> Bu dosyada: sunucu → `test-sunucu`, küme → `KUME-A` / `KUME-B`, IP → `10.0.0.x`, kurum → `kurum`.
+> Repo geneli kural ve tekrarlanabilir tarama komutu: **§6**.
 
 ## 1. Varlıklar (assets)
 
@@ -79,6 +80,41 @@ Somut olarak:
 | İmzasız skill approved'a sızar | Düşük (v1'de elle) | Orta | Faz 1: checksum/imza zorunluluğu, PR review |
 | Model endpoint prompt'ları dışarı sızdırır/loglar | Bilinmiyor (doğrulanmadı) | Yüksek | Açık soru — kurumun Qwen endpoint kurulumu doğrulanmalı |
 | Ajan kimliği ile insan kimliği karışır (iç tehdit / izlenebilirlik) | Düşük | Orta | Ayrı Unix hesabı + audit'te `actor.agent` / `actor.human` ayrımı |
+
+## 6. Maskeleme — repo geneli kural ve tarama (T12/C18)
+
+Repo **kurum dışına da çıkabilen** bir kit: gerçek saha değerleri yalnız git'te **izlenmeyen** dosyalarda
+(`env`, `env.local` — `.gitignore`) ve `$HOME` altında durur; izlenen her dosya yalnız **yer tutucu** taşır.
+
+**Neyi maskeliyoruz (T9 + T12).** İlk tarama yalnız host/IP/URL odaklıydı, bu yüzden `env.example`'daki gerçek
+model yolu gözden kaçtı (T12 bulgusu). Kapsam bu yüzden ikiye ayrılır:
+
+| Sınıf | Örnek desen | Yer tutucu |
+|---|---|---|
+| Host / makine adı | saha makinesi, git kaynağı, bulut | `<saha-makinesi>`, `<git-kaynagi-host>`, `<kurum-bulut>` |
+| Kurum alan adı / uç | `*.com.tr`, `*.net.tr` içeren adres | `KURUM_ENDPOINT`, `<kurum-host>` |
+| **Kuruma özgü mutlak yol / iç dizin kalıbı** | `/data/…`, `/<uygulama>/…`, `/<log-dizini>…`, `models--<saglayici>--<model>` | `<model-kimligi>`, `<model-dizini>` |
+
+**Yer tutucu dolu değerden ayırt edilebilir olmalı:** `<…>` köşeli biçim ya da `KURUM_ENDPOINT` gibi sabit
+bir dize. `kur.sh` şablon muhafızı bu iki deseni arar (`kur.sh` — `kurulum` kapısı, `kontrol_kurulum()` env
+satırı, uç teşhisi); yer tutucu doldurulmadan kurulum yapılmaz, `./kur.sh kontrol` "sablon degeri duruyor" der.
+`env.example` kabuk tarafından `.` ile okunduğu için `<…>` taşıyan değer **tırnak içinde** yazılır
+(`MODEL_ID="<model-kimligi>"`) — tırnaksız yazım `<` yönlendirmesi sayılıp dosyayı bozar.
+
+**Tekrarlanabilir tarama** (repo kökünde; çıktı boşsa temiz — `git ls-files` = yalnız izlenen dosyalar):
+
+```bash
+KAPSAM=(':(glob)*.md' ':(glob)*.sh' 'env.example' 'engine' 'knowledge' 'docs' 'script')
+DESEN='/data/|/<uygulama>|/<log-dizini>|models--|[A-Za-z0-9-]+\.(com|net|org)\.tr'
+git ls-files -z -- "${KAPSAM[@]}" | xargs -0 grep -nIE "$DESEN" | grep -viE 'sahte|<[a-z]'
+```
+
+- **Kapsam neden dar:** `packages/` + `bun.lock` upstream ağacıdır; orada `/data/` (stats sitesi taban yolu)
+  ve `10.x` sürüm numaraları yüzlerce yanlış pozitif verir. Kurum değeri yalnız fork katmanına girer.
+- **İkinci `grep -v` neden var:** açıkça **sahte** test verisi (`script/sahte-uc.py`, duman testi) ve zaten
+  yer tutucu olan satırlar (`<…>`) elenir. Gerçek bir değeri bu iki kelimeyle gizlemek **yasaktır**.
+- **Desene gerçek host/yol yazılmaz** — tarama deseninin kendisi de maskeleme kuralına tabidir; yeni bir iç
+  dizin kalıbı çıktıkça `DESEN`'e **genel** biçimiyle eklenir (`/<dizin>/`), gerçek adıyla değil.
 
 ## Bu doküman neyi kapsamıyor
 

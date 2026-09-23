@@ -164,6 +164,24 @@ Beceri: `rapor-excel-pdf` (pakette **var**, varsayılan **10 çekirdek** beceri 
 **geçicidir** — `kur.sh` beceri dizinini baştan yazdığı için sonraki çalıştırmada silinir; bir becerinin
 kalıcı kurulumu `knowledge/skills/approved/` + `CORE_SKILLS` dizisi üzerinden yapılır.
 
+## Sürüm / derleme notu (2026-09-22 → 1.0.1)
+
+- **Ürün sürümü 1.0.1.** Derleme bayrağı: `packages/opencode/script/build.ts` → `Bun.build(...)`
+  çağrısı **`splitting: false`** kullanır. Gerekçe: tek-dosya `bun build --compile` çıktısında kod
+  bölme (`splitting: true`) dairesel import'ların değerlendirme sırasını bozuyor →
+  `SystemPrompt.environment`'da `TypeError: undefined is not an object (evaluating 'a.name')`
+  çökmesi. Düzeltme `cca807db28`, ek savunma guard'ı (bozuk `reference` girdisi) `9ad34675c6`;
+  olay kaydı: `knowledge/incidents/2026-09-22-derlenmis-ikili-a-name-cokmesi.md`.
+  (Ürün sürümü 1.0.1 ↔ vendor `opencode` 1.18.30 ayrımı `MIMARI.md`'de.)
+- **Tek giriş noktası:** kökte `./kur.sh <derle|kur|kontrol|yardim>`; eski `01/02/03` betikleri
+  **kaldırıldı**.
+- **Kökte yalnız `kur.sh`** (tek `.sh` dosyası). `bin/` içinde git'e giren **tek dosya**
+  `ripgrep.tar.xz`; `bin/opencode` `.gitignore`'da — repoya girmez, **yalnız derleme önbelleğidir**
+  (ürün çıktısı değil), her `kur.sh derle` çalıştırmasında tazelenir.
+- **Node header izleme notu:** `node-v24.19.0-headers.tar.gz` depoda izlenir (offline `node-gyp`
+  için); `kur.sh` gerekirse `node-v24.19.0-headers` sembolik bağını kurar, elle konulmuş gerçek
+  dizine dokunmaz.
+
 ## Hızlı doğrulama
 
 - Agent'a sor: *"Şu an hangi kural dosyaları yüklendi?"* (payload'da `Instructions from: <yol>` satırları olarak görünür).

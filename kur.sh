@@ -994,6 +994,20 @@ PY
     satir "kisayol" uyar "'opencode' PATH'te yok — ./kur.sh veya tam yolla calistir"
   fi
 
+  # 10) terminal karakter kümesi (A21) — TUI spinner'ı braille glifleri kullanır
+  #     (packages/tui/src/component/spinner.tsx). Locale UTF-8 degilse ekranda kutu/"?" cikar.
+  #     SESSIZ KURAL: yalnız sorun varsa satır basar → saglam kurulumda rapor uzamaz (A2, ≤29 satır).
+  local yerel="${LC_ALL:-${LC_CTYPE:-${LANG:-}}}"
+  case "$yerel" in
+    *UTF-8* | *utf-8* | *UTF8* | *utf8*) ;;
+    *)
+      satir "locale" uyar "karakter kumesi UTF-8 degil (${yerel:-bos}) — TUI glifleri kutu/? cikar: export LANG=C.UTF-8"
+      ayr "kalici cozum: ~/.bashrc icine 'export LANG=C.UTF-8' (ya da tr_TR.UTF-8 kuruluysa o)"
+      ayr "MobaXterm tarafi: Settings > Terminal > Font = UTF-8 destekli + Charset = UTF-8"
+      ayr "gecici cozum: TUI icinde Ctrl+P > 'Disable animations' (animasyon glifleri kapanir)"
+      ;;
+  esac
+
   # tam modda burada bitmez — uç teşhisi de aynı rapora eklenir, tek SORUN satırı sonda.
   if [ "$MOD" != "kurulum" ]; then return 0; fi
   if [ -n "$SORUN" ]; then bitir 1 "$SORUN"; fi

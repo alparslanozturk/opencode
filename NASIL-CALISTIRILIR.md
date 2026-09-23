@@ -165,6 +165,28 @@ cd /root/ai/opencode && ./kur.sh kontrol
 > (`.bak-<tarih>`) ve doğru ikiliye çevrilir. Derleme aşaması kısayol kurmaz — eskiden iki betik aynı
 > kısayolu farklı hedefe kuruyordu ve "son çalışan kazanıyordu"; tek sahip kuralı bunu bitirdi.
 
+### Terminal görüntüsü — glifler kutu/`?` çıkıyorsa (MobaXterm + locale)
+
+TUI'nin spinner'ı **Unicode braille** karakterleri kullanır (`packages/tui/src/component/spinner.tsx:10`).
+Karakter kümesi zincirindeki (SSH istemcisi → sunucu locale → font) herhangi bir halka UTF-8 değilse
+ekranda kutu ya da `?` görürsün. Üç ayarı birlikte kontrol et:
+
+| Nerede | Ayar | Kontrol / düzeltme |
+|---|---|---|
+| **Sunucu locale** | `LANG`/`LC_ALL` `*.UTF-8` olmalı | `./kur.sh kontrol --kurulum` artık UTF-8 **değilse** `locale !` satırı basar (UTF-8 ise hiç satır basmaz). Düzeltme: `~/.bashrc` içine `export LANG=C.UTF-8` (`tr_TR.UTF-8` kuruluysa o) |
+| **MobaXterm font** | UTF-8 destekli bir font | Settings → Terminal → **Font** (braille glifi olan bir font seç) |
+| **MobaXterm charset** | `UTF-8` | Settings → Terminal → **Charset = UTF-8** (oturum ayarında da aynısı) |
+
+Üçü de doğru ama yine de bozuk görünüyorsa **animasyonları kapat**: TUI içinde `Ctrl+P` →
+**"Disable animations"**. Bu ayar `kv.json`'a yazılır (`packages/tui/src/app.tsx:894-899`,
+`packages/tui/src/context/kv.tsx:16`), yani **kalıcıdır** ve `./kur.sh` bunu ezmez —
+`tui.json` alanı **değildir**, aramaya gerek yok.
+
+> **Uyarı (bilinen sınır):** animasyon kapalıyken kullanılan yedek glifler de Unicode —
+> `⋯` (`spinner.tsx:17`) ve `[⋯]` (`packages/tui/src/component/prompt/index.tsx:1524`).
+> Yani "Disable animations" sorunu **azaltır, sıfırlamaz**; asıl çözüm locale + charset'tir.
+> (Tam ASCII-güvenli yedek glif önerisi: `knowledge/roadmap/ONERI-LISTESI.md` → C14.)
+
 ### Derleme aşaması (iç detay): `kur.sh derle`
 
 `kur.sh derle` **yalnız derler** — normalde elle çalıştırılmaz, kurulum akışı kendisi çağırır. İçinde `git pull` YOKTUR

@@ -104,13 +104,18 @@ satırı, uç teşhisi); yer tutucu doldurulmadan kurulum yapılmaz, `./kur.sh k
 **Tekrarlanabilir tarama** (repo kökünde; çıktı boşsa temiz — `git ls-files` = yalnız izlenen dosyalar):
 
 ```bash
-KAPSAM=(':(glob)*.md' ':(glob)*.sh' 'env.example' 'engine' 'knowledge' 'docs' 'script')
+KAPSAM=(':(glob)*.md' ':(glob)*.sh' 'env.example' 'engine' 'knowledge' 'docs' 'script'
+        ':!knowledge/policy/THREAT-MODEL.md')
 DESEN='/data/|/<uygulama>|/<log-dizini>|models--|[A-Za-z0-9-]+\.(com|net|org)\.tr'
 git ls-files -z -- "${KAPSAM[@]}" | xargs -0 grep -nIE "$DESEN" | grep -viE 'sahte|<[a-z]'
 ```
 
 - **Kapsam neden dar:** `packages/` + `bun.lock` upstream ağacıdır; orada `/data/` (stats sitesi taban yolu)
   ve `10.x` sürüm numaraları yüzlerce yanlış pozitif verir. Kurum değeri yalnız fork katmanına girer.
+- **Bu dosya neden kapsam dışı:** desen tanımı (`DESEN=…`) ve onu açıklayan satırlar **kendilerini**
+  eşleştirir; dışlanmazsa tarama her koşuda 2 sahte bulgu basar ve "0 = temiz" ölçüsü değersizleşir.
+  Karşılığı: bu dosyanın maskesi taramayla değil **gözden geçirmeyle** korunur — buraya gerçek bir
+  host/yol yazılmaz, yalnız yukarıdaki tablodaki yer tutucular kullanılır.
 - **İkinci `grep -v` neden var:** açıkça **sahte** test verisi (`script/sahte-uc.py`, duman testi) ve zaten
   yer tutucu olan satırlar (`<…>`) elenir. Gerçek bir değeri bu iki kelimeyle gizlemek **yasaktır**.
 - **Desene gerçek host/yol yazılmaz** — tarama deseninin kendisi de maskeleme kuralına tabidir; yeni bir iç

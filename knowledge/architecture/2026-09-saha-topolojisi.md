@@ -1,12 +1,16 @@
-# 2026-09 — Saha topolojisi (saha-makinesi)
+# 2026-09 — Saha topolojisi (<saha-makinesi>)
 
 > Kaynak: Alp, 2026-09-19 (sohbet). **Maskeleme uygulandı** — gerçek domain adları bu dosyaya
 > yazılmadı (bu repo **public** GitHub'da: `alparslanozturk/opencode`); `engine/AGENTS.md` "Güvenlik
 > ve sınırlar" kuralına uyum. Gerçek değerler yalnız Alp'in git-dışı notlarında/hafızasında kalır.
+>
+> **2026-09-23 (Alp onayı):** maskeleme repo geneline uygulandı — makine **adları** da yer tutucuya
+> çevrildi (`<saha-makinesi>`, `<git-kaynagi-host>`, `<kurum-bulut>`) ve `env.example` artık gerçek
+> kurum ucunu değil yalnız yer tutucu taşıyor; gerçek değerler `env`/`env.local` (gitignored) içinde.
 
 ## Ajan host'u
 
-- **saha-makinesi** = opencode(`oc`)'un CC gibi çalışacağı asıl saha makinesi (bu repo/`skyup` yalnız
+- **<saha-makinesi>** = opencode(`oc`)'un CC gibi çalışacağı asıl saha makinesi (bu repo/`skyup` yalnız
   geliştirme/derleme kutusu — `Doktor` buradan çalışıyor, saha dağıtımı Alp'in kendi akışıyla olur,
   bkz. `notlar/DURUM-2026-09-17.md` "al.sh" akışı).
 - **Build ortamı çözülmüş durumda (2026-09-19, Alp doğruladı):** npm, Node.js, bun kurulu; Node
@@ -17,7 +21,7 @@
   (pkg.pr.new/@solidjs/start, github:ghostty-web) ve `bun run build` `models.dev/api.json` fetch'inde
   duruyordu. Çözüm repoya girdi: kur.sh derleme adımı (git adımı yok, `--filter="./packages/opencode"` ile yalnız CLI
   workspace'i + repodaki models.dev snapshot). Adım adım: `NASIL-CALISTIRILIR.md` → "Saha kurulumu
-  (saha-makinesi, offline)".
+  (<saha-makinesi>, offline)".
   **Güncelleme (2026-09-21, ikinci tur):** sahada çalıştırılacak tek komut **`./02-kur.sh`** oldu —
   gerekirse `01-derle.sh`'ı kendisi çağırıp derler, sonra kurar ve doğrular; kısayolun (`opencode`/`oc`)
   tek sahibi `02-kur.sh`'tır (`01-derle.sh` artık kısayol kurmuyor).
@@ -39,13 +43,13 @@
   için `./kur.sh kontrol`). Kontrol raporu **tek ekrana** sığar
   (≈30 satır, ≤100 sütun) ve sonda tek satırlık `SORUN:` teşhisi verir — Alp çıktıyı Telegram'a
   **ekran görüntüsü** olarak gönderdiği için bu sözleşme kasıtlıdır.
-- **ara-makine** = git kaynağı, kod buradan çekiliyor (mevcut `al.sh` akışı).
-- **ktbulut tarafında ayrı, farklı ad/IP'li bir merkezi satellite sunucu daha var** — orada da
+- **`<git-kaynagi-host>`** = git kaynağı, kod buradan çekiliyor (mevcut `al.sh` akışı).
+- **`<kurum-bulut>` tarafında ayrı, farklı ad/IP'li bir merkezi satellite sunucu daha var** — orada da
   opencode çalıştırılacak ama **ayrı yönetilecek, ileride** (bu dosyanın kapsamı dışında).
 
 ## Erişim/izolasyon (kritik — envanter/ansible/ssh kapsamını belirliyor)
 
-saha-makinesi'in gidebildiği ve **gidemediği** yerler net:
+<saha-makinesi>'in gidebildiği ve **gidemediği** yerler net:
 
 | Hedef | Erişim | Sonuç |
 |---|---|---|
@@ -85,4 +89,4 @@ Bu tablo `knowledge/policy/THREAT-MODEL.md`'deki maskeli `test-sunucu`/`KUME-A`/
 ## Kapsam dışı / ileride
 
 - Kurum bulutu için envanter/otomasyon yolu (API-native) — henüz tanımsız, istenirse ayrı konu.
-- ktbulut merkezi satellite sunucusu — ayrı, ileride.
+- `<kurum-bulut>` merkezi satellite sunucusu — ayrı, ileride.

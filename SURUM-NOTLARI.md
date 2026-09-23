@@ -300,7 +300,7 @@ aynı adı sahiplendiği için **son çalışan kazanıyor**, hangi ikilinin ça
 
 ## 2026-09-21 — Offline (saha) derleme çalışır hâle getirildi: `alp.sh` + models.dev snapshot
 
-**Sorun (Alp, saha-makinesi):** kaynaktan derleme iki yerde duruyordu — (1) `bun install`, npm **dışı** iki
+**Sorun (Alp, <saha-makinesi>):** kaynaktan derleme iki yerde duruyordu — (1) `bun install`, npm **dışı** iki
 bağımlılığı çekemiyordu (`pkg.pr.new/@solidjs/start`, `github:anomalyco/ghostty-web`), (2) `bun run build`
 `https://models.dev/api.json`'a bağlanmaya çalışıp ECONNRESET ile ölüyordu.
 
@@ -316,7 +316,7 @@ bağımlılığı çekemiyordu (`pkg.pr.new/@solidjs/start`, `github:anomalyco/g
   build artık durmuyor.
 - **`packages/opencode/script/models-dev-api.json`** (4.7 MB, 222 sağlayıcı, 2026-09-21) repoya eklendi;
   tazelemek: `curl -sSf https://models.dev/api.json -o packages/opencode/script/models-dev-api.json`.
-- **Dokümanlar:** `NASIL-CALISTIRILIR.md` → yeni "🛠️ Saha kurulumu (saha-makinesi, offline)" bölümü
+- **Dokümanlar:** `NASIL-CALISTIRILIR.md` → yeni "🛠️ Saha kurulumu (<saha-makinesi>, offline)" bölümü
   (adım adım `al.sh` → `alp.sh`, `~/.bunfig.toml` örneği, iki sorunun kök nedeni + çözümü, doğrulama
   çıktısı); `ALP-README.md` dosya tablosuna `alp.sh` eklendi.
 

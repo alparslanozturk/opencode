@@ -1,7 +1,7 @@
 # Olay: derlenmiş ikili `a.name` çökmesi (ilk prompt'ta `Failed to send prompt`)
 
 - **Tarih / saat:** 2026-09-22
-- **Etki (kim, ne kadar):** saha (`saha-makinesi`, `/root/ai/work/opencode`, `version=1.0.0`,
+- **Etki (kim, ne kadar):** saha (`<saha-makinesi>`, `/root/ai/work/opencode`, `version=1.0.0`,
   `model=kurum/qwen3.6-35b-a3b`) — `oc` hiçbir prompt gönderemiyordu, TUI ilk mesajda çöküyordu.
 - **Tespit (nasıl fark edildi):** Alp saha kullanımında TUI'de `Failed to send prompt` /
   `Unexpected server error (ref: err_…)` gördü (refs: `err_67fe64b4`, `err_1fe00c62`, `err_2d6b9e19`).

@@ -9,7 +9,7 @@ Kod geliştirme YOK — sadece ayar + içerik. Amaç: **önce denemek**, sonuç 
 | Dosya | Ne işe yarar |
 |---|---|
 | `bin/opencode` | Derleme çıktısı — **yerel kalır** (git'te değil); `kur.sh` gerekirse kaynaktan üretir (hazır ikili indirme yolu YOK) |
-| `env` | **Elle doldurulmaz** — yoksa `kur.sh`, `env.example`'daki hazır saha varsayılanlarından otomatik oluşturur (izin 600; içerik ekrana basılmaz) |
+| `env` | **Gerçek değerlerin tek yeri** (git'te değil) — yoksa `kur.sh` önce `env.local`'den, o da yoksa `env.example` şablonundan otomatik oluşturur (izin 600; içerik ekrana basılmaz). Şablondan üretildiyse yer tutucular gerçek uç/anahtarla doldurulmalı |
 | `engine/opencode.json` | Sağlayıcı ayarı: kurum Qwen'i OpenAI uyumlu uçtan bağlar · bağlam penceresi (`kur.sh` kurulum akışı otomatik tespit eder) · zaman aşımları · izin kuralları |
 | `engine/AGENTS.md` | Kurum kuralları: dil, envanter disiplini, güvenlik, beceri disiplini, pencere/endpoint notu |
 | `engine/plugins/` | Araç (tool) katmanı — yerel TS plugin'ler; ilk plugin (`audit-log.ts`, Faz 0) kodlandı |
@@ -23,8 +23,8 @@ Kod geliştirme YOK — sadece ayar + içerik. Amaç: **önce denemek**, sonuç 
 
 ## Kurulum (2 adım — internet/npm gerekmez)
 ```bash
-# 1) kur — TEK BETİK, parametresiz (env yoksa env.example'daki hazır saha
-#    varsayılanlarından otomatik oluşturulur; elle env adımı YOK):
+# 1) kur — TEK BETİK, parametresiz (env yoksa önce env.local'den, o da yoksa
+#    env.example şablonundan otomatik oluşturulur; elle kopyalama adımı YOK):
 ./kur.sh          # = ./kur.sh kur
 # 2) çalıştır:
 opencode          # kısa ad: oc

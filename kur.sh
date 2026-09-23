@@ -185,7 +185,7 @@ env_hazirla() {
   if [ -f "$KOK/env.example" ]; then
     cp "$KOK/env.example" "$hedef" || return 1
     chmod 600 "$hedef" 2>/dev/null || true
-    yaz ">> env yoktu — env.example'daki hazir varsayilanlarla olusturuldu: $hedef"
+    yaz ">> env yoktu — env.example SABLONUNDAN olusturuldu: $hedef (yer tutuculari doldur)"
     return 0
   fi
   hata "$hedef yok ve sablon da yok (env.local / env.example bulunamadi)."
@@ -199,7 +199,7 @@ env_hazirla() {
 }
 
 # ===========================================================================
-#  DERLE — opencode CLI'yi kaynaktan derler (saha makinesi: saha-makinesi)
+#  DERLE — opencode CLI'yi kaynaktan derler (hedef: kurum saha makinesi)
 #
 #  Kaynak senkronu (git pull + rsync) bu betiğin işi DEĞİLDİR: önce kodu bu
 #  makineye çek, sonra ./kur.sh çalıştır.
@@ -1065,7 +1065,7 @@ kontrol() {
     if [ "$MOD" = "tam" ]; then printf '%s\n' "$CIZGI"; else printf '== opencode UC KONTROL\n'; fi
     satir "env" hata "$ENV_DOSYASI — KURUM_URL ve/veya MODEL_ID bos"
     if [ ! -f "$ENV_DOSYASI" ]; then
-      duz "olustur: ./kur.sh (env.example'daki hazir varsayilanlarla env olusturur)"
+      duz "olustur: ./kur.sh (env.local, yoksa env.example sablonundan env uretir — sonra doldur)"
     fi
     duz "gerekli satirlar: KURUM_URL=http(s)://<uc>:<port>/v1 · KURUM_KEY=dummy · MODEL_ID=<uctaki id>"
     bitir 2 "${SORUN:-env eksik — KURUM_URL/MODEL_ID doldurulmamis ($ENV_DOSYASI)}"

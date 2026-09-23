@@ -46,7 +46,7 @@ opencode'da Claude Code'daki `#` ile hafızaya ekleme kısayolu **yok**. Kalıc�
 
 ## Örnek proje iskeleti
 
-> **Gerçek kök (Alp, 2026-09-19):** saha-makinesi'te çalışma kökü `/root/ai/work/opencode/` — her
+> **Gerçek kök (Alp, 2026-09-19):** <saha-makinesi>'te çalışma kökü `/root/ai/work/opencode/` — her
 > proje bunun **doğrudan altında** (`projeler/` gibi bir ara katman yok). İlk proje: `envanter/`
 > (`/root/ai/work/opencode/envanter/`, Faz 0'ın ilk görevi). Aşağıdaki iskelet genel kalıptır,
 > `<proje-adi>` yerine gerçek adı (`envanter`, vb.) koy.

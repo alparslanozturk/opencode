@@ -28,10 +28,12 @@ Seçenekler (kontrole aktarılır; `kur`/varsayılan akışta da verilebilir):
 Saha akışı: **`al.sh`** (senkron, git+rsync) → **`./kur.sh`** → (sorun varsa) **`./kur.sh kontrol`**.
 Derleme ve kurulum tek betiğin içindeki aşamalardır (`derle()`/`kur()`/`kontrol()`) — ayrı betik YOK.
 
-> **Env oluşturma adımı GEREKMEZ:** `env` yoksa `kur.sh` önce `env.local`'i, o da yoksa
-> `env.example`'ı (gerçek saha varsayılanları) `env` olarak kopyalar (izin 600, içerik ekrana
-> basılmaz). Elle `cp env.example env` / `vi env` adımı kalktı; yalnız farklı bir uç/adres
-> kullanacaksan `env`'i düzenle.
+> **Env kopyalama adımı GEREKMEZ:** `env` yoksa `kur.sh` önce `env.local`'i, o da yoksa
+> `env.example` **şablonunu** `env` olarak kopyalar (izin 600, içerik ekrana basılmaz). Elle
+> `cp env.example env` adımı kalktı. **Ama şablon yalnız yer tutucu taşır** (kurum adresi/anahtarı
+> repoda durmaz): saha değerleri git-dışı `env.local`'den gelir; ikisi de yoksa `env`'i açıp
+> `KURUM_URL`/`KURUM_KEY`/`MODEL_ID` satırlarını doldur (`./kur.sh kontrol` doldurulmamış şablonu
+> yakalar).
 
 > **Neden tek betik (Alp, 2026-09-22):** *"Tek kur.sh yap, parametre alsın, default parametre
 > kurmak olsun. Diğer sh'ları sil."* — Kararları betik verir: ikili yok **veya** kaynak ağacı
@@ -52,7 +54,7 @@ Derleme ve kurulum tek betiğin içindeki aşamalardır (`derle()`/`kur()`/`kont
 #    kur.sh kendi yolunu otomatik bulur; aşağıda örnek olarak /root/ai/opencode kullanıldı)
 tar xJf opencode-paket.tar.xz -C /root      # -> /root/ai/opencode/   (.tar.gz ise: tar xzf ...)
 
-# 2) kur — TEK BETİK (offline; env yoksa env.example'daki hazır saha varsayılanlarından
+# 2) kur — TEK BETİK (offline; env yoksa env.local, o da yoksa env.example şablonundan
 #    otomatik oluşturulur; gerekirse kaynaktan derler, sonra ikili + ayar +
 #    10 çekirdek beceri + oc/opencode kısayolları + rg kurulur, bağlam penceresi kurum uçtan
 #    otomatik tespit edilir, sonda otomatik doğrulama + tek ekran özet)
@@ -113,13 +115,13 @@ akışının bir parçası DEĞİLDİR.
 ## Kaynaktan derleme (ikili yerine kaynak koddan build)
 
 > **Doğrulandı (2026-09-17, skyup/`/root/ai/opencode-build`, gerçek koşum — tahmin yok).** Saha makinesi
-> (saha-makinesi) **ayrıca doğrulandı (2026-09-19, Alp)**: npm, Node.js, bun kurulu; Node header'ları
+> (<saha-makinesi>) **ayrıca doğrulandı (2026-09-19, Alp)**: npm, Node.js, bun kurulu; Node header'ları
 > manuel kuruldu; kurum içi npm proxy ayarlı. **Derleme tarafında bilinen bir sorun yok** — bkz.
 > `knowledge/architecture/2026-09-saha-topolojisi.md`.
 
 ---
 
-## 🛠️ Saha kurulumu (saha-makinesi, offline) — `al.sh` → **`kur.sh`**
+## 🛠️ Saha kurulumu (<saha-makinesi>, offline) — `al.sh` → **`kur.sh`**
 
 > **Kime:** dış interneti olmayan, yalnız **kurum içi npm proxy**'sine erişen saha makinesi.
 > **Doğrulandı: 2026-09-21** — skyup'ta, `pkg.pr.new` / `api.github.com` / `github.com` / `models.dev`

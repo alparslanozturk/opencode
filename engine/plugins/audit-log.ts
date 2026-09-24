@@ -42,13 +42,55 @@ const TCKN_RE = /\b\d{11}\b/g
 // ayrılmış — 2026-09-16 bulgusu, bkz. notlar/FAZ0-YUZEYE-GETIRME-RAPORU.md §2). Boşluk-ayraç yalnız
 // `-`/`--` önekli bayraklarda eşleşir ("echo hi --apiKey sk-..." → maskelenir); önek yoksa serbest
 // metindeki "token" gibi sözcükleri (örn. "token sayısı") yanlışlıkla maskelemez.
-const INLINE_SECRET_RE =
-  /(authorization\s*:\s*bearer\s+|-{1,2}(?:api[_-]?key|apikey|token|secret|password|pwd)\s+['"]?|(?:api[_-]?key|apikey|token|secret|password|pwd)\s*[:=]\s*['"]?)([^\s'";]+)/gi
+// T13/A34: "passwd" ve "private[_-]?key" etiketleri de eklendi — sahada bir SSH private key ve bir
+// `passwd:` alanı maskelenmeden audit'e/yanıta sızmıştı (bkz. THREAT-MODEL.md "gizli sızıntısı").
+const SECRET_LABELS = "api[_-]?key|apikey|private[_-]?key|token|secret|password|passwd|pwd"
+const INLINE_SECRET_RE = new RegExp(
+  `(authorization\\s*:\\s*bearer\\s+|-{1,2}(?:${SECRET_LABELS})\\s+['"]?|(?:${SECRET_LABELS})\\s*[:=]\\s*['"]?)([^\\s'";]+)`,
+  "gi",
+)
+// SSH/TLS private key bloğu — başlık tek başına yakalanırsa gövde (asıl gizli veri) audit/yanıtta
+// kalmaya devam eder; bu yüzden BEGIN..END arası TAMAMI eşleşip tek seferde değiştirilir.
+const PRIVATE_KEY_BLOCK_RE = /-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z0-9 ]*PRIVATE KEY-----/g
+// Genel "KEY=değer" biçimi (T13/A34): `KURUM_KEY=...` gibi kurum-özel değişken adları yukarıdaki
+// etiket listesinde yok ama "KEY" ile bitiyor/başlıyor — env dosyalarında en sık görülen kaçak yolu.
+const ENV_KEY_ASSIGN_RE = /\b([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*(?:_?KEY|_?TOKEN|_?SECRET|_?PASSWORD))\s*=\s*(\S+)/g
+
+function labelFromPrefix(prefix: string): string {
+  const p = prefix.toLowerCase()
+  if (p.includes("private")) return "private_key"
+  if (p.includes("api")) return "api_key"
+  if (p.includes("passwd") || p.includes("pwd") || p.includes("password")) return "password"
+  if (p.includes("secret")) return "secret"
+  return "token"
+}
+
+// Tool çıktısı ve audit hedefi/argümanları için TEK maskeleme kapısı (AUDIT-FORMAT.md §5,
+// PERMISSION-MATRIX.md "gizli desenler"). Değer asla döndürülmez — yalnız `[REDACTED:<tür>]` yer
+// tutucusu; `types` alanı `redacted` audit kaydı için (bkz. writeRedactedRecord) tür listesini taşır.
+function redactSecrets(text: string): { masked: string; types: string[] } {
+  const types = new Set<string>()
+  const masked = text
+    .replace(PRIVATE_KEY_BLOCK_RE, () => {
+      types.add("private_key")
+      return "[REDACTED:private_key]"
+    })
+    .replace(INLINE_SECRET_RE, (_m, prefix: string) => {
+      const type = labelFromPrefix(prefix)
+      types.add(type)
+      return `${prefix}[REDACTED:${type}]`
+    })
+    .replace(ENV_KEY_ASSIGN_RE, (m: string, varName: string, value: string) => {
+      if (value.startsWith("[REDACTED")) return m
+      types.add("key")
+      return `${varName}=[REDACTED:key]`
+    })
+  return { masked, types: [...types] }
+}
 
 function maskString(value: string): string {
-  return value
-    .replace(INLINE_SECRET_RE, (_m, prefix: string) => `${prefix}***MASKED***`)
-    .replace(IPV4_RE, "10.0.0.x")
+  return redactSecrets(value)
+    .masked.replace(IPV4_RE, "10.0.0.x")
     .replace(EMAIL_RE, "***@***")
     .replace(TCKN_RE, "***********")
 }
@@ -75,6 +117,64 @@ function maskArgs(args: unknown): unknown {
 
 function truncate(s: string, max = TARGET_MAX_LEN): string {
   return s.length > max ? s.slice(0, max) + "…" : s
+}
+
+// --- hassas dosya denylist'i (T13/A34+A35, PERMISSION-MATRIX.md "denylist") ---------------
+
+// Fail-closed varsayılan: `engine/opencode.json`'daki `ops_agent.denylist.patterns` okunamazsa/boşsa
+// (dosya yok, bozuk JSON, alan eksik) bu liste kullanılır — hiç koruma olmaması (fail-open) yerine
+// bilinen envanter/credential kalıpları her zaman devrede kalır.
+const DEFAULT_DENYLIST_PATTERNS = [
+  "hosts*",
+  "*.inventory",
+  "inventory/**",
+  "*.vault",
+  "*credential*",
+  "*secret*",
+  "env",
+  "env.local",
+  "*.key",
+  "*.pem",
+  "*token*",
+  "*.kdbx",
+]
+
+const DENYLIST_TOOLS = new Set(["read", "write", "edit", "list", "glob", "grep"])
+
+function loadDenylistPatterns(projectDir: string | undefined): string[] {
+  if (!projectDir) return DEFAULT_DENYLIST_PATTERNS
+  try {
+    const raw = JSON.parse(readFileSync(join(projectDir, "engine", "opencode.json"), "utf8"))
+    const patterns = raw?.ops_agent?.denylist?.patterns
+    if (Array.isArray(patterns) && patterns.length > 0 && patterns.every((p) => typeof p === "string")) {
+      return patterns
+    }
+  } catch {
+    // okunamadı/bozuk — fail-closed: varsayılana düş
+  }
+  return DEFAULT_DENYLIST_PATTERNS
+}
+
+// Basit glob → regex (yalnız `*`/`**`/`?`, bağımlılık eklememek için `Wildcard`/`minimatch` yerine
+// elle yazıldı). `*` bir path segmenti içinde kalır, `**` segment sınırını da yutar.
+function globToRegExp(glob: string): RegExp {
+  const escaped = glob
+    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+    .replace(/\*\*/g, "\u0000")
+    .replace(/\*/g, "[^/]*")
+    .replace(/\u0000/g, ".*")
+    .replace(/\?/g, ".")
+  return new RegExp(`^${escaped}$`, "i")
+}
+
+function matchesDenylist(targetPath: string, patterns: string[]): string | null {
+  const normalized = targetPath.replace(/\\/g, "/")
+  const base = normalized.split("/").pop() ?? normalized
+  for (const pattern of patterns) {
+    const re = globToRegExp(pattern)
+    if (re.test(normalized) || re.test(base)) return pattern
+  }
+  return null
 }
 
 function deriveTarget(rawArgs: unknown): string {
@@ -172,6 +272,13 @@ export const AuditLogPlugin: Plugin = async ({ directory, project }) => {
   const pending = new Map<string, PendingCall>()
   const skillsLoaded = new Map<string, { name: string; commit: string | null }>()
 
+  // T13/A34: tek kapı — `OPS_AGENT_KAPI=ENFORCE` olmadıkça gözlem modu (uyarı + redaksiyon, sert
+  // blok yok). ENFORCE'ta denylist ihlali `tool.execute.before` içinde reddedilir (bkz.
+  // PERMISSION-MATRIX.md "Zorunlu kapı" — before-hook throw = araç hiç çalışmaz).
+  const ENFORCE = process.env.OPS_AGENT_KAPI === "ENFORCE"
+  const denylistPatterns = loadDenylistPatterns(projectDir)
+  const pendingDenylistHit = new Map<string, string>() // callID -> eşleşen desen
+
   try {
     mkdirSync(dirname(AUDIT_LOG_PATH), { recursive: true, mode: 0o750 })
   } catch (err) {
@@ -207,6 +314,7 @@ export const AuditLogPlugin: Plugin = async ({ directory, project }) => {
     policyDecision: "allow" | "ask" | "deny"
     latencyMs: number
     outputSha256: string | null
+    recordType?: "tool_call" | "redacted"
   }) {
     // Zincir bütünlüğü için prev_hash her yazımda diskten taze okunur (bkz. FAZ0-RAPOR.md
     // "açık kalanlar" — çok-oturumlu eşzamanlı yazımda tam kilitleme yok, v1 tek-yazar varsayımı).
@@ -216,6 +324,7 @@ export const AuditLogPlugin: Plugin = async ({ directory, project }) => {
       timestamp: fields.timestamp,
       session_id: fields.sessionID,
       task_id: null,
+      record_type: fields.recordType ?? "tool_call",
       actor: { agent: actorAgent, human: actorHuman },
       gen_ai: {
         request: { model: requestModel, model_digest: null },
@@ -241,25 +350,73 @@ export const AuditLogPlugin: Plugin = async ({ directory, project }) => {
     }
   }
 
+  // T13/A34: "redacted" kaydı — hangi araç, hangi hedef (dosya/komut, maskelenmiş) ve hangi desen
+  // türü maskelendiğini taşır; değerin kendisi hiçbir alanda yer almaz. Aynı `prev_hash` zincirine
+  // normal `tool_call` kayıtlarıyla birlikte eklenir (bkz. AUDIT-FORMAT.md §3/§5).
+  function writeRedactedRecord(sessionID: string, tool: string, target: string, patterns: string[]) {
+    writeRecord({
+      timestamp: new Date().toISOString(),
+      sessionID,
+      tool,
+      argsHash: sha256(patterns.join(",")),
+      target: `${target} :: ${patterns.join(",")}`,
+      resultStatus: "ok",
+      policyDecision: "allow",
+      latencyMs: 0,
+      outputSha256: null,
+      recordType: "redacted",
+    })
+  }
+
   return {
     config: (cfg) => {
       const model = (cfg as { model?: unknown } | undefined)?.model
       if (typeof model === "string") requestModel = model
     },
     "tool.execute.before": async (input, output) => {
-      const args = (output as { args?: unknown }).args
+      const args = ((output as { args?: unknown }).args ?? {}) as Record<string, unknown>
+      const target = deriveTarget(args)
+      const argsHash = sha256(JSON.stringify(maskArgs(args) ?? {}))
+
+      if (DENYLIST_TOOLS.has(input.tool)) {
+        const pathArg =
+          typeof args.filePath === "string" ? args.filePath : typeof args.path === "string" ? args.path : null
+        const hit = pathArg ? matchesDenylist(pathArg, denylistPatterns) : null
+        if (hit) {
+          if (ENFORCE) {
+            writeRecord({
+              timestamp: new Date().toISOString(),
+              sessionID: input.sessionID,
+              tool: input.tool,
+              argsHash,
+              target,
+              resultStatus: "denied",
+              policyDecision: "deny",
+              latencyMs: 0,
+              outputSha256: null,
+            })
+            throw new Error(
+              `[ops-agent] hassas dosya erişimi reddedildi (denylist: ${hit}) — OPS_AGENT_KAPI=ENFORCE`,
+            )
+          }
+          pendingDenylistHit.set(input.callID, hit)
+        }
+      }
+
       pending.set(input.callID, {
         tool: input.tool,
         sessionID: input.sessionID,
         timestamp: new Date().toISOString(),
         startedAt: Date.now(),
-        argsHash: sha256(JSON.stringify(maskArgs(args) ?? {})),
-        target: deriveTarget(args),
+        argsHash,
+        target,
       })
     },
     "tool.execute.after": async (input, output) => {
       const call = pending.get(input.callID)
       pending.delete(input.callID)
+      const denylistHit = pendingDenylistHit.get(input.callID)
+      pendingDenylistHit.delete(input.callID)
 
       const args = (input as { args?: unknown }).args
       const argsHash = call?.argsHash ?? sha256(JSON.stringify(maskArgs(args) ?? {}))
@@ -274,9 +431,30 @@ export const AuditLogPlugin: Plugin = async ({ directory, project }) => {
 
       const meta = (output as { metadata?: { error?: unknown } } | undefined)?.metadata
       const hasError = Boolean(meta?.error)
-      const outputText = (output as { output?: unknown } | undefined)?.output
+      const outRef = output as { output?: unknown } | undefined
+      const rawOutput = typeof outRef?.output === "string" ? outRef.output : null
+
+      // T13/A34: tool çıktısı, modele/yanıta gitmeden ÖNCE tek kapıdan geçer — `output.output` bu
+      // hook'ta mutasyona uğrar (tools.ts aynı objeyi geri döndürür), yani model artık maskelenmiş
+      // metni görür. Denylist eşleşmesinde gözlem modu bile İÇERİĞİ döndürmez (yalnız etiket) —
+      // hassas dosyanın tamamı olası secret'tır, desen taramasına güvenilmez.
+      let redactedPatterns: string[] = []
+      if (rawOutput !== null && denylistHit) {
+        redactedPatterns = [`denylist:${denylistHit}`]
+        if (outRef) outRef.output = `[REDACTED: hassas dosya, desen "${denylistHit}" — gözlem modu, OPS_AGENT_KAPI=ENFORCE ile reddedilir]`
+      } else if (rawOutput !== null) {
+        const { masked, types } = redactSecrets(rawOutput)
+        if (types.length > 0) {
+          redactedPatterns = types
+          if (outRef) outRef.output = masked
+        }
+      }
+
+      const finalOutput = (output as { output?: unknown } | undefined)?.output
       const outputSha256 =
-        typeof outputText === "string" ? sha256(outputText) : output ? sha256(JSON.stringify(output)) : null
+        typeof finalOutput === "string" ? sha256(finalOutput) : output ? sha256(JSON.stringify(output)) : null
+
+      if (redactedPatterns.length > 0) writeRedactedRecord(input.sessionID, input.tool, target, redactedPatterns)
 
       writeRecord({
         timestamp,

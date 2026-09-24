@@ -106,5 +106,24 @@
     "webfetch": "deny",
     "task": "deny",
     "todowrite": "deny"
+  },
+  "ops_agent": {
+    "denylist": {
+      "_not_opencode_schema": "engine/plugins/audit-log.ts tarafından okunur; opencode motoru bu alanı görmezden gelir (bkz. knowledge/policy/PERMISSION-MATRIX.md)",
+      "patterns": [
+        "hosts*",
+        "*.inventory",
+        "inventory/**",
+        "*.vault",
+        "*credential*",
+        "*secret*",
+        "env",
+        "env.local",
+        "*.key",
+        "*.pem",
+        "*token*",
+        "*.kdbx"
+      ]
+    }
   }
 }

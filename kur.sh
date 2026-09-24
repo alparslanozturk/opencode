@@ -61,11 +61,12 @@ NODE_SURUM="v24.19.0"
 # Kanal BİLEREK "main" kalır: database.ts kanala göre DB dosyası adı seçiyor
 # (opencode-<kanal>.db); kanal "latest" olursa sahadaki mevcut oturum verisi
 # opencode.db'ye kayar (istenmiyor). "main" kalınca davranış aynıdır, yalnız sürüm
-# 1.0.0 olur. package.json'lar upstream 1.18.30'da kalır — onlar VENDOR sürümüdür;
-# ürün sürümünü bu iki satır belirler.
+# 1.0.0 olur. package.json'lar upstream sürümünde kalır (şu an 1.18.32) — onlar VENDOR
+# sürümüdür; ürün sürümünü bu iki satır belirler.
 # 1.0.1: derlenmiş ikilide `SystemPrompt.environment` çökmesini düzelten build.ts
 # `splitting: false` düzeltmesiyle birlikte bump edildi (bkz. SURUM-NOTLARI.md).
-SURUM="${OPENCODE_VERSION:-1.0.1}"
+# 1.0.2: motor upstream 1.18.32 + güvenlik kilitleri K1-K7 (ADR-0004).
+SURUM="${OPENCODE_VERSION:-1.0.2}"
 KANAL="${OPENCODE_CHANNEL:-main}"
 
 # Çekirdek beceri listesi (Aşama 2, danışma-2 kararı: 38 → 10; 2026-09-16 Alp kararıyla
@@ -813,8 +814,15 @@ PY
 
   mkdir -p "$HOME/.config/opencode/plugins"
   if compgen -G "$KOK/engine/plugins/*.ts" > /dev/null || compgen -G "$KOK/engine/plugins/*.js" > /dev/null; then
-    cp -f "$KOK"/engine/plugins/*.ts "$HOME/.config/opencode/plugins/" 2>/dev/null || true
-    cp -f "$KOK"/engine/plugins/*.js "$HOME/.config/opencode/plugins/" 2>/dev/null || true
+    # *.test.ts KOPYALANMAZ: opencode plugins/ altındaki her .ts'i eklenti diye yükler — test dosyası
+    # ajan içinde çalışır, audit yolunu geçici dizine çevirirdi. Eski kurulumdan kalanı da sil.
+    rm -f "$HOME"/.config/opencode/plugins/*.test.ts "$HOME"/.config/opencode/plugins/*.test.js
+    local eklenti
+    for eklenti in "$KOK"/engine/plugins/*.ts "$KOK"/engine/plugins/*.js; do
+      [ -f "$eklenti" ] || continue
+      case "$eklenti" in *.test.ts|*.test.js) continue ;; esac
+      cp -f "$eklenti" "$HOME/.config/opencode/plugins/"
+    done
     yesil "  plugin: $(ls "$HOME/.config/opencode/plugins" | wc -l) adet → ~/.config/opencode/plugins (açılışta okunur, tekrar açman gerekebilir)"
   else
     sari "  engine/plugins/ altında .ts/.js yok — plugin kurulumu atlandı"
@@ -1231,15 +1239,15 @@ try:
 except Exception:
     sys.exit(0)
 p = d.get("permission", {})
-b = p.get("bash", {})
-bash_yildiz = b.get("*") if isinstance(b, dict) else b
+yildiz = lambda v: v.get("*") if isinstance(v, dict) else v
+bash_yildiz = yildiz(p.get("bash", {}))
 ctx = "?"
 for _, sag in (d.get("provider") or {}).items():
     for _, m in (sag.get("models") or {}).items():
         ctx = (m.get("limit") or {}).get("context") or "?"
-print("ozet\tedit=%s ext_dir=%s bash.*=%s agent=%s ctx=%s" % (
-    p.get("edit"), p.get("external_directory"), bash_yildiz, d.get("default_agent"), ctx))
-if p.get("edit") == "allow":
+print("ozet\tedit=%s read=%s ext_dir=%s bash.*=%s ctx=%s" % (
+    yildiz(p.get("edit")), yildiz(p.get("read")), p.get("external_directory"), bash_yildiz, ctx))
+if yildiz(p.get("edit")) == "allow":
     print("ihlal\tedit=allow — THREAT-MODEL.md §4 mutlak sinirini ihlal ediyor")
 if p.get("external_directory") != "ask":
     print("uyari\texternal_directory beklenen 'ask' degil: %s" % p.get("external_directory"))

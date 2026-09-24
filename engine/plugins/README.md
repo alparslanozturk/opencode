@@ -27,7 +27,7 @@ Yerel dosya plugin tercih edilir (gerekirse yanına `package.json` ile bağıml�
 
 | Dosya | Ne yapar | Durum |
 |---|---|---|
-| `audit-log.ts` | `tool.execute.before`/`after` + genel `event` hook'u (`session.idle` olayını filtreler) ile her araç çağrısını `AUDIT-FORMAT.md` §2 şemasına uyan, hash zincirli (§3) bir JSONL satırı olarak `/var/log/ops-agent/audit.jsonl`'a yazar. Bağımlılıksız (yalnız Node/Bun çekirdek modülleri: `fs`, `crypto`, `child_process`, `os`, `path`). **Faz 0'ın ilk gerçek plugin'i.** | Kodlandı, smoke-test ile doğrulandı (bkz. `notlar/FAZ0-YUZEYE-GETIRME-RAPORU.md`) |
+| `audit-log.ts` | **Güvenlik kilitleri K1/K5/K6** (ADR-0004, `knowledge/policy/GUVENLIK-KILITLERI.md`): `tool.execute.before`'da sert red, yetki `chat.message`'tan (yalnız kullanıcı mesajı). Ayrıca: `tool.execute.before`/`after` + genel `event` hook'u (`session.idle` olayını filtreler) ile her araç çağrısını `AUDIT-FORMAT.md` §2 şemasına uyan, hash zincirli (§3) bir JSONL satırı olarak `/var/log/ops-agent/audit.jsonl`'a yazar. Bağımlılıksız (yalnız Node/Bun çekirdek modülleri: `fs`, `crypto`, `child_process`, `os`, `path`). **Faz 0'ın ilk gerçek plugin'i.** | Kodlandı, smoke-test ile doğrulandı (bkz. `notlar/FAZ0-YUZEYE-GETIRME-RAPORU.md`) |
 
 `audit-log.ts`, `kur.sh` tarafından `~/.config/opencode/plugins/`'e kopyalanır (bkz. kur.sh kurulum akışındaki
 "plugin" adımı) — auto-discovery mekanizmasıyla ek config'e gerek kalmadan yüklenir.
@@ -51,6 +51,6 @@ Yerel dosya plugin tercih edilir (gerekirse yanına `package.json` ile bağıml�
 | `envanter-dogrula` | hosts.ini / CSV-XLSX ayrıştır, satır toplamlarını tek tek doğrula | Elle aritmetik hata yapıyor; deterministik olmalı |
 | `rapor-uret` | Tablo → Markdown/Excel/PDF (font/kütüphane kontrolüyle) | Tekrarlı üretim, tutarlı biçim |
 | `kapsam-gate` | Kök dizin dışı erişimi reddet (plugin `tool.execute.before`) | `AGENTS.md` kuralı "rica"; tool "kapı" |
-| `guvenlik-kapisi` | `rm -rf`/`mkfs`/force-push desenlerini komut çalışmadan engelle | İzin kurallarına ek ikinci hat |
+| ~~`guvenlik-kapisi`~~ | **Yapıldı** (2026-09-24) — `audit-log.ts` içinde K5/K1 olarak | — |
 
 > Not: Bu liste **öneridir**. Gerçek öncelik, test-sunucu canlı denemesinde "canımızı yakan" noktaya göre belirlenir.

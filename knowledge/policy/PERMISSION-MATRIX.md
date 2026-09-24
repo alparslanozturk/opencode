@@ -8,6 +8,11 @@
 >
 > Maskeleme: sunucu → `test-sunucu`, küme → `KUME-A`/`KUME-B`, IP → `10.0.0.x`, kurum → `kurum`.
 
+> **Güncel durum (2026-09-24, ADR-0004):** Güvenlik kilitleri K1–K7 uygulandı — tek sayfalık özet
+> `GUVENLIK-KILITLERI.md`. Aşağıdaki tabloda `read`/`grep` artık **ask** (K3), bash izin listesi kelime
+> sınırlı (K4), `audit-log.ts` varsayılan **kilitli** (K7). §5'teki "gözlem varsayılan" ve "ENFORCE'ta
+> kapsam reddi" ifadeleri tarihseldir: kapsam kapısı artık yalnız kayıt tutar (K2 onayı motorda).
+
 ## 1. Araç bazında matris
 
 | Araç | v1 kararı | Gerekçe | Atlatma riski |
@@ -165,3 +170,12 @@ kapı bilgi eksikse sormayı kısıtlamaz, yalnız **taramayı** kısıtlar.
 
 **Ortak mod anahtarı:** `OPS_AGENT_KAPI=ENFORCE` hem denylist hem arama-kapsamı kapısını aynı anda sert
 moda alır — iki ayrı ortam değişkeni yerine tek anahtar, T7'nin "kapı çoğalmasın" ilkesiyle tutarlı.
+**(2026-09-24 güncellemesi, K7):** varsayılan artık kilitli; anahtar tersine döndü → gözlem modu yalnız
+`OPS_AGENT_KAPI=GOZLEM`. Kapsam kapısı hiçbir modda reddetmez (yalnız kayıt) — dizin dışı onayını
+`permission.external_directory: "ask"` sorar (K2).
+
+## 6. Güvenlik kilitleri (K1–K7)
+
+Bkz. `GUVENLIK-KILITLERI.md` (kullanım + sınırlar) ve `../architecture/decisions/0004-guvenlik-kilitleri.md`
+(karar). K1 değişiklik kilidi, K5 yıkıcı komut ve K6 öz-koruma `audit-log.ts`'te sert red; K2/K3/K4
+`engine/opencode.json` izin bloğunda (onaylanabilir).

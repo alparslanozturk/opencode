@@ -6,6 +6,23 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-09-24 — ürün 1.0.2: güvenlik kilitleri K1–K7 (ADR-0004)
+
+Tek sayfa: `knowledge/policy/GUVENLIK-KILITLERI.md`. Sahaya `./kur.sh` ile gider (sürüm 1.0.2 → yeniden derler).
+
+- **K1 değişiklik kilidi:** sunucuda/sistemde değişiklik yalnız sohbete yazılan yetkiyle —
+  `CN: <no>` + `sunucular: …` · `KURULUM` + `sunucular: …` · `KRİZ` + kriz maili/toplantı notu +
+  `sunucular: …`. Hedef listede değilse red. Bu makine için `localhost`. `YETKİ KAPAT` ile kapanır.
+- **K2** dizin dışı onay sorar (vardı, korunuyor) · **K3** proje dosyalarını okumak onay sorar ("always" =
+  o oturumda serbest) · **K4** izin listesi düzeltildi (`ss*`→`ssh`, `ps*`→`psql` açığı; `find -delete`,
+  `hostname x`, `date -s`, `ip … del` artık sorulur).
+- **K5** yıkıcı komutlar (`rm -rf /`-benzeri, mkfs, diske dd, force-push) yetkiyle bile çalışmaz ·
+  **K6** ajan kendi ayarını/eklentisini/audit log'unu değiştiremez, anahtarı okuyamaz · **K7** varsayılan
+  kilitli (gözlem modu: `OPS_AGENT_KAPI=GOZLEM`).
+- Düzeltmeler: git'siz dizinde eklentinin kapsam denetimi çalışmıyordu (worktree `/`); `kur.sh` test
+  dosyasını da eklenti klasörüne kopyalıyordu (artık `*.test.ts` hariç, eskisi silinir).
+- Doğrulama: `audit-log.test.ts` 97 test; derlenmiş ikiliyle uçtan uca 6 senaryo; `duman-kontrol-rapor.sh` 22/22.
+
 ## 2026-09-24 — motor opencode 1.18.30 → 1.18.32 + upstream takibi (ADR-0003)
 
 - Motor upstream **1.18.32**'ye alındı (ayrı `vendor:` commit'i). Bizim çekirdek yamalarımıza upstream

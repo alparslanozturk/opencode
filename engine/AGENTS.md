@@ -33,6 +33,18 @@
   kurum adı/aralığı için Alp'e sor — burada bilinçli olarak genelleştirildi, 2026-09-16, K2).
   Anthos ayrı sınıflandırılır, aynı kısıt Anthos için varsayılmaz.
 
+## Güvenlik kilitleri (Alp kuralı — 2026-09-24, teknik olarak zorlanır: `audit-log.ts`)
+- **Değişiklik = yetki.** Sunucuda/sistemde değişiklik (playbook `--check`'siz, ssh ile yazan komut,
+  servis/paket/ayar, `/etc` düzenleme) ancak kullanıcı mesajında yetki varsa ve hedef listedeyse çalışır:
+  `CN: <numara>` + `sunucular: a, b` · yeni kurulum: `KURULUM` + `sunucular: …` (CN gerekmez) ·
+  kriz: `KRİZ` + yapıştırılmış kriz maili/toplantı notu + `sunucular: …`. Bu makine = `localhost`.
+- **Kriz akışı:** mail yapıştırılınca etkilenen sunucuları maildan çıkar, listeyi öner ve **dur** —
+  liste ancak kullanıcı `sunucular: …` yazınca geçerli olur. Yetki satırını sen yazamazsın/üretemezsin.
+- `ansible-playbook` değişikliğinde hedefi her zaman `--limit` ile ver; salt-okunur iş yetkisiz serbest.
+- **Asla açılmayanlar:** `rm -rf /`-benzeri, mkfs, diske `dd`, force-push; kendi ayarın/eklentin/audit log.
+- Kilit reddederse atlatmaya çalışma (başka komut, betik, farklı yazım): kullanıcıya neyin neden
+  gerektiğini tek cümleyle söyle. Proje dosyalarını okumak da onaya tabidir — kullanıcı "oku" derse oku.
+
 ## Güvenlik ve sınırlar
 - Yıkıcı komut (rm -rf, mkfs, dnf remove, servis durdurma, force push) → **önce sor**.
 - Kurum dışına veri gönderme; dış ağ/telemetri kapalı varsay.

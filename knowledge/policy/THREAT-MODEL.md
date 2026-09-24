@@ -123,6 +123,25 @@ git ls-files -z -- "${KAPSAM[@]}" | xargs -0 grep -nIE "$DESEN" | grep -viE 'sah
 - **Desene gerçek host/yol yazılmaz** — tarama deseninin kendisi de maskeleme kuralına tabidir; yeni bir iç
   dizin kalıbı çıktıkça `DESEN`'e **genel** biçimiyle eklenir (`/<dizin>/`), gerçek adıyla değil.
 
+**Çalışma zamanı (runtime) maskeleme — T15/A43-A44.** Yukarıdaki tarama **statiktir**: yalnız git'te
+**izlenen** dosyalardaki sabit metni görür. `KURUM_URL`/`MODEL_ID`/hostname/iç IP gibi değerler `env`'den
+çalışma anında geldiği için repoda hiç durmaz — repo taraması bunları **göremez**, ama `./kur.sh kontrol`
+raporu (ve ajanın kendi araç çıktıları) bu değerleri ekrana/modele **basar**. Bu yüzden maskeleme iki ayrı
+katmanda tekrarlanır:
+
+- **`kur.sh`** kendi raporunu basarken `maskeli_host`/`maskeli_uc`/`maskeli_ip`/`maskeli_model`/`maskeli_yol`
+  yardımcılarından geçer (bkz. `kur.sh` "kontrolün yardımcıları" bölümü) — curl/DNS/istek mantığı gerçek
+  değerle çalışmaya devam eder, yalnız **basım** maskelenir. Kanıt: `script/sahte-uc.py` ile sahte bir uç
+  başlatılıp `./kur.sh`/`./kur.sh kontrol [--ayrintili]` koşulur, çıktıda sahte host/IP/model yolu **literal
+  olarak yok** (`grep` → 0).
+- **T13 redaksiyon katmanı** (`engine/plugins/audit-log.ts`) aynı iki sınıfı artık `redactSecrets()`
+  içinde tanır — hem audit kaydına hem de **modele giden tool çıktısına** uygulanır: `KURUM_HOSTNAME_RE`
+  (`*.com.tr`/`*.net.tr`/`*.org.tr`, repo tarama deseniyle aynı aile) → `<kurum-host>`, `INTERNAL_IPV4_RE`
+  (yalnız RFC1918 + loopback — genel/public bir IP ajanın ağ hata ayıklama işini engellemesin diye
+  **maskelenmez**) → `10.0.0.x`. Örnek: ajan `cat env` çalıştırıp gerçek `KURUM_URL`'i okursa, gördüğü metin
+  zaten maskelenmiş olur. Kanıt: `bun test engine/plugins/audit-log.test.ts` ("uc/hostname/ic IP
+  redaksiyonu" bloğu).
+
 ## 7. Gizli sızıntısı (envanter/credential) — kontrol ve kanıt (T13/A34+A35)
 
 **Kontrol:** `engine/plugins/audit-log.ts` — gizli desen redaksiyonu (değer asla döndürülmez) + hassas dosya

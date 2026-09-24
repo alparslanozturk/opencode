@@ -35,6 +35,18 @@ const SECRET_KEY_RE = /(key|secret|token|password|passwd|pwd|pass$|apikey|author
 const IPV4_RE = /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g
 const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g
 const TCKN_RE = /\b\d{11}\b/g
+// T15/A43-A44: kurum uç/hostname deseni — THREAT-MODEL.md §6'da tanımlı repo tarama deseniyle
+// aynı aile (*.com.tr / *.net.tr / *.org.tr). Bir araç çıktısı (ör. `cat env`, `getent ahosts`,
+// `curl -v`) çalışma zamanında gerçek uç adını modele/audit'e taşırsa T9/T12'nin repo taraması
+// bunu göremez (değer dosyada değil, env'den geliyor) — bu kapı çalışma zamanı içindir.
+const KURUM_HOSTNAME_RE = /\b[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9-]+)*\.(?:com|net|org)\.tr\b/gi
+// Yalnız İÇ (private/loopback) IPv4 aralıkları — IPV4_RE (üstte) kasıtlı GENİŞ tutulur ve
+// yalnız audit'in kendi target/args alanlarını maskeler (maskString), modele giden çıktıyı
+// etkilemez. Çıktıya da karışan bu yeni kapıda ise sınır dar tutulur: genel/public bir IP
+// (ör. 8.8.8.8, bir API'nin adresi) ajanın normal ağ hata ayıklama işini kör etmesin diye
+// maskelenmez — yalnız gerçekten "iç ağ" sayılan RFC1918 + loopback aralığı maskelenir.
+const INTERNAL_IPV4_RE =
+  /\b(?:10(?:\.\d{1,3}){3}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2}|192\.168(?:\.\d{1,3}){2}|127(?:\.\d{1,3}){3})\b/g
 // serbest metin içinde (örn. bash komutu: "curl -H 'Authorization: Bearer sk-...'") anahtar
 // isimlerinin ardından gelen değeri de maskeler — SECRET_KEY_RE yalnız obje alan adlarını yakalar,
 // `command` gibi tek bir string argümanın İÇİNDEKİ secret'ı yakalamaz.
@@ -85,14 +97,22 @@ function redactSecrets(text: string): { masked: string; types: string[] } {
       types.add("key")
       return `${varName}=[REDACTED:key]`
     })
+    // T15/A43-A44: uç/hostname + iç IP artık modele giden ÇIKTIDA da maskeleniyor (öncesinde
+    // yalnız aşağıdaki maskString() ile audit'in target/args alanları maskeleniyordu, tool
+    // çıktısının kendisi değil — bkz. tool.execute.after, redactSecrets rawOutput'u mutasyonlar).
+    .replace(KURUM_HOSTNAME_RE, () => {
+      types.add("hostname")
+      return "<kurum-host>"
+    })
+    .replace(INTERNAL_IPV4_RE, () => {
+      types.add("internal_ip")
+      return "10.0.0.x"
+    })
   return { masked, types: [...types] }
 }
 
 function maskString(value: string): string {
-  return redactSecrets(value)
-    .masked.replace(IPV4_RE, "10.0.0.x")
-    .replace(EMAIL_RE, "***@***")
-    .replace(TCKN_RE, "***********")
+  return redactSecrets(value).masked.replace(EMAIL_RE, "***@***").replace(TCKN_RE, "***********")
 }
 
 function maskValue(value: unknown): unknown {

@@ -117,6 +117,44 @@ describe("gizli desen redaksiyonu (A34)", () => {
   })
 })
 
+describe("uc/hostname/ic IP redaksiyonu (T15/A43-A44)", () => {
+  test("kurum alan adi (*.com.tr) tool ciktisinda maskelenir", async () => {
+    const before = readAllLines().length
+    const hooks = await freshPlugin()
+    const args = { command: "cat env" }
+    await hooks["tool.execute.before"]!({ tool: "bash", sessionID: "s-host", callID: "c-host" }, { args })
+    const afterOut = {
+      title: "env",
+      output: "KURUM_URL=https://ai.sahte-kurum.com.tr:8443/v1",
+      metadata: {},
+    }
+    await hooks["tool.execute.after"]!({ tool: "bash", sessionID: "s-host", callID: "c-host", args }, afterOut)
+
+    expect(afterOut.output).not.toContain("sahte-kurum.com.tr")
+    expect(afterOut.output).toContain("<kurum-host>")
+    const lines = readAllLines().slice(before)
+    expect(JSON.stringify(lines)).not.toContain("sahte-kurum.com.tr")
+    expect(lines.some((l) => l.record_type === "redacted" && l.target.includes("hostname"))).toBe(true)
+    assertChainIntact()
+  })
+
+  test("ic (RFC1918) IP tool ciktisinda maskelenir, genel/public IP dokunulmaz", async () => {
+    const before = readAllLines().length
+    const hooks = await freshPlugin()
+    const args = { command: "getent ahosts ai-uc" }
+    await hooks["tool.execute.before"]!({ tool: "bash", sessionID: "s-ip", callID: "c-ip" }, { args })
+    const afterOut = { title: "bash", output: "DNS ai-uc -> 10.42.7.19 · genel: 8.8.8.8", metadata: {} }
+    await hooks["tool.execute.after"]!({ tool: "bash", sessionID: "s-ip", callID: "c-ip", args }, afterOut)
+
+    expect(afterOut.output).not.toContain("10.42.7.19")
+    expect(afterOut.output).toContain("10.0.0.x")
+    expect(afterOut.output).toContain("8.8.8.8")
+    const lines = readAllLines().slice(before)
+    expect(JSON.stringify(lines)).not.toContain("10.42.7.19")
+    assertChainIntact()
+  })
+})
+
 describe("hassas dosya denylist'i (A34+A35)", () => {
   test("gozlem modu: envanter dosyasi uyari + tam redaksiyon, sert blok yok", async () => {
     const before = readAllLines().length

@@ -724,7 +724,7 @@ kur() {
   esac
 
   if [ -n "$TESPIT_EDILEN_PENCERE" ]; then
-    yesil "  bağlam penceresi: $TESPIT_EDILEN_PENCERE token (kaynak: $TESPIT_KAYNAK)"
+    yesil "  bağlam penceresi: $TESPIT_EDILEN_PENCERE token (kaynak: $(maskeli_uc "$TESPIT_KAYNAK"))"
   elif [ -n "${KURUM_MAX_CONTEXT:-}" ]; then
     TESPIT_EDILEN_PENCERE="$KURUM_MAX_CONTEXT"
     yesil "  bağlam penceresi: $TESPIT_EDILEN_PENCERE token (kaynak: env KURUM_MAX_CONTEXT)"
@@ -1024,12 +1024,12 @@ kontrol_kurulum() {
   local rg_dizin="${XDG_CACHE_HOME:-$HOME/.cache}/opencode/bin"
 
   if [ "$MOD" = "tam" ]; then
-    printf '== opencode KONTROL · %s · %s · kok: %s\n' \
-      "$(date '+%Y-%m-%d %H:%M')" "$(hostname 2> /dev/null || echo '?')" "$KOK"
+    printf '== opencode KONTROL · %s · <saha-makinesi> · kok: <kurulum-dizini>\n' \
+      "$(date '+%Y-%m-%d %H:%M')"
     bolum "KURULUM (ag gerekmez)"
   else
-    printf '== opencode KURULUM KONTROL · %s · %s · kok: %s\n' \
-      "$(date '+%Y-%m-%d %H:%M')" "$(hostname 2> /dev/null || echo '?')" "$KOK"
+    printf '== opencode KURULUM KONTROL · %s · <saha-makinesi> · kok: <kurulum-dizini>\n' \
+      "$(date '+%Y-%m-%d %H:%M')"
     bolum "ayar: $ayar_dizin"
   fi
 
@@ -1405,11 +1405,11 @@ kontrol() {
 
   # --- başlık (bölüm ayracı + başlık TEK satır: rapor bütçesi ≤29) ---------
   if [ "$MOD" != "tam" ]; then
-    printf '== opencode UC KONTROL · %s · %s\n' "$(date '+%Y-%m-%d %H:%M')" "$(hostname 2> /dev/null || echo '?')"
+    printf '== opencode UC KONTROL · %s · <saha-makinesi>\n' "$(date '+%Y-%m-%d %H:%M')"
   fi
-  bolum "KURUM AI UCU · $KOK_URL"
-  duz "model: $MODEL · anahtar: $(maskele "$KEY") · zaman asimi ${ZAMAN_ASIMI} sn"
-  ayr "ayar kaynagi: $ENV_KAYNAK"
+  bolum "KURUM AI UCU · $(maskeli_uc "$KOK_URL")"
+  duz "model: $(maskeli_model "$MODEL") · anahtar: $(maskele "$KEY") · zaman asimi ${ZAMAN_ASIMI} sn"
+  ayr "ayar kaynagi: $(maskeli_yol "$ENV_KAYNAK")"
   [ -n "$PY" ] || satir "python3" uyar "python3 yok — JSON ayrintilari (model listesi, pencere) sinirli"
 
   # --- 1) URL biçimi -------------------------------------------------------
@@ -1455,10 +1455,10 @@ kontrol() {
       *) SON_EK="/v1 ile bitmiyor (OpenAI uyumlu uclarda kok genelde .../v1)" ;;
     esac
     case "$URL" in
-      */v1) satir "URL" ok "host $HOST · port ${PORT}${PORT_NOT} · $SON_EK" ;;
-      *) satir "URL" uyar "host $HOST · port ${PORT}${PORT_NOT} · $SON_EK" ;;
+      */v1) satir "URL" ok "host $(maskeli_host "$HOST") · port ${PORT}${PORT_NOT} · $SON_EK" ;;
+      *) satir "URL" uyar "host $(maskeli_host "$HOST") · port ${PORT}${PORT_NOT} · $SON_EK" ;;
     esac
-    ayr "istekler: $(uc_ver models) · $(uc_ver chat/completions)"
+    ayr "istekler: $(maskeli_uc "$(uc_ver models)") · $(maskeli_uc "$(uc_ver chat/completions)")"
   fi
 
   # --- 2+3) ag: DNS + TCP (tek satirda) -----------------------------------
@@ -1466,14 +1466,14 @@ kontrol() {
   # çözümlenen IP('ler) · portun açık olup olmadığı · tanımlı proxy değişkenleri.
   DNS_DURUM="ok"; DNS_METIN=""
   if printf '%s' "$HOST" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
-    DNS_METIN="IP $HOST (DNS gerekmiyor)"
+    DNS_METIN="IP $(maskeli_ip "$HOST") (DNS gerekmiyor)"
   elif command -v getent > /dev/null 2>&1; then
     IPLER="$(getent ahosts "$HOST" 2> /dev/null | awk '{print $1}' | sort -u | tr '\n' ' ')"
     if [ -n "${IPLER// /}" ]; then
-      DNS_METIN="DNS $HOST -> ${IPLER% }"
+      DNS_METIN="DNS $(maskeli_host "$HOST") -> $(maskeli_ip "${IPLER% }")"
     else
-      DNS_DURUM="hata"; DNS_METIN="DNS $HOST cozumlenemedi (opencode da ayni hatayi alir)"
-      sorun_kaydet "DNS cozulemiyor — $HOST (kontrol: cat /etc/resolv.conf · grep $HOST /etc/hosts)"
+      DNS_DURUM="hata"; DNS_METIN="DNS $(maskeli_host "$HOST") cozumlenemedi (opencode da ayni hatayi alir)"
+      sorun_kaydet "DNS cozulemiyor — $(maskeli_host "$HOST") (kontrol: cat /etc/resolv.conf · grep <kurum-host> /etc/hosts)"
     fi
   elif [ -n "$PY" ]; then
     IPLER="$("$PY" -c 'import socket,sys
@@ -1482,10 +1482,10 @@ try:
 except Exception:
     pass' "$HOST" 2> /dev/null)"
     if [ -n "$IPLER" ]; then
-      DNS_METIN="DNS $HOST -> $IPLER"
+      DNS_METIN="DNS $(maskeli_host "$HOST") -> $(maskeli_ip "$IPLER")"
     else
-      DNS_DURUM="hata"; DNS_METIN="DNS $HOST cozumlenemedi"
-      sorun_kaydet "DNS cozulemiyor — $HOST"
+      DNS_DURUM="hata"; DNS_METIN="DNS $(maskeli_host "$HOST") cozumlenemedi"
+      sorun_kaydet "DNS cozulemiyor — $(maskeli_host "$HOST")"
     fi
   else
     DNS_DURUM="uyar"; DNS_METIN="DNS kontrolu atlandi (getent/python3 yok)"
@@ -1537,17 +1537,23 @@ except Exception:
         satir "/models" ok "HTTP 200 · $(sn "$MODELS_SURE") sn · $MODEL_SAYISI model · MODEL_ID listede"
       else
         satir "/models" hata "HTTP 200 · $MODEL_SAYISI model · MODEL_ID listede YOK"
-        sorun_kaydet "MODEL_ID ucta yok — $MODEL (listeden birebir kopyala, sonra ./kur.sh)"
+        sorun_kaydet "MODEL_ID ucta yok — $(maskeli_model "$MODEL") (listeden birebir kopyala, sonra ./kur.sh)"
         # hata durumunda aday modelleri göster (kısa modda en fazla 3)
         if [ "$AYRINTILI" -eq 1 ]; then
-          printf '%s\n' "$MODEL_LISTESI" | sed 's/^/             - /'
+          printf '%s\n' "$MODEL_LISTESI" | while IFS= read -r m; do
+            printf '             - %s\n' "$(maskeli_model "$m")"
+          done
         else
           printf '%s\n' "$MODEL_LISTESI" | head -3 | while IFS= read -r m; do
-            printf '             - %s\n' "$(kis "$m" 80)"
+            printf '             - %s\n' "$(kis "$(maskeli_model "$m")" 80)"
           done
         fi
       fi
-      [ "$AYRINTILI" -eq 1 ] && [ "$MODEL_BULUNDU" -eq 1 ] && printf '%s\n' "$MODEL_LISTESI" | sed 's/^/             - /'
+      if [ "$AYRINTILI" -eq 1 ] && [ "$MODEL_BULUNDU" -eq 1 ]; then
+        printf '%s\n' "$MODEL_LISTESI" | while IFS= read -r m; do
+          printf '             - %s\n' "$(maskeli_model "$m")"
+        done
+      fi
     else
       satir "/models" uyar "HTTP 200 ama model listesi ayristirilamadi (beklenmeyen JSON)"
       ayr "ham govde: $(tr -d '\n' < "$MODELS_GOVDE" | cut -c1-200)"
@@ -1723,7 +1729,8 @@ PY
       fi
       if [ "$AYRINTILI" -eq 1 ]; then
         printf '%s\n' "$kurulu" | while IFS=$'\t' read -r s m t c; do
-          printf '             kurulu ayar: %s/%s · baseURL=%s · context=%s\n' "$s" "$m" "$t" "$c"
+          printf '             kurulu ayar: %s/%s · baseURL=%s · context=%s\n' \
+            "$s" "$(maskeli_model "$m")" "$(maskeli_uc "$t")" "$c"
         done
       fi
     fi
@@ -1860,6 +1867,61 @@ maskele() {
   else
     printf '%s****%s (uzunluk: %s)' "${deger:0:3}" "${deger: -2}" "$uzunluk"
   fi
+}
+
+# --- T15/A43-A44: uç URL / hostname / iç IP / model yolu maskelemesi --------
+# curl/DNS/istek MANTIĞI hep gerçek değerle çalışır (bu yardımcılar yalnız
+# BASIM içindir) — env'den gelen değerler repo taramasında (T9/T12) görünmez,
+# ekran görüntüsüyle dışarı çıkar; bu yüzden basım noktası burada kapatılır.
+
+# maskeli_host <host[:port]> -> host/IP gizli, port (varsa) okunabilirlik için kalir.
+maskeli_host() {
+  local giren="$1" ana port=""
+  ana="${giren%%:*}"
+  case "$giren" in *:*) port=":${giren#*:}" ;; esac
+  if printf '%s' "$ana" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
+    printf '<ic-ip>%s' "$port"
+  else
+    printf '<kurum-host>%s' "$port"
+  fi
+}
+
+# maskeli_ip <ip [ip...]> -> "getent ahosts" gibi cok sonuclu ciktilarda adet korunur,
+# gercek adresler korunmaz.
+maskeli_ip() {
+  local sayi
+  sayi="$(printf '%s\n' "$1" | tr -s ' \t' '\n' | sed '/^$/d' | wc -l | tr -d ' ')"
+  if [ "${sayi:-0}" -le 1 ]; then printf '<ic-ip>'; else printf '<ic-ip> (%s adet)' "$sayi"; fi
+}
+
+# maskeli_uc <url> -> sema + yol korunur (hata ayiklama icin /v1, /models kalsin),
+# yalniz host_port() ile ayiklanan host/IP kismi gizlenir.
+maskeli_uc() {
+  local url="$1" sema="" kalan yol=""
+  case "$url" in
+    http://*) sema="http://" ;;
+    https://*) sema="https://" ;;
+  esac
+  kalan="${url#*://}"
+  case "$kalan" in */*) yol="/${kalan#*/}" ;; esac
+  printf '%s%s%s' "$sema" "$(maskeli_host "$(host_port "$url")")" "$yol"
+}
+
+# maskeli_model <model-kimligi> -> kuruma ozgu mutlak yol ise dizin kismi gizlenir,
+# dosya/model adi kalir (T12/C18 ile ayni ic dizin kalibi — bkz. env.example MODEL_ID yorumu).
+maskeli_model() {
+  case "$1" in
+    */*) printf '<model-dizini>/%s' "${1##*/}" ;;
+    *) printf '%s' "$1" ;;
+  esac
+}
+
+# maskeli_yol <mutlak-yol> -> kurulum dizini ($KOK) yer tutucuyla degisir, dosya adi kalir.
+maskeli_yol() {
+  case "$1" in
+    "$KOK"/*) printf '<kurulum-dizini>/%s' "${1#"$KOK"/}" ;;
+    *) printf '%s' "$1" ;;
+  esac
 }
 
 # medyan_ms <cfg> <adres> <ilk-ornek> — ilk istek 1. örnektir, 2 istek daha atılır;

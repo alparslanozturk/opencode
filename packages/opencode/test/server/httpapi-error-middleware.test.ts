@@ -82,6 +82,27 @@ describe("HttpApi error middleware", () => {
     }),
   )
 
+  it.live("returns remote auth defects as structured client errors", () =>
+    Effect.gen(function* () {
+      const configError = new ConfigErrorV1.RemoteAuthError({
+        url: "https://example.com",
+        remote: "https://config.example.com/opencode.json",
+      })
+
+      yield* HttpRouter.add("GET", "/remote-auth-error", Effect.die(configError)).pipe(
+        Layer.provide(errorLayer),
+        HttpRouter.serve,
+        Layer.build,
+      )
+
+      const response = yield* HttpClientRequest.get("/remote-auth-error").pipe(HttpClient.execute)
+      const body = yield* response.json
+
+      expect(response.status).toBe(400)
+      expect(body).toEqual(configError.toObject())
+    }),
+  )
+
   it.live("surfaces a typed status and short reason for known provider defects", () =>
     Effect.gen(function* () {
       const defect = Object.assign(new TypeError("fetch failed"), {

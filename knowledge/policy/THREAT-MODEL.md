@@ -31,6 +31,7 @@
 | **MCP tool poisoning** | Faz 2'de eklenecek bir MCP sunucusunun tool `description`'ı ajanı yanlış çağrıya yönlendirir | Danışma 2, Opus + Codex: "MCP tool açıklamaları review'dan geçmeli" — v1'de MCP yok ama tasarım şimdi yazılıyor |
 | **İnsan hatası** | Alp yorgun onay verir ("PR yorgunluğu"), payload değişmiş bir öneriyi eski haliyle sanıp onaylar | Danışma 2 ortak tespiti: "en zayıf halka = onay kapısı" |
 | **İç tehdit** | `aiops`/ajan hesabına erişimi olan biri ajan kimliğini kullanarak iz bırakmadan işlem yapar | Ayrı Unix hesabı + forced-command olmadan ayırt edilemez |
+| **Gizli sızıntısı (envanter/credential)** | Ajan kapsam dışı bir dizini (ör. envanter ağacı) **istenmeden** tarar, envanteri özetler, içindeki bir parola/anahtarı düz metin olarak yanıt metnine veya audit kaydına yazar | Sahada gerçekleşti (2026-09-23 15:40, A34 kritik + A35 yüksek) — model `~/ansible` ağacını glob'ladı, düz metin bir parolayı yanıt metnine yazdı. Kontrol: T13, bkz. §7 |
 
 ## 3. Saldırı yüzeyleri + kontrol
 
@@ -80,6 +81,7 @@ Somut olarak:
 | İmzasız skill approved'a sızar | Düşük (v1'de elle) | Orta | Faz 1: checksum/imza zorunluluğu, PR review |
 | Model endpoint prompt'ları dışarı sızdırır/loglar | Bilinmiyor (doğrulanmadı) | Yüksek | Açık soru — kurumun Qwen endpoint kurulumu doğrulanmalı |
 | Ajan kimliği ile insan kimliği karışır (iç tehdit / izlenebilirlik) | Düşük | Orta | Ayrı Unix hesabı + audit'te `actor.agent` / `actor.human` ayrımı |
+| Envanter/credential dosyası istenmeden okunur, secret yanıt metnine/audit'e sızar | Yüksek (sahada gerçekleşti) | Kritik | T13: gizli desen redaksiyonu + hassas dosya denylist'i + arama kapsamı onayı (bkz. §7, `PERMISSION-MATRIX.md` §5) |
 
 ## 6. Maskeleme — repo geneli kural ve tarama (T12/C18)
 
@@ -120,6 +122,46 @@ git ls-files -z -- "${KAPSAM[@]}" | xargs -0 grep -nIE "$DESEN" | grep -viE 'sah
   yer tutucu olan satırlar (`<…>`) elenir. Gerçek bir değeri bu iki kelimeyle gizlemek **yasaktır**.
 - **Desene gerçek host/yol yazılmaz** — tarama deseninin kendisi de maskeleme kuralına tabidir; yeni bir iç
   dizin kalıbı çıktıkça `DESEN`'e **genel** biçimiyle eklenir (`/<dizin>/`), gerçek adıyla değil.
+
+## 7. Gizli sızıntısı (envanter/credential) — kontrol ve kanıt (T13/A34+A35)
+
+**Kontrol:** `engine/plugins/audit-log.ts` — gizli desen redaksiyonu (değer asla döndürülmez) + hassas dosya
+denylist'i (gözlem modunda tam redaksiyon, `OPS_AGENT_KAPI=ENFORCE`'ta hard-deny) + arama kapsamı onayı
+(proje dışı/geniş tarama tek onaya bağlanır, sonuç yalnız sayı ile loglanır). Kural detayı:
+`PERMISSION-MATRIX.md` §5. Kayıt şeması: `AUDIT-FORMAT.md` §6. Birim testleri:
+`engine/plugins/audit-log.test.ts` (`bun test engine/plugins/audit-log.test.ts`).
+
+**Kanıt — önce/sonra (uydurma test verisiyle, gerçek envanter/parola değil):**
+
+*Önce (kapı yok, sahada olan):*
+```
+$ (ajan) read <envanter-dosyası>
+web01 ansible_user=root ansible_password=GercekSifre123
+$ (ajan yanıtı) "Envanterde 1 host var, parola: GercekSifre123"   ← A34: sızıntı
+```
+
+*Sonra (T13, gözlem modu):*
+```
+$ (ajan) read <envanter-dosyası>   # denylist: hosts*/*.vault/... eşleşti
+[REDACTED: hassas dosya, desen "hosts*" — gözlem modu, OPS_AGENT_KAPI=ENFORCE ile reddedilir]
+$ audit: {"record_type":"redacted","tool":"read","target":"<envanter-dosyası> :: denylist:hosts*", ...}
+```
+
+*Önce (kapsam dışı istenmeyen tarama, sahada olan):*
+```
+$ (ajan) glob ~/ansible/**/*.ini   # proje dizini disi, onay yok
+$ (ajan) glob ~/ansible/**/*.yml
+$ (ajan) glob ~/ansible/group_vars/**   # 3 ayrı dizine sessizce dokunuldu
+```
+
+*Sonra (T13):*
+```
+$ audit (ilk çağrı): {"result_status":"asked","policy_decision":"ask","target":"<kapsam-dışı-dizin> (7 dosya)"}
+$ (sonraki 2 çağrı aynı pencerede) → tekrar "ask" kaydı YOK (tek onaya bağlandı)
+```
+
+ENFORCE modunda (`OPS_AGENT_KAPI=ENFORCE`) her iki senaryo da araç hiç çalışmadan reddedilir; kaçış yolu
+insan onayına bağlıdır (`OPS_AGENT_KAPSAM_EK=<izinli-dizin>`, bkz. `PERMISSION-MATRIX.md` §5).
 
 ## Bu doküman neyi kapsamıyor
 

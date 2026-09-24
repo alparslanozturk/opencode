@@ -1,4 +1,4 @@
-// audit-log.test.ts — T13/A34 birim testleri (gizli desen redaksiyonu + hassas dosya denylist'i).
+// audit-log.test.ts — T13/A34+A35 birim testleri.
 // Hedefli çalıştırma: `bun test engine/plugins/audit-log.test.ts` (kökten tam `bun test`/`bun turbo
 // typecheck` YASAK — bkz. AGENTS.md "Root'tan tam typecheck/build ÇALIŞTIRMA").
 // Gerçek IP/host/parola yok — hepsi uydurma test verisi (THREAT-MODEL.md maskeleme kuralı testte de geçerli).
@@ -162,5 +162,56 @@ describe("hassas dosya denylist'i (A34+A35)", () => {
     ).rejects.toThrow(/denylist/)
     const lines = readAllLines().slice(before)
     expect(lines[0].result_status).toBe("denied")
+  })
+})
+
+describe("arama kapsami (A35)", () => {
+  test("proje disina ardisik tarama tek onaya baglanir, sonuc sayiyla loglanir", async () => {
+    const before = readAllLines().length
+    const hooks = await freshPlugin({ enforce: false, projectDir: workDir })
+    const outsideDir = "/kapsam-disi/ansible"
+    for (let i = 0; i < 3; i++) {
+      const args = { pattern: "*.ini", path: outsideDir }
+      await hooks["tool.execute.before"]!({ tool: "glob", sessionID: "s-scope", callID: `g${i}` }, { args })
+      const afterOut = { title: outsideDir, output: "a.ini\nb.ini\nc.ini", metadata: { count: 3, truncated: false } }
+      await hooks["tool.execute.after"]!(
+        { tool: "glob", sessionID: "s-scope", callID: `g${i}`, args },
+        afterOut,
+      )
+    }
+
+    const lines = readAllLines().slice(before)
+    const asked = lines.filter((l) => l.policy_decision === "ask")
+    expect(asked.length).toBe(1)
+    expect(asked[0].result_status).toBe("asked")
+    expect(asked[0].target).toContain("3 dosya")
+    // içerik (dosya adları) audit'e yazılmadı — yalnız sayı
+    expect(JSON.stringify(asked[0])).not.toContain("a.ini")
+    assertChainIntact()
+  })
+
+  test("proje ici arama onay gerektirmez", async () => {
+    const before = readAllLines().length
+    const hooks = await freshPlugin({ enforce: false, projectDir: workDir })
+    const args = { pattern: "*.md" }
+    await hooks["tool.execute.before"]!({ tool: "glob", sessionID: "s-scope2", callID: "g-in" }, { args })
+    const afterOut = { title: workDir, output: "README.md", metadata: { count: 1, truncated: false } }
+    await hooks["tool.execute.after"]!({ tool: "glob", sessionID: "s-scope2", callID: "g-in", args }, afterOut)
+
+    const lines = readAllLines().slice(before)
+    expect(lines.some((l) => l.policy_decision === "ask")).toBe(false)
+    assertChainIntact()
+  })
+
+  test("ENFORCE modunda kapsam disi tarama reddedilir", async () => {
+    const before = readAllLines().length
+    const hooks = await freshPlugin({ enforce: true, projectDir: workDir })
+    const args = { pattern: "*.ini", path: "/kapsam-disi/ansible" }
+    await expect(
+      hooks["tool.execute.before"]!({ tool: "glob", sessionID: "s-scope3", callID: "g-enf" }, { args }),
+    ).rejects.toThrow(/kapsam/)
+    const lines = readAllLines().slice(before)
+    expect(lines[0].result_status).toBe("denied")
+    assertChainIntact()
   })
 })

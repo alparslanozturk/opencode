@@ -42,6 +42,7 @@ OTel GenAI semantik konvansiyonuyla uyumlu isimler (`gen_ai.*`) + operasyona öz
 | `timestamp` | string (ISO 8601, UTC) | Olay zamanı |
 | `session_id` | string | opencode oturum kimliği |
 | `task_id` | string | Görev/istek kimliği (varsa) |
+| `record_type` | string | `tool_call` (varsayılan) \| `redacted` (T13/A34 — bkz. §6) |
 | `actor.agent` | string | Ajan kimliği, örn. `aiops@test-sunucu` |
 | `actor.human` | string | İşlemi tetikleyen insan (varsa; zamanlanmış görevse `scheduler`) |
 | `gen_ai.request.model` | string | Model kimliği, örn. `kurum/qwen3.6-35b-a3b` |
@@ -85,20 +86,23 @@ Gün sonunda:
 {"event_id":"a1b2c3d4-0003","timestamp":"2026-09-14T09:15:41Z","session_id":"ses_7f2a","task_id":"tsk_002","actor":{"agent":"aiops@test-sunucu","human":"alp"},"gen_ai":{"request":{"model":"kurum/qwen3.6-35b-a3b","model_digest":"sha256:7c9e..."},"usage":{"input_tokens":2044,"output_tokens":410}},"engine":{"version":"1.18.30","config_hash":"sha256:1a2b..."},"policy":{"hash":"sha256:5d6e..."},"skills_loaded":[],"tool":"write","args_hash":"sha256:dd44...","target":"knowledge/lessons-learned/2026-09-14-envanter-tutarsizligi.yaml","result_status":"ok","policy_decision":"allow","latency_ms":18,"output_sha256":"sha256:ee55...","prev_hash":"f1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8"}
 ```
 
-> **v1 sınırı (2026-09-16):** ikinci örnek kayıt (`result_status:"denied"`, `policy_decision:"ask"`) **hedef
-> tasarımı** gösterir, bugünkü `engine/plugins/audit-log.ts` bunu henüz üretmiyor. `permission.ask` (izin
-> sorulduğunda) ve nihai insan cevabını taşıyan `permission.replied` opencode plugin API'sinde ayrı birer olay
-> olarak var ama v1'de bağlanmadı — canlı bir opencode oturumunda davranışları (ne zaman/kaç kez tetikleniyor,
-> `output.status` başlangıç değeri ne) doğrulanmadan bağlamak yanlış/yanıltıcı audit satırı üretme riski taşıyor.
-> Bugün kod yalnız `result_status: "ok" | "error"` ve `policy_decision: "allow" | "deny"` üretir (`"deny"`
-> yalnız §"Bilinen sınırlar"daki stale-pending temizliğinden gelir). Bkz. `PHASE0-ACCEPTANCE.md` Faz 1 — bu madde
-> oraya aday.
+> **v1 sınırı (2026-09-16, T13'te kısmen kapandı — 2026-09-23):** ikinci örnek kayıt (`result_status:"denied"`,
+> `policy_decision:"ask"`) **hedef tasarımı** gösterir, ikisi de gerçek engine `permission.ask` (izin
+> sorulduğunda) / `permission.replied` hook'undan geliyor gibi okunabilir — ama bu hook'lar opencode plugin
+> API'sinde tanımlı olsa da motor tarafından **hâlâ hiç tetiklenmiyor** (bkz. `ONERI-LISTESI.md` C13). T13
+> bunu farklı bir yoldan kapattı: `engine/plugins/audit-log.ts`'in KENDİ `tool.execute.before`/`after` kapısı
+> artık `result_status:"asked"`/`policy_decision:"ask"` (arama kapsamı, §6) ve `result_status:"denied"`/
+> `policy_decision:"deny"` (`OPS_AGENT_KAPI=ENFORCE`, denylist+arama kapsamı) üretiyor — engine hook'undan
+> değil, plugin'in kendi throw/gözlem mekanizmasından. Gerçek engine `permission.ask`/`permission.replied`
+> bağlanması hâlâ Faz 1 adayı (bkz. `PHASE0-ACCEPTANCE.md`).
 
 ## 5. Neyin loglanmayacağı
 
 - **Secret değerleri** (API anahtarı, SSH private key, parola) — `args_hash` her zaman argümanın kendisi değil
-  hash'idir; eğer argüman secret içeriyorsa hash alınmadan önce `***MASKED***` ile değiştirilir, yalnız maskelenmiş
-  hâlin hash'i tutulur.
+  hash'idir; eğer argüman secret içeriyorsa hash alınmadan önce maskelenir. **T13/A34 (2026-09-23) —
+  kodlandı:** aynı maskeleme artık `target`/`args_hash`'in yanı sıra **tool çıktısının kendisine** de
+  uygulanıyor (`redactSecrets()`, §6), değer `[REDACTED:<tür>]` ile değiştirilir, asla ham hâliyle
+  yazılmaz/dönmez.
 - **Kişisel veri** (kullanıcı adı, e-posta, kişi adı içeren log satırları) — audit'e girmeden önce görev
   çıktısındaki PII deseni (regex: e-posta, TC kimlik benzeri sayı dizisi, IP) `***` ile kırpılır.
 - **Gerçek IP/hostname/domain** — bu depo dışına (loga) da maskelenerek yazılır; aynı kural (`test-sunucu`,
@@ -111,6 +115,33 @@ Gün sonunda:
   blob dizini konumu/saklama süresi ve "ilk N satır" seçimi ayrı bir karar gerektiriyor (Alp onayı).
 - **Model endpoint'in kendi logları** — kurumun Qwen endpoint'i prompt'ları ayrıca loglayabilir; bu, bu dosyanın
   kapsamı dışıdır ama `THREAT-MODEL.md`'de açık soru olarak işaretlenmiştir.
+
+## 6. `redacted` kaydı ve arama-kapsamı `asked` kaydı (T13/A34+A35)
+
+Kaynak: 2026-09-23 15:40 saha ekranı (A34+A35) — bkz. `PERMISSION-MATRIX.md` §5 (tam kural). Bu bölüm
+yalnız audit **şemasını** belgeler.
+
+**`record_type:"redacted"`** — `redactSecrets()` (gizli desen) veya denylist tam-redaksiyonu tetiklendiğinde
+normal `tool_call` kaydına **ek olarak** yazılır, aynı `prev_hash` zincirine girer:
+
+```json
+{"event_id":"...","record_type":"redacted","tool":"read","target":"notes.txt :: password","result_status":"ok","policy_decision":"allow","output_sha256":null, "...": "diğer alanlar §2 ile aynı"}
+```
+
+`target` alanı `"<maskelenmiş hedef> :: <desen türleri, virgülle>"` biçimindedir (örn.
+`"notes.txt :: password"`, `"/<envanter-dosyası> :: denylist:hosts*"`) — **değer hiçbir yerde yok**.
+
+**Arama kapsamı `asked` kaydı** — `read`/`glob`/`grep`/`list` proje dizini dışına çıkarsa ya da 2 dakikalık
+pencerede 4'ten fazla farklı dizine dokunulursa (burst'teki **ilk** çağrı), normal `tool_call` kaydı YERİNE
+şu satır yazılır:
+
+```json
+{"event_id":"...","record_type":"tool_call","tool":"glob","target":"<dizin-yer-tutucu> (3 dosya)","result_status":"asked","policy_decision":"ask","output_sha256":"sha256:...", "...": "diğer alanlar §2 ile aynı"}
+```
+
+`target` yalnız dizin + eşleşen dosya **sayısı** taşır — dosya adları/içerik hiçbir zaman audit'e yazılmaz.
+Aynı burst penceresindeki sonraki çağrılar bu kaydı **tekrar üretmez** (tek onaya bağlama, bkz.
+`PERMISSION-MATRIX.md` §5).
 
 ## Bilinen sınırlar (v1, 2026-09-16 — kodla karşılaştırılarak doğrulandı)
 

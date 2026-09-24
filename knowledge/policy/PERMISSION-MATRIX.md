@@ -121,3 +121,47 @@ kapısı Faz 2'nin ön koşuludur ve tasarımı burada belgelenmiştir ki o faza
 Onay/grant zinciri (payload-hash'e bağlı tek kullanımlık onay), OPA/Cedar tipi bağımsız politika motoru —
 Danışma 2'de "v1'de erken" olarak işaretlendi. Bunların plan/grant format taslağı ilerideki bir
 `architecture/decisions/` kaydına bırakılmıştır (bu dosyanın kapsamı değil).
+
+## 5. Hassas veri koruması (T13/A34+A35) — gizli desenler, denylist, arama kapsamı
+
+> Kaynak: 2026-09-23 15:40 saha ekranı (A34 kritik + A35 yüksek) — model `~/ansible` ağacını
+> **istenmeden** glob'ladı, envanteri özetledi ve **düz metin bir parolayı yanıt metnine yazdı**. Kapı
+> `engine/plugins/audit-log.ts`'e eklendi (T7'nin ayrı `degisiklik-kapisi.ts`'i hiç kodlanmadı —
+> §3'teki "ikinci bir kapı yazma" ilkesi gereği aynı `tool.execute.before`/`after` hook'u kullanıldı).
+
+**Gizli desen redaksiyonu (A34).** `redactSecrets()` şu deseni yakalar: `password|passwd|pwd|secret|
+token|api[_-]?key|private[_-]?key|BEGIN .* PRIVATE KEY` (etiket:değer / etiket=değer / `--etiket değer`
+biçimleri) **ve** genel `KEY=değer` biçimi (`KURUM_KEY=...` gibi kurum-özel değişkenler için — yukarıdaki
+etiket listesinde yok ama en sık kaçak yolu budur). Değer hiçbir zaman döndürülmez, yerine
+`[REDACTED:<tür>]` yer tutucusu geçer. Redaksiyon **`tool.execute.after` içinde, `output.output` MUTASYONLA
+değiştirilerek** uygulanır — yani tool çıktısı hem audit'e hem **modele/yanıta** maskelenmiş gider (tools.ts
+aynı `output` objesini geri döndürür, bkz. `session/tools.ts:112-129`). Yeni audit kayıt türü
+`record_type:"redacted"`: hangi araç, hangi hedef (maskelenmiş), hangi desen türü — **değer hiçbir alanda
+yok**. Aynı `prev_hash` zincirine eklenir (bkz. `AUDIT-FORMAT.md` §3/§6).
+
+**Hassas dosya denylist'i (A34+A35).** `read`/`write`/`edit`/`list`/`glob`/`grep` araçlarının hedef
+yolu şu kalıplara eşleşirse: `hosts*`, `*.inventory`, `inventory/**`, `*.vault`, `*credential*`,
+`*secret*`, `env`, `env.local`, `*.key`, `*.pem`, `*token*`, `*.kdbx`. **Gözlem modu (varsayılan):**
+sert blok yok — dosya içeriği **tamamen** redakte edilir (desen taramasına güvenilmez; envanter dosyası
+baştan sona hassas olabilir) ve `redacted` kaydı düşer. **`OPS_AGENT_KAPI=ENFORCE`:** `tool.execute.before`
+içinde araç hiç çalıştırılmadan reddedilir (throw → catchable hata, `packages/opencode/test/tool/
+code-mode.test.ts` "a failing before hook fails only that child call" testiyle doğrulanan mekanizma) ve
+`result_status:"denied"`/`policy_decision:"deny"` kaydı düşer. Desen kaynağı `engine/opencode.json` →
+`ops_agent.denylist.patterns` (opencode'un kendi config şeması bu alanı sessizce yok sayar — plugin dosyayı
+kendi okur, motor davranışını etkilemez). **Fail-closed:** liste boş/okunamazsa sabit bir varsayılan
+listeye (yukarıdaki kalıplar) düşülür — hiç koruma olmaması yerine.
+
+**Arama kapsamı (A35).** `read`/`glob`/`grep`/`list` için varsayılan kapsam **çalışma dizini**
+(`projectDir`). Bir çağrı bu ağacın **dışına** çıkarsa veya aynı oturumda 2 dakikalık bir "burst"
+penceresinde **4'ten fazla farklı dizin** dokunulursa (geniş/çok-dizinli tarama), **burst'teki ilk çağrı**
+işaretlenir — sonraki çağrılar aynı pencerede tekrar işaretlenmez (**tek onaya bağlama**, modelin kendi
+kendine ardışık glob turunu spam'e çevirmemesi için). Gerçek engine `permission.ask` hook'u hiç
+tetiklenmediğinden (bkz. `AUDIT-FORMAT.md` "v1 sınırı") kapı aynı gözlem/ENFORCE ikilisini kullanır: gözlem
+modunda `result_status:"asked"`/`policy_decision:"ask"` kaydı düşer, hedef **yalnız dizin adı + eşleşen
+dosya sayısı** (`"<dizin> (N dosya)"`) — dosya adları/içerik audit'e **yazılmaz**. `OPS_AGENT_KAPI=ENFORCE`
+modunda burst'ün ilk çağrısı reddedilir; kapsamı genişletmek isteyen insan `OPS_AGENT_KAPSAM_EK=<izinli-dizin>`
+kaçış yolunu kullanır (T7 analizindeki `OPS_AGENT_CN` kaçış deseniyle aynı aile). **A18 ile çelişmez:** bu
+kapı bilgi eksikse sormayı kısıtlamaz, yalnız **taramayı** kısıtlar.
+
+**Ortak mod anahtarı:** `OPS_AGENT_KAPI=ENFORCE` hem denylist hem arama-kapsamı kapısını aynı anda sert
+moda alır — iki ayrı ortam değişkeni yerine tek anahtar, T7'nin "kapı çoğalmasın" ilkesiyle tutarlı.

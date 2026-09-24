@@ -8,7 +8,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync } from "fs"
 import { createHash, randomUUID } from "crypto"
 import { execFileSync } from "child_process"
 import { hostname, userInfo } from "os"
-import { dirname, join } from "path"
+import { dirname, isAbsolute, join, relative, resolve } from "path"
 
 const AUDIT_LOG_PATH = process.env.OPS_AGENT_AUDIT_LOG ?? "/var/log/ops-agent/audit.jsonl"
 const ZERO_HASH = "0".repeat(64)
@@ -177,6 +177,30 @@ function matchesDenylist(targetPath: string, patterns: string[]): string | null 
   return null
 }
 
+// --- arama kapsamı (T13/A35, PERMISSION-MATRIX.md "arama kapsamı") -------------------------
+
+const SCOPE_TOOLS = new Set(["read", "glob", "grep", "list"])
+const SCOPE_BURST_WINDOW_MS = 2 * 60 * 1000
+const SCOPE_WIDE_DIR_THRESHOLD = 3
+
+function isInside(parentDir: string, candidate: string): boolean {
+  const rel = relative(parentDir, candidate)
+  return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel))
+}
+
+function resolveTargetDir(tool: string, args: Record<string, unknown>, baseDir: string): string | null {
+  const raw =
+    tool === "read" && typeof args.filePath === "string"
+      ? dirname(args.filePath)
+      : typeof args.path === "string"
+        ? args.path
+        : tool === "glob" || tool === "grep" || tool === "list"
+          ? baseDir
+          : null
+  if (!raw) return null
+  return isAbsolute(raw) ? raw : resolve(baseDir, raw)
+}
+
 function deriveTarget(rawArgs: unknown): string {
   const args = (rawArgs ?? {}) as Record<string, unknown>
   const candidate =
@@ -272,12 +296,14 @@ export const AuditLogPlugin: Plugin = async ({ directory, project }) => {
   const pending = new Map<string, PendingCall>()
   const skillsLoaded = new Map<string, { name: string; commit: string | null }>()
 
-  // T13/A34: tek kapı — `OPS_AGENT_KAPI=ENFORCE` olmadıkça gözlem modu (uyarı + redaksiyon, sert
-  // blok yok). ENFORCE'ta denylist ihlali `tool.execute.before` içinde reddedilir (bkz.
-  // PERMISSION-MATRIX.md "Zorunlu kapı" — before-hook throw = araç hiç çalışmaz).
+  // T13/A34+A35: tek kapı — `OPS_AGENT_KAPI=ENFORCE` olmadıkça gözlem modu (uyarı + redaksiyon,
+  // sert blok yok). ENFORCE'ta denylist/kapsam ihlali `tool.execute.before` içinde reddedilir
+  // (bkz. PERMISSION-MATRIX.md "Zorunlu kapı" — before-hook throw = araç hiç çalışmaz).
   const ENFORCE = process.env.OPS_AGENT_KAPI === "ENFORCE"
   const denylistPatterns = loadDenylistPatterns(projectDir)
   const pendingDenylistHit = new Map<string, string>() // callID -> eşleşen desen
+  const pendingScopeFlag = new Map<string, { dir: string; outOfScope: boolean }>() // callID -> kapsam bilgisi
+  const scopeState = new Map<string, { dirs: Map<string, number>; burstStart: number; burstFlagged: boolean }>()
 
   try {
     mkdirSync(dirname(AUDIT_LOG_PATH), { recursive: true, mode: 0o750 })
@@ -403,6 +429,41 @@ export const AuditLogPlugin: Plugin = async ({ directory, project }) => {
         }
       }
 
+      if (SCOPE_TOOLS.has(input.tool) && projectDir) {
+        const dir = resolveTargetDir(input.tool, args, projectDir)
+        if (dir) {
+          const now = Date.now()
+          let st = scopeState.get(input.sessionID)
+          if (!st || now - st.burstStart > SCOPE_BURST_WINDOW_MS) {
+            st = { dirs: new Map(), burstStart: now, burstFlagged: false }
+            scopeState.set(input.sessionID, st)
+          }
+          st.dirs.set(dir, (st.dirs.get(dir) ?? 0) + 1)
+          const outOfScope = !isInside(projectDir, dir)
+          const wide = st.dirs.size > SCOPE_WIDE_DIR_THRESHOLD
+          if ((outOfScope || wide) && !st.burstFlagged) {
+            st.burstFlagged = true
+            if (ENFORCE) {
+              writeRecord({
+                timestamp: new Date().toISOString(),
+                sessionID: input.sessionID,
+                tool: input.tool,
+                argsHash,
+                target: maskString(dir),
+                resultStatus: "denied",
+                policyDecision: "deny",
+                latencyMs: 0,
+                outputSha256: null,
+              })
+              throw new Error(
+                `[ops-agent] arama kapsamı onay gerektiriyor (${outOfScope ? "dizin dışı" : "geniş tarama: " + st.dirs.size + " dizin"}) — OPS_AGENT_KAPI=ENFORCE, kapsam genişletmek için OPS_AGENT_KAPSAM_EK=<izinli-dizin>`,
+              )
+            }
+            pendingScopeFlag.set(input.callID, { dir, outOfScope })
+          }
+        }
+      }
+
       pending.set(input.callID, {
         tool: input.tool,
         sessionID: input.sessionID,
@@ -417,6 +478,8 @@ export const AuditLogPlugin: Plugin = async ({ directory, project }) => {
       pending.delete(input.callID)
       const denylistHit = pendingDenylistHit.get(input.callID)
       pendingDenylistHit.delete(input.callID)
+      const scopeFlag = pendingScopeFlag.get(input.callID)
+      pendingScopeFlag.delete(input.callID)
 
       const args = (input as { args?: unknown }).args
       const argsHash = call?.argsHash ?? sha256(JSON.stringify(maskArgs(args) ?? {}))
@@ -429,7 +492,7 @@ export const AuditLogPlugin: Plugin = async ({ directory, project }) => {
         if (!skillsLoaded.has(name)) skillsLoaded.set(name, { name, commit: findSkillCommit(projectDir, name) })
       }
 
-      const meta = (output as { metadata?: { error?: unknown } } | undefined)?.metadata
+      const meta = (output as { metadata?: { error?: unknown; count?: unknown } } | undefined)?.metadata
       const hasError = Boolean(meta?.error)
       const outRef = output as { output?: unknown } | undefined
       const rawOutput = typeof outRef?.output === "string" ? outRef.output : null
@@ -455,6 +518,25 @@ export const AuditLogPlugin: Plugin = async ({ directory, project }) => {
         typeof finalOutput === "string" ? sha256(finalOutput) : output ? sha256(JSON.stringify(output)) : null
 
       if (redactedPatterns.length > 0) writeRedactedRecord(input.sessionID, input.tool, target, redactedPatterns)
+
+      if (scopeFlag) {
+        const count =
+          typeof meta?.count === "number"
+            ? meta.count
+            : ((finalOutput as string | undefined)?.split("\n").filter(Boolean).length ?? 0)
+        writeRecord({
+          timestamp,
+          sessionID: input.sessionID,
+          tool: input.tool,
+          argsHash,
+          target: `${maskString(scopeFlag.dir)} (${count} dosya)`,
+          resultStatus: "asked",
+          policyDecision: "ask",
+          latencyMs: Date.now() - startedAt,
+          outputSha256,
+        })
+        return
+      }
 
       writeRecord({
         timestamp,

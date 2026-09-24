@@ -6,6 +6,15 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-09-24 — motor opencode 1.18.30 → 1.18.32 + upstream takibi (ADR-0003)
+
+- Motor upstream **1.18.32**'ye alındı (ayrı `vendor:` commit'i). Bizim çekirdek yamalarımıza upstream
+  dokunmamış; tek çakışma bir test dosyasıydı. Gelenler: TUI hata çıkış kodu, uzak ayar giriş hatası
+  mesajı, AI SDK bağımlılık güncellemeleri. #49414 (sonsuz yeniden deneme) upstream'de hâlâ açık → yama duruyor.
+- Yeni: `script/upstream-kontrol.sh` (rapor / `uygula`) + `knowledge/runbooks/upstream-guncelleme.md`.
+  Kural: en fazla 2 sürüm geride; 2.x ana sürüm (upstream'de etiketli, npm `latest` değil) ayrı karar.
+- Ürün sürümü (`kur.sh SURUM`) değişmedi; sahaya bir sonraki derlemeyle gider.
+
 ## 2026-09-23 — saha raporu & sürüm izlenebilirliği (T2 + T3 + T4)
 
 Üçü de `kur.sh` içinde; kökte yeni dosya yok, yardımcılar `script/` altında.

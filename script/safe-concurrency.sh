@@ -10,7 +10,12 @@
 # konfigurasyonlu sunucularda ayni script tasinabilir sekilde calisir.
 set -euo pipefail
 
-mem_per_proc_mb=700
+# En kotu durum olculdu (2026-09-24, upstream 1.18.32): packages/opencode'un tsgo'su tepe
+# ~4700 MB RSS (tek basina calisirken bile). Eskiden 700 varsayiliyordu; 8 GB'lik bu VM'de iki buyuk paket ayni anda
+# acilinca bellek %10'un altina dustu ve earlyoom tsgo'ya SIGTERM gonderdi (push kancasi
+# her seferinde BASKA bir pakette "failed" dedi — kod hatasi degil). Paketlerin cogu kucuk
+# ama siralama garanti degil, bu yuzden en buyuge gore hesaplanir.
+mem_per_proc_mb=4800
 
 cpu=$(nproc 2>/dev/null || echo 2)
 

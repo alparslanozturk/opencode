@@ -74,3 +74,13 @@ bu makinede servis/paket/kullanıcı/ağ/disk komutları ve çalışma dizini d�
 - Her red audit log'a düşer: `result_status: "denied"`, `target: "K1 :: <komut>"`. Yetki verme/kapama
   `tool: "yetki"` kaydıyla görünür (CN numarası ve sunucu listesi dahil).
 - Gözlem modunda (`OPS_AGENT_KAPI=GOZLEM`) red yerine `result_status: "asked"`, `target: "K1 [GOZLEM] :: …"`.
+
+## Denylist artık `bash` aracına da uygulanır (A81/A92, 2026-09-25)
+
+Hassas dosya denylist'i (`hosts*`, `*.vault`, `*credential*`, `*secret*`, `env`, `*.key`, `*.pem`, `*token*`
+…) önceden yalnız `read`/`write`/`edit`/`list`/`glob`/`grep` araçlarının `filePath`/`path` alanına
+bakıyordu; `bash` üzerinden `cat hosts.ini` ya da `cp ansible/inventories/hosts.ini /tmp/x; cat /tmp/x`
+ile aynı içerik dolaylı okunup kilit aşılabiliyordu (sahada `ops-agent`'ın kendisi bu yolu önerdi). Artık
+`bash` komutunun tüm argümanları (alt kabuk, yazma hedefleri, modelin yazdığı yerel `.sh` betiğinin içeriği
+dahil) aynı desenlere karşı taranır — bkz. `engine/plugins/audit-log.ts` `bashDenylistHit()`. Ajan bypass
+**önermez**: kilit reddederse etrafından dolaşma yolu sunmaz (bkz. `engine/AGENTS.md` "Güvenlik kilitleri").

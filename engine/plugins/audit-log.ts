@@ -159,7 +159,8 @@ const DEFAULT_DENYLIST_PATTERNS = [
   "*.kdbx",
 ]
 
-const DENYLIST_TOOLS = new Set(["read", "write", "edit", "list", "glob", "grep"])
+// A81/A92: "bash" burada — filePath/path yerine args.command bashDenylistHit() ile taranır (bkz. aşağıda).
+const DENYLIST_TOOLS = new Set(["read", "write", "edit", "list", "glob", "grep", "bash"])
 
 function loadDenylistPatterns(projectDir: string | undefined): string[] {
   if (!projectDir) return DEFAULT_DENYLIST_PATTERNS
@@ -1147,6 +1148,63 @@ function betikOku(abs: string): string | null {
   }
 }
 
+// --- bash icindeki denylist taramasi (A81/A92) --------------------------------------------
+// Ustteki denylist kapisi (DENYLIST_TOOLS) yalniz read/write/edit/list/glob/grep araclarinin
+// filePath/path alanina bakiyordu — `bash` uzerinden "cat hosts.ini" ya da "cp hosts.ini /tmp/x;
+// cat /tmp/x" ile ayni icerik dolayli okunup kilit asilabiliyordu (saha bulgusu #18/#22, ops-agent
+// kendisi bu yolu alternatif olarak onerdi). Bu tarama var olan kabuk ayristiricisini
+// (ayristir/sarmalayiciSoy/betikOku, K1-K7'nin de kullandigi) yeniden kullanir: her alt komutun
+// argumanlarini (bayrak degerleri, yazma hedefleri dahil) ve `bash -c`/`eval`/modelin yazdigi yerel
+// betik dosyasinin ICERIGINI de denylist desenlerine karsi test eder. Komut adinin kendisi
+// (argv[0]) denetlenmez — okunan/kopyalanan dosya her zaman bir sonraki konumdadir.
+function bashDenylistHit(metin: string, patterns: string[], cwd: string, derinlik = 0): string | null {
+  if (derinlik > 6) return null
+  const ic: string[] = []
+  for (const k of ayristir(metin, ic)) {
+    const { argv } = sarmalayiciSoy(k.argv)
+    for (const tok of [...argv.slice(1), ...k.yazilan]) {
+      if (!tok || tok.startsWith("-")) continue
+      const hit = matchesDenylist(tok, patterns)
+      if (hit) return hit
+    }
+    if (argv.length === 0) continue
+    const p = taban(argv[0])
+    const a = argv.slice(1)
+    if (["bash", "sh", "zsh", "dash", "ksh", "su", "runuser"].includes(p)) {
+      const c = secenekDegeri(a, "-c", "--command")
+      if (c !== null) {
+        const hit = bashDenylistHit(c, patterns, cwd, derinlik + 1)
+        if (hit) return hit
+        continue
+      }
+    }
+    if (p === "eval") {
+      const hit = bashDenylistHit(a.join(" "), patterns, cwd, derinlik + 1)
+      if (hit) return hit
+      continue
+    }
+    const betik =
+      ["bash", "sh", "zsh", "dash", "ksh", "source", "."].includes(p)
+        ? a.find(secenekDegil)
+        : /^\.{0,2}\//.test(argv[0])
+          ? argv[0]
+          : undefined
+    if (betik) {
+      const abs = isAbsolute(betik) ? betik : resolve(cwd, betik)
+      const icerik = betikOku(abs)
+      if (icerik !== null) {
+        const hit = bashDenylistHit(icerik, patterns, cwd, derinlik + 1)
+        if (hit) return hit
+      }
+    }
+  }
+  for (const inner of ic) {
+    const hit = bashDenylistHit(inner, patterns, cwd, derinlik + 1)
+    if (hit) return hit
+  }
+  return null
+}
+
 const SSH_DEGERLI = new Set("bcDEeFIiJLlmOopQRSWw".split(""))
 
 function sshHedef(a: string[]): { host: string | null; komut: string } {
@@ -1556,9 +1614,21 @@ export const AuditLogPlugin: Plugin = async ({ directory, project, worktree }) =
       }
 
       if (DENYLIST_TOOLS.has(input.tool)) {
-        const pathArg =
-          typeof args.filePath === "string" ? args.filePath : typeof args.path === "string" ? args.path : null
-        const hit = pathArg ? matchesDenylist(pathArg, denylistPatterns) : null
+        let hit: string | null = null
+        if (input.tool === "bash" && typeof args.command === "string") {
+          const baseDir = projectDir ?? process.cwd()
+          const cwd =
+            typeof args.workdir === "string"
+              ? isAbsolute(args.workdir)
+                ? args.workdir
+                : resolve(baseDir, args.workdir)
+              : baseDir
+          hit = bashDenylistHit(args.command, denylistPatterns, cwd)
+        } else {
+          const pathArg =
+            typeof args.filePath === "string" ? args.filePath : typeof args.path === "string" ? args.path : null
+          hit = pathArg ? matchesDenylist(pathArg, denylistPatterns) : null
+        }
         if (hit) {
           if (ENFORCE) {
             writeRecord({

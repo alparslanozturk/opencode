@@ -49,13 +49,15 @@ async function freshPlugin(opts: { enforce?: boolean; projectDir?: string } = {}
 }
 
 describe("gizli desen redaksiyonu (A34)", () => {
-  test("env icindeki parola hem tool ciktisinda hem audit'te maskelenir, zincir bozulmaz", async () => {
+  test("bash ciktisindaki parola hem tool ciktisinda hem audit'te maskelenir, zincir bozulmaz", async () => {
     const before = readAllLines().length
     const hooks = await freshPlugin()
-    const args = { command: "cat env" }
+    // "env" dosya adi artik A81/A92 denylist'ine takilir (bkz. asagida) — bu test redaksiyonu
+    // denylist'ten BAGIMSIZ sinamak icin denylist'e uymayan bir dosya adi kullanir.
+    const args = { command: "cat notlar.txt" }
     const beforeOut = { args }
     await hooks["tool.execute.before"]!({ tool: "bash", sessionID: "s-env", callID: "c-env" }, beforeOut)
-    const afterOut = { title: "env", output: "DB_PASSWORD=Sifre!2026\nOK=1", metadata: {} }
+    const afterOut = { title: "notlar.txt", output: "DB_PASSWORD=Sifre!2026\nOK=1", metadata: {} }
     await hooks["tool.execute.after"]!(
       { tool: "bash", sessionID: "s-env", callID: "c-env", args },
       afterOut,
@@ -126,10 +128,11 @@ describe("uc/hostname/ic IP redaksiyonu (T15/A43-A44)", () => {
   test("kurum alan adi (*.com.tr) tool ciktisinda maskelenir", async () => {
     const before = readAllLines().length
     const hooks = await freshPlugin()
-    const args = { command: "cat env" }
+    // "env" dosya adi artik A81/A92 denylist'ine takilir — bkz. yukaridaki not.
+    const args = { command: "cat notlar.txt" }
     await hooks["tool.execute.before"]!({ tool: "bash", sessionID: "s-host", callID: "c-host" }, { args })
     const afterOut = {
-      title: "env",
+      title: "notlar.txt",
       output: "KURUM_URL=https://ai.sahte-kurum.com.tr:8443/v1",
       metadata: {},
     }
@@ -205,6 +208,81 @@ describe("hassas dosya denylist'i (A34+A35)", () => {
     ).rejects.toThrow(/denylist/)
     const lines = readAllLines().slice(before)
     expect(lines[0].result_status).toBe("denied")
+  })
+})
+
+describe("bash denylist taramasi (A81/A92 — kilit bash'e de uygulanir)", () => {
+  const denylistliKomutlar = [
+    "cat hosts.ini",
+    "cp ansible/inventories/hosts.ini /tmp/x",
+    "grep -c x hosts.ini",
+    "ansible-inventory -i hosts.ini --list",
+  ]
+  for (const komut of denylistliKomutlar) {
+    test(`ENFORCE modu: reddedilir — ${komut}`, async () => {
+      const before = readAllLines().length
+      const hooks = await freshPlugin({ enforce: true })
+      const args = { command: komut }
+      await expect(
+        hooks["tool.execute.before"]!({ tool: "bash", sessionID: "s-bash-deny", callID: `c-bd-${komut}` }, { args }),
+      ).rejects.toThrow(/denylist/)
+      const lines = readAllLines().slice(before)
+      expect(lines[0].result_status).toBe("denied")
+      expect(lines[0].tool).toBe("bash")
+      assertChainIntact()
+    })
+  }
+
+  test("asiri bloklama yok: denylist desenine uymayan bash komutu eskisi gibi calisir", async () => {
+    const hooks = await freshPlugin({ enforce: true })
+    const args = { command: "cat README.md" }
+    await hooks["tool.execute.before"]!(
+      { tool: "bash", sessionID: "s-bash-serbest", callID: "c-bd-serbest" },
+      { args },
+    )
+    const afterOut = { title: "README.md", output: "merhaba", metadata: {} }
+    await hooks["tool.execute.after"]!(
+      { tool: "bash", sessionID: "s-bash-serbest", callID: "c-bd-serbest", args },
+      afterOut,
+    )
+    expect(afterOut.output).toBe("merhaba")
+    assertChainIntact()
+  })
+
+  test("GOZLEM modu: denylistli bash komutu engellenmez ama ciktisi tam redakte edilir", async () => {
+    const before = readAllLines().length
+    const hooks = await freshPlugin({ enforce: false })
+    const args = { command: "cat hosts.ini" }
+    await hooks["tool.execute.before"]!(
+      { tool: "bash", sessionID: "s-bash-gozlem", callID: "c-bd-gozlem" },
+      { args },
+    )
+    const afterOut = { title: "hosts.ini", output: "web01 ansible_host=<IP-yer-tutucu>", metadata: {} }
+    await hooks["tool.execute.after"]!(
+      { tool: "bash", sessionID: "s-bash-gozlem", callID: "c-bd-gozlem", args },
+      afterOut,
+    )
+
+    expect(afterOut.output).toContain("[REDACTED: hassas dosya")
+    expect(afterOut.output).not.toContain("ansible_host")
+    const lines = readAllLines().slice(before)
+    expect(lines.some((l) => l.record_type === "redacted" && l.tool === "bash")).toBe(true)
+    expect(lines.every((l) => l.result_status !== "denied")).toBe(true)
+    assertChainIntact()
+  })
+
+  test("modelin yazdigi yerel betik icindeki denylistli okuma da yakalanir (bypass kapatildi)", async () => {
+    const { writeFileSync } = require("fs")
+    writeFileSync(join(workDir, "envanter-oku.sh"), "#!/bin/bash\ncat hosts.ini\n")
+    const before = readAllLines().length
+    const hooks = await freshPlugin({ enforce: true, projectDir: workDir })
+    const args = { command: "bash envanter-oku.sh" }
+    await expect(
+      hooks["tool.execute.before"]!({ tool: "bash", sessionID: "s-bash-betik", callID: "c-bd-betik" }, { args }),
+    ).rejects.toThrow(/denylist/)
+    const lines = readAllLines().slice(before)
+    expect(lines[0].result_status).toBe("denied")
+    assertChainIntact()
   })
 })
 

@@ -54,6 +54,9 @@
 - **Asla açılmayanlar:** `rm -rf /`-benzeri, mkfs, diske `dd`, force-push; kendi ayarın/eklentin/audit log.
 - Kilit reddederse atlatmaya çalışma (başka komut, betik, farklı yazım): kullanıcıya neyin neden
   gerektiğini tek cümleyle söyle. Proje dosyalarını okumak da onaya tabidir — kullanıcı "oku" derse oku.
+- **Atlatma yolu ÖNERME.** Kilit reddederse etrafından dolaşma yolu **sunma** (dosyayı `/tmp`'ye kopyalayıp okumak,
+  `bash` üzerinden denemek, farklı araç/yazım, `--limit` ile hedefi gizlemek...). Ne yapamadığını ve **neden**
+  gerektiğini tek cümleyle söyle; içerik gerekiyorsa **kullanıcı kendisi paylaşsın**.
 
 ## Güvenlik ve sınırlar
 - Yıkıcı komut (rm -rf, mkfs, dnf remove, servis durdurma, force push) → **önce sor**.

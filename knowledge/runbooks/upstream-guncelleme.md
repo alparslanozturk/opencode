@@ -25,7 +25,9 @@
   `cd packages/opencode && bun test test/server/httpapi-error-middleware.test.ts test/server/httpapi-defect-classify.test.ts test/session/prompt.test.ts test/session/system.test.ts`
   ve `cd packages/core && bun test test/reference.test.ts`
 - `cd packages/opencode && bun run typecheck` (tek paket; kok typecheck de guvenli — ADR-0002)
-- `bash script/smoke-ikili.sh` → `GECTI` (derlenmis ikili cokmesi yok, istek saglayiciya ulasiyor)
+- `./kur.sh derle` **sonra** `bash script/smoke-ikili.sh packages/opencode/dist/opencode-linux-x64/bin/opencode`
+  → `GECTI`. DIKKAT: argumansiz `smoke-ikili.sh` **eski** `bin/opencode`'u test eder (derlemez) — 2026-09-24'te
+  1.18.32 gecisi bu yuzden yanlislikla 1.18.30 ikilisiyle "dogrulandi"; 2026-09-26'da duzeltildi.
 - Sonra main'e al; `MIMARI.md` "Referans sürüm" satirini guncelle.
 
 ## Bilinen tuzaklar

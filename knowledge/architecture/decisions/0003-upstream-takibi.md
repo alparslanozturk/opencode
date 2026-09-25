@@ -28,5 +28,7 @@
      sig fetch + `git diff | git apply --3way` ayni isi goruyor.
   2. *Yalniz belgeye "takip et" yazmak.* Reddedildi — zaten boyleydi ve calismadi.
 - **Sonuç / gerekçe:** 1.18.30 → 1.18.32 gecisi bu sekilde yapildi (commit `vendor: opencode 1.18.30 -> 1.18.32`):
-  tek cakisma bir test dosyasinda, yamali cekirdek dosyalarimiza upstream dokunmamis, testler/typecheck/duman
-  testi gecti. Ayni ADR-0001 cizgisi korunuyor: cekirdege dokunusu kucuk tutmak guncellemeyi ucuz tutuyor.
+  tek cakisma bir test dosyasinda, yamali cekirdek dosyalarimiza upstream dokunmamis, testler/typecheck
+  gecti. Ayni ADR-0001 cizgisi korunuyor: cekirdege dokunusu kucuk tutmak guncellemeyi ucuz tutuyor.
+  **Duzeltme (2026-09-26):** o gunku duman testi derlemeden eski `bin/opencode` (1.18.30) ile kosmustu;
+  1.18.32 motorlu ikili ilk kez 2026-09-26'da (urun 1.0.3) derlendi; duman testi + kilit senaryolari gecti.

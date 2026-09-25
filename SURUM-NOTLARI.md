@@ -21,6 +21,10 @@ Sahaya `./kur.sh` ile gider (sürüm 1.0.3 → yeniden derler).
 - **C4 — kapatıldı (gerek yok):** beceri listesinde çökme riski teorikti; beceri isimleri kayda girmeden
   doğrulanıyor (`skill/index.ts` `isSkillFrontmatter`). Çekirdeğe gereksiz yama yapılmadı.
 
+- **Doğrulama düzeltmesi:** 24 Eylül'deki "1.18.32 duman testi geçti" kaydı yanlıştı — test derleme yapmadan
+  eski `bin/opencode` (1.18.30) ile koşmuştu. 1.18.32 motorlu ikili ilk kez bugün derlendi (1.0.3):
+  duman testi GEÇTİ, kilit senaryoları (K1 yetkisiz/CN'li, K5, K6, salt-okunur) aynı sonucu verdi.
+
 > **Karar bekleyen (A22 devamı):** MobaXterm'de seçip kopyalamanın gerçekten çalışması için TUI'nin fare
 > yakalamasını kapatmak gerekir (`~/.config/opencode/tui.json` → `"mouse": false`; seçim terminale kalır,
 > MobaXterm "copy on select" çalışır). Bedeli: TUI içinde fareyle kaydırma/tıklama olmaz.

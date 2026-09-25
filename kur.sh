@@ -497,6 +497,15 @@ if v:
 PY
 }
 
+# A16: Authorization başlığını curl config biçiminde (stdin'e, `curl -K -`) üretir. curl config'te
+# çift tırnak içinde \ ve " kaçış karakteridir — kaçılmazsa `ab"c` gibi bir anahtar sessizce `ab`
+# diye kırpılır ve istek yanlış anahtarla gider (2026-09-26 testle doğrulandı).
+curl_baslik() {
+  local k="${1//\\/\\\\}"
+  k="${k//\"/\\\"}"
+  printf 'header = "Authorization: Bearer %s"\n' "$k"
+}
+
 cikti_probe() { # <url> <key> <model> [baglam]
   local kok="${1%/}" anahtar="$2" model="$3" baglam="${4:-}" istek govde
   [ -n "$PY" ] || return 0
@@ -510,7 +519,7 @@ PY
 )"
   [ -n "$istek" ] || return 0
   # A16: anahtar argv'de değil stdin config'te — `ps` çıktısında görünmez (printf yerleşik komut)
-  govde="$(printf 'header = "Authorization: Bearer %s"\n' "$anahtar" | curl -sS -N --max-time 12 -K - \
+  govde="$(curl_baslik "$anahtar" | curl -sS -N --max-time 12 -K - \
     -H 'Content-Type: application/json' \
     -d "$istek" "$kok/chat/completions" 2> /dev/null | head -c 2000 || true)"
   [ -n "$govde" ] || return 0
@@ -712,7 +721,7 @@ kur() {
   case "$KURUM_URL" in
     ""|*KURUM_ENDPOINT*) ;;
     *)
-      MODELS_JSON="$(printf 'header = "Authorization: Bearer %s"\n' "$KURUM_KEY" \
+      MODELS_JSON="$(curl_baslik "$KURUM_KEY" \
         | curl -sS --max-time 10 -K - "${KURUM_URL%/}/models" 2>/dev/null || true)"
       if [ -n "$MODELS_JSON" ]; then
         UC_ALANLARI="$(uc_alanlari "$MODEL_ID" "$MODELS_JSON")"

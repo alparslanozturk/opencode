@@ -200,9 +200,10 @@ describe("hassas dosya denylist'i (A34+A35)", () => {
 
   test("desen bos/okunamaz config'te varsayilan denylist'e duser (fail-closed)", async () => {
     // projectDir workDir'de engine/opencode.json yok -> loadDenylistPatterns() varsayilana duser.
+    // A105: denylist yalniz kapsam DISI hedeflere uygulandigindan yol kasitli kapsam disi verildi.
     const before = readAllLines().length
     const hooks = await freshPlugin({ enforce: true, projectDir: workDir })
-    const args = { filePath: "sirket.vault" }
+    const args = { filePath: "/kapsam-disi/sirket.vault" }
     await expect(
       hooks["tool.execute.before"]!({ tool: "read", sessionID: "s-deny3", callID: "c-deny3" }, { args }),
     ).rejects.toThrow(/denylist/)
@@ -212,11 +213,13 @@ describe("hassas dosya denylist'i (A34+A35)", () => {
 })
 
 describe("bash denylist taramasi (A81/A92 — kilit bash'e de uygulanir)", () => {
+  // A105: denylist yalniz kapsam DISI hedeflere uygulanir — bu yuzden komutlar kasitli /kapsam-disi
+  // altindaki yollari hedefler (kapsam ici esdegerleri asagida "A105: kapsam ici serbest" testinde).
   const denylistliKomutlar = [
-    "cat hosts.ini",
-    "cp ansible/inventories/hosts.ini /tmp/x",
-    "grep -c x hosts.ini",
-    "ansible-inventory -i hosts.ini --list",
+    "cat /kapsam-disi/hosts.ini",
+    "cp /kapsam-disi/ansible/inventories/hosts.ini /tmp/x",
+    "grep -c x /kapsam-disi/hosts.ini",
+    "ansible-inventory -i /kapsam-disi/hosts.ini --list",
   ]
   for (const komut of denylistliKomutlar) {
     test(`ENFORCE modu: reddedilir — ${komut}`, async () => {
@@ -249,10 +252,25 @@ describe("bash denylist taramasi (A81/A92 — kilit bash'e de uygulanir)", () =>
     assertChainIntact()
   })
 
-  test("GOZLEM modu: denylistli bash komutu engellenmez ama ciktisi tam redakte edilir", async () => {
+  test("A105: kapsam ici bash hedefleri denylist'ten muaf (cat env, cat hosts.ini)", async () => {
+    const before = readAllLines().length
+    const hooks = await freshPlugin({ enforce: true, projectDir: workDir })
+    for (const komut of ["cat env", "cat hosts.ini", "cat ansible/inventories/hosts.ini"]) {
+      const args = { command: komut }
+      await hooks["tool.execute.before"]!(
+        { tool: "bash", sessionID: "s-bash-a105", callID: `c-a105-${komut}` },
+        { args },
+      )
+    }
+    const lines = readAllLines().slice(before)
+    expect(lines.every((l) => l.result_status !== "denied")).toBe(true)
+    assertChainIntact()
+  })
+
+  test("GOZLEM modu: kapsam disi denylistli bash komutu engellenmez ama ciktisi tam redakte edilir", async () => {
     const before = readAllLines().length
     const hooks = await freshPlugin({ enforce: false })
-    const args = { command: "cat hosts.ini" }
+    const args = { command: "cat /kapsam-disi/hosts.ini" }
     await hooks["tool.execute.before"]!(
       { tool: "bash", sessionID: "s-bash-gozlem", callID: "c-bd-gozlem" },
       { args },
@@ -271,9 +289,9 @@ describe("bash denylist taramasi (A81/A92 — kilit bash'e de uygulanir)", () =>
     assertChainIntact()
   })
 
-  test("modelin yazdigi yerel betik icindeki denylistli okuma da yakalanir (bypass kapatildi)", async () => {
+  test("modelin yazdigi yerel betik icindeki kapsam disi denylistli okuma da yakalanir (bypass kapatildi)", async () => {
     const { writeFileSync } = require("fs")
-    writeFileSync(join(workDir, "envanter-oku.sh"), "#!/bin/bash\ncat hosts.ini\n")
+    writeFileSync(join(workDir, "envanter-oku.sh"), "#!/bin/bash\ncat /kapsam-disi/hosts.ini\n")
     const before = readAllLines().length
     const hooks = await freshPlugin({ enforce: true, projectDir: workDir })
     const args = { command: "bash envanter-oku.sh" }
@@ -405,27 +423,43 @@ describe("izin modeli: kapsam (cwd) tabanli okuma (A104)", () => {
     assertChainIntact()
   })
 
-  test("kapsam ici read: envanter (ansible/inventories/hosts.ini) denylist ile reddedilir", async () => {
+  test("A105: kapsam ici read — envanter (ansible/inventories/hosts.ini) artik serbest", async () => {
     const before = readAllLines().length
     const hooks = await freshPlugin({ enforce: true, projectDir: workDir })
     const args = { filePath: "ansible/inventories/hosts.ini" }
-    await expect(
-      hooks["tool.execute.before"]!({ tool: "read", sessionID: "s-a104-5", callID: "r-inv" }, { args }),
-    ).rejects.toThrow(/denylist/)
+    await hooks["tool.execute.before"]!({ tool: "read", sessionID: "s-a105-1", callID: "r-inv" }, { args })
     const lines = readAllLines().slice(before)
-    expect(lines[0].result_status).toBe("denied")
+    expect(lines.some((l) => l.result_status === "denied")).toBe(false)
     assertChainIntact()
   })
 
-  test("kapsam ici read: sir dosyasi (env) denylist ile reddedilir", async () => {
+  test("A105: kapsam ici read — sir dosyasi (env) artik serbest", async () => {
     const before = readAllLines().length
     const hooks = await freshPlugin({ enforce: true, projectDir: workDir })
     const args = { filePath: "env" }
+    await hooks["tool.execute.before"]!({ tool: "read", sessionID: "s-a105-2", callID: "r-env" }, { args })
+    const lines = readAllLines().slice(before)
+    expect(lines.some((l) => l.result_status === "denied")).toBe(false)
+    assertChainIntact()
+  })
+
+  test("A105: kapsam disi ayni dosyalar hala denylist ile reddedilir", async () => {
+    const before = readAllLines().length
+    const hooks = await freshPlugin({ enforce: true, projectDir: workDir })
     await expect(
-      hooks["tool.execute.before"]!({ tool: "read", sessionID: "s-a104-6", callID: "r-env" }, { args }),
+      hooks["tool.execute.before"]!(
+        { tool: "read", sessionID: "s-a105-3", callID: "r-inv-out" },
+        { args: { filePath: "/kapsam-disi/ansible/inventories/hosts.ini" } },
+      ),
+    ).rejects.toThrow(/denylist/)
+    await expect(
+      hooks["tool.execute.before"]!(
+        { tool: "read", sessionID: "s-a105-3", callID: "r-env-out" },
+        { args: { filePath: "/kapsam-disi/env" } },
+      ),
     ).rejects.toThrow(/denylist/)
     const lines = readAllLines().slice(before)
-    expect(lines[0].result_status).toBe("denied")
+    expect(lines.filter((l) => l.result_status === "denied").length).toBe(2)
     assertChainIntact()
   })
 })
@@ -712,13 +746,15 @@ describe("izin blogu (engine/opencode.json) — K3/K4", async () => {
     for (const k of ["rm -rf x", "rm -fr x", "rm -Rf x", "rm -r -f x", "rm -f -r x", "git push --force", "git push -f origin main"])
       expect([k, karar("bash", k)]).toEqual([k, "deny"])
   })
-  test("K3 (A104): kapsam ici okuma serbest, kendi ayar/anahtar dosyalari kilitli", () => {
+  test("K3 (A105): okuma kapsam ici/disi ayrimi olmadan tamamen serbest", () => {
     expect(karar("read", "knowledge/x.md")).toBe("allow")
     expect(karar("read", "notlar/x.md")).toBe("allow")
     expect(karar("read", "playbooks/site.yml")).toBe("allow")
     expect(karar("read", "AGENTS.md")).toBe("allow")
-    expect(karar("read", "opencode.json")).toBe("deny")
-    expect(karar("read", "auth.json")).toBe("deny")
+    // A105: engine/opencode.json'daki read denylist'i (*opencode.json*/*auth.json) kaldirildi —
+    // canli ayar dosyasi hala korunur ama K6 (plugin, korunanYol) uzerinden, bkz. "K6 oz-koruma" bloğu.
+    expect(karar("read", "opencode.json")).toBe("allow")
+    expect(karar("read", "auth.json")).toBe("allow")
     expect(karar("bash", "cat /etc/passwd")).toBe("ask")
     expect(karar("bash", "cat hosts.ini")).toBe("ask")
     expect(karar("bash", "grep -r pass .")).toBe("ask")

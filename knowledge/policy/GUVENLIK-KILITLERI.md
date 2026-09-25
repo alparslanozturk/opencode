@@ -11,7 +11,7 @@
 |---|---|---|---|
 | **K1** | Değişiklik kilidi | Sunucuda/sistemde değişiklik ancak **yetki + hedef listede** ise çalışır | Yalnız kullanıcı, kendi mesajıyla |
 | **K2** | Dizin dışı | Çalışma dizini dışına çıkan her okuma/yazma **onay sorar** | Kullanıcı (onay ekranı) |
-| **K3** | Okuma (A104: kapsam tabanlı) | Çalışma dizini (kapsam) İÇİNDE okuma serbest; DIŞINA çıkan okuma K2'nin onayına düşer | Kullanıcı (K2 onay ekranı, "always" = o oturum boyunca) |
+| **K3** | Okuma (A104/A105: kapsam tabanlı) | Çalışma dizini (kapsam) İÇİNDE okuma **istisnasız** serbest (A105 — `hosts*`/`env`/`*.key`/… denylist'i de dahil, kapsam içinde artık uygulanmaz); DIŞINA çıkan okuma K2'nin onayına düşer, denylist'e uyan kapsam-dışı dosyalar audit-log plugin'inde hâlâ reddedilir | Kullanıcı (K2 onay ekranı, "always" = o oturum boyunca) |
 | **K4** | İzin listesi | Sorusuz çalışan komutlar yalnız salt-okunur olanlar; `ss`≠`ssh`, `ps`≠`psql` vb. | — |
 | **K5** | Yıkıcı komut | `rm -rf /`-benzeri, mkfs, diske `dd`, force-push, `kill -9 -1` … **hiç çalışmaz** | Kimse (gerekirse insan elle çalıştırır) |
 | **K6** | Öz-koruma | Ajan kendi ayarını/eklentisini/audit log'unu değiştiremez, anahtar dosyasını okuyamaz, kilitsiz ikinci opencode başlatamaz | Kimse |

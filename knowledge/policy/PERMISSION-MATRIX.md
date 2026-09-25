@@ -19,15 +19,25 @@
 > **kapsam (cwd) tabanlı**: çalışma dizini (proje kökü) İÇİNDE `read`/`grep`/`glob`/`list`
 > onaysız çalışır (`allow`); çalışma dizini DIŞINA çıkan her erişim `permission.external_directory:
 > "ask"` ile sorulur (K2 — motor bunu `read`/`glob` için path çözümlemesinde otomatik tetikler).
-> `hosts*`/`*.inventory`/`inventory/**`/sır dosyaları (`env`, `*.key`, `*.pem`, `*token*`, …)
-> istisnası **değişmedi** — bunlar kapsam içinde olsa bile `engine/plugins/audit-log.ts`
-> denylist'i tarafından sorulmadan reddedilir (bkz. §5). Yazma (`edit`) etkilenmedi, `ask` kalır.
+>
+> **Güncel durum (2026-09-25, A105 — Alp: "Çalışma izni içerisindeki dosyalara erişimin
+> kısıtlanması hiç uygun bir güvenlik kilidi değil böyle bir şey varsa kaldıralım"):** A104'ün
+> bıraktığı tek istisna da kaldırıldı — `hosts*`/`*.inventory`/`inventory/**`/sır dosyaları
+> (`env`, `*.key`, `*.pem`, `*token*`, …) artık **kapsam İÇİNDE** `read`/`list`/`glob`/`grep`
+> **ve** `bash` (dosyayı okuyan komutlar) için de sorulmadan serbesttir —
+> `engine/plugins/audit-log.ts` denylist kapısı **yalnız kapsam DIŞINA** çıkan hedeflere uygulanır
+> (bkz. §5). Kapsam dışı davranış **değişmedi**: aynı desenlere uyan kapsam-dışı bir dosya hâlâ
+> `ENFORCE` modunda sorulmadan reddedilir. Yazma (`edit`/`write`) etkilenmedi — hem `ask` izni hem
+> denylist kapısı kapsamdan bağımsız (kapsam içinde de) uygulanmaya devam eder. Ajanın kendi çalışan
+> ayar/kimlik dosyası (`~/.config/opencode/opencode.json`, `~/.local/share/opencode/auth.json`) K6
+> öz-koruma kilidiyle (plugin, `korunanYol`) hâlâ okunamaz — bu A105'in kaldırdığı şey değil, ayrı
+> bir mekanizma.
 
 ## 1. Araç bazında matris
 
 | Araç | v1 kararı | Gerekçe | Atlatma riski |
 |---|---|---|---|
-| `read` | **allow** (kapsam içi, A104) | Salt-okunur, v1'in temel işlevi (envanter/log okuma); kapsam dışı `external_directory: "ask"` ile sorulur | Düşük — sır/envanter dosyaları (`hosts*`, `env`, `*.key`, …) kapsam içi olsa da `audit-log.ts` denylist'i tarafından reddedilir |
+| `read` | **allow** (kapsam içi, A104/A105) | Salt-okunur, v1'in temel işlevi (envanter/log okuma); kapsam dışı `external_directory: "ask"` ile sorulur | Düşük — kapsam DIŞINDAKİ sır/envanter dosyaları (`hosts*`, `env`, `*.key`, …) `audit-log.ts` denylist'i tarafından reddedilir; kapsam İÇİNDEKİLER A105 ile artık serbest |
 | `grep` | **allow** (kapsam içi, A104) | Salt-okunur arama; tool zaten yalnız aktif konum (proje kökü) altında çalışır, dışına çıkamaz | Düşük |
 | `glob` | **allow** | Salt-okunur dosya listeleme | Düşük |
 | `list` | **allow** | Salt-okunur dizin listeleme | Düşük |
@@ -154,14 +164,20 @@ aynı `output` objesini geri döndürür, bkz. `session/tools.ts:112-129`). Yeni
 `record_type:"redacted"`: hangi araç, hangi hedef (maskelenmiş), hangi desen türü — **değer hiçbir alanda
 yok**. Aynı `prev_hash` zincirine eklenir (bkz. `AUDIT-FORMAT.md` §3/§6).
 
-**Hassas dosya denylist'i (A34+A35).** `read`/`write`/`edit`/`list`/`glob`/`grep` araçlarının hedef
-yolu şu kalıplara eşleşirse: `hosts*`, `*.inventory`, `inventory/**`, `*.vault`, `*credential*`,
-`*secret*`, `env`, `env.local`, `*.key`, `*.pem`, `*token*`, `*.kdbx`. **Gözlem modu (varsayılan):**
-sert blok yok — dosya içeriği **tamamen** redakte edilir (desen taramasına güvenilmez; envanter dosyası
-baştan sona hassas olabilir) ve `redacted` kaydı düşer. **`OPS_AGENT_KAPI=ENFORCE`:** `tool.execute.before`
-içinde araç hiç çalıştırılmadan reddedilir (throw → catchable hata, `packages/opencode/test/tool/
-code-mode.test.ts` "a failing before hook fails only that child call" testiyle doğrulanan mekanizma) ve
-`result_status:"denied"`/`policy_decision:"deny"` kaydı düşer. Desen kaynağı `engine/opencode.json` →
+**Hassas dosya denylist'i (A34+A35, A81/A92, A105).** `read`/`write`/`edit`/`list`/`glob`/`grep`/`bash`
+araçlarının hedef yolu (bash'te: komutun okuduğu/kopyaladığı dosya argümanları, `bashDenylistHit` —
+alt kabuk, `eval`, model betikleri dahil) şu kalıplara eşleşirse: `hosts*`, `*.inventory`,
+`inventory/**`, `*.vault`, `*credential*`, `*secret*`, `env`, `env.local`, `*.key`, `*.pem`, `*token*`,
+`*.kdbx`. **A105 kapsam istisnası:** bu kapı `read`/`list`/`glob`/`grep` ve `bash` için **yalnız
+çalışma dizini (kapsam) DIŞINA** çıkan hedeflere uygulanır — kapsam içinde bu desenlere uyan bir
+dosya (ör. proje içi `ansible/inventories/hosts.ini`, kök dizindeki `env`) artık sorulmadan okunur.
+`write`/`edit` bu istisnadan **muaf değil** — kapsam içinde de denylist'e takılırsa reddedilir.
+**Gözlem modu (varsayılan):** sert blok yok — dosya içeriği **tamamen** redakte edilir (desen
+taramasına güvenilmez; envanter dosyası baştan sona hassas olabilir) ve `redacted` kaydı düşer.
+**`OPS_AGENT_KAPI=ENFORCE`:** `tool.execute.before` içinde araç hiç çalıştırılmadan reddedilir
+(throw → catchable hata, `packages/opencode/test/tool/code-mode.test.ts` "a failing before hook
+fails only that child call" testiyle doğrulanan mekanizma) ve `result_status:"denied"`/
+`policy_decision:"deny"` kaydı düşer. Desen kaynağı `engine/opencode.json` →
 `ops_agent.denylist.patterns` (opencode'un kendi config şeması bu alanı sessizce yok sayar — plugin dosyayı
 kendi okur, motor davranışını etkilemez). **Fail-closed:** liste boş/okunamazsa sabit bir varsayılan
 listeye (yukarıdaki kalıplar) düşülür — hiç koruma olmaması yerine.

@@ -120,7 +120,11 @@ Böylece üç harf yer değiştiriyor."*
 
 📌 Kaynak: Alp, 2026-09-25 12:27–12:29 (Telegram) — teyitli.
 
-**Saha AI'ının dolduracağı doğrulama tablosu** (gerçek envanterden — uydurma örnek yok):
+**Saha AI'ının dolduracağı doğrulama tablosu** (gerçek envanterden — uydurma örnek yok). A105
+(2026-09-25) ile çalışma dizini İÇİNDEKİ envanter dosyaları (`hosts*`, `*.inventory`,
+`inventory/**`, …) denylist'ten muaf — saha AI bu satırları kendi çalışma dizinindeki gerçek
+envanterden okuyup doldurabilir, dışarıdan yapıştırılmasını beklemesi gerekmez (bkz.
+`knowledge/policy/PERMISSION-MATRIX.md` §5, "A105 kapsam istisnası"):
 
 | Gerçek sunucu adı (`<...>`) | Harf 1 | Harf 2 | Harf 3 | Lokasyon | Ortam | Lokal/DMZ |
 |---|---|---|---|---|---|---|

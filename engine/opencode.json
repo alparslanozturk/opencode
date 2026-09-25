@@ -174,9 +174,7 @@
       "*.local/share/opencode/*": "deny"
     },
     "read": {
-      "*": "allow",
-      "*opencode.json*": "deny",
-      "*auth.json": "deny"
+      "*": "allow"
     },
     "grep": "allow",
     "glob": "allow",
@@ -188,7 +186,7 @@
   },
   "ops_agent": {
     "denylist": {
-      "_not_opencode_schema": "engine/plugins/audit-log.ts tarafından okunur; opencode motoru bu alanı görmezden gelir (bkz. knowledge/policy/PERMISSION-MATRIX.md)",
+      "_not_opencode_schema": "engine/plugins/audit-log.ts tarafından okunur; opencode motoru bu alanı görmezden gelir (bkz. knowledge/policy/PERMISSION-MATRIX.md). Kapsam (A105): read/list/glob/grep + bash'te yalnız çalışma dizini DIŞINDAKİ hedeflere uygulanır — cwd içi okuma serbesttir. write/edit'te kapsamdan bağımsız (kapsam içi de) uygulanmaya devam eder.",
       "patterns": [
         "hosts*",
         "*.inventory",

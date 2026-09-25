@@ -160,6 +160,10 @@ const DEFAULT_DENYLIST_PATTERNS = [
 ]
 
 // A81/A92: "bash" burada — filePath/path yerine args.command bashDenylistHit() ile taranır (bkz. aşağıda).
+// A105 (Alp: "çalışma izni içerisindeki dosyalara erişimin kısıtlanması hiç uygun bir güvenlik kilidi
+// değil"): read/list/glob/grep/bash için bu kapı artık YALNIZ çalışma dizini (projectDir) DIŞINA çıkan
+// hedeflere uygulanır — bkz. çağrı sitesi (tool.execute.before) ve bashDenylistHit'teki isInside(cwd,…)
+// muafiyeti. write/edit bu muafiyetin DIŞINDA tutulur: kapsam içinde de denylist'e takılırsa reddedilir.
 const DENYLIST_TOOLS = new Set(["read", "write", "edit", "list", "glob", "grep", "bash"])
 
 function loadDenylistPatterns(projectDir: string | undefined): string[] {
@@ -1164,6 +1168,10 @@ function bashDenylistHit(metin: string, patterns: string[], cwd: string, derinli
     const { argv } = sarmalayiciSoy(k.argv)
     for (const tok of [...argv.slice(1), ...k.yazilan]) {
       if (!tok || tok.startsWith("-")) continue
+      // A105: çalışma dizini İÇİNDEKİ hedefler denylist'ten muaf — kısıt yalnız cwd DIŞINA uygulanır
+      // (bkz. matchesDenylist çağrı sitesindeki aynı muafiyet, tool.execute.before).
+      const abs = isAbsolute(tok) ? resolve(tok) : resolve(cwd, tok)
+      if (isInside(cwd, abs)) continue
       const hit = matchesDenylist(tok, patterns)
       if (hit) return hit
     }
@@ -1627,7 +1635,16 @@ export const AuditLogPlugin: Plugin = async ({ directory, project, worktree }) =
         } else {
           const pathArg =
             typeof args.filePath === "string" ? args.filePath : typeof args.path === "string" ? args.path : null
-          hit = pathArg ? matchesDenylist(pathArg, denylistPatterns) : null
+          // A105 (Alp: "çalışma izni içerisindeki dosyalara erişimin kısıtlanması hiç uygun bir
+          // güvenlik kilidi değil"): salt-okunur araçlarda (write/edit hariç) çalışma dizini İÇİNDEKİ
+          // hedefler denylist'ten muaf — kısıt yalnız cwd DIŞINA uygulanır. write/edit'te değişmedi:
+          // hassas dosyaya yazma/düzenleme kapsam içinde olsa da reddedilir.
+          const inScope =
+            pathArg !== null &&
+            SCOPE_TOOLS.has(input.tool) &&
+            projectDir !== undefined &&
+            isInside(projectDir, isAbsolute(pathArg) ? resolve(pathArg) : resolve(projectDir, pathArg))
+          hit = pathArg && !inScope ? matchesDenylist(pathArg, denylistPatterns) : null
         }
         if (hit) {
           if (ENFORCE) {

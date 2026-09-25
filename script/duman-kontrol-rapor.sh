@@ -308,6 +308,19 @@ else
   kaldi "t4: kunye_yaz beklenen alanlari yazmadi ($KUNYE_TEST)"
 fi
 
+echo
+echo "== A16 — anahtar komut satirina (ps) cikmiyor"
+# Dis komuta (curl/python) anahtar argv ile verilmemeli: yalniz printf→`curl -K -`/config dosyasi
+# ya da ortam degiskeni. Bash fonksiyon cagrilari (cikti_probe, uc_olc) ayni surecte, gorunmez.
+ARGV_DESEN='Bearer [$]|"[$](KURUM_KEY|KEY|KEY2|anahtar)"'
+SERBEST_DESEN="printf 'header|\[ -n |^[0-9]+: *#|=\"[\$](KURUM_KEY|KEY)\"|(cikti_probe|uc_olc|maskele) "
+SIZINTI="$(grep -nE "$ARGV_DESEN" "$KOK/kur.sh" | grep -vE "$SERBEST_DESEN" || true)"
+if [ -z "$SIZINTI" ]; then
+  gecti "a16: kur.sh'ta anahtar dis komut argv'sine verilmiyor"
+else
+  kaldi "a16: anahtar argv'de olabilir: $(printf '%s' "$SIZINTI" | head -3 | tr '\n' ' ')"
+fi
+
 printf '\n== SONUC: %s gecti, %s kaldi\n' "$GECEN" "$KALAN"
 [ "$KALAN" -eq 0 ] || exit 1
 exit 0

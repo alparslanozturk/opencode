@@ -509,8 +509,9 @@ print(json.dumps({"model": sys.argv[1],
 PY
 )"
   [ -n "$istek" ] || return 0
-  govde="$(curl -sS -N --max-time 12 \
-    -H "Authorization: Bearer $anahtar" -H 'Content-Type: application/json' \
+  # A16: anahtar argv'de değil stdin config'te — `ps` çıktısında görünmez (printf yerleşik komut)
+  govde="$(printf 'header = "Authorization: Bearer %s"\n' "$anahtar" | curl -sS -N --max-time 12 -K - \
+    -H 'Content-Type: application/json' \
     -d "$istek" "$kok/chat/completions" 2> /dev/null | head -c 2000 || true)"
   [ -n "$govde" ] || return 0
   "$PY" - "${baglam:-0}" "$govde" << 'PY' 2> /dev/null || true
@@ -711,7 +712,8 @@ kur() {
   case "$KURUM_URL" in
     ""|*KURUM_ENDPOINT*) ;;
     *)
-      MODELS_JSON="$(curl -sS --max-time 10 -H "Authorization: Bearer $KURUM_KEY" "${KURUM_URL%/}/models" 2>/dev/null || true)"
+      MODELS_JSON="$(printf 'header = "Authorization: Bearer %s"\n' "$KURUM_KEY" \
+        | curl -sS --max-time 10 -K - "${KURUM_URL%/}/models" 2>/dev/null || true)"
       if [ -n "$MODELS_JSON" ]; then
         UC_ALANLARI="$(uc_alanlari "$MODEL_ID" "$MODELS_JSON")"
         TESPIT_EDILEN_PENCERE="$(printf '%s\n' "$UC_ALANLARI" | sed -n 's/^baglam\t//p' | head -1)"
@@ -768,9 +770,11 @@ kur() {
     sari "    Uç değeri bildirmiyorsa $KOK/env içine KURUM_MAX_OUTPUT=<token> ekleyip yeniden çalıştır."
   fi
 
-  "$PY" - "$KOK/engine/opencode.json" "$HOME/.config/opencode/opencode.json" "$KURUM_URL" "$KURUM_KEY" "$MODEL_ID" "$TESPIT_EDILEN_PENCERE" "$CIKTI_SINIRI" <<'PY'
+  # A16: anahtar argv yerine ortamdan (argv `ps`'te herkese görünür; /proc/<pid>/environ yalnız sahibine)
+  KUR_ANAHTAR="$KURUM_KEY" "$PY" - "$KOK/engine/opencode.json" "$HOME/.config/opencode/opencode.json" "$KURUM_URL" "$MODEL_ID" "$TESPIT_EDILEN_PENCERE" "$CIKTI_SINIRI" <<'PY'
 import json, os, sys
-src, dst, url, key, mid, ctx, out = sys.argv[1:8]
+src, dst, url, mid, ctx, out = sys.argv[1:7]
+key = os.environ["KUR_ANAHTAR"]
 d = json.load(open(src, encoding="utf-8"))
 p = d["provider"]["kurum"]
 p["options"]["baseURL"] = url

@@ -73,6 +73,7 @@ bu makinede servis/paket/kullanıcı/ağ/disk komutları ve çalışma dizini d�
 
 - Her red audit log'a düşer: `result_status: "denied"`, `target: "K1 :: <komut>"`. Yetki verme/kapama
   `tool: "yetki"` kaydıyla görünür (CN numarası ve sunucu listesi dahil).
+- Kayıtların sonradan silinmediğini/değiştirilmediğini `script/dogrula-audit-zinciri.sh` doğrular.
 - Gözlem modunda (`OPS_AGENT_KAPI=GOZLEM`) red yerine `result_status: "asked"`, `target: "K1 [GOZLEM] :: …"`.
 
 ## Denylist artık `bash` aracına da uygulanır (A81/A92, 2026-09-25)

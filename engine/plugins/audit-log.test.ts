@@ -795,3 +795,54 @@ describe("K1/K5 atlatma denemeleri", () => {
     await bash(hooks, "s-betik", "bash rapor.sh")
   })
 })
+
+describe("zincir dogrulayici (C3, script/dogrula-audit-zinciri.sh)", () => {
+  const { writeFileSync } = require("fs")
+  const { gzipSync } = require("zlib")
+  const betik = join(import.meta.dir, "..", "..", "script", "dogrula-audit-zinciri.sh")
+  const dogrula = (...dosyalar: string[]) => {
+    const r = Bun.spawnSync(["bash", betik, ...dosyalar])
+    return { kod: r.exitCode, cikti: r.stdout.toString() }
+  }
+  const zincirDizini = join(kokDir, "zincir")
+  mkdirSync(zincirDizini, { recursive: true })
+  const satirlar = () => readFileSync(auditPath, "utf8").split("\n").filter(Boolean)
+
+  test("eklentinin yazdigi gercek zincir saglam cikar", async () => {
+    const hooks = await freshPlugin()
+    for (let i = 0; i < 5; i++) await bash(hooks, "s-zincir", `ls dosya${i}`)
+    const r = dogrula(auditPath)
+    expect(r.cikti).toContain("SAGLAM")
+    expect(r.kod).toBe(0)
+  })
+
+  test("degistirilen satir ve silinen satir KOPMA olarak yakalanir", () => {
+    const s = satirlar()
+    const degisik = join(zincirDizini, "degisik.jsonl")
+    writeFileSync(degisik, [...s.slice(0, 2), s[2].replace('"tool":"', '"tool":"x'), ...s.slice(3)].join("\n") + "\n")
+    const r1 = dogrula(degisik)
+    expect(r1.kod).toBe(1)
+    expect(r1.cikti).toContain(`${degisik}:4`)
+    const eksik = join(zincirDizini, "eksik.jsonl")
+    writeFileSync(eksik, [...s.slice(0, 2), ...s.slice(3)].join("\n") + "\n")
+    expect(dogrula(eksik).cikti).toMatch(/KOPMA .*eksik\.jsonl:3/)
+  })
+
+  test("dondurulmus (gz) dosya + sifirdan baslayan yeni dosya saglam; eksik ara dosya fark edilir", () => {
+    const s = satirlar()
+    const eski = join(zincirDizini, "audit-2026-09-24.jsonl.gz")
+    writeFileSync(eski, gzipSync(s.join("\n") + "\n"))
+    const yeni = join(zincirDizini, "audit.jsonl")
+    writeFileSync(yeni, s.slice(0, 3).join("\n") + "\n") // ilk satiri prev_hash=0…0
+    expect(dogrula(eski, yeni).kod).toBe(0)
+    const ortadan = join(zincirDizini, "ortadan.jsonl")
+    writeFileSync(ortadan, s.slice(3).join("\n") + "\n") // ilk satiri onceki dosyaya bagli, o dosya verilmedi
+    expect(dogrula(ortadan).cikti).toMatch(/KOPMA .*:1: ilk satir/)
+  })
+
+  test("dosya yoksa 2 doner", () => {
+    expect(dogrula(join(zincirDizini, "yok.jsonl")).kod).toBe(1)
+    const r = Bun.spawnSync(["bash", betik], { env: { ...process.env, OPS_AGENT_AUDIT_LOG: join(zincirDizini, "bos", "a.jsonl") } })
+    expect(r.exitCode).toBe(2)
+  })
+})

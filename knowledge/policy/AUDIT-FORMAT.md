@@ -67,6 +67,11 @@ OTel GenAI semantik konvansiyonuyla uyumlu isimler (`gen_ai.*`) + operasyona öz
 Her satır, kendinden önceki satırın hash'ini taşır (`prev_hash`); ilk kayıt `prev_hash: "0"*64`. Böylece
 tek bir satırın silinmesi/değiştirilmesi zincirin geri kalanını bozar ve fark edilir.
 
+**Doğrulama (C3):** `script/dogrula-audit-zinciri.sh` — argümansız çalışınca canlı dosyayı ve döndürülmüş
+`audit-YYYY-MM-DD.jsonl[.gz]` dosyalarını eskiden yeniye tarar; kopmayı `dosya:satır` olarak basar (çıkış
+0 = sağlam, 1 = kopma, 2 = dosya yok). Salt-okunurdur. Her dosya döndürmeden sonra `prev_hash: "0"*64`
+ile yeniden başlar; dosya ortasındaki sıfır "zincir sıfırlandı" uyarısıdır.
+
 Gün sonunda:
 1. O günün tüm `audit-YYYY-MM-DD.jsonl` satırlarının birleşik hash'i alınır.
 2. Bir **manifest** dosyası (`audit-YYYY-MM-DD.manifest`) yazılır: `{date, line_count, final_hash, prev_manifest_hash}`.

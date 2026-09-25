@@ -6,6 +6,25 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-09-26 — ürün 1.0.3: anahtar sızıntısı, audit doğrulayıcı, dürüst kopyalama bildirimi
+
+Sahaya `./kur.sh` ile gider (sürüm 1.0.3 → yeniden derler).
+
+- **A16 — anahtar `ps`'te görünmüyor:** kurulum sırasında kurum anahtarı `curl`/`python` komut satırına
+  yazılıyordu (aynı makinedeki herkes `ps` ile görebilirdi); artık stdin/ortam değişkeninden gidiyor.
+  Ek düzeltme: anahtarda `"` ya da `\` varsa curl onu sessizce kırpıyordu → kaçış eklendi.
+- **C3 — `script/dogrula-audit-zinciri.sh`:** audit kayıtlarının silinip/değiştirilmediğini doğrular
+  (döndürülmüş `.gz` dosyalar dahil); kopmayı `dosya:satır` ile gösterir. Salt-okunur.
+- **A22 — "Copied to clipboard" yalanı:** pano aracı yoksa (MobaXterm + ssh) artık "başarılı" demiyor;
+  yalnız terminal yolu (OSC 52) denendiyse **uyarı** gösteriyor, hiçbir yol yoksa hata. Sahada gerçek
+  kopyalama için hâlâ bir karar bekleniyor (aşağıdaki not).
+- **C4 — kapatıldı (gerek yok):** beceri listesinde çökme riski teorikti; beceri isimleri kayda girmeden
+  doğrulanıyor (`skill/index.ts` `isSkillFrontmatter`). Çekirdeğe gereksiz yama yapılmadı.
+
+> **Karar bekleyen (A22 devamı):** MobaXterm'de seçip kopyalamanın gerçekten çalışması için TUI'nin fare
+> yakalamasını kapatmak gerekir (`~/.config/opencode/tui.json` → `"mouse": false`; seçim terminale kalır,
+> MobaXterm "copy on select" çalışır). Bedeli: TUI içinde fareyle kaydırma/tıklama olmaz.
+
 ## 2026-09-24 — ürün 1.0.2: güvenlik kilitleri K1–K7 (ADR-0004)
 
 Tek sayfa: `knowledge/policy/GUVENLIK-KILITLERI.md`. Sahaya `./kur.sh` ile gider (sürüm 1.0.2 → yeniden derler).

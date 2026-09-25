@@ -13,3 +13,14 @@
   A16 kontrolü eklendi (sahte sızıntı satırını yakaladığı doğrulandı) → 23/0.
 - **Alp kararı gerekli:** A14 (CI) — fork'ta upstream'in `.github/workflows` dosyaları da duruyor; bizim
   CI'yı eklemeden önce upstream workflow'ları kapatılsın mı? (api.github.com kapalı, durumlarını göremiyorum.)
+
+## 2026-09-26 · tur 2 (Alp: "geliştirme bugfix devam")
+- **Kontroller:** upstream GÜNCEL (1.18.32; 2.0.17 yalnız bilgi) · `dongu` main'e rebase edildi ·
+  `duman-kontrol-rapor.sh` 23/0 · `audit-log.test.ts` 122/0 · tui `bun test` 196/0 + typecheck temiz.
+- **A16 ek düzeltme:** curl config kaçışı — `ab"c\d` anahtarı sessizce `ab`'ye kırpılıyordu (yankı sunucusuyla kanıt).
+- **C3 yapıldı:** `script/dogrula-audit-zinciri.sh` + eklentinin gerçek zinciriyle testler.
+- **A22 yapıldı (kaynak düzeltmesi):** `write()` sonucu dürüst; `upstream-uygun`. Ürün 1.0.3.
+- **C4 kapatıldı:** risk teorik, beceri adı kayıttan önce doğrulanıyor.
+- **Alp kararı gerekli:** A22 sahada tam çözüm = `tui.json` `"mouse": false` (fareyle kaydırma gider);
+  A14 (CI) sorusu hâlâ açık.
+

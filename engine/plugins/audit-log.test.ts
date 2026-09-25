@@ -340,6 +340,96 @@ describe("arama kapsami (A35)", () => {
   })
 })
 
+describe("izin modeli: kapsam (cwd) tabanli okuma (A104)", () => {
+  test("kapsam ici read (knowledge/<x>.md) onay gerektirmez", async () => {
+    const before = readAllLines().length
+    const hooks = await freshPlugin({ enforce: false, projectDir: workDir })
+    const args = { filePath: "knowledge/uygunluk.md" }
+    await hooks["tool.execute.before"]!({ tool: "read", sessionID: "s-a104-1", callID: "r-in-1" }, { args })
+    const afterOut = { title: "uygunluk.md", output: "icerik", metadata: {} }
+    await hooks["tool.execute.after"]!({ tool: "read", sessionID: "s-a104-1", callID: "r-in-1", args }, afterOut)
+
+    const lines = readAllLines().slice(before)
+    expect(lines.some((l) => l.policy_decision === "ask")).toBe(false)
+    assertChainIntact()
+  })
+
+  test("kapsam ici read (notlar/<x>.md) onay gerektirmez", async () => {
+    const before = readAllLines().length
+    const hooks = await freshPlugin({ enforce: false, projectDir: workDir })
+    const args = { filePath: "notlar/rapor.md" }
+    await hooks["tool.execute.before"]!({ tool: "read", sessionID: "s-a104-2", callID: "r-in-2" }, { args })
+    const afterOut = { title: "rapor.md", output: "icerik", metadata: {} }
+    await hooks["tool.execute.after"]!({ tool: "read", sessionID: "s-a104-2", callID: "r-in-2", args }, afterOut)
+
+    const lines = readAllLines().slice(before)
+    expect(lines.some((l) => l.policy_decision === "ask")).toBe(false)
+    assertChainIntact()
+  })
+
+  test("kapsam ici list (.) ve glob (**/*.md) onay gerektirmez", async () => {
+    const before = readAllLines().length
+    const hooks = await freshPlugin({ enforce: false, projectDir: workDir })
+    const listArgs = { path: "." }
+    await hooks["tool.execute.before"]!({ tool: "list", sessionID: "s-a104-3", callID: "l-in" }, { args: listArgs })
+    await hooks["tool.execute.after"]!(
+      { tool: "list", sessionID: "s-a104-3", callID: "l-in", args: listArgs },
+      { title: ".", output: "README.md", metadata: { count: 1 } },
+    )
+    const globArgs = { pattern: "**/*.md" }
+    await hooks["tool.execute.before"]!({ tool: "glob", sessionID: "s-a104-3", callID: "g-in" }, { args: globArgs })
+    await hooks["tool.execute.after"]!(
+      { tool: "glob", sessionID: "s-a104-3", callID: "g-in", args: globArgs },
+      { title: workDir, output: "README.md", metadata: { count: 1 } },
+    )
+
+    const lines = readAllLines().slice(before)
+    expect(lines.some((l) => l.policy_decision === "ask")).toBe(false)
+    assertChainIntact()
+  })
+
+  test("kapsam disi read (/etc/passwd) kaydedilir (K2 onayi motorda sorulur)", async () => {
+    const before = readAllLines().length
+    const hooks = await freshPlugin({ enforce: false, projectDir: workDir })
+    const args = { filePath: "/etc/passwd" }
+    await hooks["tool.execute.before"]!({ tool: "read", sessionID: "s-a104-4", callID: "r-out" }, { args })
+    await hooks["tool.execute.after"]!(
+      { tool: "read", sessionID: "s-a104-4", callID: "r-out", args },
+      { title: "passwd", output: "root:x:0:0", metadata: {} },
+    )
+
+    const lines = readAllLines().slice(before)
+    const asked = lines.filter((l) => l.policy_decision === "ask")
+    expect(asked.length).toBe(1)
+    expect(asked[0].result_status).toBe("asked")
+    assertChainIntact()
+  })
+
+  test("kapsam ici read: envanter (ansible/inventories/hosts.ini) denylist ile reddedilir", async () => {
+    const before = readAllLines().length
+    const hooks = await freshPlugin({ enforce: true, projectDir: workDir })
+    const args = { filePath: "ansible/inventories/hosts.ini" }
+    await expect(
+      hooks["tool.execute.before"]!({ tool: "read", sessionID: "s-a104-5", callID: "r-inv" }, { args }),
+    ).rejects.toThrow(/denylist/)
+    const lines = readAllLines().slice(before)
+    expect(lines[0].result_status).toBe("denied")
+    assertChainIntact()
+  })
+
+  test("kapsam ici read: sir dosyasi (env) denylist ile reddedilir", async () => {
+    const before = readAllLines().length
+    const hooks = await freshPlugin({ enforce: true, projectDir: workDir })
+    const args = { filePath: "env" }
+    await expect(
+      hooks["tool.execute.before"]!({ tool: "read", sessionID: "s-a104-6", callID: "r-env" }, { args }),
+    ).rejects.toThrow(/denylist/)
+    const lines = readAllLines().slice(before)
+    expect(lines[0].result_status).toBe("denied")
+    assertChainIntact()
+  })
+})
+
 // --- güvenlik kilitleri (K1-K7, ADR-0004) ---------------------------------------------------------
 
 let cagri = 0
@@ -622,14 +712,19 @@ describe("izin blogu (engine/opencode.json) — K3/K4", async () => {
     for (const k of ["rm -rf x", "rm -fr x", "rm -Rf x", "rm -r -f x", "rm -f -r x", "git push --force", "git push -f origin main"])
       expect([k, karar("bash", k)]).toEqual([k, "deny"])
   })
-  test("K3: icerik okuma sorulur, kendi dosyalari serbest", () => {
-    expect(karar("read", "hosts.ini")).toBe("ask")
-    expect(karar("read", "playbooks/site.yml")).toBe("ask")
+  test("K3 (A104): kapsam ici okuma serbest, kendi ayar/anahtar dosyalari kilitli", () => {
+    expect(karar("read", "knowledge/x.md")).toBe("allow")
+    expect(karar("read", "notlar/x.md")).toBe("allow")
+    expect(karar("read", "playbooks/site.yml")).toBe("allow")
     expect(karar("read", "AGENTS.md")).toBe("allow")
+    expect(karar("read", "opencode.json")).toBe("deny")
+    expect(karar("read", "auth.json")).toBe("deny")
+    expect(karar("bash", "cat /etc/passwd")).toBe("ask")
     expect(karar("bash", "cat hosts.ini")).toBe("ask")
     expect(karar("bash", "grep -r pass .")).toBe("ask")
-    expect(karar("grep", "*")).toBe("ask")
+    expect(karar("grep", "*")).toBe("allow")
     expect(karar("glob", "*")).toBe("allow")
+    expect(karar("list", ".")).toBe("allow")
   })
   test("K2: dizin disi sorulur; K6: ayar dosyasi duzenlenemez", () => {
     expect(cfg.external_directory).toBe("ask")

@@ -9,16 +9,26 @@
 > Maskeleme: sunucu → `test-sunucu`, küme → `KUME-A`/`KUME-B`, IP → `10.0.0.x`, kurum → `kurum`.
 
 > **Güncel durum (2026-09-24, ADR-0004):** Güvenlik kilitleri K1–K7 uygulandı — tek sayfalık özet
-> `GUVENLIK-KILITLERI.md`. Aşağıdaki tabloda `read`/`grep` artık **ask** (K3), bash izin listesi kelime
-> sınırlı (K4), `audit-log.ts` varsayılan **kilitli** (K7). §5'teki "gözlem varsayılan" ve "ENFORCE'ta
-> kapsam reddi" ifadeleri tarihseldir: kapsam kapısı artık yalnız kayıt tutar (K2 onayı motorda).
+> `GUVENLIK-KILITLERI.md`. Bash izin listesi kelime sınırlı (K4), `audit-log.ts` varsayılan
+> **kilitli** (K7). §5'teki "gözlem varsayılan" ve "ENFORCE'ta kapsam reddi" ifadeleri tarihseldir:
+> kapsam kapısı artık yalnız kayıt tutar (K2 onayı motorda).
+>
+> **Güncel durum (2026-09-25, A104 — Alp: "Bulunduğum klasörün içerisindeki dosyaların
+> kısıtlanması saçma… dışına çıkmak isterse izin istemesi lazım"):** K3 (`read`) ve `grep`
+> 2026-09-24'te geçici olarak **ask**'a çekilmişti — bu **geri alındı**. İzin modeli artık
+> **kapsam (cwd) tabanlı**: çalışma dizini (proje kökü) İÇİNDE `read`/`grep`/`glob`/`list`
+> onaysız çalışır (`allow`); çalışma dizini DIŞINA çıkan her erişim `permission.external_directory:
+> "ask"` ile sorulur (K2 — motor bunu `read`/`glob` için path çözümlemesinde otomatik tetikler).
+> `hosts*`/`*.inventory`/`inventory/**`/sır dosyaları (`env`, `*.key`, `*.pem`, `*token*`, …)
+> istisnası **değişmedi** — bunlar kapsam içinde olsa bile `engine/plugins/audit-log.ts`
+> denylist'i tarafından sorulmadan reddedilir (bkz. §5). Yazma (`edit`) etkilenmedi, `ask` kalır.
 
 ## 1. Araç bazında matris
 
 | Araç | v1 kararı | Gerekçe | Atlatma riski |
 |---|---|---|---|
-| `read` | **allow** | Salt-okunur, v1'in temel işlevi (envanter/log okuma) | Düşük — ama `knowledge/policy/`, secret dosyaları gibi hassas yollar için `external_directory` ile sınırlanmalı |
-| `grep` | **allow** | Salt-okunur arama | Düşük |
+| `read` | **allow** (kapsam içi, A104) | Salt-okunur, v1'in temel işlevi (envanter/log okuma); kapsam dışı `external_directory: "ask"` ile sorulur | Düşük — sır/envanter dosyaları (`hosts*`, `env`, `*.key`, …) kapsam içi olsa da `audit-log.ts` denylist'i tarafından reddedilir |
+| `grep` | **allow** (kapsam içi, A104) | Salt-okunur arama; tool zaten yalnız aktif konum (proje kökü) altında çalışır, dışına çıkamaz | Düşük |
 | `glob` | **allow** | Salt-okunur dosya listeleme | Düşük |
 | `list` | **allow** | Salt-okunur dizin listeleme | Düşük |
 | `bash` | **ask** (varsayılan) + belirli desenler **deny** | v1'de mutasyon yok; ama envanter/log işleri bazen salt-okunur kabuk komutu gerektirir (`journalctl`, `rpm -qa`). Her çağrı insana sorulur | **Yüksek** — `ask` yalnız kural (model atlayabilir/yanlış yorumlayabilir); asıl kapı sunucu tarafında forced-command olmalı (bkz. §3) |

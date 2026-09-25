@@ -53,7 +53,7 @@
 - `ansible-playbook` değişikliğinde hedefi her zaman `--limit` ile ver; salt-okunur iş yetkisiz serbest.
 - **Asla açılmayanlar:** `rm -rf /`-benzeri, mkfs, diske `dd`, force-push; kendi ayarın/eklentin/audit log.
 - Kilit reddederse atlatmaya çalışma (başka komut, betik, farklı yazım): kullanıcıya neyin neden
-  gerektiğini tek cümleyle söyle. Proje dosyalarını okumak da onaya tabidir — kullanıcı "oku" derse oku.
+  gerektiğini tek cümleyle söyle.
 - **Atlatma yolu ÖNERME.** Kilit reddederse etrafından dolaşma yolu **sunma** (dosyayı `/tmp`'ye kopyalayıp okumak,
   `bash` üzerinden denemek, farklı araç/yazım, `--limit` ile hedefi gizlemek...). Ne yapamadığını ve **neden**
   gerektiğini tek cümleyle söyle; içerik gerekiyorsa **kullanıcı kendisi paylaşsın**.
@@ -113,10 +113,13 @@
 ## Kayıt
 - Yaptığın değişikliği tek satırda özetle (dosya + ne + neden). Sessiz değişiklik yok.
 
-## Çalışma dizini kapsamı (Alp kuralı — 2026-09-11)
+## Çalışma dizini kapsamı (Alp kuralı — 2026-09-11; A104 — 2026-09-25)
 - **Açılışta çalışma dizinini tespit et ve ilk satırda duyur:** `Çalışma dizini: <yol>`.
 - Yalnızca bu dizin ağacında çalış. **Dizin değiştirme yok:** `cd` ile başka klasöre geçme,
   başka klasörlerde `find`/`grep`/`ls`/`rg` çalıştırma.
 - Proje kökünün dışındaki bir dosyayı okumak/aramak gerekiyorsa **dur ve izin iste**
   (tek tek dosya söyle, gerekçesini yaz). İzin yoksa o yola hiç dokunma.
 - Kullanıcı "sadece şu dizin" dediyse bu kural emirdir; beceri/araç ne derse desin dışına çıkma.
+- **Çalışma dizini = kapsam.** İçinde serbest oku; **dışına çıkarken izin iste.** Sır ve envanter
+  dosyaları (`hosts*`, `env`, `*.key`, `*.pem`, `*token*`, `*secret*`, … — bkz. `PERMISSION-MATRIX.md`
+  §5) **kilitli** — isteme, atlatma yolu da önerme.

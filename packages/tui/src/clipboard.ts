@@ -21,10 +21,11 @@ function command(command: string, args: string[] = [], input?: string) {
 }
 
 function writeOsc52(text: string) {
-  if (!process.stdout.isTTY) return
+  if (!process.stdout.isTTY) return false
   const sequence = `\x1b]52;c;${Buffer.from(text).toString("base64")}\x07`
   const passthrough = `\x1bPtmux;\x1b${sequence}\x1b\\`
   process.stdout.write(process.env.TMUX ? sequence + passthrough : process.env.STY ? passthrough : sequence)
+  return true
 }
 
 export async function read() {
@@ -94,7 +95,7 @@ export function copyCommand(
   }
 }
 
-let copyMethod: Promise<(text: string) => Promise<void>> | undefined
+let copyMethod: Promise<(text: string) => Promise<boolean>> | undefined
 
 function getCopyMethod() {
   return (copyMethod ??= (async () => {
@@ -103,23 +104,52 @@ function getCopyMethod() {
     if (native?.[0] === "osascript") {
       return async (text: string) => {
         const escaped = text.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
-        await command("osascript", ["-e", `set the clipboard to "${escaped}"`]).catch(() => undefined)
+        return command("osascript", ["-e", `set the clipboard to "${escaped}"`]).then(
+          () => true,
+          () => false,
+        )
       }
     }
     if (native) {
       return async (text: string) => {
-        await command(native[0], native.slice(1), text).catch(() => undefined)
+        return command(native[0], native.slice(1), text).then(
+          () => true,
+          () => false,
+        )
       }
     }
     return async (text: string) => {
       const { default: clipboardy } = await import("clipboardy")
-      await clipboardy.write(text).catch(() => undefined)
+      return clipboardy.write(text).then(
+        () => true,
+        () => false,
+      )
     }
   })())
 }
 
-export async function write(text: string) {
-  writeOsc52(text)
+// "native": a clipboard tool (wl-copy/xclip/xsel/osascript/powershell/clipboardy) confirmed the copy.
+// "terminal": only the OSC 52 escape was sent — it is one-way, so whether the terminal accepted it is
+// unknown (e.g. over SSH from a terminal without OSC 52 support the clipboard stays empty).
+export type CopyResult = "native" | "terminal"
+
+export function copyOutcome(native: boolean, osc: boolean): CopyResult {
+  if (native) return "native"
+  if (osc) return "terminal"
+  throw new Error("Copy failed: no clipboard tool found (wl-copy, xclip or xsel) and no terminal attached")
+}
+
+export function copyToast(result: CopyResult | void) {
+  if (result === "terminal")
+    return {
+      message: "Sent to terminal clipboard (OSC 52) — if paste is empty, your terminal does not support it",
+      variant: "warning" as const,
+    }
+  return { message: "Copied to clipboard", variant: "info" as const }
+}
+
+export async function write(text: string): Promise<CopyResult> {
+  const osc = writeOsc52(text)
   const method = await getCopyMethod()
-  await method(text)
+  return copyOutcome(await method(text), osc)
 }

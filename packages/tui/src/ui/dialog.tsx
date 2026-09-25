@@ -6,7 +6,7 @@ import { createStore } from "solid-js/store"
 import { useToast } from "./toast"
 import { Flag } from "@opencode-ai/core/flag/flag"
 import { useBindings, useOpencodeModeStack } from "../keymap"
-import { useClipboard } from "../context/clipboard"
+import { copyToast, useClipboard } from "../context/clipboard"
 
 export function Dialog(
   props: ParentProps<{
@@ -189,7 +189,7 @@ export function DialogProvider(props: ParentProps) {
     const text = renderer.getSelection()?.getSelectedText()
     if (!text || !clipboard.write) return false
     void clipboard.write(text).then(
-      () => toast.show({ message: "Copied to clipboard", variant: "info" }),
+      (result) => toast.show(copyToast(result)),
       (error) => toast.error(error),
     )
     renderer.clearSelection()

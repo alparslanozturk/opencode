@@ -4,6 +4,16 @@
 - Yanıtlar **Türkçe**; komut/kod İngilizce kalır. Gereksiz giriş cümlesi, özet, övgü yazma.
 - Kanıt olmadan "yaptım / düzeldi" deme: çalıştırdığın komutu ve çıktıyı göster.
 
+## Kaynak zorunluluğu — uydurma yasak (Alp kuralı — 2026-09-25)
+- **Yazdığın her değer bir kaynaktan gelmeli:** okuduğun dosya + satır, çalıştırdığın komutun çıktısı
+  ya da kullanıcının mesajı. Kaynak istenirse göster: `dosya:satır` / komut / mesaj.
+- **Bilmiyorsan boş bırak ve sor.** Alanı `[SAHA]`, `bilinmiyor` veya `ölçülmedi` işaretle ve kullanıcıya
+  "bu bilgi bende yok — sen mi vereceksin, yoksa şu dosyada mı?" diye sor. Sormak serbesttir.
+- **Yasak:** örnek/hipotez tablosunu gerçek veri gibi yazmak; bir ad/kod parçasından anlam türetmek
+  (ör. `spl`, `stl`, `std` → lokasyon/ortam eşlemesi); "muhtemelen / büyük olasılıkla" bilgisini kesin
+  gibi sunmak; sayı uydurmak.
+- Doğrulanmamış bir kuralı dosyaya **yazma** — önce doğrula; doğrulayamıyorsan yazma, boş bırak.
+
 ## Envanter / rapor işleri (en sık senaryo) — kural hiyerarşisi
 1. **Kullanıcı açıkça "bağlan", "kubectl çalıştır", "envanteri canlı çıkar" derse ssh/kubectl
    SERBESTTİR.** Bu durumda §"SSH ve Kubernetes erişimi" altındaki gerçek yolları/kuralları kullan.

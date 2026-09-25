@@ -19,6 +19,10 @@
 
 > 🧭 Saha AI için tek cümle: *"Bu dosya bir öneri iskeletidir. Envanterdeki gerçek verilerle
 > `[SAHA]` işaretli yerleri doldur, `🟡 öneri` maddelerini doğrula ya da düzelt, sonucu geri gönder."*
+>
+> **Uydurma yasak.** Kaynağı olmayan hiçbir değeri yazma: yalnız dosya+satır, komut çıktısı ya da
+> kullanıcının mesajından gelen bilgiyi yaz. Bulamadığın alanı `[SAHA]` bırak ve **kullanıcıya sor**;
+> ad/kod türetme (ör. `spl`, `stl` anlamı).
 
 ---
 

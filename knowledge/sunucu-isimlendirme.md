@@ -2,7 +2,8 @@
 
 **Tür:** 🟡 **ÖNERİ (iskelet + taslak)** — bitmiş doküman **değil**
 **Kaynak:** Alp'in 2026-09-25'te gönderdiği 18 görsel (15'i kurum içi **Varlık Yönetimi** ekranı, 3'ü saha/opencode) + Alp'in sözlü notları
-**Sürüm:** v0.2 (öneri) · önceki: v1 = Şef taslağı, commit `ffb3404639`
+**Sürüm:** v0.3 (öneri) · önceki: v0.2, v1 = Şef taslağı, commit `ffb3404639`
+**v0.3 değişikliği:** §4.3 Alp teyitli harf tablosu eklendi (kaynak: Alp, 2026-09-25 12:27–12:29, Telegram)
 
 ---
 
@@ -111,11 +112,13 @@ Böylece üç harf yer değiştiriyor."*
 
 **Şef'in önerisi:** sunucu adındaki değişken kısım **3 harf**; üç harf şu üç alana karşılık gelir:
 
-| # | Belirleyici alan | Harf (öneri) | Kaynak |
+| # | Belirleyici alan | Harf (teyitli) | Kaynak |
 |---|---|---|---|
-| 1 | **Lokasyon** | `?` | `[SAHA]` |
-| 2 | **Ortam** (prod/prep/dev/test/bugfix) | `?` | `[SAHA]` |
-| 3 | **Lokal/DMZ** | `?` (`l`/`d`?) | `[SAHA]` |
+| 1 | **Lokasyon** | `s`=İstanbul · `d`=Ankara (DRC/ODM) | ✅ Alp teyidi |
+| 2 | **Ortam** (prod/prep/dev/test/bugfix) | `p`=production · `d`=development · `t`=test · `x`=prep · `b`=bugfix | ✅ Alp teyidi |
+| 3 | **Lokal/DMZ** | `l`=Local · `d`=DMZ | ✅ Alp teyidi |
+
+📌 Kaynak: Alp, 2026-09-25 12:27–12:29 (Telegram) — teyitli.
 
 **Saha AI'ının dolduracağı doğrulama tablosu** (gerçek envanterden — uydurma örnek yok):
 
@@ -127,6 +130,21 @@ Böylece üç harf yer değiştiriyor."*
 
 > 🟡 **Doğrulanacak:** üç harfin sırası · her harfin hangi alana karşılık geldiği · proje kodunun yeri · plaka kodunun yeri.
 > 🧭 Sahadaki 3-4 gerçek ad bu tabloyu doldurunca kural kesinleşir.
+
+### 4.3 Teyitli harf tablosu (kaynak: Alp) — ✅ Alp teyidi, 2026-09-25 12:27–12:29 (Telegram)
+
+Değişken 3 harf: `<1. lokasyon><2. ortam><3. alan>`
+
+| Harf konumu | Alan | Değerler |
+|---|---|---|
+| 1 | Lokasyon | `s`=İstanbul · `d`=Ankara (DRC = Disaster Recovery Center / ODM = Olağanüstü Durum Merkezi) |
+| 2 | Ortam | `p`=production · `d`=development · `t`=test · `x`=prep · `b`=bugfix |
+| 3 | Alan (Lokal/DMZ) | `l`=Local · `d`=DMZ |
+
+**Doğrulanmış örnek (kaynak: Alp):** `std` = `s`(İstanbul) + `t`(test) + `d`(DMZ)
+
+📌 Kaynak: Alp, 2026-09-25 12:27–12:29 (Telegram) — teyitli. Alp: üst ortam = **production**, alt ortamlar =
+dev/test/prep/bugfix; `prod/nonprod` ayrımı kapsam dışı.
 
 ---
 
@@ -170,7 +188,7 @@ Böylece üç harf yer değiştiriyor."*
 3. **`Network`** seçenekleri neler?
 4. **`Bilgi Varlığı Seviyesi`** seçenekleri neler?
 5. **`Toplumsal Sonuçlar` / `Sektörel Etki`** seçenekleri neler?
-6. **`xl` = prep** yazımı doğru mu? **Plaka kodu** adın neresinde duruyor?
+6. **Plaka kodu** adın neresinde duruyor?
 7. Proje/şirket kodu havuzu (`ym`/`sp`/`cc`) — şimdilik **kapsam dışı** (Alp).
 
 ---

@@ -200,7 +200,13 @@ moda alır — iki ayrı ortam değişkeni yerine tek anahtar, T7'nin "kapı ço
 `OPS_AGENT_KAPI=GOZLEM`. Kapsam kapısı hiçbir modda reddetmez (yalnız kayıt) — dizin dışı onayını
 `permission.external_directory: "ask"` sorar (K2).
 
-## 6. Güvenlik kilitleri (K1–K7)
+## 6. Uzak işlem araç seçimi (T14/A41)
+
+ssh / ansible ad-hoc / playbook arasında hangisinin ne zaman kullanılacağı ayrı bir belgede:
+`UZAK-ISLEM-ARAC-SECIMI.md`. Bu matrisle ilişkisi: `bash`/`ansible-playbook*` izin kararı
+(§1–2) *aracın çalışıp çalışmayacağını*, o dosya ise *hangi aracın seçileceğini* belirler.
+
+## 7. Güvenlik kilitleri (K1–K7)
 
 Bkz. `GUVENLIK-KILITLERI.md` (kullanım + sınırlar) ve `../architecture/decisions/0004-guvenlik-kilitleri.md`
 (karar). K1 değişiklik kilidi, K5 yıkıcı komut ve K6 öz-koruma `audit-log.ts`'te sert red; K2/K3/K4

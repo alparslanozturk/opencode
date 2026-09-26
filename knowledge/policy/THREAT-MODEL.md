@@ -187,4 +187,5 @@ insan onayına bağlıdır (`OPS_AGENT_KAPSAM_EK=<izinli-dizin>`, bkz. `PERMISSI
 
 Yürütme (execution) katmanı, MCP entegrasyonu, Vault/OIDC, OPA/Cedar — bunlar Faz 2 konusu; burada yalnız
 **salt-okunur v1'in** tehdit yüzeyi ele alınmıştır. Detaylar için `PERMISSION-MATRIX.md`, `AUDIT-FORMAT.md` ve
-`../roadmap/PHASE0-ACCEPTANCE.md`.
+`../roadmap/PHASE0-ACCEPTANCE.md`. ssh/ansible ad-hoc/playbook arasında hangisinin seçileceği (A41):
+`UZAK-ISLEM-ARAC-SECIMI.md`.

@@ -24,6 +24,12 @@
 - **Sayı/birim tutarlılığı zorunlu:** aynı tabloda birim karıştırma; satır toplamlarını tek tek doğrula
   (KUME-B + KUME-A toplamı gibi). Kaynağı ve tarihi yaz; ölçmediğin sayıyı "ölçülmedi" diye işaretle.
 
+## Uzak işlem araç seçimi (A41 — anlık okuma vs. tekrarlanan iş vs. kalıcı durum)
+- **ssh tek satır:** anlık/tek seferlik okuma-teşhis. **ansible ad-hoc:** birkaç uçta
+  tekrarlanan tek komut (yine okuma/düşük riskli). **playbook + onay:** kalıcı/tekrarlanabilir
+  durum (paket, kurulum, config) — onay olmadan çalıştırılmaz. Detay + örnekler:
+  `../knowledge/policy/UZAK-ISLEM-ARAC-SECIMI.md`.
+
 ## SSH ve Kubernetes erişimi (kullanıcı açıkça istediğinde — Alp kuralı, 2026-09-15)
 - **Bağlanmak için host dosyası ARAMAYA GEREK YOK.** Erişim **public key** ile parolasız:
   `ssh root@<ip> "<komut>"` doğrudan çalışır. `/etc/hosts`, `hosts*.ini`, kubeconfig peşinde tüm

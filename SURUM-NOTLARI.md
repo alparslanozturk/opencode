@@ -6,6 +6,17 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-09-26 — kurulum: MobaXterm kopyalama + CI (A22 kararı, A14)
+
+- **Kopyalama (A22, Alp kararı):** `./kur.sh` artık `~/.config/opencode/tui.json`'a `"mouse": false` yazar →
+  seçimi terminal yapar, MobaXterm "copy on select" panoya gerçekten kopyalar. Bedel: TUI içinde fareyle
+  kaydırma/tıklama yok. `mouse` zaten ayarlıysa dokunulmaz; istemeyen `ALP_TUI_FARE=1 ./kur.sh`.
+  İkili değişmedi (sürüm 1.0.3 kalır) — yalnız `./kur.sh` yeniden çalıştırılır.
+- **CI (A14):** `.github/workflows/alp-ci.yml` — her push/PR'da bash sözdizimi, shellcheck, kilit+audit
+  testleri, maskeleme taraması (`script/maskeleme-tara.sh`, yeni). Derleme gerektiren duman testleri yerelde.
+- **Açık:** upstream'den gelen 27 iş akışı fork'ta da çalışıyor (issue/PR kapatan botlar dahil, 102 çalıştırma);
+  kapatılması Alp'e bırakıldı.
+
 ## 2026-09-26 — ürün 1.0.3: anahtar sızıntısı, audit doğrulayıcı, dürüst kopyalama bildirimi
 
 Sahaya `./kur.sh` ile gider (sürüm 1.0.3 → yeniden derler).

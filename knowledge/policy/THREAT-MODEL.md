@@ -103,7 +103,8 @@ satırı, uç teşhisi); yer tutucu doldurulmadan kurulum yapılmaz, `./kur.sh k
 `env.example` kabuk tarafından `.` ile okunduğu için `<…>` taşıyan değer **tırnak içinde** yazılır
 (`MODEL_ID="<model-kimligi>"`) — tırnaksız yazım `<` yönlendirmesi sayılıp dosyayı bozar.
 
-**Tekrarlanabilir tarama** (repo kökünde; çıktı boşsa temiz — `git ls-files` = yalnız izlenen dosyalar):
+**Tekrarlanabilir tarama** — tek komut: `script/maskeleme-tara.sh` (CI `alp-ci` de bunu koşar; aşağıdaki blokla aynı).
+(repo kökünde; çıktı boşsa temiz — `git ls-files` = yalnız izlenen dosyalar):
 
 ```bash
 KAPSAM=(':(glob)*.md' ':(glob)*.sh' 'env.example' 'engine' 'knowledge' 'docs' 'script'

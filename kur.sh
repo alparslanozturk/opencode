@@ -814,6 +814,36 @@ os.chmod(dst, 0o600)
 PY
   yesil "  config: $HOME/.config/opencode/opencode.json (izin: 600)"
 
+  # A22 (Alp kararı 2026-09-26): TUI fareyi yakalamasın → seçimi terminal (MobaXterm) yapar, "copy on
+  # select" panoya gerçekten kopyalar. Bedeli: TUI içinde fareyle kaydırma/tıklama yok. Kullanıcı
+  # tui.json'da `mouse`'u bilerek ayarladıysa dokunulmaz; ALP_TUI_FARE=1 → bu adım atlanır.
+  if [ "${ALP_TUI_FARE:-0}" != "1" ]; then
+    local tui_sonuc
+    tui_sonuc="$("$PY" - "$HOME/.config/opencode/tui.json" << 'PY' 2> /dev/null
+import json, os, sys
+yol = sys.argv[1]
+d = {"$schema": "https://opencode.ai/tui.json"}
+if os.path.exists(yol):
+    try:
+        d = json.load(open(yol, encoding="utf-8"))
+    except Exception:
+        print("bozuk"); sys.exit(0)
+    if not isinstance(d, dict):
+        print("bozuk"); sys.exit(0)
+if "mouse" in d:
+    print("korundu:%s" % json.dumps(d["mouse"])); sys.exit(0)
+d["mouse"] = False
+json.dump(d, open(yol, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+print("yazildi")
+PY
+)"
+    case "$tui_sonuc" in
+      yazildi) yesil "  tui: ~/.config/opencode/tui.json → mouse: false (seçim terminalde, MobaXterm kopyalar)" ;;
+      korundu:*) yesil "  tui: mouse zaten ayarlı (${tui_sonuc#korundu:}) — dokunulmadı" ;;
+      bozuk) sari "  ! tui.json okunamadı (yorumlu/bozuk JSON?) — mouse ayarı yazılmadı" ;;
+    esac
+  fi
+
   # T3 künyesi: değerin NEREDEN geldiği (uç alanı / probe / env / varsayılan).
   # opencode.json'a şema dışı alan eklemiyoruz; kaynak bilgisi ayrı dosyada durur
   # ve yalnız kontrol raporunun "cikti: N (kaynak)" parantezini beslemek için var.

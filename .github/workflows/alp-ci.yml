@@ -1,0 +1,37 @@
+# alp-ci — bizim katmanin ucuz, cevrimdisi kontrolleri (A14/C9). Kurum degeri/ag gerektirmez.
+# Derlenmis ikili isteyen duman testleri (duman-kontrol-rapor.sh, smoke-ikili.sh) burada YOK —
+# onlar yerelde kosar (bkz. knowledge/runbooks/upstream-guncelleme.md "Dogrulama").
+name: alp-ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  kontrol:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+
+      - name: bash sozdizimi
+        run: for f in kur.sh script/*.sh; do bash -n "$f"; done
+
+      - name: shellcheck (uyari seviyesi)
+        run: shellcheck -S warning kur.sh script/*.sh
+
+      - name: guvenlik kilitleri + audit testleri
+        working-directory: engine/plugins
+        run: bun test ./audit-log.test.ts
+
+      - name: maskeleme taramasi
+        run: script/maskeleme-tara.sh

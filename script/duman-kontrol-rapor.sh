@@ -23,10 +23,14 @@ GECEN=0
 KALAN=0
 
 CALISMA="$(mktemp -d "${TMPDIR:-/tmp}/oc-duman-rapor.XXXXXX")"
-SUNUCULAR=""
+# Sahte uc PID'leri DOSYADA tutulur: uc_baslat `port="$(uc_baslat ...)"` ile komut ikamesinde (alt kabukta)
+# calisir — oradaki degisken atamasi ana betige donmez. Eskiden PID'ler bir degiskende tutuluyordu ve temizle()
+# hicbirini oldurmuyordu: her kosu 2-3 oksuz sahte-uc.py birakti (2026-09-27: 62 surec, 827 MB).
 temizle() {
   local p
-  for p in $SUNUCULAR; do kill "$p" 2> /dev/null; done
+  if [ -f "$CALISMA/sunucular.pid" ]; then
+    while read -r p; do kill "$p" 2> /dev/null; done < "$CALISMA/sunucular.pid"
+  fi
   rm -rf "$CALISMA"
 }
 trap temizle EXIT
@@ -39,7 +43,7 @@ baslik() { printf '\n== %s\n' "$*"; }
 uc_baslat() {
   local ad="$1"; shift
   env "$@" python3 "$KOK/script/sahte-uc.py" > "$CALISMA/$ad.port" 2> "$CALISMA/$ad.err" &
-  SUNUCULAR="$SUNUCULAR $!"
+  echo "$!" >> "$CALISMA/sunucular.pid"
   local port=""
   local _i
   for _i in $(seq 1 60); do

@@ -610,6 +610,9 @@ const layer = Layer.effect(
         yield* session.updateMessage(ctx.assistantMessage)
       })
 
+      // A23: highest automatic retry attempt of the current process() call (0 = no retry happened)
+      let retryAttempts = 0
+
       const halt = Effect.fn("SessionProcessor.halt")(function* (e: unknown) {
         yield* Effect.logError("process", {
           "session.id": input.sessionID,
@@ -618,6 +621,11 @@ const layer = Layer.effect(
           stack: e instanceof Error ? e.stack : undefined,
         })
         const error = parse(e)
+        // A23: retries were used up — say so in the error the user sees (message is shown as-is by the TUI)
+        if (retryAttempts >= SessionRetry.RETRY_MAX_RETRIES && error.data && typeof error.data === "object" && "message" in error.data) {
+          const data = error.data as { message?: unknown }
+          if (typeof data.message === "string") data.message = SessionRetry.exhaustedMessage(data.message, retryAttempts)
+        }
         if (SessionV1.ContextOverflowError.isInstance(error)) {
           if ((yield* config.get()).compaction?.auto === false && !ctx.assistantMessage.summary) {
             ctx.assistantMessage.error = error
@@ -639,6 +647,7 @@ const layer = Layer.effect(
       })
 
       const process = Effect.fn("SessionProcessor.process")(function* (streamInput: LLM.StreamInput) {
+        retryAttempts = 0
         yield* Effect.logInfo("process", {
           "session.id": input.sessionID,
           messageID: input.assistantMessage.id,
@@ -676,6 +685,7 @@ const layer = Layer.effect(
                 provider: input.model.providerID,
                 parse,
                 set: (info) => {
+                  retryAttempts = info.attempt
                   return status.set(ctx.sessionID, {
                     type: "retry",
                     attempt: info.attempt,

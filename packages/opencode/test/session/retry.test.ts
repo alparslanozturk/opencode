@@ -519,3 +519,20 @@ describe("session.message-v2.fromError", () => {
     })
   })
 })
+
+describe("exhaustedMessage (A23)", () => {
+  test("says retries are over and the session is kept", () => {
+    const msg = SessionRetry.exhaustedMessage("Service Temporarily Unavailable", SessionRetry.RETRY_MAX_RETRIES)
+    expect(msg).toStartWith("Service Temporarily Unavailable")
+    expect(msg).toContain(`gave up after ${SessionRetry.RETRY_MAX_RETRIES} automatic retries`)
+    expect(msg).toContain("send your message again")
+  })
+
+  test("leaves the message untouched when no retry happened", () => {
+    expect(SessionRetry.exhaustedMessage("boom", 0)).toBe("boom")
+  })
+
+  test("singular wording for one retry", () => {
+    expect(SessionRetry.exhaustedMessage("x", 1)).toContain("1 automatic retry;")
+  })
+})

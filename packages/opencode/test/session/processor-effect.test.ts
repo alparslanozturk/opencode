@@ -1,3 +1,4 @@
+import { SessionRetry } from "../../src/session/retry"
 import { SessionV1 } from "@opencode-ai/core/v1/session"
 import { Database } from "@opencode-ai/core/database/database"
 import { LayerNode } from "@opencode-ai/core/effect/layer-node"
@@ -757,6 +758,52 @@ it.live("session.processor effect tests publish retry status updates", () =>
         expect(value).toBe("continue")
         expect(yield* llm.calls).toBe(2)
         expect(states).toStrictEqual([1])
+      }),
+    { config: (url) => providerCfg(url) },
+  ),
+)
+
+it.live("session.processor effect tests say when automatic retries are exhausted (A23)", () =>
+  provideTmpdirServer(
+    ({ dir, llm }) =>
+      Effect.gen(function* () {
+        const { processors, session, provider } = yield* boot()
+
+        // one initial call + RETRY_MAX_RETRIES retries, all 503; retry-after-ms: 0 keeps the test fast
+        for (let i = 0; i <= SessionRetry.RETRY_MAX_RETRIES; i++)
+          yield* llm.error(503, { error: "Service Temporarily Unavailable" }, { "retry-after-ms": "0" })
+
+        const chat = yield* session.create({})
+        const parent = yield* user(chat.id, "retry until exhausted")
+        const msg = yield* assistant(chat.id, parent.id, path.resolve(dir))
+        const mdl = yield* provider.getModel(ref.providerID, ref.modelID)
+        const handle = yield* processors.create({
+          assistantMessage: msg,
+          sessionID: chat.id,
+          model: mdl,
+        })
+
+        const value = yield* handle.process({
+          user: {
+            id: parent.id,
+            sessionID: chat.id,
+            role: "user",
+            time: parent.time,
+            agent: parent.agent,
+            model: { providerID: ref.providerID, modelID: ref.modelID },
+          } satisfies SessionV1.User,
+          sessionID: chat.id,
+          model: mdl,
+          agent: agent(),
+          system: [],
+          messages: [{ role: "user", content: "retry until exhausted" }],
+          tools: {},
+        })
+
+        expect(value).toBe("stop")
+        expect(yield* llm.calls).toBe(SessionRetry.RETRY_MAX_RETRIES + 1)
+        const error = handle.message.error as { data?: { message?: string } } | undefined
+        expect(error?.data?.message).toContain(`gave up after ${SessionRetry.RETRY_MAX_RETRIES} automatic retries`)
       }),
     { config: (url) => providerCfg(url) },
   ),

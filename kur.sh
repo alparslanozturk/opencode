@@ -867,6 +867,17 @@ PY
       case "$eklenti" in *.test.ts|*.test.js) continue ;; esac
       cp -f "$eklenti" "$HOME/.config/opencode/plugins/"
     done
+    # ADR-0005: motordan bağımsız çekirdek (kilitler, maskeleme) plugins/lib/ altında — opencode alt dizini
+    # eklenti diye YÜKLEMEZ, yalnız audit-log.ts içe aktarır. Eski lib kalıntısı kalmasın diye önce temizlenir.
+    rm -rf "$HOME/.config/opencode/plugins/lib"
+    if [ -d "$KOK/engine/plugins/lib" ]; then
+      mkdir -p "$HOME/.config/opencode/plugins/lib"
+      for eklenti in "$KOK"/engine/plugins/lib/*.ts; do
+        [ -f "$eklenti" ] || continue
+        case "$eklenti" in *.test.ts) continue ;; esac
+        cp -f "$eklenti" "$HOME/.config/opencode/plugins/lib/"
+      done
+    fi
     yesil "  plugin: $(ls "$HOME/.config/opencode/plugins" | wc -l) adet → ~/.config/opencode/plugins (açılışta okunur, tekrar açman gerekebilir)"
   else
     sari "  engine/plugins/ altında .ts/.js yok — plugin kurulumu atlandı"
@@ -1247,6 +1258,26 @@ kontrol_kurulum() {
   else
     satir "AGENTS" hata "AGENTS.md kurulu degil (kurum kurallari yuklenmez) — ./kur.sh"
     sorun_kaydet "AGENTS.md kurulu degil — ./kur.sh calistir"
+  fi
+  # Güvenlik kilitleri + audit (ADR-0004/0005): eklenti ve içe aktardığı lib/ dosyaları yerinde mi? Biri eksikse
+  # opencode eklentiyi YÜKLEYEMEZ ve kilitler SESSİZCE devre dışı kalır — bu yüzden hata satırı.
+  local eklenti_dosya="$ayar_dizin/plugins/audit-log.ts" eksik_lib=""
+  if [ -f "$eklenti_dosya" ]; then
+    local mod
+    for mod in $(sed -n 's#^import .* from "\./\(lib/[a-z0-9_-]*\)".*#\1#p' "$eklenti_dosya" | sort -u); do
+      [ -f "$ayar_dizin/plugins/$mod.ts" ] || eksik_lib="$eksik_lib $mod.ts"
+    done
+    if [ -n "$eksik_lib" ]; then
+      satir "kilit" hata "eklenti var ama eksik:$eksik_lib — kilitler/audit YUKLENMEZ (./kur.sh)"
+      sorun_kaydet "guvenlik eklentisi eksik dosya:$eksik_lib — ./kur.sh"
+    elif [ "${OPS_AGENT_KAPI:-}" = "GOZLEM" ]; then
+      satir "kilit" uyar "eklenti kurulu ama GOZLEM modu (OPS_AGENT_KAPI=GOZLEM) — kilitler engellemez"
+    else
+      satir "kilit" ok "guvenlik kilitleri + audit kurulu (K1-K7, kilitli mod)"
+    fi
+  else
+    satir "kilit" hata "guvenlik eklentisi kurulu degil — kilitler/audit YOK (./kur.sh)"
+    sorun_kaydet "guvenlik eklentisi (audit-log.ts) kurulu degil — ./kur.sh"
   fi
 
   # 6) knowledge iskeleti

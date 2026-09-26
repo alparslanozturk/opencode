@@ -31,7 +31,7 @@ jobs:
 
       - name: guvenlik kilitleri + audit testleri
         working-directory: engine/plugins
-        run: bun test ./audit-log.test.ts
+        run: bun test ./audit-log.test.ts ./lib/kilit.test.ts
 
       - name: maskeleme taramasi
         run: script/maskeleme-tara.sh

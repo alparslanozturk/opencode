@@ -6,6 +6,17 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-09-26 — mimari: motordan bağımsız güvenlik çekirdeği + 2.x hazırlığı (ADR-0005)
+
+- Upstream 2.x incelendi: eklenti API'si baştan yazılmış, bizim kancalar (`tool.execute.*`, `chat.message`)
+  **yok** → 2.x'te kilitler/audit yüklenmezdi. Karşılıkları mevcut (hatta CN'siz değişikliği "sor"a düşürmek
+  mümkün). Geçiş hâlâ npm `latest` 2.x olunca (ADR-0003).
+- Hazırlık: güvenlik mantığı `engine/plugins/lib/` altına **motordan bağımsız çekirdek** olarak ayrıldı
+  (`kilit.ts`, `maskele.ts`); `audit-log.ts` artık ince 1.x adaptörü. Davranış değişmedi.
+- `kur.sh` `plugins/lib/`'i de kurar; **`kontrol` raporuna `kilit` satırı**: eklenti ya da `lib/` dosyası eksikse
+  hata (yoksa kilitler sessizce kapanırdı), gözlem modu uyarı. Rapor 26/28 satır (≤29).
+- Doğrulama: 122 + 4 (yeni çekirdek testi) test, derlenmiş ikiliyle uçtan uca kilit senaryoları, duman 23/0.
+
 ## 2026-09-26 — kurulum: MobaXterm kopyalama + CI (A22 kararı, A14)
 
 - **Kopyalama (A22, Alp kararı):** `./kur.sh` artık `~/.config/opencode/tui.json`'a `"mouse": false` yazar →

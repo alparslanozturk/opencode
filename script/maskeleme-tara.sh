@@ -5,7 +5,8 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 KAPSAM=(':(glob)*.md' ':(glob)*.sh' 'env.example' 'engine' 'knowledge' 'docs' 'script'
-        ':!knowledge/policy/THREAT-MODEL.md')
+        ':!knowledge/policy/THREAT-MODEL.md' ':!script/maskeleme-tara.sh')
+# Bu betik ve THREAT-MODEL.md desenin KENDISINI tasir → taransalar hep kendilerini bulurlar (C18).
 DESEN='/data/|/<uygulama>|/<log-dizini>|models--|[A-Za-z0-9-]+\.(com|net|org)\.tr'
 bulgu="$(git ls-files -z -- "${KAPSAM[@]}" | xargs -0 grep -nIE "$DESEN" | grep -viE 'sahte|<[a-z]' || true)"
 if [ -n "$bulgu" ]; then

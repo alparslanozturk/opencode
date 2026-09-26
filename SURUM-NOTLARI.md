@@ -6,6 +6,14 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-09-26 — beceri: disk-ekleme onaylıya alındı, saha dersleriyle yeniden yazıldı (A24, A26–A28)
+
+Sahada model disk ekleme planında cihaz harfini varsaydı, kontrolsüz `mkfs` sıraladı, kurumun ad/bağlama düzenine
+uymadı ve `fstab`'a körlemesine `>>` yazdı. Beceri artık: **keşfet → kurum düzenini oku → plan → onay → uygula**;
+disk boş kanıtlanmadan yıkıcı adım yok (`lsblk -f`, `pvs`, `wipefs -n`); VG/LV adı ve bağlama noktası mevcut
+sunucudan türetilir, çıkmazsa sorulur; fstab satırı yedek + `grep -q … ||` ile tekrar çalıştırılabilir,
+`findmnt --verify` ile yeniden başlatmadan doğrulanır. Parked → approved (kur.sh kurar).
+
 ## 2026-09-26 — mimari: motordan bağımsız güvenlik çekirdeği + 2.x hazırlığı (ADR-0005)
 
 - Upstream 2.x incelendi: eklenti API'si baştan yazılmış, bizim kancalar (`tool.execute.*`, `chat.message`)

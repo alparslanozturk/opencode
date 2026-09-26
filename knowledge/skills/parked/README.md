@@ -62,7 +62,7 @@ değerlendirilmeli.)
 ## Tam liste (28)
 
 ```
-ag-teshis, beceri-gelistir, beceri-yaz, belge-yaz, disk-ekleme, git-azuredevops, guvenlik-ajani,
+ag-teshis, beceri-gelistir, beceri-yaz, belge-yaz, git-azuredevops, guvenlik-ajani,
 guvenlik-incelemesi, idm-yonetim, kod-inceleme, mcp-ekle, nexus-registry, nfs-mount,
 podman-docker, rhel-surumleri, sadelestir, satellite-yonetim, selinux, sertifika-tls,
 servis-teshis, solaris-ldom, splunk-forwarder, sssd-adtrust, sunucu-teslim, test-yaz,

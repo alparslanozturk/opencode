@@ -95,8 +95,8 @@ engine/                  # MOTOR katmanı (güncellenebilir)
     audit-log.ts         #     1.x adaptörü: kancalar → çekirdek, audit zinciri (ADR-0005)
     lib/                 #     motordan bağımsız çekirdek: kilit.ts (K1/K5/K6, ADR-0004), maskele.ts
 knowledge/               # BİLGİ katmanı (kalıcı, git tabanlı)
-  skills/approved/*/SKILL.md   # 10 çekirdek beceri (opencode'un okuduğu TEK yer, kur.sh varsayılanı)
-  skills/parked/*/SKILL.md     # 28 park edilmiş beceri (2026-09-16 sadeleştirmesi, kurulmaz; bkz. parked/README.md)
+  skills/approved/*/SKILL.md   # 12 çekirdek beceri (opencode'un okuduğu TEK yer, kur.sh varsayılanı)
+  skills/parked/*/SKILL.md     # 27 park edilmiş beceri (2026-09-16 sadeleştirmesi, kurulmaz; bkz. parked/README.md)
   skills/experimental/         # onay bekleyen öneriler
   skills/generated/            # ham üretim
   runbooks/ · incidents/ · lessons-learned/ · operations-notes/

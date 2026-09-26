@@ -6,6 +6,12 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-09-26 — ürün 1.0.4: tekrarlar tükenince açık mesaj (A23)
+
+Geçici uç hatasında opencode 5 kez (2 sn → 30 sn arası beklemeyle) yeniden dener. Artık 5. denemeden sonra da
+başarısız olursa hata mesajının sonunda "5 otomatik denemeden sonra vazgeçildi; oturum korunuyor, mesajını
+tekrar gönderip devam edebilirsin" (İngilizce) yazar. Sahaya `./kur.sh` ile gider (1.0.4 → yeniden derler).
+
 ## 2026-09-26 — beceri: disk-ekleme onaylıya alındı, saha dersleriyle yeniden yazıldı (A24, A26–A28)
 
 Sahada model disk ekleme planında cihaz harfini varsaydı, kontrolsüz `mkfs` sıraladı, kurumun ad/bağlama düzenine

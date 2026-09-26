@@ -67,7 +67,8 @@ NODE_SURUM="v24.19.0"
 # `splitting: false` düzeltmesiyle birlikte bump edildi (bkz. SURUM-NOTLARI.md).
 # 1.0.2: motor upstream 1.18.32 + güvenlik kilitleri K1-K7 (ADR-0004).
 # 1.0.3: TUI pano kopyalama sonucu dürüst bildirilir (A22) — ikiliye giren değişiklik.
-SURUM="${OPENCODE_VERSION:-1.0.3}"
+# 1.0.4: otomatik tekrarlar tükenince kullanıcıya açıklama (A23) — ikiliye giren değişiklik.
+SURUM="${OPENCODE_VERSION:-1.0.4}"
 KANAL="${OPENCODE_CHANNEL:-main}"
 
 # Çekirdek beceri listesi (Aşama 2, danışma-2 kararı: 38 → 10; 2026-09-16 Alp kararıyla

@@ -109,7 +109,7 @@ satırı, uç teşhisi); yer tutucu doldurulmadan kurulum yapılmaz, `./kur.sh k
 ```bash
 KAPSAM=(':(glob)*.md' ':(glob)*.sh' 'env.example' 'engine' 'knowledge' 'docs' 'script'
         ':!knowledge/policy/THREAT-MODEL.md')
-DESEN='/data/|/<uygulama>|/<log-dizini>|models--|[A-Za-z0-9-]+\.(com|net|org)\.tr'
+DESEN='/data/|models--|[A-Za-z0-9-]+\.(com|net|org)\.tr'   # + git-disi .maskeleme-desen (kuruma ozgu kelimeler)
 git ls-files -z -- "${KAPSAM[@]}" | xargs -0 grep -nIE "$DESEN" | grep -viE 'sahte|<[a-z]'
 ```
 

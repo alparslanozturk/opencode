@@ -17,6 +17,16 @@ set -euo pipefail
 # ama siralama garanti degil, bu yuzden en buyuge gore hesaplanir.
 mem_per_proc_mb=4800
 
+# --tsgo-ek: turbo'nun her pakete gecirecegi ek tsgo argumanini basar. Tek tsgo sureci bile cok is
+# parcacikli modda ~4.4-4.7 GB'a cikiyor (2026-09-27 olcumu); bu VM'de bos bellek ~5 GB iken earlyoom
+# onu SIGTERM'le durduruyordu (concurrency=1'de bile). --singleThreaded ayni kontrolu daha az bellekle
+# yapar (5.3 GB bosken temiz gecti). Bellek bolsa bos basar — hiz kaybi olmaz.
+if [ "${1:-}" = "--tsgo-ek" ]; then
+  mem_kb=$(awk '/MemAvailable/{print $2; exit}' /proc/meminfo 2>/dev/null || echo 0)
+  if [ $(( mem_kb / 1024 )) -lt 8000 ]; then echo "-- --singleThreaded"; fi
+  exit 0
+fi
+
 cpu=$(nproc 2>/dev/null || echo 2)
 
 mem_kb=$(awk '/MemAvailable/{print $2; exit}' /proc/meminfo 2>/dev/null || echo 0)

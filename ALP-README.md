@@ -57,6 +57,11 @@ raporun sonuna iki ucu **iki sütunda** ölçen karşılaştırma + "daha hızl�
 (toplam 2 satır; uç başına tam döküm için `-a`). Ekran görüntüsü alıp olduğu gibi gönderebilirsin.
 Salt okunur; **anahtar her zaman maskelidir** (`abc****yz`).
 
+> **Sürebilir:** uç bölümünde 4 ayrı ağ isteği vardır (`/models` · sohbet · akış · araç çağrısı), her biri
+> kendi `--zaman-asimi`'ni (varsayılan 60 sn) ayrı ayrı bekler ve aralarında ilerleme çıktısı basılmaz —
+> uç yanıt vermiyorsa (asılı kalmış proxy vb.) en kötü durumda toplam **4 × zaman aşımı** (varsayılanla ~4 dk)
+> sürebilir, ekran o süre boyunca boş kalır. Daha hızlı sonuç için `--zaman-asimi` küçült.
+
 İlk satır **sürüm izlenebilirliğini** de verir: `ikili ✓ surum 1.0.1 · commit c6f1ce7 (=HEAD) ·
 derleme <tarih> · HEAD c6f1ce7`. İkili başka bir commit'ten geldiyse (ya da derleme künyesi yoksa)
 hemen altına tek satırlık `surum !` uyarısı düşer — sağlamsa hiç basılmaz.
@@ -68,23 +73,43 @@ hemen altına tek satırlık `surum !` uyarısı düşer — sağlamsa hiç bas�
 
 Çıkış kodu: `0` = sorun yok · `1` = sorun var. Ayrıntı: `NASIL-CALISTIRILIR.md` → **"Teşhis"**.
 
-## Offline güvence
-`opencode.json`'daki `"npm": "@ai-sdk/openai-compatible"` alanı **çalışma anında npm/network tetiklemez** —
-bu SDK opencode'un 185 MB'lık tek ikilisine **derleme zamanında gömülü**dür (binary içinde `strings` ile
-doğrulanabilir; `@ai-sdk/openai-compatible` dahil 18 sağlayıcı SDK'sı statik olarak paketli). Ağ erişimi tamamen
-kapalı bir `unshare --net` ortamında `opencode run` denenmiş, SDK 11 ms'de yüklenmiş, tek hata sahte uç
-adresine bağlanamamak olmuş (beklenen) — npm/node_modules/lockfile hiç oluşmamış.
+## Offline güvence — ne garanti, ne değil
+**Garanti edilen:** `opencode.json`'daki `"npm": "@ai-sdk/openai-compatible"` alanı **çalışma anında npm/network
+tetiklemez** — bu SDK derlenmiş ikiliye (şu an **~203 MB**, `ls -lh bin/opencode` ile teyit edilir; sayı
+sürümle değişir) **derleme zamanında gömülüdür** (binary içinde `strings` ile doğrulanabilir;
+`@ai-sdk/openai-compatible` dahil 18 sağlayıcı SDK'sı statik olarak paketli).
+
+**Garanti EDİLMEYEN (2026-09-27'de `unshare --net -- opencode run` ile yeniden ölçüldü):** ikili tamamen
+sessiz/offline değil, iki ayrı arka plan ağ denemesi vardır ve ikisi de **başarısızlığı yutar** (çöktürmez,
+kullanıcıya göstermez):
+1. Her `opencode run`/oturum açılışında modeller.dev kataloğunu **ağdan tazelemeye çalışır**
+   (`GET https://models.opencode.ai/api.json`); offline'da `ENOTFOUND` ile `level=ERROR` log satırı düşer,
+   session durmaz (log: `~/.local/share/opencode/log/opencode.log`). Bu, `kur.sh`'ın derleme zamanında
+   gömdüğü statik `models-dev-api.json` anlık görüntüsünden **ayrı** bir mekanizma.
+2. Her config dizini için (bizim plugin'imiz olsun olmasın, opencode her zaman yapar) arka planda
+   (`Effect.forkDetach`, sonucu beklenmez) `@opencode-ai/plugin` paketini npm ile kurmayı dener
+   (`packages/opencode/src/config/config.ts:451-462`); başarısız olursa yalnız `Effect.logWarning` basar,
+   akışı durdurmaz. `engine/plugins/audit-log.ts` bizim tarafımızda `import type` kullandığı için kendi
+   plugin'imiz ayrıca bir runtime bağımlılığı eklemiyor — ama opencode'un kendi denemesi yine de olur.
+   Kısaca iddia "hiç network denemesi yok" değil, "denemeler sessizce başarısız oluyor ve akışı bozmuyor".
 
 > **Not (2026-09-16, denetim bulgusu #16):** Bu paragrafın eskiden atıfta bulunduğu
 > `GELISTIRME-RAPORU-OPENCODE-CILA.md` dosyası bu depoda **hiç var olmamış** (`git log --diff-filter=A`
-> boş döndü) — referans kaldırıldı. Yukarıdaki ölçüm iddiasının kendisi (11 ms, `unshare --net`) ayrı
-> bir kanıt dosyasıyla doğrulanamadı; tekrar üretmek istersen aynı komutu (`unshare --net -- opencode run
-> ...`) burada çalıştırıp gerçek çıktıyı yeni bir `notlar/` raporuna yaz.
+> boş döndü) — referans kaldırılmıştı. 2026-09-27'de ölçüm tazelendi (yukarıdaki iki madde); eski "11 ms,
+> tek hata" iddiası bu yeni ölçümle değiştirildi.
+
+> **models.dev anlık görüntüsü donuk kalabilir:** `kur.sh derle`, repoda `packages/opencode/script/models-dev-api.json`
+> varsa **ağ olsa bile** onu tercih eder (ağa hiç bakmaz) — güncel dosya 2026-09-21 tarihli. Yeni
+> model/bağlam-penceresi bilgisi gerekiyorsa dosyayı elle tazele (ağ varsa `curl https://models.dev/api.json`
+> ile üzerine yaz) ya da `MODELS_DEV_API_JSON=<yol>` ile geçici olarak farklı bir anlık görüntü ver;
+> bizim `kurum` sağlayıcımızı etkilemez (o zaten `engine/opencode.json`'da elle tanımlı), yalnız diğer
+> sağlayıcıların model listesi/limitleri bu kataloğa bakar.
 
 ## Bilmeceler (denemede bakılacaklar)
 1. ~~`@ai-sdk/openai-compatible` eklentisi offline yüklenebiliyor mu?~~ **Çözüldü:** evet, ikiliye gömülü — npm gerekmiyor.
 2. Kurum ucu **araç çağrısı (tool calling)** destekliyor mu? Desteklemiyorsa ajan modu çalışmaz → haber ver.
-   **Ölçmek için:** `./kur.sh kontrol` → "7/8 araç çağrısı (tool_call) testi" adımı bunu tek başına yanıtlar.
+   **Ölçmek için:** `./kur.sh kontrol` → rapordaki `tool_call` satırı bunu tek başına yanıtlar (adımlar
+   artık numarasız basılıyor — eski "7/8" ifadesi güncel çıktıyla eşleşmiyordu, kaldırıldı).
 3. Küçük pencerede uzun envanter okuma: kırpma/özetleme opencode'un kendi bağlam yönetimine bırakıldı (aider'daki elle bütçe yok). **Bilinen sınır (Aşama 2 ile ölçüldü):** taban bağlam (sistem promptu + AGENTS.md + beceri listesi + araç şemaları) tek başına 16384'lük bir pencerenin %60'ından fazlasını dolduruyor — bkz. `NASIL-CALISTIRILIR.md` → "Compaction thrash".
 
 ## Motor (Engine) ve fork kararı

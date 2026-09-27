@@ -677,7 +677,13 @@ kur() {
 
   echo "== 1/4  ikili =="
   mkdir -p "$HOME/.opencode/bin"
-  install -m 0755 "$KOK/bin/opencode" "$HOME/.opencode/bin/opencode"
+  # ETXTBSY: hedef calisan bir TUI tarafindan yuruturken dogrudan uzerine yazmak
+  # ("Text file busy") kurulumu set -e ile yarida keser. Ayni dizinde gecici
+  # dosyaya kur, sonra atomik `mv` ile yerine koy — calisan surec eski (unlink
+  # edilmemis) inode'u kullanmaya devam eder, yeni cagrilar yeni dosyayi gorur.
+  local IKILI_GECICI="$HOME/.opencode/bin/.opencode.yeni.$$"
+  install -m 0755 "$KOK/bin/opencode" "$IKILI_GECICI"
+  mv -f "$IKILI_GECICI" "$HOME/.opencode/bin/opencode"
   # T4: derleme künyesi ikiliyle birlikte taşınır — kontrol raporu "ikili ↔ surum
   # ↔ commit" tutarlılığını oradan okur. Künye yoksa (eski bin/opencode) eskisi
   # silinir ki rapor "künye yok" desin, bayat künyeye bakıp yanlış onay vermesin.

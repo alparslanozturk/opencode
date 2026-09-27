@@ -35,8 +35,9 @@ tsconfig.tsbuildinfo
 
 # --- Alp katmanı (bkz. kur.sh) ---
 # Yerel derleme çıktısı git'e girmez; kurulum gerekirse kaynaktan derler.
-# rg paketi izlenir, bin/opencode yerel kalır.
+# rg paketi izlenir (bin/ripgrep.tar.xz), bin/opencode ve olası tar.xz'i yerel kalır.
 /bin/opencode
+/bin/opencode.tar.xz
 # Derleme künyesi (surum/commit/tarih) — ikiliyle birlikte üretilir, yerel kalır.
 /bin/opencode.derleme
 /env

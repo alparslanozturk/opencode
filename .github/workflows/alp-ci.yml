@@ -1,4 +1,6 @@
-# alp-ci — bizim katmanin ucuz, cevrimdisi kontrolleri (A14/C9). Kurum degeri/ag gerektirmez.
+# alp-ci — bizim katmanin ucuz, cevrimdisi kontrolleri (A14/C9). Kurum degeri/ag gerektirmez
+# ("ag" = kurum ici uc; GitHub Actions'in kendi npm erisimi ayri, ikinci `fork-testleri` job'u
+# bunu kullanir — GOREV oc-T5 bulgu E).
 # Derlenmis ikili isteyen duman testleri (duman-kontrol-rapor.sh, smoke-ikili.sh) burada YOK —
 # onlar yerelde kosar (bkz. knowledge/runbooks/upstream-guncelleme.md "Dogrulama").
 name: alp-ci
@@ -29,9 +31,29 @@ jobs:
       - name: shellcheck (uyari seviyesi)
         run: shellcheck -S warning kur.sh script/*.sh
 
-      - name: guvenlik kilitleri + audit testleri
+      - name: guvenlik kilitleri + audit + guard testleri
         working-directory: engine/plugins
-        run: bun test ./audit-log.test.ts ./lib/kilit.test.ts
+        run: bun test ./audit-log.test.ts ./lib/kilit.test.ts ./guard.test.ts
 
       - name: maskeleme taramasi
         run: script/maskeleme-tara.sh
+
+  # main'de daha once hic test kapisi yoktu (plan P2-7): upstream'in test.yml/typecheck.yml'i
+  # yalniz dev/PR'da kosuyor, .husky/pre-push yalniz typecheck yapiyor — bu fork'a ozel
+  # degisikliklerin (httpapi-defect-classify.test.ts, prompt.test.ts, session/tools.ts vb.) testleri
+  # main'e push'ta HIC calismiyordu. `bun turbo test` YERINE yalniz ilgili iki dizin secildi:
+  # tam turbo test tum monorepo'yu (network kayitli fixture'lar dahil) kapsar, burada amac
+  # yalniz BIZIM katmanin regresyonunu ucuza yakalamak (turbo typecheck zaten YASAK — dusuk
+  # bellekli yerel makinede donma riski, bkz. ADR-0002; GitHub runner'i etkilemez ama kapsam
+  # bilerek dar tutuldu).
+  fork-testleri:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-bun
+
+      - name: fork'a ozel + sunucu/oturum testleri
+        working-directory: packages/opencode
+        run: bun test --timeout 30000 test/server test/session

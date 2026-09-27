@@ -89,8 +89,17 @@ adresine bağlanamamak olmuş (beklenen) — npm/node_modules/lockfile hiç olu�
 
 ## Motor (Engine) ve fork kararı
 - Motor = **opencode** (kaynak: `anomalyco/opencode`, MIT — eski adı `sst/opencode`). Kurulum **upstream** sürümüyle yapılır.
-- **Karar: ilk aşamada fork YOK** — yeni sürümler kolay alınsın, güvenlik güncellemeleri kaçmasın, bakım maliyeti düşsün.
-- Yalnız görünürlük için açılmış **birebir kopya** (0 commit, sapma yok): `https://github.com/alparslanozturk/opencode` — kaldırılabilir.
+- **Karar (ADR-0001): çekirdeğe dokunuş küçük tutulur** — yeni sürümler kolay alınsın, güvenlik güncellemeleri
+  kaçmasın, bakım maliyeti düşsün. Bu "sıfır sapma" değil "küçük ve upstream'e uygun sapma" demektir.
+- **Güncel durum (2026-09-27):** `https://github.com/alparslanozturk/opencode` artık birebir kopya değil —
+  son vendor senkronundan (`vendor: opencode 1.18.30 -> 1.18.32`, commit `47a024456c`) bu yana **2 fork
+  commit'i**, **14 dosya**, **+162/-26 satır** (`packages/` altında; `git diff 47a024456c..HEAD -- packages/`
+  ile ölçülür). İkisi de "upstream-uygun" işaretli (yamalar upstream'e PR olarak gönderilebilecek küçüklükte):
+  pano kopyalama sonucunun dürüstçe bildirilmesi (A22/C15) ve otomatik tekrar denemeler tükenince kullanıcıya
+  haber verilmesi (A23). Ayrıntı ve gerekçe: `knowledge/architecture/decisions/0006-fork-sapmasi.md`.
+- Upstream **takip edilir** (ADR-0003, `script/upstream-kontrol.sh`); sürüm yükseltme adımları:
+  `knowledge/runbooks/upstream-guncelleme.md`. `upstream` remote'u `git remote -v` ile görülebilir
+  (yalnız referans — takip betiği kendi `UPSTREAM_URL`'ini kullanır, `git fetch upstream` şart değildir).
 
 ## Bu depo (git) — geliştirme burada yürür
 

@@ -211,3 +211,27 @@ ssh / ansible ad-hoc / playbook arasında hangisinin ne zaman kullanılacağı a
 Bkz. `GUVENLIK-KILITLERI.md` (kullanım + sınırlar) ve `../architecture/decisions/0004-guvenlik-kilitleri.md`
 (karar). K1 değişiklik kilidi, K5 yıkıcı komut ve K6 öz-koruma `audit-log.ts`'te sert red; K2/K3/K4
 `engine/opencode.json` izin bloğunda (onaylanabilir).
+
+## 8. Bileşik komutla `bash` allowlist aşımı (GOREV oc-T5 bulgu A, plan P1-1)
+
+`engine/opencode.json`'daki `bash` izinleri (`"ls *": "allow"` gibi) tüm komut DİZESİNE regex olarak
+uygulanır (`packages/core/src/util/wildcard.ts`) ve `permission.ts` son eşleşen kuralı kullanır
+(`findLast`). Bir "allow" kalıbı yalnız komutun BAŞINI tanır, gerisini `.*` olarak yutar — bu yüzden
+`ls foo; rm -rf /x` gibi bileşik bir komut `"ls *"` kalıbıyla TAMAMEN allow olabilir. K1/K5/K6
+(`audit-log.ts`/`lib/kilit.ts`) bunu kapsamaz: onlar sistem köklerini/uzak değişiklikleri korur,
+hedefsiz "rm -rf herhangi-bir-yol" gibi salt fiil tabanlı bir kapıyı hiç uygulamaz.
+
+`engine/plugins/guard.ts` (`tool.execute.before`, yalnız `bash`) bu boşluğu **daraltarak** kapatır —
+var olan izinleri genişletmez:
+
+- Komut `;`/`&&`/`\|`/`\|\|`/`$(...)`/backtick/yeni satırla bileşikse tüm-dize allowlist eşleşmesi
+  geçersiz sayılır: alt komutlardan biri yıkıcı bir fiilse (`rm -rf`, `systemctl stop`, `mkfs`, `dd`,
+  `shutdown`, `reboot`) → **deny**; hepsi ayrı ayrı daraltılmış allowlist'e uyuyorsa → motorun kendi
+  kararına bırakılır; aksi halde → **ask** (bugün throw ile uygulanır — interaktif `ask` motora henüz
+  bağlı değil, T7 kapsamı).
+- `find *-exec*/-execdir/-delete/-ok` her zaman **ask**.
+- `ps` allowlist'i `engine/opencode.json`'da `"ps"`, `"ps aux*"`, `"ps -ef*"`, `"ps -o*"`'a
+  daraltıldı (eski `"ps *"` boşlukla ayrılmış herhangi bir devamı kabul ediyordu; `psql` argv[0]
+  eşleşmesi zaten tutmuyordu ama devam eden argümanlar keyfi olabiliyordu).
+
+Test: `engine/plugins/guard.test.ts` (`bun test engine/plugins/guard.test.ts`).

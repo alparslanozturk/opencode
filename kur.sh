@@ -458,16 +458,25 @@ except Exception:
     sys.exit(0)
 
 kayitlar = []
+model_kayitlari = []
 if isinstance(d, dict):
     for alt in ("data", "models"):
         if isinstance(d.get(alt), list):
-            kayitlar.extend(x for x in d[alt] if isinstance(x, dict))
-    kayitlar.append(d)
+            model_kayitlari.extend(x for x in d[alt] if isinstance(x, dict))
+    kayitlar = list(model_kayitlari) + [d]
 elif isinstance(d, list):
-    kayitlar.extend(x for x in d if isinstance(x, dict))
+    model_kayitlari.extend(x for x in d if isinstance(x, dict))
+    kayitlar = list(model_kayitlari)
 
-# MODEL_ID ile eşleşen kayıt önce denenir (uçta birden çok model olabilir).
-kayitlar.sort(key=lambda k: 0 if (k.get("id") or k.get("name")) == mid else 1)
+# P1-2: uçta birden çok model olabilir. Eskiden yalnız MODEL_ID eşleşenini ÖNE alan bir
+# sort vardı — eşleşen kayıtta alan yoksa bul() sıradaki (BAŞKA modelin) değerini sessizce
+# ödünç alıyordu (saha vakası: limit.context=262144 yanlış modelden okunmuştu). Şimdi birden
+# çok model kaydı varsa yalnız id (yoksa name) MODEL_ID'ye eşit olanlar kalır; eşleşme yoksa
+# liste boşalır ve bul() hiçbir şey döndürmez — çağıran taraf (kur.sh) bunu "tespit edilemedi"
+# olarak raporlar, uydurma değer yazılmaz. Tek modelli yanıtta (sarmalayıcı içinde tek kayıt ya
+# da sarmalayıcısız düz nesne) eşleşme aranmadan eskisi gibi kullanılır.
+if len(model_kayitlari) > 1:
+    kayitlar = [k for k in model_kayitlari if (k.get("id") or k.get("name")) == mid]
 
 def havuz(k):
     h = dict(k)

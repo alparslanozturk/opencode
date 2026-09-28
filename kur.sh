@@ -807,6 +807,8 @@ p["options"]["baseURL"] = url
 p["options"]["apiKey"] = key
 m = list(p["models"])[0]
 p["models"][m]["id"] = mid
+# A6: açılış modeli config'ten gelir — /models ile elle seçim gerekmez.
+d["model"] = "kurum/" + m
 
 if out:
     p["models"][m].setdefault("limit", {})["output"] = int(out)
@@ -965,7 +967,7 @@ PY
   fi
   yesil "  kuruldu  : $HOME/.opencode/bin/opencode · ayar $HOME/.config/opencode/ · kısayol $HEDEF_DIZIN/opencode (oc)"
   echo  "  çalıştır : cd <veri/proje dizini> && opencode     (kısa ad: oc)"
-  echo  "  İlk açılışta /models → kurum / Qwen3.6-35B-A3B-FP8 seç."
+  echo  "  Model otomatik seçili: kurum / Qwen3.6-35B-A3B-FP8 (/models ile değiştirilebilir)."
   sari "  NOT: opencode'u VERİNİN OLDUĞU dizinde aç (ör: cd ~/ansible && opencode) — dışarı çıkmak izin kapısı açar."
 
   # -------------------------------------------------------------------------

@@ -831,8 +831,9 @@ PY
   yesil "  config: $HOME/.config/opencode/opencode.json (izin: 600)"
 
   # A22 (Alp kararı 2026-09-26): TUI fareyi yakalamasın → seçimi terminal (MobaXterm) yapar, "copy on
-  # select" panoya gerçekten kopyalar. Bedeli: TUI içinde fareyle kaydırma/tıklama yok. Kullanıcı
-  # tui.json'da `mouse`'u bilerek ayarladıysa dokunulmaz; ALP_TUI_FARE=1 → bu adım atlanır.
+  # select" panoya gerçekten kopyalar. Bedeli: TUI içinde fareyle kaydırma/tıklama yok. Önceden
+  # `mouse:true` yazılmışsa da false'a çekilir (sahada kopyalama bu yüzden çalışmıyordu, 2026-09-28);
+  # fareyi TUI'de isteyen ALP_TUI_FARE=1 ile bu adımı atlar.
   if [ "${ALP_TUI_FARE:-0}" != "1" ]; then
     local tui_sonuc
     tui_sonuc="$("$PY" - "$HOME/.config/opencode/tui.json" << 'PY' 2> /dev/null
@@ -846,8 +847,8 @@ if os.path.exists(yol):
         print("bozuk"); sys.exit(0)
     if not isinstance(d, dict):
         print("bozuk"); sys.exit(0)
-if "mouse" in d:
-    print("korundu:%s" % json.dumps(d["mouse"])); sys.exit(0)
+if d.get("mouse") is False:
+    print("korundu:false"); sys.exit(0)
 d["mouse"] = False
 json.dump(d, open(yol, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
 print("yazildi")
@@ -1103,12 +1104,12 @@ kontrol_kurulum() {
   local rg_dizin="${XDG_CACHE_HOME:-$HOME/.cache}/opencode/bin"
 
   if [ "$MOD" = "tam" ]; then
-    printf '== opencode KONTROL · %s · <saha-makinesi> · kok: <kurulum-dizini>\n' \
-      "$(date '+%Y-%m-%d %H:%M')"
+    printf '== opencode KONTROL · %s · %s · kok: %s\n' \
+      "$(date '+%Y-%m-%d %H:%M')" "$(hostname)" "$KOK"
     bolum "KURULUM (ag gerekmez)"
   else
-    printf '== opencode KURULUM KONTROL · %s · <saha-makinesi> · kok: <kurulum-dizini>\n' \
-      "$(date '+%Y-%m-%d %H:%M')"
+    printf '== opencode KURULUM KONTROL · %s · %s · kok: %s\n' \
+      "$(date '+%Y-%m-%d %H:%M')" "$(hostname)" "$KOK"
     bolum "ayar: $ayar_dizin"
   fi
 
@@ -1274,6 +1275,16 @@ kontrol_kurulum() {
   else
     satir "AGENTS" hata "AGENTS.md kurulu degil (kurum kurallari yuklenmez) — ./kur.sh"
     sorun_kaydet "AGENTS.md kurulu degil — ./kur.sh calistir"
+  fi
+  # A22: fare yakalama kapalıysa seçimi terminal (MobaXterm) yapar ve panoya kopyalar.
+  if [ -n "${OPENCODE_DISABLE_MOUSE:-}" ] && [ "${OPENCODE_DISABLE_MOUSE}" != "0" ] && [ "${OPENCODE_DISABLE_MOUSE}" != "false" ]; then
+    satir "fare" ok "kapali (OPENCODE_DISABLE_MOUSE) — secim/kopyalama terminalde"
+  elif grep -Eq '"mouse"[[:space:]]*:[[:space:]]*false' "$ayar_dizin/tui.json" 2> /dev/null; then
+    satir "fare" ok "kapali (tui.json mouse:false) — secim/kopyalama terminalde"
+  elif grep -Eq '"mouse"[[:space:]]*:[[:space:]]*true' "$ayar_dizin/tui.json" 2> /dev/null; then
+    satir "fare" uyar "tui.json mouse:true — TUI fareyi yakalar, MobaXterm kopyalamaz"
+  else
+    satir "fare" uyar "tui.json'da mouse ayari yok — TUI fareyi yakalar (./kur.sh ile duzelir)"
   fi
   # Güvenlik kilitleri + audit (ADR-0004/0005): eklenti ve içe aktardığı lib/ dosyaları yerinde mi? Biri eksikse
   # opencode eklentiyi YÜKLEYEMEZ ve kilitler SESSİZCE devre dışı kalır — bu yüzden hata satırı.
@@ -1504,7 +1515,7 @@ kontrol() {
 
   # --- başlık (bölüm ayracı + başlık TEK satır: rapor bütçesi ≤29) ---------
   if [ "$MOD" != "tam" ]; then
-    printf '== opencode UC KONTROL · %s · <saha-makinesi>\n' "$(date '+%Y-%m-%d %H:%M')"
+    printf '== opencode UC KONTROL · %s · %s\n' "$(date '+%Y-%m-%d %H:%M')" "$(hostname)"
   fi
   bolum "KURUM AI UCU · $KOK_URL"
   duz "model: $MODEL · anahtar: $(maskele "$KEY") · zaman asimi ${ZAMAN_ASIMI} sn"

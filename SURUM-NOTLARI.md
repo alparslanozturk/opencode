@@ -6,6 +6,24 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-09-28 — ürün 1.0.5: Claude Code gibi dizin sınırı, fare/kopyalama, tüm beceriler
+
+Sahada: `al.sh` → `./kur.sh` (1.0.5 → yeniden derler). Kontrol raporunda `fare: kapali` ve
+`beceri: kurulu 12` görmelisin.
+
+- **Dizin sınırı = opencode'u açtığın dizin** (Claude Code gibi). Git kökü artık kapsamı genişletmiyor;
+  `ls`/`find`/`grep`/`head`/`du`… komutlarının yolları da denetleniyor → dışarı çıkmadan önce izin sorar.
+- **Fare/kopyalama:** `tui.json`'da `mouse:true` kalmışsa da `false`'a çekilir; MobaXterm seçip kopyalar.
+  Kontrol raporunda yeni `fare` satırı.
+- **Beceriler:** `approved/`'daki 12 becerinin hepsi kurulur (disk-ekleme ve paket-uret daha önce kurulmuyordu).
+- **Model seçimi:** açılışta otomatik kurum modeli; `/models` ile seçmek gerekmez.
+- **Saha sabitleri:** `~/.config/opencode/saha-sabitleri.md` oluşur (bir kez doldur, ezilmez); her oturumda
+  modele verilir (AD/DNS, NTP, satellite, envanter dizini, disk kuralı).
+- **Çalışma akışı:** model işi sonuna kadar yapar, yalnız onay gereken yerde durur; eksik bilgide durmaz,
+  sonda "açık kalanlar" verir.
+- Kontrol başlığında gerçek makine adı ve dizin (maske kaldırıldı). Motor upstream 1.18.33.
+- Repo: AI atıf satırını silen commit hook'u artık gerçekten çalışıyor; öneri listesi sadeleşti.
+
 ## 2026-09-26 — ürün 1.0.4: tekrarlar tükenince açık mesaj (A23)
 
 Geçici uç hatasında opencode 5 kez (2 sn → 30 sn arası beklemeyle) yeniden dener. Artık 5. denemeden sonra da

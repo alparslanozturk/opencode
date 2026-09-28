@@ -1,0 +1,16 @@
+#!/bin/sh
+# Alp kuralı (2026-09-22): commit mesajında ajan/AI atıf satırı olmaz; yazar Alp görünür.
+# Önceden .git/hooks/commit-msg'deydi ama husky core.hooksPath=.husky/_ yaptığı için HİÇ çalışmıyordu
+# (7a1ad3a0e5, 8aff91ff4b, 32b7bd78d1 bu yüzden atıfla girdi). Artık repoda izlenir, her klonda etkin.
+# Atıf satırı silinir ve uyarı basılır (commit reddedilmez).
+f="$1"
+[ -f "$f" ] || exit 0
+desen='^[[:space:]]*(co-authored-by|co-developed-by|assisted-by|generated-by):.*(claude|anthropic|openai|codex|gpt|copilot|gemini|deepseek|[^a-z]ai[^a-z])|generated with .*(claude|codex|copilot|anthropic)'
+if grep -q -i -E "$desen" "$f"; then
+  tmp="$(mktemp)"
+  grep -v -i -E "$desen" "$f" > "$tmp" || true
+  cat "$tmp" > "$f"
+  rm -f "$tmp"
+  echo "commit-msg: AI atıf satırı mesajdan çıkarıldı (Alp kuralı)" >&2
+fi
+exit 0

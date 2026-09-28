@@ -7,7 +7,7 @@
 > **Not (2026-09-16):** `/root/ai-danis/` bu makinede **mevcut değil** — harici kaynak, bu repoda tutulmaz.
 > Referans silinmedi (izlenebilirlik için), içerik zaten bu politika dosyasına özetlenmiş durumda.
 >
-> Maskeleme: sunucu → `test-sunucu`, küme → `KUME-A`/`KUME-B`, IP → `10.0.0.x`, kurum → `kurum`.
+> Maskeleme yok (Alp, 2026-09-28): kurum içi offline sistem — gerçek ad/IP/URL yazılır. Aşağıdaki `test-sunucu`/`KUME-A`/`10.0.0.x` yalnız örnek addır.
 
 ## 1. Faz 0 tanımı
 
@@ -46,7 +46,7 @@ Somut kapsam:
    (envanter/log/rapor ağırlıklı — `AGENTS.md`'deki "en sık senaryo" ile uyumlu).
 2. **Taban çizgisi (baseline):** Her görev için Alp'in kendi ürettiği/hatırladığı sonuç (veya geçmiş kayıt)
    referans alınır.
-3. **Koşum:** Ajan aynı görevi, aynı girdiyle (anonimleştirilmiş/maskelenmiş) çalıştırır; çıktı + audit
+3. **Koşum:** Ajan aynı görevi, aynı girdiyle çalıştırır; çıktı + audit
    kaydı toplanır.
 4. **Kıyas:** Çıktı ↔ baseline (doğruluk), audit ↔ beklenen çağrı deseni (güvenlik), süre + token (verimlilik,
    bilgi amaçlı — Faz 0'da geçme/kalma kriteri değil).
@@ -59,7 +59,7 @@ Somut kapsam:
 ## Faz 0 görev sonucu — <görev adı> (<tarih>)
 
 - **Görev:** <1 cümle>
-- **Girdi:** <kaynak dosya/log, maskelenmiş>
+- **Girdi:** <kaynak dosya/log>
 - **Ajan çıktısı:** <özet veya link>
 - **Baseline ile fark:** <eşleşti / fark var: ...>
 - **İnsan düzeltmesi gerekti mi:** evet/hayır (evetse ne)

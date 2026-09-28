@@ -9,4 +9,4 @@ Gerçek olayların kaydı. Amaç: **aynı olay ikinci kez olduğunda ajan (ve in
 > opencode `skills/approved/` dışını kendiliğinden okumaz; incident kaydı bilinçli olarak verilir
 > (ajan `incidents/` içinde arama yapar ya da ilgili kayıt bağlama eklenir).
 
-**Maskeleme kuralı:** gerçek IP / hostname / kullanıcı adı / domain yazma (ör. `test-sunucu`, `KUME-A`).
+**Maskeleme yok (A48, 2026-09-28):** gerçek IP / hostname / kullanıcı adı / domain yazılabilir.

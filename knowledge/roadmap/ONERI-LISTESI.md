@@ -9,13 +9,13 @@ Kaynak: Alp, 2026-09-22 19:44 — *"Ekran görüntülerini inceleyerek geliştir
 Orada önerilerini yaz, Doktor'a söyle önerilerini yazsın. Ondan sonra yavaş yavaş yaparız."*
 
 Kural: her madde **tek satır başlık + kaynak + etki/zorluk**; durum sütunu `öneri → onaylı → yapıldı`.
-Bu dosya **maskeleme kuralına uyar**: kurum hostname/IP/URL yazılmaz (yerine `<kurum-host>`, `<kurum-uç>`).
+Maskeleme **yok** (A48, 2026-09-28): gerçek hostname/IP/URL yazılabilir; eski maddelerdeki `<kurum-host>` gibi yer tutucular tarihî kayıttır.
 
 ## A) Saha kullanımından çıkan öneriler (ekran görüntüleri, 2026-09-22)
 
 | # | Öneri | Kaynak | Etki | Zorluk | Durum |
 |---|---|---|---|---|---|
-| A1 | `kontrol` çıktısı kurum host/port'unu **ekrana tam basıyor** → maskeleme modu (`--gizle` ya da otomatik `<kurum-host>:443`) | 19:06/16:41 ekranı | Yüksek (ekran → Telegram) | Düşük | öneri |
+| A1 | `kontrol` çıktısı kurum host/port'unu **ekrana tam basıyor** → maskeleme modu (`--gizle` ya da otomatik `<kurum-host>:443`) | 19:06/16:41 ekranı | Yüksek (ekran → Telegram) | Düşük | yapıldı → geri alındı (A48, 2026-09-28) |
 | A2 | İki uçlu modda rapor **33 satıra** çıkıyor → ≤29 satıra indir (bilgi kaybı yok) | 16:36 rapor | Orta | Düşük | öneri |
 | A3 | `kontrol` son hata satırını **kısaltmasız** ve net göstersin; `--ayrintili` ile log kesiti | 19:06 raporu | Orta | Düşük | öneri |
 | A4 | Derlenmiş ikili için **duman testi** zaten eklendi (`script/smoke-ikili.sh`) → `kur.sh derle` sonunda **opsiyonel** çağrı + uyarı | olay kaydı 1.0.1 | Yüksek | Düşük | öneri |

@@ -9,7 +9,7 @@
 ## Faz 0 görev sonucu — <görev adı> (<tarih, YYYY-MM-DD>)
 
 - **Görev:** <1 cümle — kurumun günlük operasyon akışından, gerçekten tekrarlanan, salt-okunur bir iş>
-- **Girdi:** <kaynak dosya/log/komut, maskelenmiş — `test-sunucu`/`KUME-A`/`10.0.0.x` kalıbına uy>
+- **Girdi:** <kaynak dosya/log/komut — gerçek adlarla>
 - **Baseline (Alp'in kendi ürettiği/hatırladığı sonuç):** <özet veya link>
 - **Ajan çıktısı:** <özet veya link>
 - **Baseline ile fark:** <eşleşti / fark var: ...>

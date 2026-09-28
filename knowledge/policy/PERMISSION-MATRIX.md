@@ -6,7 +6,7 @@
 > **Not (2026-09-16):** `/root/ai-danis/` bu makinede **mevcut değil** — harici kaynak, bu repoda tutulmaz.
 > Referans silinmedi (izlenebilirlik için), içerik zaten bu politika dosyasına özetlenmiş durumda.
 >
-> Maskeleme: sunucu → `test-sunucu`, küme → `KUME-A`/`KUME-B`, IP → `10.0.0.x`, kurum → `kurum`.
+> Maskeleme yok (Alp, 2026-09-28): kurum içi offline sistem — gerçek ad/IP/URL yazılır. Aşağıdaki `test-sunucu`/`KUME-A`/`10.0.0.x` yalnız örnek addır.
 
 > **Güncel durum (2026-09-24, ADR-0004):** Güvenlik kilitleri K1–K7 uygulandı — tek sayfalık özet
 > `GUVENLIK-KILITLERI.md`. Bash izin listesi kelime sınırlı (K4), `audit-log.ts` varsayılan

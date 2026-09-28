@@ -5,4 +5,4 @@ tekrar eden küçük usüller, "şunu şöyle yaparız" notları.
 
 - Dosya adı: `konu.md`
 - Olgunlaşan not terfi eder: usülse `../skills/` veya `../runbooks/`; kararsa `../architecture/decisions/`
-- Künye yazarken maskeleme kuralına uy: gerçek IP / hostname / kullanıcı adı / domain **yazma**
+- Künye yazarken gerçek IP / hostname / kullanıcı adı / domain yazılabilir (maskeleme yok, A48 — 2026-09-28)

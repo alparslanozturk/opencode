@@ -55,7 +55,7 @@ satırlık `SORUN:` teşhisi verir; kök nedeni kanıtıyla söyler ("uç erişi
 "stream çalışmıyor" ya da "yok — uç sağlıklı, sorun opencode tarafında"). `env`'de `KURUM_URL_2` varsa
 raporun sonuna iki ucu **iki sütunda** ölçen karşılaştırma + "daha hızlı" karar satırı eklenir
 (toplam 2 satır; uç başına tam döküm için `-a`). Ekran görüntüsü alıp olduğu gibi gönderebilirsin.
-Salt okunur; **anahtar her zaman maskelidir** (`abc****yz`).
+Salt okunur; anahtar raporda kısaltılmış gösterilir (`abc****yz`).
 
 > **Sürebilir:** uç bölümünde 4 ayrı ağ isteği vardır (`/models` · sohbet · akış · araç çağrısı), her biri
 > kendi `--zaman-asimi`'ni (varsayılan 60 sn) ayrı ayrı bekler ve aralarında ilerleme çıktısı basılmaz —

@@ -5,7 +5,7 @@
 > yazsın"* (A41). Bu politika A41'i **yumuşatır**: "her zaman playbook" değil, **doğru araç**
 > ilkesi. İzin/onay mekaniği için `PERMISSION-MATRIX.md`, tehdit bağlamı için `THREAT-MODEL.md`.
 >
-> Maskeleme: sunucu → `test-sunucu`, küme → `KUME-A`/`KUME-B`, IP → `10.0.0.x`, kurum → `kurum`.
+> Maskeleme yok (Alp, 2026-09-28): kurum içi offline sistem — gerçek ad/IP/URL yazılır. Aşağıdaki `test-sunucu`/`KUME-A`/`10.0.0.x` yalnız örnek addır.
 
 ## 1. Karar tablosu
 

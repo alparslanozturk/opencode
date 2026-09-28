@@ -16,7 +16,7 @@
 | **Alp** | Onaylar / düzeltir, kullanır |
 
 **Kural:** Şef **uydurma örnek yazmaz** — örnekler ve gerçek değerler **sahadan** gelir.
-**Gizlilik:** gerçek sunucu adı · iç FQDN · kişi adı **yazılmaz**; yerine `<...>` yer tutucu kullanılır.
+**Gizlilik:** maskeleme yok (A48, 2026-09-28) — gerçek sunucu adı / iç FQDN envanterden olduğu gibi yazılır (A103 çelişkisi kapandı).
 
 > 🧭 Saha AI için tek cümle: *"Bu dosya bir öneri iskeletidir. Envanterdeki gerçek verilerle
 > `[SAHA]` işaretli yerleri doldur, `🟡 öneri` maddelerini doğrula ya da düzelt, sonucu geri gönder."*

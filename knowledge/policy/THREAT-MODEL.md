@@ -6,9 +6,11 @@
 > **Not (2026-09-16):** `/root/ai-danis/` bu makinede **mevcut değil** — harici kaynak, bu repoda tutulmaz.
 > Referans silinmedi (izlenebilirlik için), içerik zaten bu politika dosyasına özetlenmiş durumda.
 >
-> **Maskeleme kuralı:** gerçek IP/hostname/domain/kullanıcı adı **ve kuruma özgü mutlak yol** yazılmaz.
-> Bu dosyada: sunucu → `test-sunucu`, küme → `KUME-A` / `KUME-B`, IP → `10.0.0.x`, kurum → `kurum`.
-> Repo geneli kural ve tekrarlanabilir tarama komutu: **§6**.
+> **T26 (2026-09-28, Alp — A48 KAPANDI):** ad/IP/host maskeleme kuralı **kaldırıldı** — kapalı, kurum içi
+> kullanılan bir sistem; iç adların repoda/çıktıda görünmesi sakıncalı değil. Bu dosyada geçen `test-sunucu`,
+> `KUME-A`/`KUME-B`, `10.0.0.x` gibi yer tutucular **eski** (T9/T12 döneminden) örnekler — geriye dönük
+> değiştirilmesi zorunlu değil (bkz. §6). Gerçek gizli-DEĞER redaksiyonu (parola/token/private key) **ayrı**
+> bir konudur ve korunuyor — bkz. `PERMISSION-MATRIX.md` §5.
 
 ## 1. Varlıklar (assets)
 
@@ -83,65 +85,42 @@ Somut olarak:
 | Ajan kimliği ile insan kimliği karışır (iç tehdit / izlenebilirlik) | Düşük | Orta | Ayrı Unix hesabı + audit'te `actor.agent` / `actor.human` ayrımı |
 | Envanter/credential dosyası istenmeden okunur, secret yanıt metnine/audit'e sızar | Yüksek (sahada gerçekleşti) | Kritik | T13: gizli desen redaksiyonu + hassas dosya denylist'i + arama kapsamı onayı (bkz. §7, `PERMISSION-MATRIX.md` §5) |
 
-## 6. Maskeleme — repo geneli kural ve tarama (T12/C18)
+## 6. Maskeleme — KALDIRILDI (T26/A48, 2026-09-28)
 
-Repo **kurum dışına da çıkabilen** bir kit: gerçek saha değerleri yalnız git'te **izlenmeyen** dosyalarda
-(`env`, `env.local` — `.gitignore`) ve `$HOME` altında durur; izlenen her dosya yalnız **yer tutucu** taşır.
+> **Alp kararı:** "Çalışırken seninle hiçbir şekilde maskeleme yapılmasını istemiyorum ... zaten kapalı bir
+> sistem, kurum içerisinde kullanılıyor." Kapsam: bu bölümdeki repo-tarama kapısı ve çalışma-zamanı ad/IP
+> maskelemesinin **audit-log.ts** katmanı tamamen kaldırıldı. Aşağıdaki eski kural/tarama **tarihsel kayıt**
+> olarak tutuluyor (T9/T12/T15'in ne yaptığını anlamak için); artık **uygulanmıyor**.
 
-**Neyi maskeliyoruz (T9 + T12).** İlk tarama yalnız host/IP/URL odaklıydı, bu yüzden `env.example`'daki gerçek
-model yolu gözden kaçtı (T12 bulgusu). Kapsam bu yüzden ikiye ayrılır:
+**Kaldırılanlar:**
+- `script/maskeleme-tara.sh` ve onu çağıran CI adımı (`alp-ci` → "maskeleme taramasi") — **silindi**. Repo
+  artık gerçek iç host/IP/yol içerebilir, tarama yok.
+- `.gitignore`'daki git-dışı `.maskeleme-desen` mekanizması — **kaldırıldı**.
+- `engine/plugins/lib/maskele.ts` → `redactSecrets()` içindeki `KURUM_HOSTNAME_RE` (`*.com.tr`/`*.net.tr`/
+  `*.org.tr`) ve `INTERNAL_IPV4_RE` (RFC1918+loopback) uygulaması — **kaldırıldı**. Regex tanımları modülde
+  duruyor (modül silinmedi), yalnız artık hiçbir yerde `.replace()` edilmiyor; `cat env`/`getent ahosts`/
+  `curl -v` gibi çıktılarda gerçek ad/IP artık **maskelenmeden** modele/audit'e gider. Kanıt: `bun test
+  engine/plugins/audit-log.test.ts` ("uc/hostname/ic IP maskelemesi kaldirildi (T26/A48)" bloğu — eski
+  "maskelenir" beklentisi tersine çevrildi, artık "maskelenmez" doğrulanıyor).
 
-| Sınıf | Örnek desen | Yer tutucu |
-|---|---|---|
-| Host / makine adı | saha makinesi, git kaynağı, bulut | `<saha-makinesi>`, `<git-kaynagi-host>`, `<kurum-bulut>` |
-| Kurum alan adı / uç | `*.com.tr`, `*.net.tr` içeren adres | `KURUM_ENDPOINT`, `<kurum-host>` |
-| **Kuruma özgü mutlak yol / iç dizin kalıbı** | `/data/…`, `/<uygulama>/…`, `/<log-dizini>…`, `models--<saglayici>--<model>` | `<model-kimligi>`, `<model-dizini>` |
+**KORUNAN (bu maddeler T26 kapsamı DIŞINDA, bkz. §7 ve `PERMISSION-MATRIX.md` §5):**
+- Gerçek gizli-DEĞER redaksiyonu (parola/token/private key/inline secret, `INLINE_SECRET_RE`/
+  `PRIVATE_KEY_BLOCK_RE`/`ENV_KEY_ASSIGN_RE`) — bu "ad maskeleme" değil, kimlik-bilgisi korumasıdır.
+- Hassas dosya denylist'i, arama kapsamı onayı (T24/T25 izin modeli) — dokunulmadı.
+- `kur.sh`'ın kendi `kontrol` raporundaki `maskeli_host`/`maskeli_uc`/`maskeli_ip`/`maskeli_model`/
+  `maskeli_yol` basım yardımcıları — T26'nın "Kaldırılacaklar" listesinde açıkça geçmiyor, bu yüzden
+  **dokunulmadı**. **AÇIK madde:** bu da aynı prensibin (kapalı sistemde ad/IP maskelenmez) kapsamına
+  girebilir; Alp onayı gerekirse ayrı bir görev olarak ele alınmalı.
 
-**Yer tutucu dolu değerden ayırt edilebilir olmalı:** `<…>` köşeli biçim ya da `KURUM_ENDPOINT` gibi sabit
-bir dize. `kur.sh` şablon muhafızı bu iki deseni arar (`kur.sh` — `kurulum` kapısı, `kontrol_kurulum()` env
-satırı, uç teşhisi); yer tutucu doldurulmadan kurulum yapılmaz, `./kur.sh kontrol` "sablon degeri duruyor" der.
-`env.example` kabuk tarafından `.` ile okunduğu için `<…>` taşıyan değer **tırnak içinde** yazılır
-(`MODEL_ID="<model-kimligi>"`) — tırnaksız yazım `<` yönlendirmesi sayılıp dosyayı bozar.
+**Aşağıdaki eski metin (T9/T12/T15, tarihsel — artık uygulanmıyor):**
 
-**Tekrarlanabilir tarama** — tek komut: `script/maskeleme-tara.sh` (CI `alp-ci` de bunu koşar; aşağıdaki blokla aynı).
-(repo kökünde; çıktı boşsa temiz — `git ls-files` = yalnız izlenen dosyalar):
-
-```bash
-KAPSAM=(':(glob)*.md' ':(glob)*.sh' 'env.example' 'engine' 'knowledge' 'docs' 'script'
-        ':!knowledge/policy/THREAT-MODEL.md')
-DESEN='/data/|models--|[A-Za-z0-9-]+\.(com|net|org)\.tr'   # + git-disi .maskeleme-desen (kuruma ozgu kelimeler)
-git ls-files -z -- "${KAPSAM[@]}" | xargs -0 grep -nIE "$DESEN" | grep -viE 'sahte|<[a-z]'
-```
-
-- **Kapsam neden dar:** `packages/` + `bun.lock` upstream ağacıdır; orada `/data/` (stats sitesi taban yolu)
-  ve `10.x` sürüm numaraları yüzlerce yanlış pozitif verir. Kurum değeri yalnız fork katmanına girer.
-- **Bu dosya neden kapsam dışı:** desen tanımı (`DESEN=…`) ve onu açıklayan satırlar **kendilerini**
-  eşleştirir; dışlanmazsa tarama her koşuda 2 sahte bulgu basar ve "0 = temiz" ölçüsü değersizleşir.
-  Karşılığı: bu dosyanın maskesi taramayla değil **gözden geçirmeyle** korunur — buraya gerçek bir
-  host/yol yazılmaz, yalnız yukarıdaki tablodaki yer tutucular kullanılır.
-- **İkinci `grep -v` neden var:** açıkça **sahte** test verisi (`script/sahte-uc.py`, duman testi) ve zaten
-  yer tutucu olan satırlar (`<…>`) elenir. Gerçek bir değeri bu iki kelimeyle gizlemek **yasaktır**.
-- **Desene gerçek host/yol yazılmaz** — tarama deseninin kendisi de maskeleme kuralına tabidir; yeni bir iç
-  dizin kalıbı çıktıkça `DESEN`'e **genel** biçimiyle eklenir (`/<dizin>/`), gerçek adıyla değil.
-
-**Çalışma zamanı (runtime) maskeleme — T15/A43-A44.** Yukarıdaki tarama **statiktir**: yalnız git'te
-**izlenen** dosyalardaki sabit metni görür. `KURUM_URL`/`MODEL_ID`/hostname/iç IP gibi değerler `env`'den
-çalışma anında geldiği için repoda hiç durmaz — repo taraması bunları **göremez**, ama `./kur.sh kontrol`
-raporu (ve ajanın kendi araç çıktıları) bu değerleri ekrana/modele **basar**. Bu yüzden maskeleme iki ayrı
-katmanda tekrarlanır:
-
-- **`kur.sh`** kendi raporunu basarken `maskeli_host`/`maskeli_uc`/`maskeli_ip`/`maskeli_model`/`maskeli_yol`
-  yardımcılarından geçer (bkz. `kur.sh` "kontrolün yardımcıları" bölümü) — curl/DNS/istek mantığı gerçek
-  değerle çalışmaya devam eder, yalnız **basım** maskelenir. Kanıt: `script/sahte-uc.py` ile sahte bir uç
-  başlatılıp `./kur.sh`/`./kur.sh kontrol [--ayrintili]` koşulur, çıktıda sahte host/IP/model yolu **literal
-  olarak yok** (`grep` → 0).
-- **T13 redaksiyon katmanı** (`engine/plugins/audit-log.ts`) aynı iki sınıfı artık `redactSecrets()`
-  içinde tanır — hem audit kaydına hem de **modele giden tool çıktısına** uygulanır: `KURUM_HOSTNAME_RE`
-  (`*.com.tr`/`*.net.tr`/`*.org.tr`, repo tarama deseniyle aynı aile) → `<kurum-host>`, `INTERNAL_IPV4_RE`
-  (yalnız RFC1918 + loopback — genel/public bir IP ajanın ağ hata ayıklama işini engellemesin diye
-  **maskelenmez**) → `10.0.0.x`. Örnek: ajan `cat env` çalıştırıp gerçek `KURUM_URL`'i okursa, gördüğü metin
-  zaten maskelenmiş olur. Kanıt: `bun test engine/plugins/audit-log.test.ts` ("uc/hostname/ic IP
-  redaksiyonu" bloğu).
+Repo **kurum dışına da çıkabilen** bir kit varsayımıyla: gerçek saha değerleri yalnız git'te **izlenmeyen**
+dosyalarda (`env`, `env.local` — `.gitignore`) ve `$HOME` altında durur; izlenen dosyalar yer tutucu taşırdı.
+Tarama kapsamı host/IP/URL + kuruma özgü mutlak yol/iç dizin kalıbıydı (`/data/…`, `models--<saglayici>--
+<model>` → `<model-kimligi>`). Çalışma zamanında `kur.sh` kendi raporunu `maskeli_*` yardımcılarından
+geçirir, `audit-log.ts` ise `redactSecrets()` ile aynı iki sınıfı hem audit kaydına hem modele giden tool
+çıktısına uygulardı (`<kurum-host>`, `10.0.0.x`). Bu ikinci uygulama (audit-log.ts) T26 ile kaldırıldı;
+`kur.sh` tarafı yukarıdaki AÇIK madde.
 
 ## 7. Gizli sızıntısı (envanter/credential) — kontrol ve kanıt (T13/A34+A35)
 

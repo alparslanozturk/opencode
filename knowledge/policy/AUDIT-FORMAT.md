@@ -53,7 +53,7 @@ OTel GenAI semantik konvansiyonuyla uyumlu isimler (`gen_ai.*`) + operasyona öz
 | `skills_loaded` | array[{name, commit}] | O görevde yüklenen beceriler |
 | `tool` | string | Çağrılan araç adı (`bash`, `read`, `edit`, `skill`, …) |
 | `args_hash` | string (sha256) | Araca verilen argümanların hash'i (ham argüman değil — bkz. §4) |
-| `target` | string | Etkilenen dosya/host/kaynak (maskelenmiş: `test-sunucu`, `10.0.0.x`) |
+| `target` | string | Etkilenen dosya/host/kaynak (gerçek ad/IP — T26'dan beri maskelenmiyor; secret-değer/e-posta/TC kimlik hâlâ redakte edilir, bkz. §5) |
 | `result_status` | string | `ok` \| `error` \| `denied` \| `asked` |
 | `policy_decision` | string | `allow` \| `ask` \| `deny` (bkz. `PERMISSION-MATRIX.md`) |
 | `latency_ms` | number | Araç çağrısı süresi |
@@ -110,9 +110,10 @@ Gün sonunda:
   yazılmaz/dönmez.
 - **Kişisel veri** (kullanıcı adı, e-posta, kişi adı içeren log satırları) — audit'e girmeden önce görev
   çıktısındaki PII deseni (regex: e-posta, TC kimlik benzeri sayı dizisi, IP) `***` ile kırpılır.
-- **Gerçek IP/hostname/domain** — bu depo dışına (loga) da maskelenerek yazılır; aynı kural (`test-sunucu`,
-  `10.0.0.x`) audit'te de geçerlidir, aksi halde repoya girmeyen ama diskte duran bir dosyada gerçek envanter
-  detayları birikir.
+- **Gerçek IP/hostname/domain — T26 (2026-09-28, Alp — A48 KAPANDI):** artık maskelenmiyor. Kapalı/kurum içi
+  sistem; audit'e ve tool çıktısına gerçek ad/IP olduğu gibi yazılır (`redactSecrets()`'ta `KURUM_HOSTNAME_RE`/
+  `INTERNAL_IPV4_RE` uygulaması kaldırıldı, bkz. `THREAT-MODEL.md` §6). Secret DEĞERLERİ (parola/token/
+  private key) bu kuraldan ayrıdır ve maskelenmeye **devam eder** — bkz. üstteki madde.
 - **Model çıktısının tamamı** — **hedef tasarım:** yalnız `output_sha256` + ilk N satır (örn. 50) audit'e
   yazılır; tam çıktı ayrı, audit'ten daha kısa saklama süreli bir blob dizininde tutulur (audit satırı şişmesin,
   ama izlenebilirlik kaybolmasın). **v1 sınırı (2026-09-16):** `engine/plugins/audit-log.ts` bu tasarımı henüz

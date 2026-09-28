@@ -130,5 +130,7 @@
   `*.key`, `*.pem`, `*token*`, `*secret*`, … — bkz. `PERMISSION-MATRIX.md` §5) dahil, çalışma dizini
   İÇİNDE okuma kısıtı **yok** (A105 — Alp: "çalışma izni içerisindeki dosyalara erişimin
   kısıtlanması hiç uygun bir güvenlik kilidi değil"). **Dışına çıkarken izin iste.**
-- Okuduğun gizli bilgiyi (anahtar/IP/FQDN/kişi adı, parola, token) çıktıya veya repoya **yazma** —
-  kısıt okumadan çıktıya taşındı: oku, ama redakte etmeden yapıştırma/kaydetme.
+- Okuduğun **gizli DEĞERLERİ** (parola, token, private key) çıktıya veya repoya **yazma** — kısıt
+  okumadan çıktıya taşındı: oku, ama redakte etmeden yapıştırma/kaydetme. (T26, 2026-09-28: bu kural
+  yalnız gizli-DEĞER için geçerli — iç host/IP/FQDN adı maskeleme kuralı kapalı/kurum içi sistem
+  olduğu için **kaldırıldı**, bkz. `knowledge/policy/THREAT-MODEL.md` §6.)

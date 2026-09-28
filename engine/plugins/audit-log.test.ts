@@ -124,11 +124,12 @@ describe("gizli desen redaksiyonu (A34)", () => {
   })
 })
 
-describe("uc/hostname/ic IP redaksiyonu (T15/A43-A44)", () => {
-  test("kurum alan adi (*.com.tr) tool ciktisinda maskelenir", async () => {
-    const before = readAllLines().length
+describe("uc/hostname/ic IP maskelemesi kaldirildi (T26/A48)", () => {
+  // Alp (2026-09-28): kapali/kurum-ici sistem, gercek ad/IP artik maskelenmiyor — bkz. KURUM_HOSTNAME_RE/
+  // INTERNAL_IPV4_RE artik redactSecrets() icinde UYGULANMIYOR (engine/plugins/lib/maskele.ts). Bu testler
+  // eski "maskelenir" beklentisini (T15/A43-A44) tersine cevirip regresyonu (yanlislikla geri gelmesini) yakalar.
+  test("kurum alan adi (*.com.tr) tool ciktisinda artik maskelenmez", async () => {
     const hooks = await freshPlugin()
-    // "env" dosya adi artik A81/A92 denylist'ine takilir — bkz. yukaridaki not.
     const args = { command: "cat notlar.txt" }
     await hooks["tool.execute.before"]!({ tool: "bash", sessionID: "s-host", callID: "c-host" }, { args })
     const afterOut = {
@@ -138,27 +139,21 @@ describe("uc/hostname/ic IP redaksiyonu (T15/A43-A44)", () => {
     }
     await hooks["tool.execute.after"]!({ tool: "bash", sessionID: "s-host", callID: "c-host", args }, afterOut)
 
-    expect(afterOut.output).not.toContain("sahte-kurum.com.tr")
-    expect(afterOut.output).toContain("<kurum-host>")
-    const lines = readAllLines().slice(before)
-    expect(JSON.stringify(lines)).not.toContain("sahte-kurum.com.tr")
-    expect(lines.some((l) => l.record_type === "redacted" && l.target.includes("hostname"))).toBe(true)
+    expect(afterOut.output).toContain("sahte-kurum.com.tr")
+    expect(afterOut.output).not.toContain("<kurum-host>")
     assertChainIntact()
   })
 
-  test("ic (RFC1918) IP tool ciktisinda maskelenir, genel/public IP dokunulmaz", async () => {
-    const before = readAllLines().length
+  test("ic (RFC1918) IP tool ciktisinda artik maskelenmez", async () => {
     const hooks = await freshPlugin()
     const args = { command: "getent ahosts ai-uc" }
     await hooks["tool.execute.before"]!({ tool: "bash", sessionID: "s-ip", callID: "c-ip" }, { args })
     const afterOut = { title: "bash", output: "DNS ai-uc -> 10.42.7.19 · genel: 8.8.8.8", metadata: {} }
     await hooks["tool.execute.after"]!({ tool: "bash", sessionID: "s-ip", callID: "c-ip", args }, afterOut)
 
-    expect(afterOut.output).not.toContain("10.42.7.19")
-    expect(afterOut.output).toContain("10.0.0.x")
+    expect(afterOut.output).toContain("10.42.7.19")
+    expect(afterOut.output).not.toContain("10.0.0.x")
     expect(afterOut.output).toContain("8.8.8.8")
-    const lines = readAllLines().slice(before)
-    expect(JSON.stringify(lines)).not.toContain("10.42.7.19")
     assertChainIntact()
   })
 })

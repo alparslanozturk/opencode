@@ -35,9 +35,6 @@ jobs:
         working-directory: engine/plugins
         run: bun test ./audit-log.test.ts ./lib/kilit.test.ts ./guard.test.ts
 
-      - name: maskeleme taramasi
-        run: script/maskeleme-tara.sh
-
   # main'de daha once hic test kapisi yoktu (plan P2-7): upstream'in test.yml/typecheck.yml'i
   # yalniz dev/PR'da kosuyor, .husky/pre-push yalniz typecheck yapiyor — bu fork'a ozel
   # degisikliklerin (httpapi-defect-classify.test.ts, prompt.test.ts, session/tools.ts vb.) testleri

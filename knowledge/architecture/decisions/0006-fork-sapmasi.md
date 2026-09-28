@@ -44,3 +44,23 @@
      remote'u referans olarak ekliyor, is akisini degistirmiyor.
 - **Geri alma:** `git remote remove upstream` (remote'u kaldirir, kod degisikligi yok). Fork commit'lerini
   geri almak icin `git revert 445b1f228c ff1f289160` (ayri ayri; ikisi bagimsiz).
+
+## Güncelleme (2026-09-28) — ölçüm yöntemi düzeltildi + envanter
+
+- **Yöntem hatası:** "son vendor commit'inden bu yana diff" yamaları göstermez — vendor commit'i upstream
+  farkını yamalarımızın ÜSTÜNE uygular, fark 0 çıkar. **Doğru ölçüm upstream etiketine karşı:**
+  ```
+  git fetch --no-tags upstream "refs/tags/v<sürüm>:refs/upstream-tags/v<sürüm>"
+  git diff --stat refs/upstream-tags/v<sürüm> HEAD -- packages/opencode/src packages/core/src packages/tui/src
+  ```
+- **Ölçüm (v1.18.33'e karşı):** kaynakta 20 dosya, +573/−31. Her upstream güncellemesinde bu yamalar
+  runbook testleriyle doğrulanır (`knowledge/runbooks/upstream-guncelleme.md`).
+
+| Yama | Dosyalar | Etiket | Neden |
+|---|---|---|---|
+| Sağlayıcı hataları tipli döner | `server/.../middleware/classify.ts`, `error.ts` | upstream-uygun | generic 500 yerine anlamlı hata |
+| Bozuk reference girdisi çökertmesin | `core/src/reference.ts`, `core/.../plugin/reference.ts`, `agent/agent.ts`, `session/system.ts`, `session/prompt.ts` | upstream-uygun | saha `err_1fe00c62` |
+| Tekrarlar tükenince açık mesaj (A23) | `session/retry.ts`, `session/processor.ts` | upstream-uygun | kullanıcı ne olduğunu bilsin |
+| Pano sonucu dürüst bildirilir (A22) | `tui/src/clipboard.ts` + 6 TUI dosyası | upstream-uygun | "kopyalandı" yalanı |
+| İzin sınırı = açılış dizini, okuma komutları denetlenir | `project/instance-context.ts`, `tool/external-directory.ts`, `tool/shell.ts` | kurum-özel | Claude Code davranışı (Alp, 2026-09-28) |
+| models.dev offline yedek, `splitting:false` | `packages/opencode/script/*`, `build.ts` | kurum-özel | offline derleme, ikili çökmesi |

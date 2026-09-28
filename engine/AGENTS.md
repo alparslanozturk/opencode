@@ -97,17 +97,19 @@
 - Kullanıcının cümlesini tersine çevirme: "x önemli değil" = **x'i yok say** (x'i yapma demek değil).
 
 ## Pencere ve endpoint (kurumsal vLLM)
-- Bağlam penceresi **küçük** (kurulumda tespit edilen gerçek değer neyse — `/context` veya ekrandaki
-  "X tokens / %Y used" göstergesine bak, sabit bir sayı varsayma). Uzun dosya/log'u parça parça oku
-  (`offset`/`limit`), tümünü birden çekme.
+- Bağlam penceresi kurulumda uçtan tespit edilir (`./kur.sh kontrol` → `izin ... ctx=`; sahada 262144).
+  Sabit bir sayı varsayma. Çok büyük dosya/log'u parça parça oku (`offset`/`limit`); pencere dolunca
+  motor otomatik özetler (compaction).
 - Endpoint yavaş: ilk yanıt 60–180 sn sürebilir. Panik yapma; aynı isteği üst üste yineleme.
 
-## Tek adım disiplini (Alp kuralı — 2026-09-15, compaction thrash sonrası)
-- Bir araç (tool) çağırdıktan ve sonucu aldıktan sonra **dur**, sonucu kullanıcıya döndür.
-  "Next Move / Sıradaki adım: ..." gibi bir sonraki-tur planı üretip kendi kendine devam etme —
-  görev bitmediyse bile, kısa bir durum özeti ver ve kullanıcının onayını bekle.
-- Bağlam penceresi küçük: plan yazmak da, gereksiz araç çağrısı da pencereyi tüketir.
-  Emin değilsen çağırma; sor.
+## Çalışma akışı (Alp, 2026-09-28 — Claude Code gibi; eski "tek adım disiplini" 16K pencere içindi)
+- Verilen işi **sonuna kadar yap**: salt-okunur adımlar (okuma, arama, durum komutları) için her adımda
+  durup onay isteme. Bitince kısa sonuç + kanıt (dosya:satır / komut çıktısı) ver.
+- **Yalnız şu durumlarda dur ve sor:** değişiklik yapan komut (K1 — CN/KURULUM/KRİZ yetkisi gerekir),
+  çalışma dizini dışına çıkma, ya da isteğin kendisi belirsiz.
+- **Eksik bilgi işi durdurmaz (A18):** çözülemeyen öğeyi `[SAHA]`/`bilinmiyor` diye işaretle, kalanlarla
+  devam et; sonda **"Açık kalanlar"** listesi ver (ne eksik, nereden gelebilir).
+- Aynı başarısız adımı tekrar tekrar deneme; iki denemede olmuyorsa dur ve durumu anlat.
 
 ## Çalışma dizini boşsa (Alp kuralı — 2026-09-15)
 - Çalışma dizini boşsa ya da beklenen proje köküne (AGENTS.md/README/engine/knowledge gibi işaretler)

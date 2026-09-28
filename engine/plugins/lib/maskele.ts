@@ -197,12 +197,7 @@ export function deriveTarget(rawArgs: unknown): string {
     (typeof args.url === "string" && args.url) ||
     (typeof args.name === "string" && args.name) ||
     null
-  if (candidate) return truncate(maskString(String(candidate)))
-  // Bilinen alan adlarından hiçbiri yoksa (ör. secret içerebilecek özel bir tool
-  // argümanı): önce maskObject/SECRET_KEY_RE ile alan bazlı maskeleme uygulanır,
-  // ancak JSON.stringify sonrası da maskString çalıştırılır — çünkü
-  // maskObject yalnız değerleri maskeler, "apiKey":"..." gibi anahtar+değer
-  // çiftini INLINE_SECRET_RE serbest-metin taramasından geçirmek ikinci bir
-  // güvenlik hattı sağlar (bkz. AUDIT-FORMAT.md §5, denetim bulgusu #7).
-  return truncate(maskString(JSON.stringify(maskObject(args))))
+  // Maskeleme yok (Alp, 2026-09-28): kurum içi offline sistem — hedef olduğu gibi yazılır.
+  if (candidate) return truncate(String(candidate))
+  return truncate(JSON.stringify(args))
 }

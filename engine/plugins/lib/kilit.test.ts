@@ -25,7 +25,8 @@ describe("kilit çekirdeği (motordan bağımsız sözleşme)", () => {
   test("yıkıcı komut yetkiyle de K5, öz-koruma K6", () => {
     const y = yetkiVer("CN: CHG0000101\nsunucular: localhost")
     expect(kilitDenetle("bash", { command: "rm -rf /" }, workdir, y)?.kilit).toBe("K5")
-    expect(kilitDenetle("bash", { command: "cat ~/.config/opencode/opencode.json" }, workdir, y)?.kilit).toBe("K6")
+    expect(kilitDenetle("bash", { command: "sed -i s/a/b/ ~/.config/opencode/opencode.json" }, workdir, y)?.kilit).toBe("K6")
+    expect(kilitDenetle("bash", { command: "cat ~/.config/opencode/opencode.json" }, workdir, y)).toBeNull()
   })
   test("bilinmeyen araç → karar yok (adaptör yalnız tanıdığı araçları sorar)", () => {
     expect(kilitDenetle("webfetch", { url: "https://x" }, workdir, undefined)).toBeNull()

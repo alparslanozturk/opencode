@@ -56,6 +56,7 @@ OTel GenAI semantik konvansiyonuyla uyumlu isimler (`gen_ai.*`) + operasyona öz
 | `target` | string | Etkilenen dosya/host/kaynak (gerçek ad/IP — T26'dan beri maskelenmiyor; secret-değer/e-posta/TC kimlik hâlâ redakte edilir, bkz. §5) |
 | `result_status` | string | `ok` \| `error` \| `denied` \| `asked` |
 | `policy_decision` | string | `allow` \| `ask` \| `deny` (bkz. `PERMISSION-MATRIX.md`) |
+| `cn` | string \| null | Çağrı anında oturumdaki değişiklik yetkisi: CN numarası, `KURULUM` ya da `KRIZ` (yalnız kullanıcı mesajından, K1); yoksa `null` |
 | `latency_ms` | number | Araç çağrısı süresi |
 | `gen_ai.usage.input_tokens` | number | Girdi token sayısı |
 | `gen_ai.usage.output_tokens` | number | Çıktı token sayısı |

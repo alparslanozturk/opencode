@@ -53,4 +53,9 @@ jobs:
 
       - name: fork'a ozel + sunucu/oturum testleri
         working-directory: packages/opencode
-        run: bun test --timeout 30000 test/server test/session
+        run: bun test --timeout 30000 test/server test/session test/tool/external-directory.test.ts test/tool/shell.test.ts test/project/calisma-dizini-kapsami.test.ts
+
+      # A22 pano kopyalama sonucu bildirimi (fork yamasi)
+      - name: tui pano testi
+        working-directory: packages/tui
+        run: bun test test/clipboard.test.ts

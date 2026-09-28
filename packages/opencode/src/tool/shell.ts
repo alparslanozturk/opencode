@@ -3,7 +3,7 @@ import os from "os"
 import { createWriteStream } from "node:fs"
 import * as Tool from "./tool"
 import path from "path"
-import { containsPath, type InstanceContext } from "../project/instance-context"
+import { insideWorkingDirectory, type InstanceContext } from "../project/instance-context"
 import { InstanceState } from "@/effect/instance-state"
 import { lazy } from "@/util/lazy"
 import { Language, type Node } from "web-tree-sitter"
@@ -36,6 +36,25 @@ const FILES = new Set([
   "chmod",
   "chown",
   "cat",
+  // Kurum fork'u (2026-09-28): Claude Code gibi okuma komutlarının yolları da denetlenir — bunlar izin
+  // listesinde "allow" olduğu için dizin dışına sormadan çıkılıyordu (ls /etc, grep -r x ~/ansible …).
+  "ls",
+  "find",
+  "grep",
+  "egrep",
+  "fgrep",
+  "rg",
+  "head",
+  "tail",
+  "less",
+  "more",
+  "du",
+  "stat",
+  "file",
+  "wc",
+  "tree",
+  "diff",
+  "ln",
   // Leave PowerShell aliases out for now. Common ones like cat/cp/mv/rm/mkdir
   // already hit the entries above, and alias normalization should happen in one
   // place later so we do not risk double-prompting.
@@ -398,7 +417,7 @@ export const ShellTool = Tool.define(
           for (const arg of pathArgs(command, ps, shellKind === "cmd")) {
             const resolved = yield* argPath(arg, cwd, ps, shell)
             yield* Effect.logInfo("resolved path", { arg, resolved })
-            if (!resolved || containsPath(resolved, instance)) continue
+            if (!resolved || insideWorkingDirectory(resolved, instance)) continue
             const dir = (yield* fs.isDir(resolved)) ? resolved : path.dirname(resolved)
             scan.dirs.add(dir)
           }
@@ -623,7 +642,7 @@ export const ShellTool = Tool.define(
                     Effect.sync(() => tree.delete()),
                   )
                   const scan = yield* collect(tree.rootNode, cwd, ps, shell, instanceCtx)
-                  if (!containsPath(cwd, instanceCtx)) scan.dirs.add(cwd)
+                  if (!insideWorkingDirectory(cwd, instanceCtx)) scan.dirs.add(cwd)
                   yield* ask(ctx, scan, params)
                 }),
               )

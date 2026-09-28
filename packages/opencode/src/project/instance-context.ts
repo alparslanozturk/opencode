@@ -15,6 +15,16 @@ export const context = LocalContext.create<InstanceContext>("instance")
  * Returns true if path is inside ctx.directory OR ctx.worktree.
  * Paths within the worktree but outside the working directory should not trigger external_directory permission.
  */
+/**
+ * Kurum fork'u (Alp, 2026-09-28): izin sınırı Claude Code'daki gibi YALNIZ açılış dizinidir.
+ * Git kökü (worktree) kapsamı genişletmez — `~/ansible/x`'te açılınca `~/ansible`'ın geri kalanı
+ * dışarı sayılır ve external_directory izni sorulur. config/lsp gibi "proje sınırı" kullanımları
+ * containsPath'te kalır; bu fonksiyon yalnız araç izin denetimi (external-directory, shell) içindir.
+ */
+export function insideWorkingDirectory(filepath: string, ctx: InstanceContext): boolean {
+  return FSUtil.contains(ctx.directory, filepath)
+}
+
 export function containsPath(filepath: string, ctx: InstanceContext): boolean {
   if (FSUtil.contains(ctx.directory, filepath)) return true
   // Non-git projects set worktree to "/" which would match ANY absolute path.

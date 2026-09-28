@@ -71,11 +71,9 @@ NODE_SURUM="v24.19.0"
 SURUM="${OPENCODE_VERSION:-1.0.4}"
 KANAL="${OPENCODE_CHANNEL:-main}"
 
-# Çekirdek beceri listesi (Aşama 2, danışma-2 kararı: 38 → 10; 2026-09-16 Alp kararıyla
-# kalan 28 beceri knowledge/skills/parked/'a taşındı, bkz. parked/README.md).
+# Beceriler: knowledge/skills/approved/ TEK KAYNAKTIR — oradaki her beceri kurulur (ayrı liste yok;
+# 2026-09-28: ayrı CORE_SKILLS listesi approved/ ile kopmuştu, disk-ekleme/paket-uret sahaya gitmiyordu).
 # ALP_TUM_BECERILER=1 approved/ + parked/ birlikte kurar (hepsi).
-# NOT: kontrol raporu çekirdek sayısını AŞAĞIDAKİ satırdan okur — satır başına yazılmalı.
-CORE_SKILLS=(ansible k8s-rancher rhel-yonetim filo-durum-kontrolu rapor-uret rapor-excel-pdf hata-ayikla performans sistem-guncelleme depolama)
 
 # ---------------------------------------------------------------------------
 #  Ortak yardımcılar (renk / yazdırma / hata)
@@ -713,13 +711,9 @@ kur() {
     fi
     sari "  tüm beceriler kuruldu (taban bağlam büyür)"
   else
-    local ad
-    for ad in "${CORE_SKILLS[@]}"; do
-      if [ -d "$KOK/knowledge/skills/approved/$ad" ]; then
-        cp -r "$KOK/knowledge/skills/approved/$ad" "$HOME/.config/opencode/skills/$ad"
-      else
-        sari "  ! çekirdek beceri bulunamadı: $ad"
-      fi
+    local d
+    for d in "$KOK/knowledge/skills/approved"/*/; do
+      [ -d "$d" ] && cp -r "$d" "$HOME/.config/opencode/skills/$(basename "$d")"
     done
   fi
   local toplam_mevcut
@@ -1256,15 +1250,15 @@ kontrol_kurulum() {
   fi
 
   # 5) beceriler + AGENTS.md
-  local cekirdek onayli park kurulu_beceri
-  cekirdek="$(grep -oP '^CORE_SKILLS=\(\K[^)]*' "$KOK/kur.sh" 2> /dev/null | wc -w)"
-  [ "$cekirdek" -gt 0 ] 2> /dev/null || cekirdek="?"
+  local onayli park kurulu_beceri
   onayli="$(find "$KOK/knowledge/skills/approved" -mindepth 1 -maxdepth 1 -type d 2> /dev/null | wc -l)"
   park="$(find "$KOK/knowledge/skills/parked" -mindepth 1 -maxdepth 1 -type d 2> /dev/null | wc -l)"
   if [ -d "$ayar_dizin/skills" ]; then
     kurulu_beceri="$(find "$ayar_dizin/skills" -mindepth 1 -maxdepth 1 -type d | wc -l)"
-    if [ "$kurulu_beceri" -gt 0 ]; then
-      satir "beceri" ok "kurulu $kurulu_beceri (cekirdek $cekirdek) · repo: approved $onayli + parked $park"
+    if [ "$kurulu_beceri" -gt 0 ] && [ "$kurulu_beceri" -lt "$onayli" ]; then
+      satir "beceri" uyar "kurulu $kurulu_beceri < approved $onayli — yeni beceriler kurulmamis (./kur.sh)"
+    elif [ "$kurulu_beceri" -gt 0 ]; then
+      satir "beceri" ok "kurulu $kurulu_beceri · repo: approved $onayli + parked $park"
     else
       satir "beceri" uyar "kurulu beceri dizini bos — ./kur.sh"
     fi

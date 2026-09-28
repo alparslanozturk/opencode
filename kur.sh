@@ -696,6 +696,11 @@ kur() {
   if [ -f "$KOK/engine/AGENTS.md" ]; then
     cp -f "$KOK/engine/AGENTS.md" "$HOME/.config/opencode/AGENTS.md"
   fi
+  # A8/A17: saha sabitleri — yalnız YOKSA şablondan oluşturulur; doldurulan dosya bir daha ezilmez.
+  if [ ! -f "$HOME/.config/opencode/saha-sabitleri.md" ] && [ -f "$KOK/knowledge/templates/saha-sabitleri.md" ]; then
+    cp "$KOK/knowledge/templates/saha-sabitleri.md" "$HOME/.config/opencode/saha-sabitleri.md"
+    sari "  saha-sabitleri: ~/.config/opencode/saha-sabitleri.md oluşturuldu — [SAHA] alanlarını doldur"
+  fi
   rm -rf "$HOME/.config/opencode/skills"; mkdir -p "$HOME/.config/opencode/skills"
   if [ "$TUM_BECERILER" = 1 ]; then
     cp -r "$KOK/knowledge/skills/approved/." "$HOME/.config/opencode/skills/"
@@ -803,6 +808,10 @@ m = list(p["models"])[0]
 p["models"][m]["id"] = mid
 # A6: açılış modeli config'ten gelir — /models ile elle seçim gerekmez.
 d["model"] = "kurum/" + m
+# A8/A17: makineye özel sabitler her oturumda modele verilir (dosya yoksa motor sessizce atlar).
+ins = d.setdefault("instructions", [])
+if "~/.config/opencode/saha-sabitleri.md" not in ins:
+    ins.append("~/.config/opencode/saha-sabitleri.md")
 
 if out:
     p["models"][m].setdefault("limit", {})["output"] = int(out)

@@ -74,8 +74,7 @@ describe("gizleme yok (Alp, 2026-09-28 — kurum ici offline)", () => {
 })
 
 describe("uc/hostname/ic IP maskelemesi kaldirildi (T26/A48)", () => {
-  // Alp (2026-09-28): kapali/kurum-ici sistem, gercek ad/IP artik maskelenmiyor — bkz. KURUM_HOSTNAME_RE/
-  // INTERNAL_IPV4_RE artik redactSecrets() icinde UYGULANMIYOR (engine/plugins/lib/maskele.ts). Bu testler
+  // Alp (2026-09-28): kapali/kurum-ici sistem, gercek ad/IP maskelenmiyor. Bu testler
   // eski "maskelenir" beklentisini (T15/A43-A44) tersine cevirip regresyonu (yanlislikla geri gelmesini) yakalar.
   test("kurum alan adi (*.com.tr) tool ciktisinda artik maskelenmez", async () => {
     const hooks = await freshPlugin()

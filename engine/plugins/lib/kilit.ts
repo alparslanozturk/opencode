@@ -5,7 +5,7 @@
 import { readFileSync } from "fs"
 import { hostname, userInfo } from "os"
 import { dirname, isAbsolute, join, resolve } from "path"
-import { DENYLIST_TOOLS, isInside, matchesDenylist, truncate } from "./maskele"
+import { isInside } from "./maskele"
 
 // Audit log yolu: ajanın kendi kaydı K6 ile korunur. Adaptörle aynı kaynaktan (ortam değişkeni) okunur.
 export const auditLogYolu = () => process.env.OPS_AGENT_AUDIT_LOG ?? "/var/log/ops-agent/audit.jsonl"
@@ -914,67 +914,6 @@ export function betikOku(abs: string): string | null {
   } catch {
     return null
   }
-}
-
-// --- bash icindeki denylist taramasi (A81/A92) --------------------------------------------
-// Ustteki denylist kapisi (DENYLIST_TOOLS) yalniz read/write/edit/list/glob/grep araclarinin
-// filePath/path alanina bakiyordu — `bash` uzerinden "cat hosts.ini" ya da "cp hosts.ini /tmp/x;
-// cat /tmp/x" ile ayni icerik dolayli okunup kilit asilabiliyordu (saha bulgusu #18/#22, ops-agent
-// kendisi bu yolu alternatif olarak onerdi). Bu tarama var olan kabuk ayristiricisini
-// (ayristir/sarmalayiciSoy/betikOku, K1-K7'nin de kullandigi) yeniden kullanir: her alt komutun
-// argumanlarini (bayrak degerleri, yazma hedefleri dahil) ve `bash -c`/`eval`/modelin yazdigi yerel
-// betik dosyasinin ICERIGINI de denylist desenlerine karsi test eder. Komut adinin kendisi
-// (argv[0]) denetlenmez — okunan/kopyalanan dosya her zaman bir sonraki konumdadir.
-export function bashDenylistHit(metin: string, patterns: string[], cwd: string, derinlik = 0): string | null {
-  if (derinlik > 6) return null
-  const ic: string[] = []
-  for (const k of ayristir(metin, ic)) {
-    const { argv } = sarmalayiciSoy(k.argv)
-    for (const tok of [...argv.slice(1), ...k.yazilan]) {
-      if (!tok || tok.startsWith("-")) continue
-      // A105: çalışma dizini İÇİNDEKİ hedefler denylist'ten muaf — kısıt yalnız cwd DIŞINA uygulanır
-      // (bkz. matchesDenylist çağrı sitesindeki aynı muafiyet, tool.execute.before).
-      const abs = isAbsolute(tok) ? resolve(tok) : resolve(cwd, tok)
-      if (isInside(cwd, abs)) continue
-      const hit = matchesDenylist(tok, patterns)
-      if (hit) return hit
-    }
-    if (argv.length === 0) continue
-    const p = taban(argv[0])
-    const a = argv.slice(1)
-    if (["bash", "sh", "zsh", "dash", "ksh", "su", "runuser"].includes(p)) {
-      const c = secenekDegeri(a, "-c", "--command")
-      if (c !== null) {
-        const hit = bashDenylistHit(c, patterns, cwd, derinlik + 1)
-        if (hit) return hit
-        continue
-      }
-    }
-    if (p === "eval") {
-      const hit = bashDenylistHit(a.join(" "), patterns, cwd, derinlik + 1)
-      if (hit) return hit
-      continue
-    }
-    const betik =
-      ["bash", "sh", "zsh", "dash", "ksh", "source", "."].includes(p)
-        ? a.find(secenekDegil)
-        : /^\.{0,2}\//.test(argv[0])
-          ? argv[0]
-          : undefined
-    if (betik) {
-      const abs = isAbsolute(betik) ? betik : resolve(cwd, betik)
-      const icerik = betikOku(abs)
-      if (icerik !== null) {
-        const hit = bashDenylistHit(icerik, patterns, cwd, derinlik + 1)
-        if (hit) return hit
-      }
-    }
-  }
-  for (const inner of ic) {
-    const hit = bashDenylistHit(inner, patterns, cwd, derinlik + 1)
-    if (hit) return hit
-  }
-  return null
 }
 
 export const SSH_DEGERLI = new Set("bcDEeFIiJLlmOopQRSWw".split(""))

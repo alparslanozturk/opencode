@@ -56,7 +56,7 @@ engine/opencode.json (ayar) → engine/AGENTS.md (kural) → knowledge/skills/ (
 Fork yalnızca plugin API'sinin yapamadığı iş (UI paritesi, TUI davranışı) için.
 
 **Eklenti içi katmanlama (ADR-0005):** motordan bağımsız **çekirdek** (`engine/plugins/lib/` — kilit kararları,
-maskeleme, yetki satırı; girdi → karar, motor kancası bilmez) + ince **motor adaptörü** (`engine/plugins/audit-log.ts`
+arama kapsamı, yetki satırı; girdi → karar, motor kancası bilmez) + ince **motor adaptörü** (`engine/plugins/audit-log.ts`
 = 1.x kancaları + audit zinciri). opencode 2.x'te kanca API'si tamamen değişti; geçişte yalnız adaptör yeniden
 yazılır, güvenlik mantığı ve testleri aynen kalır. Yeni motor-bağımlı kod adaptöre, kural/karar mantığı çekirdeğe.
 
@@ -93,7 +93,7 @@ engine/                  # MOTOR katmanı (güncellenebilir)
   opencode.json          #   sağlayıcı + izin
   plugins/               #   araç (tool) katmanı
     audit-log.ts         #     1.x adaptörü: kancalar → çekirdek, audit zinciri (ADR-0005)
-    lib/                 #     motordan bağımsız çekirdek: kilit.ts (K1/K5/K6, ADR-0004), maskele.ts
+    lib/                 #     motordan bağımsız çekirdek: kilit.ts (K1/K5/K6, ADR-0004), maskele.ts (ad tarihsel: hedef/kapsam yardımcıları)
 knowledge/               # BİLGİ katmanı (kalıcı, git tabanlı)
   skills/approved/*/SKILL.md   # 12 çekirdek beceri (opencode'un okuduğu TEK yer, kur.sh varsayılanı)
   skills/parked/*/SKILL.md     # 27 park edilmiş beceri (2026-09-16 sadeleştirmesi, kurulmaz; bkz. parked/README.md)

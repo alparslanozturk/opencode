@@ -56,7 +56,7 @@ tar xJf opencode-paket.tar.xz -C /root      # -> /root/ai/opencode/   (.tar.gz i
 
 # 2) kur — TEK BETİK (offline; env yoksa env.local, o da yoksa env.example şablonundan
 #    otomatik oluşturulur; gerekirse kaynaktan derler, sonra ikili + ayar +
-#    10 çekirdek beceri + oc/opencode kısayolları + rg kurulur, bağlam penceresi kurum uçtan
+#    approved/'daki tüm beceriler (12) + oc/opencode kısayolları + rg kurulur, bağlam penceresi kurum uçtan
 #    otomatik tespit edilir, sonda otomatik doğrulama + tek ekran özet)
 /root/ai/opencode/kur.sh
 
@@ -72,7 +72,7 @@ cd /root/ai/opencode   # repo nerede ise
 > ℹ️ Taze bir `git clone` sonrası `bin/opencode` yoksa normaldir. `./kur.sh` kaynak ağacı varsa
 > kaynaktan derler; hazır ikili arşivi beklemez.
 
-İlk açılışta **`/models`** → `kurum / Qwen3.6-35B-A3B-FP8` seç (bir kez; sonra hatırlar).
+Model otomatik seçili gelir (`kurum / Qwen3.6-35B-A3B-FP8`); başka model için `/models`.
 
 **Doğrulama** (istediğin zaman tekrar çalıştırılabilir; kurulum bölümü internet gerektirmez):
 ```bash
@@ -575,7 +575,7 @@ uçta uzun üretim başlamaz. Bulunan değer bağlam penceresini aşarsa ona kı
 | `Failed to send prompt` (0 token, ayarla ilgisi yok) + log'da `TypeError: undefined is not an object (evaluating 'a.name')` (stack `SystemPrompt.environment` → `resolve` → `map`) | **Derlenmiş ikilideki paketleme hatasıydı** — `bun build`'in `splitting: true` ayarı, tek dosyalık `compile` çıktısında dairesel import'ların (`LayerNode` bağımlılık ağacı, `core/src/location-services.ts`) sırasını bozup bir düğümü `undefined` bırakıyordu; kaynaktan (`bun run src/index.ts`) çalıştırınca hiç görünmüyordu, yalnız derlenmiş ikilide çöküyordu. Sürüm **1.0.1+**'de düzeltildi (`packages/opencode/script/build.ts`: `splitting: false`). Sahada `./kur.sh derle` (veya `kur.sh` sürüm uyuşmazlığında kendiliğinden) yeniden derleyince geçer. Ayrıca 1.0.1'de defansif koruma var: bozuk/eksik `reference` girdisi de ortam bloğunu çökertmez, `skipping invalid reference...` uyarısı loglanır |
 | `Endpoint 180 sn'dir yeni içerik göndermedi` | Zaman aşımları 900/300/180 sn'ye çekildi; sorun model tarafında — aynı isteği üst üste yineleme |
 | Uzun dosya/log okurken kesilme | Pencere kurulumda tespit edilen değer kadar (bkz. "Ortam değişkenleri"); model `offset`/`limit` ile parça parça okumalı |
-| Beceriler görünmüyor | `~/.config/opencode/skills/` altında mı? `opencode debug skill` ile say. Kurulum **10 çekirdek beceriyi** kurar; park edilmiş bir beceri gerekiyorsa `knowledge/skills/parked/<ad>`'ı `approved/`'a taşı ve `./kur.sh`'ı tekrar çalıştır |
+| Beceriler görünmüyor | `~/.config/opencode/skills/` altında mı? `opencode debug skill` ile say. Kurulum `approved/`'daki **tüm becerileri** kurar; park edilmiş bir beceri gerekiyorsa `knowledge/skills/parked/<ad>`'ı `approved/`'a taşı ve `./kur.sh`'ı tekrar çalıştır |
 | Ayar değişti, etki yok | opencode ayarı açılışta bir kez okunur, sıcak yükleme yok → opencode'u tamamen kapat-aç |
 | TUI bozuk görünüyor (glif/kutu) | Terminal fontu/UTF-8; `TERM=xterm-256color` |
 | `opencode`/`oc` PATH'te yok | `kur.sh` çıktısındaki NOT satırına bak; `export PATH="<kısayol-dizini>:$PATH"` |
@@ -659,7 +659,7 @@ kesmek gerekiyor.
   **Not (2026-09-15):** çekirdek liste 9 → **10**'a çıktı (`rapor-excel-pdf` eklendi, Excel/PDF çıktı
   talepleri için). Yukarıdaki ölçüm 9 becerilik eski listeyle yapıldı, yeniden ölçülmedi — oran hafifçe
   yükselir, sonuç yönü (**%40 hedefi bu pencerede tutturulamıyor**) değişmez.
-- `engine/AGENTS.md`: "Tek adım disiplini", "Çalışma dizini boşsa", "Dosya arama" kuralları — modelin
+- `engine/AGENTS.md`: "Çalışma akışı", "Çalışma dizini boşsa", "Dosya arama" kuralları — modelin
   araç çağırmayıp plan metni üretme/tüm diski tarama ihtimalini azaltmayı hedefler; harness hatasını
   düzeltmez.
 - `compaction.prune=true` (+ `reserved`/`preserve_recent_tokens`) artık `kur.sh` tarafından otomatik
@@ -695,7 +695,7 @@ bak: adım 3'te `cd` edilen dizin keyfi bir çalışma dizinidir, paketin kendis
 başlı başına "kurallar yüklenmedi" anlamına gelmez** — test ederken bunu doğrula:
 ```bash
 ls ~/.config/opencode/AGENTS.md          # varsa: global kurallar kurulu
-opencode debug skill 2>&1 | grep -c '"name"'   # 10 çekirdek beceri + yerleşikler
+opencode debug skill 2>&1 | grep -c '"name"'   # approved/ becerileri (12) + yerleşikler
 ```
 Eğer bu ikisi de boşsa/yoksa, o makinede **`kur.sh` hiç çalıştırılmamış** demektir — paket açılmış olsa
 bile kurulum adımı atlanmış olabilir; `kur.sh`'ı çalıştır.
@@ -732,7 +732,7 @@ aider             # ya da venv/bin/aider
 | opencode ikilisi | `~/.opencode/bin/opencode` · kısayollar: `opencode` / `oc` (`/usr/local/bin` ya da `~/.local/bin`) |
 | opencode ayarı | `~/.config/opencode/opencode.json` |
 | kurallar | `~/.config/opencode/AGENTS.md` |
-| beceriler | `~/.config/opencode/skills/<ad>/SKILL.md` (10 çekirdek beceri) |
+| beceriler | `~/.config/opencode/skills/<ad>/SKILL.md` (approved/'daki tüm beceriler) |
 | rg (ripgrep) | `~/.cache/opencode/bin/rg` (`kur.sh` `bin/ripgrep.tar.xz`'den kurar) |
 | paket (kaynak dosyalar) | `/root/ai/opencode/` |
 | kaynak klonu (çalıştırmak için gerekmez) | `/root/work/opencode` |

@@ -69,7 +69,8 @@ NODE_SURUM="v24.19.0"
 # 1.0.3: TUI pano kopyalama sonucu dürüst bildirilir (A22) — ikiliye giren değişiklik.
 # 1.0.4: otomatik tekrarlar tükenince kullanıcıya açıklama (A23) — ikiliye giren değişiklik.
 # 1.0.5: upstream 1.18.33 + izin sınırı açılış dizini (Claude Code gibi) — ikiliye giren değişiklik.
-SURUM="${OPENCODE_VERSION:-1.0.5}"
+# 2.0.0: kapanış sürümü (Alp, 2026-09-28) — ÜRÜN sürümüdür; motor hâlâ upstream 1.18.33 (opencode 2.x DEĞİL).
+SURUM="${OPENCODE_VERSION:-2.0.0}"
 KANAL="${OPENCODE_CHANNEL:-main}"
 
 # Beceriler: knowledge/skills/approved/ TEK KAYNAKTIR — oradaki her beceri kurulur (ayrı liste yok;

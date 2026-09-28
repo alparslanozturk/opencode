@@ -5,13 +5,7 @@
 
 ## Açık
 
-| ID | Öneri | Kim | Not |
-|---|---|---|---|
-| A7 | TUI oturum adları okunabilir olsun (`ses_…` yerine konu) | Doktor | düşük öncelik; upstream'in başlık üretimi incelenecek |
-| A34 | Envanterdeki düz metin root parolası vault'a taşınsın + parola değiştirilsin | **Alp (saha)** | redaksiyon kaldırıldı; asıl çözüm parolanın dosyada olmaması |
-| C8 | `smoke-ikili.sh` sürüm/commit künyesini de doğrulasın | Doktor | küçük |
-| S1 | Sahadaki kontrol raporunda `log ! son hata` (2026-09-28 04:59) — kök neden | Doktor | `./kur.sh kontrol --ayrintili` ekranı gerekli |
-| M1 | opencode 2.x geçişi | Doktor | npm `latest` 2.x olunca (ADR-0003 m.4, ADR-0005) |
+Yok — 2.0.0 ile liste kapatıldı (Alp, 2026-09-28: "bitti, kalan maddeleri at").
 
 ## Kapandı (özet)
 
@@ -22,4 +16,7 @@
 - **Geri alındı / iptal (Alp, 2026-09-28 — kurum içi offline, gizleme yok):** A1, A31, C18, C19
   (maskeleme ve redaksiyon) · `topla.sh` (saha→dışarı veri gönderimi yasak) · B3, B6, B7 (süreç önerileri,
   bu sade liste biçimiyle gereksiz).
+- **Bırakıldı (Alp, 2026-09-28):** A7 (oturum adları), C8 (duman testi künyesi), S1 (saha log satırı —
+  gerekirse yeni madde açılır), M1 (opencode 2.x motor geçişi — npm `latest` 2.x olunca yeni madde).
+  A34 (envanterdeki düz metin parola) sahadaki operasyon işidir, bu repoda iz tutulmaz.
 - **Kural (B8):** her `yapıldı` işi `SURUM-NOTLARI.md`'de tek satır.

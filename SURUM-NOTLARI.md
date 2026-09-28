@@ -6,6 +6,20 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-09-28 — ürün 2.0.0: kapanış sürümü
+
+1.0.5'in içeriği + kapanış. **Ürün** sürümüdür; motor upstream **1.18.33** (opencode 2.x hattı değil).
+Sahada: `al.sh` → `./kur.sh` (2.0.0 → yeniden derler).
+
+- **Gizleme yok:** araç çıktısı, audit kaydı ve dosya erişiminde maskeleme/redaksiyon/hassas dosya engeli
+  kaldırıldı (kurum içi offline). Kalan kilitler: K1 değişiklik kapısı (CN/KURULUM/KRİZ), K5 yıkıcı komut,
+  K6 yalnız yazma koruması (model kendi ayarını/eklentisini/audit'ini değiştiremez).
+- Audit kaydına `cn` alanı (çağrı anındaki yetki).
+- Saha sabitleri dosyası isteğe bağlı; kur.sh oluşturmaz.
+- Dokümanlar gerçekle hizalandı; öneri listesi kapatıldı (açık madde yok).
+- Doğrulama: eklenti testleri 130/0 · motor/sunucu/oturum/araç testleri 810/0 · TUI pano 6/0 ·
+  `bash -n` + `shellcheck -S warning` temiz · `duman-kontrol-rapor` 23/0 · derleme + `smoke-ikili` GEÇTİ.
+
 ## 2026-09-28 — ürün 1.0.5: Claude Code gibi dizin sınırı, fare/kopyalama, tüm beceriler
 
 Sahada: `al.sh` → `./kur.sh` (1.0.5 → yeniden derler). Kontrol raporunda `fare: kapali` ve

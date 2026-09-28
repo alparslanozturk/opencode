@@ -61,7 +61,7 @@ NODE_SURUM="v24.19.0"
 # Kanal BİLEREK "main" kalır: database.ts kanala göre DB dosyası adı seçiyor
 # (opencode-<kanal>.db); kanal "latest" olursa sahadaki mevcut oturum verisi
 # opencode.db'ye kayar (istenmiyor). "main" kalınca davranış aynıdır, yalnız sürüm
-# 1.0.0 olur. package.json'lar upstream sürümünde kalır (şu an 1.18.32) — onlar VENDOR
+# 1.0.0 olur. package.json'lar upstream sürümünde kalır (şu an 1.18.33) — onlar VENDOR
 # sürümüdür; ürün sürümünü bu iki satır belirler.
 # 1.0.1: derlenmiş ikilide `SystemPrompt.environment` çökmesini düzelten build.ts
 # `splitting: false` düzeltmesiyle birlikte bump edildi (bkz. SURUM-NOTLARI.md).

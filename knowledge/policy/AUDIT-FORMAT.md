@@ -104,6 +104,8 @@ Gün sonunda:
 
 ## 5. Neyin loglanmayacağı
 
+> **KALDIRILDI (Alp, 2026-09-28):** gizli desen redaksiyonu, hassas dosya denylist'i ve `redacted` kaydı artık yok — kurum içi offline sistem, hiçbir şey gizlenmez (commit `eec10700db`). Aşağısı tarihsel kayıttır; yürürlükte olan yalnız arama kapsamı `asked` kaydıdır, sınır = açılış dizini.
+
 - **Secret değerleri** (API anahtarı, SSH private key, parola) — `args_hash` her zaman argümanın kendisi değil
   hash'idir; eğer argüman secret içeriyorsa hash alınmadan önce maskelenir. **T13/A34 (2026-09-23) —
   kodlandı:** aynı maskeleme artık `target`/`args_hash`'in yanı sıra **tool çıktısının kendisine** de
@@ -124,6 +126,8 @@ Gün sonunda:
   kapsamı dışıdır ama `THREAT-MODEL.md`'de açık soru olarak işaretlenmiştir.
 
 ## 6. `redacted` kaydı ve arama-kapsamı `asked` kaydı (T13/A34+A35)
+
+> **KALDIRILDI (Alp, 2026-09-28):** gizli desen redaksiyonu, hassas dosya denylist'i ve `redacted` kaydı artık yok — kurum içi offline sistem, hiçbir şey gizlenmez (commit `eec10700db`). Aşağısı tarihsel kayıttır; yürürlükte olan yalnız arama kapsamı `asked` kaydıdır, sınır = açılış dizini.
 
 Kaynak: 2026-09-23 15:40 saha ekranı (A34+A35) — bkz. `PERMISSION-MATRIX.md` §5 (tam kural). Bu bölüm
 yalnız audit **şemasını** belgeler.

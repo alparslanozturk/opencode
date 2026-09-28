@@ -149,6 +149,8 @@ Danışma 2'de "v1'de erken" olarak işaretlendi. Bunların plan/grant format ta
 
 ## 5. Hassas veri koruması (T13/A34+A35) — gizli desenler, denylist, arama kapsamı
 
+> **KALDIRILDI (Alp, 2026-09-28):** gizli desen redaksiyonu, hassas dosya denylist'i ve `redacted` kaydı artık yok — kurum içi offline sistem, hiçbir şey gizlenmez (commit `eec10700db`). Aşağısı tarihsel kayıttır; yürürlükte olan yalnız arama kapsamı `asked` kaydıdır, sınır = açılış dizini.
+
 > Kaynak: 2026-09-23 15:40 saha ekranı (A34 kritik + A35 yüksek) — model `~/ansible` ağacını
 > **istenmeden** glob'ladı, envanteri özetledi ve **düz metin bir parolayı yanıt metnine yazdı**. Kapı
 > `engine/plugins/audit-log.ts`'e eklendi (T7'nin ayrı `degisiklik-kapisi.ts`'i hiç kodlanmadı —

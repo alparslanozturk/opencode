@@ -124,6 +124,8 @@ geçirir, `audit-log.ts` ise `redactSecrets()` ile aynı iki sınıfı hem audit
 
 ## 7. Gizli sızıntısı (envanter/credential) — kontrol ve kanıt (T13/A34+A35)
 
+> **KALDIRILDI (Alp, 2026-09-28):** gizli desen redaksiyonu, hassas dosya denylist'i ve `redacted` kaydı artık yok — kurum içi offline sistem, hiçbir şey gizlenmez (commit `eec10700db`). Aşağısı tarihsel kayıttır; yürürlükte olan yalnız arama kapsamı `asked` kaydıdır, sınır = açılış dizini.
+
 **Kontrol:** `engine/plugins/audit-log.ts` — gizli desen redaksiyonu (değer asla döndürülmez) + hassas dosya
 denylist'i (gözlem modunda tam redaksiyon, `OPS_AGENT_KAPI=ENFORCE`'ta hard-deny) + arama kapsamı onayı
 (proje dışı/geniş tarama tek onaya bağlanır, sonuç yalnız sayı ile loglanır). Kural detayı:

@@ -697,11 +697,8 @@ kur() {
   if [ -f "$KOK/engine/AGENTS.md" ]; then
     cp -f "$KOK/engine/AGENTS.md" "$HOME/.config/opencode/AGENTS.md"
   fi
-  # A8/A17: saha sabitleri — yalnız YOKSA şablondan oluşturulur; doldurulan dosya bir daha ezilmez.
-  if [ ! -f "$HOME/.config/opencode/saha-sabitleri.md" ] && [ -f "$KOK/knowledge/templates/saha-sabitleri.md" ]; then
-    cp "$KOK/knowledge/templates/saha-sabitleri.md" "$HOME/.config/opencode/saha-sabitleri.md"
-    sari "  saha-sabitleri: ~/.config/opencode/saha-sabitleri.md oluşturuldu — [SAHA] alanlarını doldur"
-  fi
+  # A8/A17: saha sabitleri isteğe bağlı — kur.sh dosya OLUŞTURMAZ (Alp: bilgiyi oturumda kendisi veriyor).
+  # İstenirse: cp knowledge/templates/saha-sabitleri.md ~/.config/opencode/ → her oturumda okunur.
   rm -rf "$HOME/.config/opencode/skills"; mkdir -p "$HOME/.config/opencode/skills"
   if [ "$TUM_BECERILER" = 1 ]; then
     cp -r "$KOK/knowledge/skills/approved/." "$HOME/.config/opencode/skills/"

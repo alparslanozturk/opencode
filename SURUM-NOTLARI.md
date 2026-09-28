@@ -17,8 +17,8 @@ Sahada: `al.sh` → `./kur.sh` (1.0.5 → yeniden derler). Kontrol raporunda `fa
   Kontrol raporunda yeni `fare` satırı.
 - **Beceriler:** `approved/`'daki 12 becerinin hepsi kurulur (disk-ekleme ve paket-uret daha önce kurulmuyordu).
 - **Model seçimi:** açılışta otomatik kurum modeli; `/models` ile seçmek gerekmez.
-- **Saha sabitleri:** `~/.config/opencode/saha-sabitleri.md` oluşur (bir kez doldur, ezilmez); her oturumda
-  modele verilir (AD/DNS, NTP, satellite, envanter dizini, disk kuralı).
+- **Saha sabitleri (isteğe bağlı):** `~/.config/opencode/saha-sabitleri.md` varsa her oturumda modele verilir;
+  kur.sh oluşturmaz (şablon: `knowledge/templates/saha-sabitleri.md`).
 - **Çalışma akışı:** model işi sonuna kadar yapar, yalnız onay gereken yerde durur; eksik bilgide durmaz,
   sonda "açık kalanlar" verir.
 - Kontrol başlığında gerçek makine adı ve dizin (maske kaldırıldı). Motor upstream 1.18.33.

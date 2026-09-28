@@ -1,6 +1,7 @@
 # Saha sabitleri (bu makineye özel — her oturumda modele verilir)
 
-> Bu dosya `~/.config/opencode/saha-sabitleri.md` olarak kurulur ve `./kur.sh` onu **bir daha ezmez**.
+> İSTEĞE BAĞLI. Kullanmak için: `cp knowledge/templates/saha-sabitleri.md ~/.config/opencode/` — varsa her
+> oturumda modele verilir, yoksa motor sessizce atlar. `./kur.sh` bu dosyayı oluşturmaz ve ezmez.
 > `[SAHA]` yazan yerleri gerçek değerle doldur; bilinmeyeni `[SAHA]` bırak (model uydurmaz, sorar).
 > Kısa tut: her satır her isteğe girer.
 

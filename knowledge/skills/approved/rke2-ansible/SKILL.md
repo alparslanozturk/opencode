@@ -24,12 +24,11 @@ description: Kurumun RKE2 kümelerini kuran rke2-ansible playbook'u (rancherfede
   `kubectl -n kube-system get ds antrea-agent -o jsonpath='{.spec.template.spec.containers[0].image}'`.
 - **Yükseltmeyi system-upgrade-controller (SUC) yapar**, playbook değil → envanterde `rke2_upgrade: false`.
   SUC sonrası `all.yml`'deki `rke2_install_version` kümenin yeni sürümüne güncellenmeli.
-- **CIS Level 1 Satellite/OpenSCAP ile uygulanıyor** (RHEL 10 dahil; SCAP raporu alınabiliyor, bazı kurallar
-  uygulanmamış). RKE2 ile çakışabilecekler: firewalld kapatılması, `net.ipv4.ip_forward=0` (Kubernetes'te 1 olmalı —
-  reboot sonrası ağ bozulur), `/var/lib/rancher` noexec olmamalı. Sorun ararken önce bunlara bak; istisnalar
-  kurumda belirlenecek. `rke2-selinux` el8/el9/el10 için yayınlanmış.
-- **RHEL 9 CIS:** `/tmp` noexec — tarball kurulumu `/tmp`'den `rke2 -v` çalıştırdığı için düşer; çözüm
-  `mount -o remount,exec /tmp` (iş bitince `remount,noexec`). SELinux açıksa `rke2-selinux` RPM gerekir.
+- **Kurum kararları (Alp, 2026-09-29):** işletim sistemine CIS Level 1 Satellite/OpenSCAP ile uygulanıyor
+  (RHEL 10 dahil); **Kubernetes CIS profili kullanılmıyor** (`profile` yok) · **SELinux kapalı** · **firewalld kapalı**
+  (imajlarda zaten) · **`net.ipv4.ip_forward=1`** kalıcı (CIS 0 yazıyor; kurum fork'u `/etc/sysctl.d/99-zz-rke2.conf`
+  yazar — elle kontrol: `sysctl net.ipv4.ip_forward`, 0 ise pod ağı bozulur) · **`/tmp` noexec** kurulum sırasında
+  geçici `mount -o remount,exec /tmp`, bitince `remount,noexec`. Node NotReady / pod ağı sorununda önce ip_forward'a bak.
 - **Air-gap:** dosyalar `github.com/rancher/rke2/releases/download/<sürüm>/` (tarball + `rke2-images-core`);
   Antrea imajları RKE2 paketinde yok → kurum kayıt aynasında olmalı (`files/registries.yaml`, `mirrors: "*"`).
 

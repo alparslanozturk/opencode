@@ -48,10 +48,10 @@ Devralma ve teslim akışının tamamı için `sunucu-teslim` becerisine geç.
 
 ## Satellite ile yönetilen sunucuda
 
-Depolar Satellite'tan gelir; `dnf repolist` boşsa ya da beklenmedikse sorun
-güncellemede değil abonelik/içerik görünümündedir — `satellite-yonetim`
-becerisine geç. Yeni bir sunucuyu abone edip güncelleyip teslim etme akışı
-`sunucu-teslim`'de.
+Tüm sunucular Satellite'a kayıtlı; depolar oradan gelir. Kurumda Satellite ile yapılan **tek iş sunucuyu
+kaydetmek** (kurumun abonelik betiği/komutu — bkz. `rhel-yonetim` "Satellite kaydı"). `dnf repolist` boşsa
+ya da beklenmedikse önce kayıt durumuna bak (`subscription-manager status`); Satellite sunucusunun kendisi
+(content view, senkron) bizim işimiz değil — kullanıcıya söyle.
 
 ```bash
 dnf repolist                          # hangi depolar etkin

@@ -90,6 +90,19 @@ dnf repolist                         # her yerde çalışır, depo durumu
 df -h ; free -m ; uptime
 ```
 
+## Satellite kaydı (kurumda tek Satellite işi)
+
+Tüm sunucular Red Hat Satellite'a kayıtlıdır; paketler (`dnf`) oradan gelir. Kurumda Satellite ile yapılan **tek
+işlem sunucunun kaydıdır** — kurumun hazır abonelik betiği/komutu çalıştırılır (betiğin adı ve yeri: `[SAHA]`,
+kullanıcıdan iste; kendi `subscription-manager register` komutunu uydurma). Satellite sunucusunun içi (content view,
+depo senkronu, `hammer`) bizim kapsamımız dışında. Kontrol (salt-okunur):
+
+```bash
+subscription-manager status          # Overall Status: Registered / Current
+subscription-manager identity        # hangi Satellite/organizasyon
+dnf repolist                         # depolar geliyor mu
+```
+
 **Yan etkili komutlar** — onaysız çalıştırma:
 
 ```bash

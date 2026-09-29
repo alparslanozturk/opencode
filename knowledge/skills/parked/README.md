@@ -59,12 +59,12 @@ bu beceri şu an fiilen kullanılamaz durumda, MCP entegrasyonu gelene kadar par
 (`ansible` ↔ `filo-durum-kontrolu` adayı — ikisi de çekirdekte kaldığı için burada değil, ayrıca
 değerlendirilmeli.)
 
-## Tam liste (26 — `disk-ekleme` 2026-09-26, `satellite-yonetim` 2026-09-29 onaylıya taşındı)
+## Tam liste (27 — `disk-ekleme` 2026-09-26'da onaylıya taşındı)
 
 ```
 ag-teshis, beceri-gelistir, beceri-yaz, belge-yaz, git-azuredevops, guvenlik-ajani,
 guvenlik-incelemesi, idm-yonetim, kod-inceleme, mcp-ekle, nexus-registry, nfs-mount,
-podman-docker, rhel-surumleri, sadelestir, selinux, sertifika-tls,
+podman-docker, rhel-surumleri, sadelestir, satellite-yonetim, selinux, sertifika-tls,
 servis-teshis, solaris-ldom, splunk-forwarder, sssd-adtrust, sunucu-teslim, test-yaz,
 upstream-birlestir, web-sunucu, yerel-ai
 ```

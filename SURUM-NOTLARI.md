@@ -6,6 +6,14 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-09-29 — beceri: rke2-ansible güncellendi (sürüm seçimi, Antrea, SUC, kurum fork'u)
+
+`rke2-ansible` becerisi kurumun karar kurallarını öğrendi: RKE2 sürümü **Rancher destek matrisine** göre (tablo;
+v2.15.2'de 1.33 destek dışı), **Antrea** uyum tablosu (v2.4–v2.7), yükseltmeyi **system-upgrade-controller**
+yapar (`rke2_upgrade: false`), RHEL 9 CIS `/tmp noexec` + SELinux notları ve kurum fork'unun
+(`alparslanozturk/rke2-ansible`) araçları: `rancher_matris.py`, `antrea_surum.py`, `airgap/indir.sh`, preflight.
+Sahada `al.sh` → `./kur.sh` ile gelir.
+
 ## 2026-09-29 — beceri: rke2-ansible (kümeye node ekleme)
 
 Sahadaki playbook **rancherfederal/rke2-ansible 2.x** yapısında (`host.yml`, `group_vars/all.yml`,

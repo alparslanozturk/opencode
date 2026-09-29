@@ -1,9 +1,47 @@
 ---
 name: rke2-ansible
-description: Kurumun RKE2 kümelerini kuran rke2-ansible playbook'u (rancherfederal 2.x, hepapi danışmanlığıyla) ile çalışırken kullan — kümeye yeni node/worker ekleme, envanter (host.yml, group_vars/all.yml), tarball kurulum, sürüm, upgrade, pre_deploy_manifests (antrea), token, "rke2", "node ekle", "worker ekle", "hepapi" isteklerinde tetiklenir. Küme içi sorun arama için `k8s-rancher`.
+description: Kurumun RKE2 kümelerini kuran rke2-ansible playbook'u (rancherfederal 2.x; kurum fork'u alparslanozturk/rke2-ansible) ile çalışırken kullan — hangi RKE2 sürümü (Rancher destek matrisi), Antrea sürümü, kümeye yeni node/worker ekleme, envanter (host.yml, group_vars/all.yml), air-gap tarball, yükseltme (system-upgrade-controller), RHEL 9 CIS (/tmp noexec, SELinux), "rke2", "node ekle", "worker ekle", "antrea", "rancher sürümü", "hepapi" isteklerinde tetiklenir. Küme içi sorun arama için `k8s-rancher`.
 ---
 
-# rke2-ansible — kümeye node ekleme ve güvenli kullanım
+# rke2-ansible — sürüm seçimi, node ekleme ve güvenli kullanım
+
+## Kurumda nasıl karar veriliyor (Alp, 2026-09-29)
+
+- **RKE2 sürümü Rancher sürümüne göre seçilir** (SUSE destek matrisi:
+  `suse.com/suse-rancher/support-matrix/all-supported-versions/rancher-v2-X-Y/`). OS yalnız RHEL 8 / 9 / 10.
+  Matris dışı sürüm kurulmaz/yükseltilmez. Örnek (2026-09-29):
+
+  | Rancher | RKE2 (downstream) | RKE2 için RHEL |
+  |---|---|---|
+  | v2.15.2 | 1.34 · 1.35 · 1.36 | 8.10, 9.6, 9.8, 10.0, 10.2 |
+  | v2.12.3 | 1.31 · 1.32 · 1.33 | 8.8, 8.10 |
+  | v2.11.3 | 1.30 · 1.31 · 1.32 | 8.8–8.10, 9.3–9.5 |
+
+  Rancher v2.15.2'de **1.33 destek dışı**. Rancher sürümünü kullanıcıya sor, uydurma.
+- **CNI = Antrea** (`cni: none` + `pre_deploy_manifests/antrea.yaml`). Antrea kuralı: her minor, çıktığı gün
+  desteklenen son 4 K8s'i destekler → v2.4: 1.30–1.33 · v2.5: 1.31–1.34 · v2.6: 1.32–1.35 · v2.7: 1.33–1.36.
+  K8s yükseltmeden önce Antrea yeni sürümü desteklemiyorsa önce Antrea yükseltilir. Kümedeki sürüm:
+  `kubectl -n kube-system get ds antrea-agent -o jsonpath='{.spec.template.spec.containers[0].image}'`.
+- **Yükseltmeyi system-upgrade-controller (SUC) yapar**, playbook değil → envanterde `rke2_upgrade: false`.
+  SUC sonrası `all.yml`'deki `rke2_install_version` kümenin yeni sürümüne güncellenmeli.
+- **RHEL 9 CIS:** `/tmp` noexec — tarball kurulumu `/tmp`'den `rke2 -v` çalıştırdığı için düşer; çözüm
+  `mount -o remount,exec /tmp` (iş bitince `remount,noexec`). SELinux açıksa `rke2-selinux` RPM gerekir.
+- **Air-gap:** dosyalar `github.com/rancher/rke2/releases/download/<sürüm>/` (tarball + `rke2-images-core`);
+  Antrea imajları RKE2 paketinde yok → kurum kayıt aynasında olmalı (`files/registries.yaml`, `mirrors: "*"`).
+
+## Kurum fork'u (github.com/alparslanozturk/rke2-ansible)
+
+Sahada bu fork kullanılıyorsa (`KURUM.md` dosyası varsa) aşağıdakiler hazırdır — elle yapma, bunları kullan:
+- `araclar/rancher_matris.py <rancher> [rhel9]` — RKE2 hatları + RHEL (internet gerekir; sahada çıktıyı kullanıcı getirir)
+- `araclar/antrea_surum.py <k8s>` — Antrea uyum tablosu + öneri
+- `airgap/indir.sh --rancher v2.15.2 --os rhel9 [--antrea v2.7] [--kuru]` — indirir, sha256 doğrular, sonda tablo
+- **Preflight** (playbook başında, değişiklik yapmaz) şunlarda durur: sürüm verilmemiş · tarball/imaj dosyası yok ·
+  `--limit`'li koşuda API adresi boş · `rke2_upgrade: false` iken küme sürümü ≠ envanter sürümü. `node_name` için uyarır.
+- `/tmp` noexec görevi, `rke2-selinux` kurulumu, `/opt/rke2` sürüm algısı, `in groups[..][0]` hatası düzeltilmiş.
+- Kullanım rehberi `KURUM.md` (sade Türkçe); teknik farklar `TEKNIK.md`.
+Fork yoksa (sahadaki `rke2-ansible-last` kopyası) aşağıdaki tuzakları elle kontrol et.
+
+## Sahadaki kopyanın sürümü
 
 **Hangi sürüm?** Sahadaki kopya (`rke2-ansible-last`, envanter `inventory/<küme>/host.yml` + `group_vars/all.yml`
 + `files/` + `pre_deploy_manifests/`) **rancherfederal/rke2-ansible 2.x** yapısındadır (tek `roles/rke2`,
@@ -98,9 +136,8 @@ ssh <yeni1> 'systemctl is-active rke2-agent; journalctl -u rke2-agent -n 30 --no
 NotReady ise sırayla: antrea-agent imaj çekme (ImagePullBackOff) → 9345/6443 erişimi → token/`server:` satırı →
 sürüm farkı.
 
-## Geliştirme adayları (şimdilik not — Alp'le)
+## Sürüm/küme bilgisi eksikse
 
-`rke2_kubernetes_api_server_host` boşken fail et · node ekleme için ayrı `add-nodes.yml` (yalnız yeni node, sürüm ve
-server satırı doğrulamalı) · drain'li upgrade · `previous_install.yml` kurulu sürümü yalnız `/usr/local/bin/rke2`'den
-okuyor (`/opt/rke2` kurulumunda sürüm bilinmez → gereksiz yeniden açma/restart riski) · `in groups[..][0]` alt-dize
-karşılaştırması → `==`.
+Rancher sürümü, küme RKE2 sürümü, Antrea sürümü bilinmiyorsa uydurma — `[SAHA]` bırak, kullanıcıdan iste
+(`kubectl get nodes`, yukarıdaki antrea komutu, Rancher arayüzündeki sürüm). Kurumdaki SUC plan ayarları ve sürüm
+geçmişi henüz yazılmadı (Alp anlatacak).

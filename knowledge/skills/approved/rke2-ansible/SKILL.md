@@ -51,6 +51,11 @@ Aşağısı 2.x kodundan (`roles/rke2/tasks/*.yml`) çıkarıldı.
    kümede yeni node'daki `antrea-agent` pod'u imajı **kayıt aynasından** (`files/registries.yaml`) çekebilmeli; yoksa
    node NotReady kalır. Antrea sürümünün k8s 1.33'ü desteklediğini de doğrula (1.32→1.33 sonrası).
 4. `upgrade.yml` agent'ları **drain etmeden** yükseltir (kendi uyarısı var); node ekleme için **kullanma**.
+5. **`node_name` hostvar'ı 2.x'te etkisizdir** (1.x'ten kalma; 2.x yeniden yazımında kaldırıldı — `grep -rn node_name
+   roles/` boş döner). Sahadaki `host.yml` (`10.14.9.x: node_name: "stlrancherwor0N"`) bu biçimde. Node adı
+   makinenin hostname'inden gelir. `kubectl get nodes` adları hostname ile aynıysa sorun yok; yeni node'lara
+   farklı ad gerekiyorsa: `10.14.9.x: {host_rke2_config: {node-name: "stlrancherwor07"}}`. Sahadaki kopyada
+   `grep -rn node_name roles/` sonuç veriyorsa sürüm farklıdır — önce onu oku.
 
 ## Prosedür: mevcut kümeye N yeni worker ekleme
 

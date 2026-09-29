@@ -56,7 +56,7 @@ tar xJf opencode-paket.tar.xz -C /root      # -> /root/ai/opencode/   (.tar.gz i
 
 # 2) kur — TEK BETİK (offline; env yoksa env.local, o da yoksa env.example şablonundan
 #    otomatik oluşturulur; gerekirse kaynaktan derler, sonra ikili + ayar +
-#    approved/'daki tüm beceriler (12) + oc/opencode kısayolları + rg kurulur, bağlam penceresi kurum uçtan
+#    approved/'daki tüm beceriler (13) + oc/opencode kısayolları + rg kurulur, bağlam penceresi kurum uçtan
 #    otomatik tespit edilir, sonda otomatik doğrulama + tek ekran özet)
 /root/ai/opencode/kur.sh
 
@@ -695,7 +695,7 @@ bak: adım 3'te `cd` edilen dizin keyfi bir çalışma dizinidir, paketin kendis
 başlı başına "kurallar yüklenmedi" anlamına gelmez** — test ederken bunu doğrula:
 ```bash
 ls ~/.config/opencode/AGENTS.md          # varsa: global kurallar kurulu
-opencode debug skill 2>&1 | grep -c '"name"'   # approved/ becerileri (12) + yerleşikler
+opencode debug skill 2>&1 | grep -c '"name"'   # approved/ becerileri (13) + yerleşikler
 ```
 Eğer bu ikisi de boşsa/yoksa, o makinede **`kur.sh` hiç çalıştırılmamış** demektir — paket açılmış olsa
 bile kurulum adımı atlanmış olabilir; `kur.sh`'ı çalıştır.

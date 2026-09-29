@@ -6,6 +6,14 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-09-29 — beceri: rke2-ansible (hepapi playbook'u ile node ekleme)
+
+Kurumun danışman firmasının `hepapi/rke2-ansible` playbook'u (hepapi dalı) incelendi; yeni `rke2-ansible`
+becerisi: playbook akışı, kod teyitli 7 tuzak (sabitlenmemiş sürümde internetten "stable" çekme, v1.28'de biten
+kanal listesi, ilk sunucudan gelen token, RHEL 9 deposu, CIS profil regex'i …) ve mevcut kümeye node ekleme
+prosedürü (keşif → envanter → `--check --diff` → yalnız yeni node'lara koşu, token `-e @token.yml` ile —
+yerelde denendi). İkili değişmedi; sahada `al.sh` → `./kur.sh` beceriyi kurar (`beceri: kurulu 13`).
+
 ## 2026-09-28 — ürün 2.0.0: kapanış sürümü
 
 1.0.5'in içeriği + kapanış. **Ürün** sürümüdür; motor upstream **1.18.33** (opencode 2.x hattı değil).

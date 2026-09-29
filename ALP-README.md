@@ -1,6 +1,6 @@
 # opencode paketi — Alp (kurum içi)
 
-Aider fork'unda biriken tecrübeyi (**40 beceri** — 12 onaylı + 28 park edilmiş, bkz. aşağı — + çalışma kuralları) opencode'a taşıyan hazır paket.
+Aider fork'unda biriken tecrübeyi (**41 beceri** — 13 onaylı + 28 park edilmiş, bkz. aşağı — + çalışma kuralları) opencode'a taşıyan hazır paket.
 Kod geliştirme YOK — sadece ayar + içerik. Amaç: **önce denemek**, sonuç iyiyse sonra kod.
 
 **İki katman:** `engine/` = motor (opencode ayarı, güncellenebilir) · `knowledge/` = kurumsal bilgi deposu (kalıcı).
@@ -13,7 +13,7 @@ Kod geliştirme YOK — sadece ayar + içerik. Amaç: **önce denemek**, sonuç 
 | `engine/opencode.json` | Sağlayıcı ayarı: kurum Qwen'i OpenAI uyumlu uçtan bağlar · bağlam penceresi (`kur.sh` kurulum akışı otomatik tespit eder) · zaman aşımları · izin kuralları |
 | `engine/AGENTS.md` | Kurum kuralları: dil, envanter disiplini, güvenlik, beceri disiplini, pencere/endpoint notu |
 | `engine/plugins/` | Araç (tool) katmanı — yerel TS plugin'ler; ilk plugin (`audit-log.ts`, Faz 0) kodlandı |
-| `knowledge/skills/approved/` | **12 onaylı beceri** — opencode'un **okuduğu tek yer**, `kur.sh` hepsini kurar |
+| `knowledge/skills/approved/` | **13 onaylı beceri** — opencode'un **okuduğu tek yer**, `kur.sh` hepsini kurar |
 | `knowledge/skills/parked/` | Kalan **28 beceri** (2026-09-16 sadeleştirmesi, Alp kararı) — varsayılan kurulumda kurulmaz, bkz. `parked/README.md` |
 | `knowledge/` | Kurumsal bilgi deposu: `skills` · `runbooks` · `incidents` · `lessons-learned` · `operations-notes` · `architecture` · `roadmap` |
 | `kur.sh` | **TEK BETİK.** Parametresiz çağrı (= `kur`) gerekirse derler, kurar, `opencode`+`oc` kısayollarını düzeltir ve en sonda kontrol raporunu basar. Alt komutlar: `kur` · `derle` · `kontrol` · `yardim` |

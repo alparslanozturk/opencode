@@ -6,13 +6,14 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
-## 2026-09-29 — beceri: rke2-ansible (hepapi playbook'u ile node ekleme)
+## 2026-09-29 — beceri: rke2-ansible (kümeye node ekleme)
 
-Kurumun danışman firmasının `hepapi/rke2-ansible` playbook'u (hepapi dalı) incelendi; yeni `rke2-ansible`
-becerisi: playbook akışı, kod teyitli 7 tuzak (sabitlenmemiş sürümde internetten "stable" çekme, v1.28'de biten
-kanal listesi, ilk sunucudan gelen token, RHEL 9 deposu, CIS profil regex'i …) ve mevcut kümeye node ekleme
-prosedürü (keşif → envanter → `--check --diff` → yalnız yeni node'lara koşu, token `-e @token.yml` ile —
-yerelde denendi). İkili değişmedi; sahada `al.sh` → `./kur.sh` beceriyi kurar (`beceri: kurulu 13`).
+Sahadaki playbook **rancherfederal/rke2-ansible 2.x** yapısında (`host.yml`, `group_vars/all.yml`,
+`pre_deploy_manifests/antrea.yaml`); `hepapi/rke2-ansible` `hepapi` dalı eski 1.x — beceri 2.x kodundan yazıldı.
+İçerik: 2.x akışı (mevcut küme algısı, token `delegate_to`, config.yaml blockinfile → restart), node eklemeden
+önceki tuzaklar (`rke2_kubernetes_api_server_host` sabitleme, aynı 1.33 tarball, antrea imajlarının kayıt
+aynasında olması, `upgrade.yml` drain etmez) ve prosedür: keşif → envanter → `--check --diff` → yalnız yeni
+node'lara `--limit` koşusu → doğrulama. İkili değişmedi; sahada `al.sh` → `./kur.sh` (`beceri: kurulu 13`).
 
 ## 2026-09-28 — ürün 2.0.0: kapanış sürümü
 

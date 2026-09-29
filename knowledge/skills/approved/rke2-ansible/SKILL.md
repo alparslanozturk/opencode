@@ -139,6 +139,17 @@ ssh <yeni1> 'systemctl is-active rke2-agent; journalctl -u rke2-agent -n 30 --no
 NotReady ise sırayla: antrea-agent imaj çekme (ImagePullBackOff) → 9345/6443 erişimi → token/`server:` satırı →
 sürüm farkı.
 
+## Elle worker ekleme (fiziksel GPU H200 gibi farklı sunucular)
+
+Sanal worker'lar playbook ile; **farklı donanımlı sunucuyu Alp elle ekler** (host.yml'e yazılmaz). Kurum fork'unda
+adım adım: `docs/MANUEL-WORKER.md`. Özet: kümenin **aynı** RKE2 sürümünün dosyaları (`airgap/indir.sh <tam-sürüm>` →
+tarball + core imaj + sha256 + `install.sh`) → `ip_forward=1` (`/etc/sysctl.d/99-zz-rke2.conf`), firewalld kapalı,
+swap kapalı, tekil hostname → `INSTALL_RKE2_TYPE=agent INSTALL_RKE2_ARTIFACT_PATH=<dizin> sh install.sh` → core imaj
+paketini elle `/var/lib/rancher/rke2/agent/images/`'a kopyala (install.sh yalnız tam paketi tanır) →
+`/etc/rancher/rke2/registries.yaml` + `config.yaml` (`server: https://<API>:9345`, `token:` yöneticideki
+`/var/lib/rancher/rke2/server/node-token`, isteğe bağlı `node-label`/`node-taint`) → `systemctl enable --now rke2-agent`.
+GPU sürücü/GPU Operator ayrı kurulum; SUC planlarının nodeSelector'ı GPU sunucusunu da kapsayabilir.
+
 ## Sürüm/küme bilgisi eksikse
 
 Rancher sürümü, küme RKE2 sürümü, Antrea sürümü bilinmiyorsa uydurma — `[SAHA]` bırak, kullanıcıdan iste

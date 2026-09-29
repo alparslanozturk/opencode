@@ -6,6 +6,14 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-09-29 — beceri: satellite-yonetim onaylıya alındı
+
+Tüm sunucular Red Hat Satellite'a kayıtlı; saha makinesi de Satellite sunucusu. `satellite-yonetim` (hammer ping,
+content view, repo senkronu, aktivasyon anahtarı, istemci kayıt/yama sorunları) park'tan onaylıya taşındı →
+`./kur.sh` kurar (`beceri: kurulu 14`). `sistem-guncelleme`'nin ona verdiği yönlendirme artık çalışıyor.
+Rke2-ansible becerisine gün içinde eklenenler: CIS kararları (SELinux kapalı, K8s CIS profili yok, ip_forward=1),
+elle worker ekleme (GPU H200) ve fiziksel GPU sunucusu disk düzeni.
+
 ## 2026-09-29 — beceri: rke2-ansible güncellendi (sürüm seçimi, Antrea, SUC, kurum fork'u)
 
 `rke2-ansible` becerisi kurumun karar kurallarını öğrendi: RKE2 sürümü **Rancher destek matrisine** göre (tablo;

@@ -6,6 +6,13 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-09-30 — K1: "kurulum yapacağım" harf duyarsız tanınır (T30)
+
+Alp (T28 sorusunun cevabı): kilit kalsın, ama "büyük ya da küçük harf fark etmez, kurulum yapacağım dediği zaman
+anlaması lazım". Kurulum beyanı artık cümlenin herhangi bir yerinde, harf duyarsız tanınır (`kurulum yapacağım`,
+`Kurulum`, `YENİ KURULUM`); `kurulumu`/`kurulumda` ve `kurulum yapmayacağım` beyan sayılmaz. Sunucu listesi yine
+şart. `CN:`/`sunucular:` satırları zaten harf duyarsızdı (testle doğrulandı). Sahada `al.sh` → `./kur.sh`.
+
 ## 2026-09-30 — K1: yeni kurulumda numara yok, salt-okunur playbook serbest (T28)
 
 Saha (ekran6): salt-okunur `01-ping.yaml` bile KURULUM/CN yetkisi istiyordu; Alp: "yeni kurulumda değişiklik

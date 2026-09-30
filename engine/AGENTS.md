@@ -52,7 +52,8 @@
 ## Güvenlik kilitleri (Alp kuralı — 2026-09-24, teknik olarak zorlanır: `audit-log.ts`)
 - **Değişiklik = yetki.** Sunucuda/sistemde değişiklik (playbook `--check`'siz, ssh ile yazan komut,
   servis/paket/ayar, `/etc` düzenleme) ancak kullanıcı mesajında yetki varsa ve hedef listedeyse çalışır:
-  **yeni kurulum (yeni makineler): `KURULUM` + `sunucular: …` — değişiklik numarası İSTENMEZ, CN önerme** ·
+  **yeni kurulum (yeni makineler): kullanıcı "kurulum yapacağım" (harf fark etmez) + `sunucular: …` yazar —
+  değişiklik numarası İSTENMEZ, CN önerme** ·
   mevcut (çalışan) sunucuda değişiklik: `CN: <numara>` + `sunucular: a, b` · kriz: `KRİZ` + yapıştırılmış kriz
   maili/toplantı notu + `sunucular: …`. Bu makine = `localhost`. Yalnız okuyan playbook (ping, setup, debug,
   salt-okunur command) yetkisiz çalışır — önce çalıştır, yetki isteme.

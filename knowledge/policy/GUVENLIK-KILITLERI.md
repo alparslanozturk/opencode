@@ -44,7 +44,9 @@ sunucular: db01
 - **CN**: numara + sunucu listesi ikisi de şart.
 - **KURULUM** (ya da `YENİ KURULUM`): yeni makinelerde kurulum — **değişiklik numarası (CN) istenmez**, yalnız
   kurulacak sunucular (ya da `--limit` grubunun adı, ör. `rke2-workers-new`) yazılır. Ajan yeni kurulumda CN
-  önermez (T28 — Alp, 2026-09-30: "yeni kurulumda değişiklik numarasına ihtiyaç yok").
+  önermez (T28 — Alp, 2026-09-30: "yeni kurulumda değişiklik numarasına ihtiyaç yok"). Beyan **harf duyarsız ve doğal
+  cümlede** de tanınır (T30): `kurulum yapacağım`, `Kurulum`, `bu makinelere kurulum yapacağım`. Ekli biçimler
+  (`kurulumu`, `kurulumda`) ve olumsuz cümle (`kurulum yapmayacağım`) beyan sayılmaz. Sunucu listesi yine şart.
 - **KRİZ**: mail/toplantı notu (en az birkaç satır) + sunucu listesi. Mail ayrı mesajla da yapıştırılabilir.
   Önerilen akış: mail yapıştırılır → ajan maildan etkilenen sunucuları çıkarıp **önerir** → sen
   `sunucular: …` yazınca iş başlar. Ajanın önerdiği liste sen yazana kadar geçersizdir.

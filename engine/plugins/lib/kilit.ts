@@ -68,7 +68,10 @@ export function yetkiSatirlariniOku(text: string): YetkiSatiri {
       out.cn = cn[1]
       anahtar = true
     }
-    if (/^(YENI\s+)?KURULUM\b/.test(b)) {
+    // T30 (Alp, 2026-09-30): "büyük ya da küçük harf fark etmez, kurulum yapacağım dediği zaman anlaması lazım".
+    // Kelime cümlenin herhangi bir yerinde, harf duyarsız (b zaten Türkçe-uyumlu büyük harf). Ekli biçimler
+    // (kurulumu, kurulumda …) ve olumsuz cümle ("kurulum yapmayacağım") beyan sayılmaz. Sunucu listesi yine şart.
+    if (/(^|[^A-Z0-9ÇĞÖŞÜ])KURULUM(?![A-Z0-9ÇĞÖŞÜ])(?!\s+YAPMA)/.test(b)) {
       out.tur = "KURULUM"
       anahtar = true
     }
@@ -1148,7 +1151,8 @@ export interface KilitKarari {
 
 export const YETKI_NASIL =
   'Yetkiyi YALNIZ kullanıcı kendi mesajıyla verir (sen yazamazsın). YENİ KURULUM (yeni makineler) için numara ' +
-  'GEREKMEZ: kullanıcı "KURULUM" + "sunucular: <ad>, <ad>" (ya da --limit grubunun adı) yazar — yeni kurulumda CN ' +
+  'GEREKMEZ: kullanıcı "kurulum yapacağım" (harf fark etmez) + "sunucular: <ad>, <ad>" (ya da --limit grubunun adı) ' +
+  'yazar — yeni kurulumda CN ' +
   'önerme. Mevcut (çalışan) sunucuda değişiklik: "CN: <numara>" + "sunucular: …" · kriz: "KRİZ" + kriz maili/toplantı ' +
   'notu + "sunucular: …". Bu makine için listeye localhost yazılır. Salt-okunur işlerle devam edebilirsin; kullanıcıya ' +
   "neyin neden gerektiğini tek cümleyle söyle."

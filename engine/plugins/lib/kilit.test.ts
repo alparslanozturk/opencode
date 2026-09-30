@@ -10,6 +10,45 @@ const yetkiVer = (metin: string): Yetki => {
   return { tur: s.tur ?? null, cn: s.cn ?? null, krizMetni: false, sunucular: s.sunucular ?? [], zaman: Date.now() }
 }
 
+describe("T30: kurulum beyanı harf duyarsız, doğal cümlede de tanınır", () => {
+  const beyanlar = [
+    "KURULUM",
+    "kurulum",
+    "Kurulum",
+    "kurulum yapacağım",
+    "Kurulum yapacağım",
+    "KURULUM YAPACAĞIM",
+    "bu makinelere kurulum yapacağım",
+    "yeni kurulum",
+    "Yeni Kurulum",
+    "YENİ KURULUM",
+    "- **Kurulum** yapıyorum",
+    "tamam, kurulum.",
+  ]
+  for (const m of beyanlar)
+    test(`beyan: "${m}"`, () => {
+      expect(yetkiSatirlariniOku(`${m}\nsunucular: yeni01`).tur).toBe("KURULUM")
+    })
+  const degil = ["kurulumu kontrol et", "kurulumda hata var", "kurulum yapmayacağım", "Kurulum yapma", "kurulumcu", "ön-kurulumlar"]
+  for (const m of degil)
+    test(`beyan DEĞİL: "${m}"`, () => {
+      expect(yetkiSatirlariniOku(m).tur).toBeUndefined()
+    })
+  test("CN ve sunucular satırı da harf duyarsız", () => {
+    const s = yetkiSatirlariniOku("cn: chg0012345\nSUNUCULAR: Yeni01, YENI02")
+    expect(s.tur).toBe("CN")
+    expect(s.cn).toBe("CHG0012345")
+    expect(s.sunucular).toEqual(["yeni01", "yeni02"])
+  })
+  test("kilit kalır: beyan var ama sunucu listesi yoksa değişiklik yine K1", () => {
+    const y = yetkiVer("kurulum yapacağım")
+    expect(yetkiAktif(y, Date.now())).toBe(false)
+    expect(kilitDenetle("bash", { command: "ssh yeni01 'dnf -y install chrony'" }, workdir, y)?.kilit).toBe("K1")
+    const y2 = yetkiVer("kurulum yapacağım\nsunucular: yeni01")
+    expect(kilitDenetle("bash", { command: "ssh yeni01 'dnf -y install chrony'" }, workdir, y2)).toBeNull()
+  })
+})
+
 describe("kilit çekirdeği (motordan bağımsız sözleşme)", () => {
   test("salt-okunur komut → karar yok", () => {
     expect(kilitDenetle("bash", { command: "ssh web01 uptime" }, workdir, undefined)).toBeNull()

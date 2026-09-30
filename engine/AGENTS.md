@@ -52,8 +52,10 @@
 ## Güvenlik kilitleri (Alp kuralı — 2026-09-24, teknik olarak zorlanır: `audit-log.ts`)
 - **Değişiklik = yetki.** Sunucuda/sistemde değişiklik (playbook `--check`'siz, ssh ile yazan komut,
   servis/paket/ayar, `/etc` düzenleme) ancak kullanıcı mesajında yetki varsa ve hedef listedeyse çalışır:
-  `CN: <numara>` + `sunucular: a, b` · yeni kurulum: `KURULUM` + `sunucular: …` (CN gerekmez) ·
-  kriz: `KRİZ` + yapıştırılmış kriz maili/toplantı notu + `sunucular: …`. Bu makine = `localhost`.
+  **yeni kurulum (yeni makineler): `KURULUM` + `sunucular: …` — değişiklik numarası İSTENMEZ, CN önerme** ·
+  mevcut (çalışan) sunucuda değişiklik: `CN: <numara>` + `sunucular: a, b` · kriz: `KRİZ` + yapıştırılmış kriz
+  maili/toplantı notu + `sunucular: …`. Bu makine = `localhost`. Yalnız okuyan playbook (ping, setup, debug,
+  salt-okunur command) yetkisiz çalışır — önce çalıştır, yetki isteme.
 - **Kriz akışı:** mail yapıştırılınca etkilenen sunucuları maildan çıkar, listeyi öner ve **dur** —
   liste ancak kullanıcı `sunucular: …` yazınca geçerli olur. Yetki satırını sen yazamazsın/üretemezsin.
 - `ansible-playbook` değişikliğinde hedefi her zaman `--limit` ile ver; salt-okunur iş yetkisiz serbest.

@@ -423,6 +423,78 @@ describe("K1 degisiklik kilidi", () => {
     await expect(bash(hooks, "s-kur", "ssh eski01 'dnf -y update'")).rejects.toThrow(/listesinde yok/)
   })
 
+  // T28 (Alp, 2026-09-30, saha ekran6): salt-okunur 01-ping.yaml bile KURULUM/CN istiyordu.
+  describe("T28: salt-okunur playbook yetki istemez; yeni kurulumda numara yok", () => {
+    const { writeFileSync } = require("fs")
+    const pb = (ad: string, icerik: string) => writeFileSync(join(workDir, ad), icerik)
+    pb("01-ping.yaml", "- hosts: all\n  gather_facts: false\n  tasks:\n    - name: ping\n      ansible.builtin.ping:\n")
+    pb(
+      "okur.yml",
+      [
+        "- hosts: all",
+        "  tasks:",
+        "    - ansible.builtin.setup:",
+        "    - name: disk",
+        "      ansible.builtin.command: df -h",
+        "      register: d",
+        "    - ansible.builtin.debug: {var: d.stdout_lines}",
+        "    - block:",
+        "        - ansible.builtin.shell: systemctl is-active chronyd",
+        "      rescue:",
+        "        - ansible.builtin.debug: {msg: yok}",
+        "",
+      ].join("\n"),
+    )
+    pb("kurar.yml", "- hosts: all\n  tasks:\n    - ansible.builtin.ping:\n    - ansible.builtin.dnf: {name: chrony, state: present}\n")
+    pb("rollu.yml", "- hosts: all\n  roles:\n    - rke2\n")
+    pb("komut-degistirir.yml", "- hosts: all\n  tasks:\n    - ansible.builtin.command: systemctl restart chronyd\n")
+    pb("jinja.yml", "- hosts: all\n  tasks:\n    - ansible.builtin.shell: \"{{ komut }}\"\n")
+    pb("vault.yml", "- hosts: all\n  vars:\n    p: !vault |\n      $ANSIBLE_VAULT;1.1;AES256\n  tasks:\n    - ansible.builtin.ping:\n")
+
+    test("saha komutu (ekran6): 01-ping.yaml yetkisiz çalışır", async () => {
+      const hooks = await freshPlugin()
+      await bash(
+        hooks,
+        "s-t28",
+        'ansible-playbook -i ansible/inventories/hosts-20260929.ini 01-ping.yaml -u root --ssh-extra-args="-o StrictHostKeyChecking=accept-new" --limit rke2-workers-new',
+      )
+    })
+    test("yalnız okuyan modüller + salt-okunur command/shell + block → yetkisiz", async () => {
+      const hooks = await freshPlugin()
+      await bash(hooks, "s-t28b", "ansible-playbook okur.yml -l yeni01")
+    })
+    for (const [ad, neden] of [
+      ["kurar.yml", "değişiklik yapan modül (dnf)"],
+      ["rollu.yml", "rol (içeriği denetlenmez)"],
+      ["komut-degistirir.yml", "değişiklik yapan komut"],
+      ["jinja.yml", "Jinja'lı komut"],
+      ["yok.yml", "dosya yok"],
+    ]) {
+      test(`kilit devrede kalır: ${ad} — ${neden}`, async () => {
+        const hooks = await freshPlugin()
+        await expect(bash(hooks, `s-t28-${ad}`, `ansible-playbook ${ad} -l yeni01`)).rejects.toThrow(/K1/)
+      })
+    }
+    test("K1 mesajı yeni kurulumda numara istemediğini söyler; 'YENİ KURULUM' yazımı da tanınır", async () => {
+      const hooks = await freshPlugin()
+      await expect(bash(hooks, "s-t28y", "ansible-playbook kurar.yml -l rke2-workers-new")).rejects.toThrow(
+        /YENİ KURULUM \(yeni makineler\) için numara GEREKMEZ/,
+      )
+      await kullanici(hooks, "s-t28y", "yeni kurulum\nsunucular: rke2-workers-new")
+      await bash(hooks, "s-t28y", "ansible-playbook kurar.yml -l rke2-workers-new")
+    })
+    test("vault'lu değişken playbook'u değiştiren yapmaz (yalnız ping) → yetkisiz", async () => {
+      const hooks = await freshPlugin()
+      await bash(hooks, "s-t28v", "ansible-playbook vault.yml -l yeni01")
+    })
+    test("K5 playbook içindeki komuta da uygulanır: KURULUM yetkisi olsa bile rm -rf / engellenir", async () => {
+      pb("yikici.yml", "- hosts: all\n  tasks:\n    - ansible.builtin.ping:\n    - ansible.builtin.shell: rm -rf /\n")
+      const hooks = await freshPlugin()
+      await kullanici(hooks, "s-t28k5", "KURULUM\nsunucular: yeni01")
+      await expect(bash(hooks, "s-t28k5", "ansible-playbook yikici.yml -l yeni01")).rejects.toThrow(/K5/)
+    })
+  })
+
   test("KRIZ: mail/toplanti notu yapistirilmadan acilmaz; yapistirilinca acilir", async () => {
     const hooks = await freshPlugin()
     await kullanici(hooks, "s-kriz", "KRİZ\nsunucular: db01")

@@ -42,7 +42,9 @@ sunucular: db01
 ```
 
 - **CN**: numara + sunucu listesi ikisi de şart.
-- **KURULUM**: CN gerekmez, kurulacak sunucular yazılır.
+- **KURULUM** (ya da `YENİ KURULUM`): yeni makinelerde kurulum — **değişiklik numarası (CN) istenmez**, yalnız
+  kurulacak sunucular (ya da `--limit` grubunun adı, ör. `rke2-workers-new`) yazılır. Ajan yeni kurulumda CN
+  önermez (T28 — Alp, 2026-09-30: "yeni kurulumda değişiklik numarasına ihtiyaç yok").
 - **KRİZ**: mail/toplantı notu (en az birkaç satır) + sunucu listesi. Mail ayrı mesajla da yapıştırılabilir.
   Önerilen akış: mail yapıştırılır → ajan maildan etkilenen sunucuları çıkarıp **önerir** → sen
   `sunucular: …` yazınca iş başlar. Ajanın önerdiği liste sen yazana kadar geçersizdir.
@@ -56,7 +58,12 @@ sunucular: db01
 kopyalama, `ssh-copy-id`, `kubectl apply/delete/…`, `helm install/…`, `curl -X POST/PUT/DELETE`,
 bu makinede servis/paket/kullanıcı/ağ/disk komutları ve çalışma dizini dışına (sistem yollarına) yazma.
 **Serbest (yetkisiz):** ssh ile okuma (`df`, `systemctl status`, `journalctl`, `rpm -q`, `cat` …),
-`--check`'li playbook, `ansible -m ping/setup`, `kubectl get/logs`, çalışma dizini içindeki işler.
+`--check`'li playbook, `ansible -m ping/setup`, `kubectl get/logs`, çalışma dizini içindeki işler ve
+**yalnız okuyan playbook** (T28): kilit playbook dosyasını okur; tüm görevler okuyan modüller (`ping`, `setup`,
+`debug`, `stat`, `assert`, `set_fact`, `service_facts`, `find`, `slurp` …) ya da salt-okunur `command`/`shell`
+(`df -h`, `systemctl is-active` …) ise yetki sorulmaz. Rol, include/import, bilinmeyen modül, Jinja'lı komut ya da
+okunamayan dosya → değişiklik sayılır (kilit devrede). Playbook içindeki `command`/`shell` komutlarına **K5 de
+uygulanır** (`rm -rf /` gibi yıkıcı komut, KURULUM/CN yetkisi olsa bile engellenir).
 
 ## Kilitlerin sınırları (dürüst liste)
 

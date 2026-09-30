@@ -68,7 +68,7 @@ export function yetkiSatirlariniOku(text: string): YetkiSatiri {
       out.cn = cn[1]
       anahtar = true
     }
-    if (/^KURULUM\b/.test(b)) {
+    if (/^(YENI\s+)?KURULUM\b/.test(b)) {
       out.tur = "KURULUM"
       anahtar = true
     }
@@ -863,6 +863,16 @@ export function tekKomut(k: Komut, b: Baglam): Bulgu[] {
   }
   if (p === "ansible-playbook") {
     if (has(a, "--check", "-C", "--syntax-check", "--list-hosts", "--list-tasks", "--list-tags")) return out
+    // T28 (Alp, 2026-09-30): yalnız okuyan playbook (ör. 01-ping.yaml) değişiklik değildir → yetki sorulmaz.
+    // Karar dosyanın İÇERİĞİNE göre verilir; okunamayan/anlaşılamayan her durumda kilit devrede kalır.
+    if (!b.uzak) {
+      const kitaplar = playbookDosyalari(a)
+      // K5 playbook içindeki komutlara da uygulanır (önceden içerik hiç okunmuyordu)
+      for (const k of kitaplar) out.push(...playbookKomutlari(yolCoz(k, b)).flatMap((c) =>
+        komutIncele(c, { ...b, uzak: "__ansible__", derinlik: b.derinlik + 1 }).filter((x) => x.tur === "sert")))
+      if (out.some((x) => x.tur === "sert")) return out
+      if (kitaplar.length > 0 && kitaplar.every((k) => playbookSaltOkunur(yolCoz(k, b), b))) return out
+    }
     const limit = secenekDegeri(a, "-l", "--limit")
     const hedefler = limit ? limitHedefleri(limit) : ["?"]
     return [...out, degisiklik(`ansible-playbook ${a.filter(secenekDegil).find((x) => /\.ya?ml$/.test(x)) ?? ""} (--check yok)`.trim(), hedefler)]
@@ -944,6 +954,122 @@ export function sshHedef(a: string[]): { host: string | null; komut: string } {
   return { host: normHost(m ? m[1] : hedef), komut: a.slice(i + 1).join(" ") }
 }
 
+// --- salt-okunur playbook tespiti (T28) ---------------------------------------------------
+// Tüm görevleri yalnız okuyan modüllerden oluşan playbook değişiklik sayılmaz. Muhafazakâr: rol, include/import,
+// bilinmeyen modül, vault/tanınmayan YAML etiketi, Jinja'lı komut, 256 KB üstü dosya → "değişiklik" (kilit devrede).
+
+const PLAYBOOK_DEGERLI = new Set(["-i", "--inventory", "--inventory-file", "-e", "--extra-vars", "-l", "--limit",
+  "-u", "--user", "-t", "--tags", "--skip-tags", "-f", "--forks", "-M", "--module-path", "--private-key", "--key-file",
+  "--vault-id", "--vault-password-file", "-c", "--connection", "-T", "--timeout", "--ssh-common-args",
+  "--ssh-extra-args", "--sftp-extra-args", "--scp-extra-args", "--become-method", "--become-user", "--start-at-task"])
+
+export function playbookDosyalari(a: string[]): string[] {
+  const out: string[] = []
+  for (let i = 0; i < a.length; i++) {
+    if (a[i].startsWith("-")) {
+      if (PLAYBOOK_DEGERLI.has(a[i])) i++
+      continue
+    }
+    out.push(a[i])
+  }
+  return out
+}
+
+const OKUR_MODULLER = new Set(["ping", "setup", "gather_facts", "debug", "stat", "assert", "fail", "set_fact",
+  "wait_for_connection", "service_facts", "package_facts", "getent", "find", "slurp", "meta", "include_vars"])
+const KOMUT_MODULLERI = new Set(["command", "shell", "raw"])
+const GOREV_ANAHTARLARI = new Set(["name", "when", "register", "loop", "loop_control", "with_items", "with_dict",
+  "with_list", "with_fileglob", "with_sequence", "tags", "ignore_errors", "ignore_unreachable", "changed_when",
+  "failed_when", "delegate_to", "delegate_facts", "run_once", "become", "become_user", "become_method", "vars",
+  "environment", "args", "no_log", "check_mode", "diff", "retries", "until", "delay", "notify", "listen", "timeout",
+  "throttle", "any_errors_fatal", "module_defaults", "collections", "connection", "remote_user", "debugger"])
+
+function modulAdi(m: string): string {
+  return m.replace(/^ansible\.(builtin|legacy)\./, "")
+}
+
+function playbookOku(abs: string): unknown[] | null {
+  try {
+    const icerik = readFileSync(abs, "utf8")
+    if (icerik.length > 256 * 1024) return null
+    const yaml = (globalThis as { Bun?: { YAML?: { parse: (s: string) => unknown } } }).Bun?.YAML
+    if (!yaml) return null
+    const veri = yaml.parse(icerik)
+    return Array.isArray(veri) && veri.length > 0 ? veri : null
+  } catch {
+    return null
+  }
+}
+
+function gorevKomutu(t: Record<string, unknown>, modul: string): string | null {
+  const deger = t[modul]
+  const argsCmd = t.args && typeof t.args === "object" ? (t.args as Record<string, unknown>).cmd : undefined
+  if (typeof deger === "string") return deger
+  if (deger && typeof deger === "object" && typeof (deger as Record<string, unknown>).cmd === "string")
+    return (deger as Record<string, unknown>).cmd as string
+  return typeof argsCmd === "string" ? argsCmd : null
+}
+
+function gorevler(oyunlar: unknown[]): Record<string, unknown>[] {
+  const out: Record<string, unknown>[] = []
+  const gez = (l: unknown) => {
+    if (!Array.isArray(l)) return
+    for (const g of l) {
+      if (!g || typeof g !== "object" || Array.isArray(g)) continue
+      const t = g as Record<string, unknown>
+      if ("block" in t) for (const k of ["block", "rescue", "always"]) gez(t[k])
+      else out.push(t)
+    }
+  }
+  for (const o of oyunlar)
+    if (o && typeof o === "object") for (const k of ["pre_tasks", "tasks", "post_tasks", "handlers"]) gez((o as Record<string, unknown>)[k])
+  return out
+}
+
+// Playbook'taki command/shell/raw komutları (K5 taraması için) — okunamazsa boş.
+export function playbookKomutlari(abs: string): string[] {
+  const oyunlar = playbookOku(abs)
+  if (!oyunlar) return []
+  const out: string[] = []
+  for (const t of gorevler(oyunlar)) {
+    const m = Object.keys(t).find((k) => !GOREV_ANAHTARLARI.has(k))
+    if (m && KOMUT_MODULLERI.has(modulAdi(m))) {
+      const c = gorevKomutu(t, m)
+      if (c) out.push(c)
+    }
+  }
+  return out
+}
+
+function gorevSaltOkunur(g: unknown, b: Baglam): boolean {
+  if (!g || typeof g !== "object" || Array.isArray(g)) return false
+  const t = g as Record<string, unknown>
+  if ("block" in t)
+    return (["block", "rescue", "always"] as const).every(
+      (k) => t[k] === undefined || (Array.isArray(t[k]) && (t[k] as unknown[]).every((x) => gorevSaltOkunur(x, b))),
+    )
+  const moduller = Object.keys(t).filter((k) => !GOREV_ANAHTARLARI.has(k))
+  if (moduller.length !== 1) return false
+  const m = modulAdi(moduller[0])
+  if (OKUR_MODULLER.has(m)) return true
+  if (!KOMUT_MODULLERI.has(m)) return false
+  const komut = gorevKomutu(t, moduller[0])
+  if (!komut || /\{\{|\{%/.test(komut)) return false // Jinja: çalışma anında ne olacağı belli değil
+  return komutIncele(komut, { ...b, uzak: "__ansible__", derinlik: b.derinlik + 1 }).length === 0
+}
+
+export function playbookSaltOkunur(abs: string, b: Baglam): boolean {
+  const veri = playbookOku(abs)
+  if (!veri) return false
+  return veri.every((oyun) => {
+    if (!oyun || typeof oyun !== "object") return false
+    const o = oyun as Record<string, unknown>
+    if ("import_playbook" in o || "roles" in o) return false
+    const listeler = ["pre_tasks", "tasks", "post_tasks", "handlers"].map((k) => o[k]).filter((x) => x !== undefined)
+    return listeler.every((l) => Array.isArray(l) && l.every((g) => gorevSaltOkunur(g, b)))
+  })
+}
+
 export function ansibleOruntu(a: string[]): string {
   const degerli = new Set(["-i", "--inventory", "-m", "--module-name", "-a", "--args", "-u", "--user", "-e",
     "--extra-vars", "-f", "--forks", "-l", "--limit", "-M", "--module-path", "-T", "--timeout", "--become-user",
@@ -1021,9 +1147,11 @@ export interface KilitKarari {
 }
 
 export const YETKI_NASIL =
-  'Yetkiyi YALNIZ kullanıcı kendi mesajıyla verir (sen yazamazsın): "CN: <numara>" + "sunucular: <ad>, <ad>" · ' +
-  'yeni kurulumsa "KURULUM" + "sunucular: …" · kriz ise "KRİZ" + kriz maili/toplantı notu + "sunucular: …". ' +
-  "Bu makine için listeye localhost yazılır. Salt-okunur işlerle devam edebilirsin; kullanıcıya neyin neden gerektiğini söyle."
+  'Yetkiyi YALNIZ kullanıcı kendi mesajıyla verir (sen yazamazsın). YENİ KURULUM (yeni makineler) için numara ' +
+  'GEREKMEZ: kullanıcı "KURULUM" + "sunucular: <ad>, <ad>" (ya da --limit grubunun adı) yazar — yeni kurulumda CN ' +
+  'önerme. Mevcut (çalışan) sunucuda değişiklik: "CN: <numara>" + "sunucular: …" · kriz: "KRİZ" + kriz maili/toplantı ' +
+  'notu + "sunucular: …". Bu makine için listeye localhost yazılır. Salt-okunur işlerle devam edebilirsin; kullanıcıya ' +
+  "neyin neden gerektiğini tek cümleyle söyle."
 
 export function kilitDenetle(
   tool: string,

@@ -6,6 +6,14 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-09-30 — K1: yeni kurulumda numara yok, salt-okunur playbook serbest (T28)
+
+Saha (ekran6): salt-okunur `01-ping.yaml` bile KURULUM/CN yetkisi istiyordu; Alp: "yeni kurulumda değişiklik
+numarasına ihtiyaç yok". Artık: kilit playbook dosyasını okur — tüm görevleri yalnız okuyan playbook (ping, setup,
+debug, salt-okunur command/shell) **yetkisiz** çalışır. Değişiklik yapan kurulumda yalnız `KURULUM` (ya da
+`YENİ KURULUM`) + `sunucular:` (numarasız); ajan yeni kurulumda CN önermez. K5 artık playbook içindeki komutlara da
+uygulanır. Sahada `al.sh` → `./kur.sh` (eklenti değişti, ikili değişmedi).
+
 ## 2026-09-29 — Satellite: kurumdaki gerçek kullanım (yalnız kayıt)
 
 Kurumda Satellite ile yapılan tek iş sunucu kaydı (kurumun abonelik betiği) — `rhel-yonetim`'e "Satellite kaydı"

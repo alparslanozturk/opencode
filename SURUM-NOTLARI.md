@@ -6,6 +6,15 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-09-30 — çevrimdışı veri + uyumluluk kontrolü varsayılan gelir (T33)
+
+Alp: "opencode yetenek olarak bunlarla gelsin … uyumlulukları kontrol edebilsin matriksleri". `rke2-ansible`
+becerisine **Çevrimdışı veri** bölümü gömüldü (Rancher matrisi 7 sürüm: upstream aralığı, downstream hatları, RHEL ·
+RKE2 hatlarının en son yaması · Antrea↔K8s tablosu) — her satırda kaynak dosya/satır; beceri yüklenince model
+doğrudan görür (dosya/izin/internet gerekmez). **Uyumluluk kontrolü** prosedürü: mevcut durum + kurulum/yükseltme
+öncesi kombinasyon → ✅/❌ + en az/önerilen + kanıt; veri yoksa "❓ hesaplanamadı". `AGENTS.md`: sürüm/uyumda tahmin
+yasak. Veri tek kaynaktan (kurum rke2-ansible) `script/veri-guncelle.sh` ile üretilir. Sahada `al.sh` → `./kur.sh`.
+
 ## 2026-09-30 — beceri: Antrea uyumu tahmin edilmez, tablo kullanılır (T32)
 
 Saha (ekran10): Antrea aracı internetsiz çalışamadı, model v2.3.0 + 1.33'ü tahminle "uyumlu" saydı — yanlış

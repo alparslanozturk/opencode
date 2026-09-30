@@ -6,6 +6,14 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-09-30 — beceri: Rancher/upstream sürümünü tespit et, matrise uygun kur (T31)
+
+`rke2-ansible` becerisine akış: **tespit** (Rancher sürümü, upstream = `local` küme ve downstream RKE2 sürümleri —
+kesin yollar + sahada doğrulanacak `kubectl` yolları) → **matris** (`rancher_matris.py … --upstream/--downstream`,
+internetsiz, ✅/❌) → **seç** (bir sonraki Rancher'da da desteklenen hat) → **kur** (`indir.sh` → envanter →
+`--check` → K1 "kurulum yapacağım"). Kurum durumu: Rancher v2.14.3, kümeler v1.33.13 → uygun; v2.15'e geçmeden önce
+RKE2 ≥ 1.34. Sahada `al.sh` → `./kur.sh`.
+
 ## 2026-09-30 — K1: "kurulum yapacağım" harf duyarsız tanınır (T30)
 
 Alp (T28 sorusunun cevabı): kilit kalsın, ama "büyük ya da küçük harf fark etmez, kurulum yapacağım dediği zaman

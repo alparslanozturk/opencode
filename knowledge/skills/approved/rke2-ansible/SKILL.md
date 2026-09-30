@@ -1,23 +1,55 @@
 ---
 name: rke2-ansible
-description: Kurumun RKE2 kümelerini kuran rke2-ansible playbook'u (rancherfederal 2.x; kurum fork'u alparslanozturk/rke2-ansible) ile çalışırken kullan — hangi RKE2 sürümü (Rancher destek matrisi), Antrea sürümü, kümeye yeni node/worker ekleme, envanter (host.yml, group_vars/all.yml), air-gap tarball, yükseltme (system-upgrade-controller), RHEL 9 CIS (/tmp noexec, SELinux), "rke2", "node ekle", "worker ekle", "antrea", "rancher sürümü", "hepapi" isteklerinde tetiklenir. Küme içi sorun arama için `k8s-rancher`.
+description: Kurumun RKE2 kümelerini kuran rke2-ansible playbook'u (rancherfederal 2.x; kurum fork'u alparslanozturk/rke2-ansible) ile çalışırken kullan — Rancher/upstream sürümünü tespit edip SUSE destek matrisine uygun RKE2 sürümü seçme ("hangi rke2", "rancher sürümü", "matris", "upstream", "desteklenir mi"), Antrea sürümü, kümeye yeni node/worker ekleme, envanter (host.yml, group_vars/all.yml), air-gap tarball, yükseltme (system-upgrade-controller), RHEL 9 CIS (/tmp noexec, SELinux), "rke2", "node ekle", "worker ekle", "antrea", "rancher sürümü", "hepapi" isteklerinde tetiklenir. Küme içi sorun arama için `k8s-rancher`.
 ---
 
 # rke2-ansible — sürüm seçimi, node ekleme ve güvenli kullanım
 
+## Sürümü tespit et → matrise göre seç → kur (T31, Alp 2026-09-30)
+
+Terimler: **upstream** = Rancher'ın kendisinin çalıştığı `local` küme · **downstream** = Rancher'ın yönettiği kümeler.
+SUSE matrisi ikisine **ayrı** kural koyar (upstream için RKE2 aralığı, downstream için RKE2 hatları + RHEL).
+
+**1) Tespit (salt-okunur).** Uydurma — değer yoksa kullanıcıdan iste:
+| Ne | Kesin yol (sahada gözlendi) | Diğer yol (sahada doğrulanacak) |
+|---|---|---|
+| Rancher sürümü | Rancher arayüzü sol alt köşe (ör. `v2.14.3`) | local kümede `kubectl -n cattle-system get deploy rancher -o jsonpath='{.spec.template.spec.containers[0].image}'` · `helm -n cattle-system list` |
+| Upstream RKE2 | Rancher küme listesinde `local` satırı · local kümede `kubectl get nodes` (VERSION) | — |
+| Downstream RKE2 | Rancher küme listesi · o kümede `kubectl get nodes` | — |
+
+**2) Matrise göre değerlendir** — rke2-ansible reposunda (sahada `/root/ai/rke2-ansible`), **internetsiz çalışır**
+(matris `araclar/matris/` içinde; saha suse.com'a erişemez):
+```bash
+araclar/rancher_matris.py v2.14.3 rhel9 --upstream v1.33.13+rke2r1 --downstream v1.33.13+rke2r1
+```
+Çıktı: upstream aralığı, downstream hatları (+ en son kararlı sürüm, GitHub'dan), RHEL sürümleri, her kümeye
+✅ UYGUN / ❌ DESTEK DIŞI. Matriste olmayan Rancher sürümü için: internetli makinede `--kaydet v2.x.y` → commit/push.
+
+**3) Seç.** Yeni küme için matristeki hatlardan birini seç; **bir sonraki Rancher sürümünde de desteklenen** hattı
+tercih et (Rancher yükseltilince küme destek dışı kalmasın). Antrea bu K8s'i desteklemeli (aşağıdaki tablo).
+Seçimi kullanıcıya gerekçesiyle öner, kararı o verir.
+
+**4) Kur** — kurum fork'uyla: `airgap/indir.sh --rancher <rancher> --os rhel9 [--antrea v2.x]` → envanterde
+`rke2_install_version` = seçilen **tam** sürüm → `--check --diff` → gerçek koşu (K1: kullanıcı "kurulum yapacağım" +
+`sunucular:` yazar; numara istenmez).
+
+**Kurum durumu (saha ekranları, 2026-09-30):** Rancher **v2.14.3**; `local` ve downstream kümeler (peaka-poc, test,
+test-sasviya, vibecode-test) **v1.33.13+rke2r1** → hepsi ✅ (v2.14.3: upstream v1.33…v1.35, downstream 1.33/1.34/1.35,
+RHEL 9.6–9.8). **Dikkat:** Rancher **v2.15.x**'e geçilirse 1.33 destek dışı (upstream v1.34…v1.36) → önce RKE2 ≥ 1.34
+(SUC), sonra Rancher. Yeni küme için 1.34 ya da 1.35 öner (v2.14.3 ve v2.15'te ortak; 1.35 → Antrea ≥ v2.6).
+
+Matris özeti (repodaki dosyalardan; güncel değer için her zaman aracı çalıştır):
+
+| Rancher | Upstream (local) RKE2 | Downstream RKE2 | RKE2 için RHEL 9 |
+|---|---|---|---|
+| v2.15.2 | v1.34 … v1.36 | 1.34 · 1.35 · 1.36 | 9.6, 9.8 (RHEL 10.0/10.2, 8.10 de var) |
+| v2.14.3 | v1.33 … v1.35 | 1.33 · 1.34 · 1.35 | 9.6, 9.7, 9.8 |
+| v2.11.3 | v1.30 … v1.32 | 1.30 · 1.31 · 1.32 | 9.3, 9.4, 9.5 |
+
 ## Kurumda nasıl karar veriliyor (Alp, 2026-09-29)
 
-- **RKE2 sürümü Rancher sürümüne göre seçilir** (SUSE destek matrisi:
-  `suse.com/suse-rancher/support-matrix/all-supported-versions/rancher-v2-X-Y/`). OS yalnız RHEL 8 / 9 / 10.
-  Matris dışı sürüm kurulmaz/yükseltilmez. Örnek (2026-09-29):
-
-  | Rancher | RKE2 (downstream) | RKE2 için RHEL |
-  |---|---|---|
-  | v2.15.2 | 1.34 · 1.35 · 1.36 | 8.10, 9.6, 9.8, 10.0, 10.2 |
-  | v2.12.3 | 1.31 · 1.32 · 1.33 | 8.8, 8.10 |
-  | v2.11.3 | 1.30 · 1.31 · 1.32 | 8.8–8.10, 9.3–9.5 |
-
-  Rancher v2.15.2'de **1.33 destek dışı**. Rancher sürümünü kullanıcıya sor, uydurma.
+- **RKE2 sürümü Rancher sürümüne göre seçilir** (SUSE destek matrisi). OS yalnız RHEL 8 / 9 / 10. Matris dışı sürüm
+  kurulmaz/yükseltilmez. Rancher sürümünü kullanıcıya sor ya da yukarıdaki yollarla oku, uydurma.
 - **CNI = Antrea** (`cni: none` + `pre_deploy_manifests/antrea.yaml`). Antrea kuralı: her minor, çıktığı gün
   desteklenen son 4 K8s'i destekler → v2.4: 1.30–1.33 · v2.5: 1.31–1.34 · v2.6: 1.32–1.35 · v2.7: 1.33–1.36.
   K8s yükseltmeden önce Antrea yeni sürümü desteklemiyorsa önce Antrea yükseltilir. Kümedeki sürüm:
@@ -35,7 +67,9 @@ description: Kurumun RKE2 kümelerini kuran rke2-ansible playbook'u (rancherfede
 ## Kurum fork'u (github.com/alparslanozturk/rke2-ansible)
 
 Sahada bu fork kullanılıyorsa (`KURUM.md` dosyası varsa) aşağıdakiler hazırdır — elle yapma, bunları kullan:
-- `araclar/rancher_matris.py <rancher> [rhel9]` — RKE2 hatları + RHEL (internet gerekir; sahada çıktıyı kullanıcı getirir)
+- `araclar/rancher_matris.py <rancher> [rhel9] [--upstream v…] [--downstream v…]` — RKE2 hatları + RHEL + mevcut
+  kümeler uygun mu; matris repoda (internetsiz). `--liste` repodaki Rancher sürümleri.
+- Saha dışarıda **yalnız GitHub'a** erişir: suse.com/get.rke2.io kapalı → gerekenler repoda (matris, `airgap/install.sh`).
 - `araclar/antrea_surum.py <k8s>` — Antrea uyum tablosu + öneri
 - `airgap/indir.sh --rancher v2.15.2 --os rhel9 [--antrea v2.7] [--kuru]` — indirir, sha256 doğrular, sonda tablo
 - **Preflight** (playbook başında, değişiklik yapmaz) şunlarda durur: sürüm verilmemiş · tarball/imaj dosyası yok ·

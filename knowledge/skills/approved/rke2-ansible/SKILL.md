@@ -51,9 +51,14 @@ Matris özeti (repodaki dosyalardan; güncel değer için her zaman aracı çal�
 - **RKE2 sürümü Rancher sürümüne göre seçilir** (SUSE destek matrisi). OS yalnız RHEL 8 / 9 / 10. Matris dışı sürüm
   kurulmaz/yükseltilmez. Rancher sürümünü kullanıcıya sor ya da yukarıdaki yollarla oku, uydurma.
 - **CNI = Antrea** (`cni: none` + `pre_deploy_manifests/antrea.yaml`). Antrea kuralı: her minor, çıktığı gün
-  desteklenen son 4 K8s'i destekler → v2.4: 1.30–1.33 · v2.5: 1.31–1.34 · v2.6: 1.32–1.35 · v2.7: 1.33–1.36.
-  K8s yükseltmeden önce Antrea yeni sürümü desteklemiyorsa önce Antrea yükseltilir. Kümedeki sürüm:
+  desteklenen son 4 K8s'i destekler. Tam tablo (rke2-ansible `araclar/matris/antrea-uyum.txt`, internetsiz):
+  v2.0: 1.27–1.30 · v2.1: 1.27–1.30 · v2.2: 1.28–1.31 · **v2.3: 1.29–1.32** · v2.4: 1.30–1.33 · v2.5: 1.31–1.34 ·
+  v2.6: 1.32–1.35 · v2.7: 1.33–1.36. **Uyumu tahmin etme** — `araclar/antrea_surum.py <k8s> --antrea <sürüm>`
+  çalıştır (✅ UYUMLU / ❌ KURAL DIŞI); tabloda yoksa "bilinmiyor" de. K8s yükseltmeden ÖNCE Antrea yeni sürümü
+  desteklemiyorsa önce Antrea yükseltilir. Kümedeki sürüm:
   `kubectl -n kube-system get ds antrea-agent -o jsonpath='{.spec.template.spec.containers[0].image}'`.
+  **Kurum durumu (saha ekran10, 2026-09-30):** Antrea **v2.3.0** + K8s **1.33.13** = ❌ **kural dışı** (v2.3 → en çok
+  1.32). 1.33 için en az v2.4; önerilen **v2.7.0** (1.33–1.36, v2.15'e geçişi de karşılar).
 - **Yükseltmeyi system-upgrade-controller (SUC) yapar**, playbook değil → envanterde `rke2_upgrade: false`.
   SUC sonrası `all.yml`'deki `rke2_install_version` kümenin yeni sürümüne güncellenmeli.
 - **Kurum kararları (Alp, 2026-09-29):** işletim sistemine CIS Level 1 Satellite/OpenSCAP ile uygulanıyor
@@ -70,7 +75,7 @@ Sahada bu fork kullanılıyorsa (`KURUM.md` dosyası varsa) aşağıdakiler haz�
 - `araclar/rancher_matris.py <rancher> [rhel9] [--upstream v…] [--downstream v…]` — RKE2 hatları + RHEL + mevcut
   kümeler uygun mu; matris repoda (internetsiz). `--liste` repodaki Rancher sürümleri.
 - Saha dışarıda **yalnız GitHub'a** erişir: suse.com/get.rke2.io kapalı → gerekenler repoda (matris, `airgap/install.sh`).
-- `araclar/antrea_surum.py <k8s>` — Antrea uyum tablosu + öneri
+- `araclar/antrea_surum.py <k8s> [--antrea <sürüm>]` — Antrea uyum tablosu (repoda, internetsiz) + öneri + kümedeki sürüm uyumlu mu
 - `airgap/indir.sh --rancher v2.15.2 --os rhel9 [--antrea v2.7] [--kuru]` — indirir, sha256 doğrular, sonda tablo
 - **Preflight** (playbook başında, değişiklik yapmaz) şunlarda durur: sürüm verilmemiş · tarball/imaj dosyası yok ·
   `--limit`'li koşuda API adresi boş · `rke2_upgrade: false` iken küme sürümü ≠ envanter sürümü. `node_name` için uyarır.

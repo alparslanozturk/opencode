@@ -6,6 +6,13 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-09-30 — beceri: Antrea uyumu tahmin edilmez, tablo kullanılır (T32)
+
+Saha (ekran10): Antrea aracı internetsiz çalışamadı, model v2.3.0 + 1.33'ü tahminle "uyumlu" saydı — yanlış
+(v2.3 → 1.29–1.32). Beceride tam tablo (v2.0–v2.7) ve kural: `antrea_surum.py <k8s> --antrea <sürüm>` çalıştır,
+tahmin etme. rke2-ansible'da tablo artık repoda (`araclar/matris/antrea-uyum.txt`), araç internetsiz çalışır.
+Kurum: Antrea v2.3.0 + 1.33.13 kural dışı → önce Antrea ≥ v2.4 (önerilen v2.7.0). Sahada `al.sh` → `./kur.sh`.
+
 ## 2026-09-30 — beceri: Rancher/upstream sürümünü tespit et, matrise uygun kur (T31)
 
 `rke2-ansible` becerisine akış: **tespit** (Rancher sürümü, upstream = `local` küme ve downstream RKE2 sürümleri —

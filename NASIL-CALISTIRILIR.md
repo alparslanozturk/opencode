@@ -8,6 +8,14 @@
 > `GELISTIRME-RAPORU-OPENCODE-CILA.md` atıfı bu depoda hiç var olmamış bir dosyaydı, kaldırıldı,
 > denetim bulgusu #16).
 
+> **opencode 2.x (ürün 3.0.0, 2026-10-05) — aşağıdaki eski bölümlerde değişenler:** motor `packages/opencode` değil
+> **`packages/cli`** (+ `packages/core`); derleme `./kur.sh derle` → `packages/cli/script/build.ts`, çıktı
+> `packages/cli/dist/cli-linux-x64/bin/opencode`. models.dev verisi kaynakta gömülü (`MODELS_DEV_API_JSON` /
+> `models-dev-api.json` gereksiz). TUI ayarı **`~/.config/opencode/cli.json`** (`mouse:false`; `tui.json` yalnız bir kez
+> dönüştürülür). Güvenlik eklentisi **`guvenlik-v2.ts`** (1.x `audit-log.ts`/`guard.ts` kurulmaz). İlk 2.x kurulumunda
+> 1.x oturum veritabanının bir kerelik kopyası alınır (2.x onu yerinde dönüştürür). Aşağıda `packages/opencode`, `tui.json`,
+> `splitting`, models.dev snapshot geçen satırlar **1.x dönemine aittir**.
+
 ---
 
 ## Sahada kullanıcıya görünen **TEK BETİK**

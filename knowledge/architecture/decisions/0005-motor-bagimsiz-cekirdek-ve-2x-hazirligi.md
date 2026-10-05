@@ -45,3 +45,18 @@
   kancasız çağırır) 4/0, derlenmiş 1.0.3 ikiliyle uçtan uca (K1 yetkisiz/CN'li, K5, salt-okunur) aynı sonuç,
   `duman-kontrol-rapor.sh` 23/0 (rapor 26/28 satır ≤ 29). 2.x geçiş maliyeti "güvenliği yeniden yaz"dan
   "ince adaptör yaz"a indi.
+
+## Uygulama (2026-10-05) — 2.x geçişi yapıldı
+
+- **Adaptör:** `engine/plugins/guvenlik-v2.ts` (+ ortak `lib/denetim.ts`). Kancalar planla aynı, bir farkla: red
+  `execute.before`'da `throw` yerine **`permission.evaluate`'te `effect=deny` + mesaj** olarak uygulanır (izin soran
+  araçlarda). Sebep (deneyle bulundu): 2.0.23'te `throw` engelliyor ama paralel araç çağrılarında hata mesajları
+  karışıyordu (K1 çağrısına K5 mesajı gitti). İzin sormayan araçlarda `throw` kalır. Emniyet kemeri: kilitli çağrı
+  yine de tamamlanırsa audit'e `IHLAL`.
+- **Yeni risk kapatıldı:** 2.x'te alt ajan (subagent) oturumunun ilk mesajını model yazar; yetki yalnız kök oturumun
+  kullanıcı mesajından okunur, alt oturumlar kökün yetkisini kullanır.
+- **guard.ts taşınmadı:** 2.x shell iznini alt komut başına değerlendiriyor (`$(...)` içi dahil) — upstream aynı işi yapıyor.
+- **Kontrol listesi (m.4) sonucu:** derleme yolu `packages/cli` (kur.sh), çekirdek yamalarından yalnız A35
+  (sınır = açılış dizini, `packages/core/src/file-access.ts`) taşındı; diğerleri upstream'de çözülmüş ya da katman
+  değişmiş (ayrıntı: vendor commit'i), `upstream-kontrol.sh` 2.x hattını izliyor. 1.x config'i 2.x'te dönüştürülerek
+  okunuyor (`modalities` ile metin-yalnız model).

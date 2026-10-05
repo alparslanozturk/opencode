@@ -1,12 +1,12 @@
 # MİMARİ — opencode ajan kiti
 
 Aider fork'unda (15 faz) biriken tecrübeyi **opencode**'a taşıyan ajan kiti.
-Bundan sonraki kodlama ajanı geliştirmesi bu depo üzerinden yürür. Referans sürüm: **opencode 1.18.34**
-(vendor/upstream). Upstream **takip edilir**: `script/upstream-kontrol.sh` her oturum başında çalışır,
+Bundan sonraki kodlama ajanı geliştirmesi bu depo üzerinden yürür. Referans sürüm: **opencode 2.0.23**
+(vendor/upstream; 2026-10-05'te 1.x → 2.x geçildi, motor `packages/cli` + `packages/core`). Upstream **takip edilir**: `script/upstream-kontrol.sh` her oturum başında çalışır,
 aynı ana sürüm hattında en fazla 2 sürüm geride kalınır, güncelleme `knowledge/runbooks/upstream-guncelleme.md`
-ile ayrı dalda yapılır; 2.x ana sürüm geçişi ayrı karar (ADR-0003). **Ürün sürümü ayrı**: `kur.sh`'ın derlediği
-ikili **1.0.1**'i basar (`SURUM` sabiti, `kur.sh` içinde; bkz. `SURUM-NOTLARI.md` "ürün sürümü 1.0.0"
-ve "derlenmiş ikili çöküyordu" kayıtları).
+ile ayrı dalda yapılır (felsefe: yeniyi uygula, bizimkiyle karşılaştır, upstream aynı işi yapıyorsa ona uyarla —
+ADR-0003 güncellemesi). **Ürün sürümü ayrı**: `kur.sh`'ın derlediği ikili **3.0.0**'ı basar (`SURUM` sabiti,
+`kur.sh` içinde; sürüm geçmişi oradaki yorumda ve `SURUM-NOTLARI.md`'de).
 
 > **Motor ≠ Bilgi.** Motor (`engine/`) güncellenebilir; bilgi (`knowledge/`) kalıcıdır. Kurumsal değer bilgide birikir.
 
@@ -56,9 +56,10 @@ engine/opencode.json (ayar) → engine/AGENTS.md (kural) → knowledge/skills/ (
 Fork yalnızca plugin API'sinin yapamadığı iş (UI paritesi, TUI davranışı) için.
 
 **Eklenti içi katmanlama (ADR-0005):** motordan bağımsız **çekirdek** (`engine/plugins/lib/` — kilit kararları,
-arama kapsamı, yetki satırı; girdi → karar, motor kancası bilmez) + ince **motor adaptörü** (`engine/plugins/audit-log.ts`
-= 1.x kancaları + audit zinciri). opencode 2.x'te kanca API'si tamamen değişti; geçişte yalnız adaptör yeniden
-yazılır, güvenlik mantığı ve testleri aynen kalır. Yeni motor-bağımlı kod adaptöre, kural/karar mantığı çekirdeğe.
+arama kapsamı, yetki satırı; girdi → karar, motor kancası bilmez) + ince **motor adaptörü** (`engine/plugins/guvenlik-v2.ts`
+= 2.x kancaları: `session.prompt` yetki, `tool.execute.before` kilit kararı, `permission.evaluate` red,
+`tool.execute.after` audit; ortak audit/yetki `lib/denetim.ts`). 1.x adaptörü `audit-log.ts` emekli (kurulmaz;
+testleri çekirdeği sınamak için duruyor). 2.x geçişinde yalnız adaptör yazıldı, güvenlik mantığı aynen kaldı. Yeni motor-bağımlı kod adaptöre, kural/karar mantığı çekirdeğe.
 
 ## Geliştirme (self-improvement) döngüsü
 

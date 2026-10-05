@@ -17,9 +17,11 @@ cd "$KOK"
 
 hata() { echo "HATA: $*" >&2; exit 1; }
 
-# Vendor surumu = packages/opencode/package.json (urun surumu 1.0.x ayridir, kur.sh SURUM)
-simdiki="$(sed -n 's/^ *"version": *"\([^"]*\)".*/\1/p' packages/opencode/package.json | head -1)"
-[ -n "$simdiki" ] || hata "packages/opencode/package.json surumu okunamadi"
+# Vendor surumu = packages/cli/package.json (opencode 2.x; 1.x'te packages/opencode). Urun surumu ayridir (kur.sh SURUM).
+paket=packages/cli/package.json
+[ -f "$paket" ] || paket=packages/opencode/package.json
+simdiki="$(sed -n 's/^ *"version": *"\([^"]*\)".*/\1/p' "$paket" | head -1)"
+[ -n "$simdiki" ] || hata "$paket surumu okunamadi"
 
 etiketler="$(timeout 60 git ls-remote --tags --refs "$UPSTREAM_URL" 'refs/tags/v*' 2>/dev/null \
   | sed -n 's|.*refs/tags/v\([0-9]*\.[0-9]*\.[0-9]*\)$|\1|p' | sort -V)" || true
@@ -49,8 +51,8 @@ U0="refs/upstream/v$simdiki"
 U1="refs/upstream/v$son"
 
 echo "upstream farki: $(git diff --no-renames --shortstat "$U0" "$U1" | sed 's/^ *//')"
-echo "motor tarafi (packages/opencode|core|tui|sdk):"
-git diff --no-renames --stat=100 "$U0" "$U1" -- packages/opencode/src packages/core/src packages/tui/src packages/sdk \
+echo "motor tarafi (packages/cli|core|tui|server|sdk):"
+git diff --no-renames --stat=100 "$U0" "$U1" -- packages/cli/src packages/core/src packages/tui/src packages/server/src packages/sdk \
   | sed '$d' | awk 'NR<=40{print "  " $0}'
 
 # Bizim yamalarimiz = upstream'in su anki surumu ile HEAD arasindaki packages/ farki

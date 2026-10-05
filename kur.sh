@@ -71,7 +71,9 @@ BUN_PAKET="$KOK/bin/bun-linux-x64-baseline-1.4.2.tgz"   # sifir makinede bun bur
 # 1.0.4: otomatik tekrarlar tükenince kullanıcıya açıklama (A23) — ikiliye giren değişiklik.
 # 1.0.5: upstream 1.18.33 + izin sınırı açılış dizini (Claude Code gibi) — ikiliye giren değişiklik.
 # 2.0.0: kapanış sürümü (Alp, 2026-09-28) — ÜRÜN sürümüdür; motor hâlâ upstream 1.18.33 (opencode 2.x DEĞİL).
-SURUM="${OPENCODE_VERSION:-2.0.0}"
+# 3.0.0: motor opencode 2.0.23 (ana sürüm geçişi, ADR-0003 güncellemesi 2026-10-05) — güvenlik guvenlik-v2.ts,
+#        derleme packages/cli, TUI ayarı cli.json. Kanal "main" → 2.x de opencode-main.db kullanır (aynı dosya).
+SURUM="${OPENCODE_VERSION:-3.0.0}"
 KANAL="${OPENCODE_CHANNEL:-main}"
 
 # Beceriler: knowledge/skills/approved/ TEK KAYNAKTIR — oradaki her beceri kurulur (ayrı liste yok;
@@ -267,6 +269,13 @@ node_headerlari_hazirla() {
 #  basar (sessizce "her şey yolunda" demez).
 #  Dosya biçimi bilerek `anahtar=deger` — jq/python gerektirmez.
 # ---------------------------------------------------------------------------
+# İkilinin ürün sürümü: 2.x "opencode v3.0.0" basar, 1.x yalnız "3.0.0" — ikisi de "3.0.0"ya indirgenir.
+ikili_surum() { # <ikili-yolu>
+  local cikti
+  cikti="$(timeout 30 "$1" --version 2>&1)" || return 1
+  printf '%s\n' "$cikti" | sed -E 's/^opencode v?//' | head -1
+}
+
 kunye_yaz() { # <ikili-yolu> <kunye-yolu>
   local ikili="$1" hedef="$2" commit="" kirli=0 boyut=""
   [ -f "$ikili" ] || return 0
@@ -366,37 +375,35 @@ derle() {
     esac
   fi
 
-  # --- 2) models.dev anlik goruntusu (ag yok -> fetch denenmesin) -------------
-  local SNAPSHOT="$KOK/packages/opencode/script/models-dev-api.json"
-  if [ -z "${MODELS_DEV_API_JSON:-}" ] && [ -f "$SNAPSHOT" ]; then
-    export MODELS_DEV_API_JSON="$SNAPSHOT"
-  fi
-  if [ -n "${MODELS_DEV_API_JSON:-}" ]; then
-    echo "==> models.dev snapshot: $MODELS_DEV_API_JSON"
-  else
-    echo "!! models.dev snapshot yok; derleme https://models.dev/api.json'a baglanmayi deneyecek." >&2
-  fi
+  # --- 2) models.dev: opencode 2.x verisini kaynakta gomulu getirir
+  #     (packages/core/src/models-dev/snapshot.txt) — derleme ag istemez.
 
   # --- 3) Bagimliliklar: YALNIZ CLI workspace'i ------------------------------
   # (--filter olmadan bun, web/console paketlerinin npm DISI bagimliliklarini da cozmeye
   #  calisir: pkg.pr.new/@solidjs/start ve github:anomalyco/ghostty-web -> offline'da patlar.)
   if [ "$KURULUM_YOK" -eq 0 ]; then
-    echo "==> bun install --filter=./packages/opencode ${INSTALL_EK[*]:-}"
-    "$BUN_YOL" install --filter="./packages/opencode" ${INSTALL_EK[@]+"${INSTALL_EK[@]}"} || return 1
+    echo "==> bun install --filter=./packages/cli ${INSTALL_EK[*]:-}"
+    "$BUN_YOL" install --filter="./packages/cli" ${INSTALL_EK[@]+"${INSTALL_EK[@]}"} || return 1
   else
     echo "==> bun install atlandi (--kurulum-yok)"
   fi
 
   # --- 4) Derleme: tek platform, web UI gomulmeden ---------------------------
+  # opencode 2.x --single AVX2'li hedefi secer; CPU'da avx2 yoksa baseline hedef derlenir.
+  local -a DERLE_EK=(--single --skip-web-ui --skip-install)
+  if ! grep -qw avx2 /proc/cpuinfo 2>/dev/null; then
+    DERLE_EK+=(--baseline)
+    echo "==> CPU'da AVX2 yok -> baseline hedef"
+  fi
   echo "==> surum: $SURUM (kanal: $KANAL)"
-  echo "==> build.ts --single --skip-embed-web-ui --skip-install"
+  echo "==> packages/cli/script/build.ts ${DERLE_EK[*]}"
   OPENCODE_VERSION="$SURUM" OPENCODE_CHANNEL="$KANAL" \
-    "$BUN_YOL" run ./packages/opencode/script/build.ts --single --skip-embed-web-ui --skip-install || return 1
+    "$BUN_YOL" run ./packages/cli/script/build.ts "${DERLE_EK[@]}" || return 1
 
   # --- 5) Uretilen ikiliyi bul -----------------------------------------------
   local -a IKILILER=()
   shopt -s nullglob
-  IKILILER=(packages/opencode/dist/opencode-*/bin/opencode)
+  IKILILER=(packages/cli/dist/cli-linux-*/bin/opencode)
   shopt -u nullglob
   if [ "${#IKILILER[@]}" -ne 1 ]; then
     hata "Beklenen tek ikili bulunamadi (bulunan: ${#IKILILER[@]})."
@@ -427,15 +434,16 @@ derle() {
 #        kısayollar; en sonda kontrol ekranı.
 # ===========================================================================
 kaynak_agaci_var() {
-  [ -f "$KOK/bun.lock" ] && [ -d "$KOK/packages/opencode" ]
+  [ -f "$KOK/bun.lock" ] && [ -d "$KOK/packages/cli" ]
 }
 
 # Kaynak ağacında bin/opencode'dan YENİ bir dosya var mı? (tek dosya bulunca durur — ucuz)
 kaynak_daha_yeni() {
   local yeni hedefler=()
   local p
-  for p in "$KOK/packages/opencode/src" "$KOK/packages/opencode/script" \
-           "$KOK/packages/opencode/package.json" "$KOK/bun.lock"; do
+  # opencode 2.x: motor packages/{cli,core,tui,server} altinda
+  for p in "$KOK/packages/cli/src" "$KOK/packages/cli/script" "$KOK/packages/cli/package.json" \
+           "$KOK/packages/core/src" "$KOK/packages/tui/src" "$KOK/packages/server/src" "$KOK/bun.lock"; do
     [ -e "$p" ] && hedefler+=("$p")
   done
   [ "${#hedefler[@]}" -gt 0 ] || return 1
@@ -664,7 +672,7 @@ kur() {
       DERLE_NEDEN="bin/opencode yok"
     elif kaynak_daha_yeni; then
       DERLE_NEDEN="kaynak ağacı ikiliden yeni"
-    elif ! bin_surum="$(timeout 30 "$KOK/bin/opencode" --version 2>/dev/null)"; then
+    elif ! bin_surum="$(ikili_surum "$KOK/bin/opencode")"; then
       DERLE_NEDEN="ikilinin sürümü okunamadı (bozuk olabilir)"
     elif [ "$bin_surum" != "$SURUM" ]; then
       DERLE_NEDEN="sürüm uyuşmuyor (kurulu: $bin_surum, istenen: $SURUM)"
@@ -708,6 +716,20 @@ kur() {
   esac
 
   echo "== 1/4  ikili =="
+  # opencode 2.x ilk açılışta 1.x oturumlarını AYNI veritabanında yerinde dönüştürür
+  # (core database/v1-migration) — geri dönüşte 1.x o dosyayı okuyamayabilir. 2.x ilk kez
+  # kurulurken veritabanının bir kerelik kopyası alınır (zamanlanmış yedek DEĞİL; işaret dosyası
+  # varsa tekrar alınmaz). Geri dönüş: opencode kapalıyken kopyaları eski adlarına geri taşı.
+  local VERI="${XDG_DATA_HOME:-$HOME/.local/share}/opencode"
+  if [ ! -e "$VERI/.yedek-1x-alindi" ] && compgen -G "$VERI/opencode*.db" > /dev/null; then
+    local DB_YEDEK="$VERI/yedek-1x-$(date +%Y%m%d-%H%M%S)" db
+    mkdir -p "$DB_YEDEK"
+    for db in "$VERI"/opencode*.db "$VERI"/opencode*.db-wal "$VERI"/opencode*.db-shm; do
+      [ -f "$db" ] && cp -p "$db" "$DB_YEDEK/"
+    done
+    printf '%s\n' "$DB_YEDEK" > "$VERI/.yedek-1x-alindi"
+    sari "  1.x oturum veritabanı kopyalandı (2.x yerinde dönüştürecek): $DB_YEDEK"
+  fi
   mkdir -p "$HOME/.opencode/bin"
   # ETXTBSY: hedef calisan bir TUI tarafindan yuruturken dogrudan uzerine yazmak
   # ("Text file busy") kurulumu set -e ile yarida keser. Ayni dizinde gecici
@@ -872,10 +894,10 @@ PY
   # fareyi TUI'de isteyen ALP_TUI_FARE=1 ile bu adımı atlar.
   if [ "${ALP_TUI_FARE:-0}" != "1" ]; then
     local tui_sonuc
-    tui_sonuc="$("$PY" - "$HOME/.config/opencode/tui.json" << 'PY' 2> /dev/null
+    tui_sonuc="$("$PY" - "$HOME/.config/opencode/cli.json" << 'PY' 2> /dev/null
 import json, os, sys
 yol = sys.argv[1]
-d = {"$schema": "https://opencode.ai/tui.json"}
+d = {}
 if os.path.exists(yol):
     try:
         d = json.load(open(yol, encoding="utf-8"))
@@ -891,9 +913,9 @@ print("yazildi")
 PY
 )"
     case "$tui_sonuc" in
-      yazildi) yesil "  tui: ~/.config/opencode/tui.json → mouse: false (seçim terminalde, MobaXterm kopyalar)" ;;
+      yazildi) yesil "  tui: ~/.config/opencode/cli.json → mouse: false (seçim terminalde, MobaXterm kopyalar)" ;;
       korundu:*) yesil "  tui: mouse zaten ayarlı (${tui_sonuc#korundu:}) — dokunulmadı" ;;
-      bozuk) sari "  ! tui.json okunamadı (yorumlu/bozuk JSON?) — mouse ayarı yazılmadı" ;;
+      bozuk) sari "  ! cli.json okunamadı (yorumlu/bozuk JSON?) — mouse ayarı yazılmadı" ;;
     esac
   fi
 
@@ -913,16 +935,18 @@ PY
   if compgen -G "$KOK/engine/plugins/*.ts" > /dev/null || compgen -G "$KOK/engine/plugins/*.js" > /dev/null; then
     # *.test.ts KOPYALANMAZ: opencode plugins/ altındaki her .ts'i eklenti diye yükler — test dosyası
     # ajan içinde çalışır, audit yolunu geçici dizine çevirirdi. Eski kurulumdan kalanı da sil.
-    # *-v2.ts (opencode 2.x adaptörü, ADR-0005) 1.x motora KURULMAZ — 1.x yükleyicisi onun biçimini tanımaz.
-    rm -f "$HOME"/.config/opencode/plugins/*.test.ts "$HOME"/.config/opencode/plugins/*.test.js "$HOME"/.config/opencode/plugins/*-v2.ts
+    # opencode 2.x: YALNIZ *-v2.ts (guvenlik-v2.ts) kurulur. 1.x adaptörleri (audit-log.ts, guard.ts) 2.x'te
+    # yüklenmez ("failed to load plugin"); eski kurulumdan kalanları da silinir. guard.ts'in işini 2.x kendisi yapar.
+    rm -f "$HOME"/.config/opencode/plugins/*.test.ts "$HOME"/.config/opencode/plugins/*.test.js \
+      "$HOME"/.config/opencode/plugins/audit-log.ts "$HOME"/.config/opencode/plugins/guard.ts
     local eklenti
-    for eklenti in "$KOK"/engine/plugins/*.ts "$KOK"/engine/plugins/*.js; do
+    for eklenti in "$KOK"/engine/plugins/*-v2.ts; do
       [ -f "$eklenti" ] || continue
-      case "$eklenti" in *.test.ts|*.test.js|*-v2.ts) continue ;; esac
+      case "$eklenti" in *.test.ts) continue ;; esac
       cp -f "$eklenti" "$HOME/.config/opencode/plugins/"
     done
     # ADR-0005: motordan bağımsız çekirdek (kilitler, maskeleme) plugins/lib/ altında — opencode alt dizini
-    # eklenti diye YÜKLEMEZ, yalnız audit-log.ts içe aktarır. Eski lib kalıntısı kalmasın diye önce temizlenir.
+    # eklenti diye YÜKLEMEZ, yalnız guvenlik-v2.ts içe aktarır. Eski lib kalıntısı kalmasın diye önce temizlenir.
     rm -rf "$HOME/.config/opencode/plugins/lib"
     if [ -d "$KOK/engine/plugins/lib" ]; then
       mkdir -p "$HOME/.config/opencode/plugins/lib"
@@ -1178,7 +1202,7 @@ kontrol_kurulum() {
   # 1) ikili (kurulu olan asıl önemli; repo içindeki kaynak ikili ek bilgi)
   if [ -x "$kurulu_bin" ]; then
     local surum
-    if surum="$(timeout 30 "$kurulu_bin" --version 2>&1)"; then
+    if surum="$(ikili_surum "$kurulu_bin")"; then
       local esit=""
       [ -n "$k_commit" ] && [ -n "$repo_head" ] && [ "$k_commit" = "$repo_head" ] && esit=" (=HEAD)"
       satir "ikili" ok "surum $surum · commit ${k_commit:-?}${esit} · derleme ${k_tarih:-?} · HEAD ${repo_head:-?}"
@@ -1314,18 +1338,17 @@ kontrol_kurulum() {
     sorun_kaydet "AGENTS.md kurulu degil — ./kur.sh calistir"
   fi
   # A22: fare yakalama kapalıysa seçimi terminal (MobaXterm) yapar ve panoya kopyalar.
-  if [ -n "${OPENCODE_DISABLE_MOUSE:-}" ] && [ "${OPENCODE_DISABLE_MOUSE}" != "0" ] && [ "${OPENCODE_DISABLE_MOUSE}" != "false" ]; then
-    satir "fare" ok "kapali (OPENCODE_DISABLE_MOUSE) — secim/kopyalama terminalde"
-  elif grep -Eq '"mouse"[[:space:]]*:[[:space:]]*false' "$ayar_dizin/tui.json" 2> /dev/null; then
-    satir "fare" ok "kapali (tui.json mouse:false) — secim/kopyalama terminalde"
-  elif grep -Eq '"mouse"[[:space:]]*:[[:space:]]*true' "$ayar_dizin/tui.json" 2> /dev/null; then
-    satir "fare" uyar "tui.json mouse:true — TUI fareyi yakalar, MobaXterm kopyalamaz"
+  # opencode 2.x TUI ayarı cli.json'da (tui.json yalnız bir kez dönüştürülür; OPENCODE_DISABLE_MOUSE 2.x'te yok).
+  if grep -Eq '"mouse"[[:space:]]*:[[:space:]]*false' "$ayar_dizin/cli.json" 2> /dev/null; then
+    satir "fare" ok "kapali (cli.json mouse:false) — secim/kopyalama terminalde"
+  elif grep -Eq '"mouse"[[:space:]]*:[[:space:]]*true' "$ayar_dizin/cli.json" 2> /dev/null; then
+    satir "fare" uyar "cli.json mouse:true — TUI fareyi yakalar, MobaXterm kopyalamaz"
   else
-    satir "fare" uyar "tui.json'da mouse ayari yok — TUI fareyi yakalar (./kur.sh ile duzelir)"
+    satir "fare" uyar "cli.json'da mouse ayari yok — TUI fareyi yakalar (./kur.sh ile duzelir)"
   fi
   # Güvenlik kilitleri + audit (ADR-0004/0005): eklenti ve içe aktardığı lib/ dosyaları yerinde mi? Biri eksikse
   # opencode eklentiyi YÜKLEYEMEZ ve kilitler SESSİZCE devre dışı kalır — bu yüzden hata satırı.
-  local eklenti_dosya="$ayar_dizin/plugins/audit-log.ts" eksik_lib=""
+  local eklenti_dosya="$ayar_dizin/plugins/guvenlik-v2.ts" eksik_lib=""
   if [ -f "$eklenti_dosya" ]; then
     local mod
     for mod in $(sed -n 's#^import .* from "\./\(lib/[a-z0-9_-]*\)".*#\1#p' "$eklenti_dosya" | sort -u); do
@@ -1341,7 +1364,7 @@ kontrol_kurulum() {
     fi
   else
     satir "kilit" hata "guvenlik eklentisi kurulu degil — kilitler/audit YOK (./kur.sh)"
-    sorun_kaydet "guvenlik eklentisi (audit-log.ts) kurulu degil — ./kur.sh"
+    sorun_kaydet "guvenlik eklentisi (guvenlik-v2.ts) kurulu degil — ./kur.sh"
   fi
 
   # 6) knowledge iskeleti

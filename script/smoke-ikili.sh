@@ -6,10 +6,10 @@ set -euo pipefail
 
 IKILI="${1:-$PWD/bin/opencode}"
 if [ ! -x "$IKILI" ]; then
-  IKILI="$PWD/packages/opencode/dist/opencode-linux-x64/bin/opencode"
+  IKILI="$PWD/packages/cli/dist/cli-linux-x64/bin/opencode"
 fi
 if [ ! -x "$IKILI" ]; then
-  echo "HATA: ikili bulunamadi (denenen: bin/opencode, packages/opencode/dist/opencode-linux-x64/bin/opencode)" >&2
+  echo "HATA: ikili bulunamadi (denenen: bin/opencode, packages/cli/dist/cli-linux-x64/bin/opencode)" >&2
   exit 2
 fi
 IKILI="$(readlink -f "$IKILI")"
@@ -28,7 +28,7 @@ EOF
 
 CIKTI="$(cd "$GECICI/work" && HOME="$GECICI/home" XDG_CONFIG_HOME="$GECICI/home/.config" \
   XDG_DATA_HOME="$GECICI/home/.local/share" OPENCODE_PRINT_LOGS=1 \
-  "$IKILI" run "sadece OK yaz" 2>&1 || true)"
+  "$IKILI" run --standalone "sadece OK yaz" 2>&1 || true)"
 
 if printf '%s' "$CIKTI" | grep -q "evaluating 'a.name'"; then
   echo "BASARISIZ: a.name cokmesi tekrarlandi ($IKILI)"
@@ -36,7 +36,7 @@ if printf '%s' "$CIKTI" | grep -q "evaluating 'a.name'"; then
   exit 1
 fi
 
-if ! printf '%s' "$CIKTI" | grep -qE "Cannot connect to API|AI_APICallError|ECONNREFUSED"; then
+if ! printf '%s' "$CIKTI" | grep -qE "Cannot connect to API|AI_APICallError|ECONNREFUSED|ConnectionRefused|Unable to connect"; then
   echo "BASARISIZ: a.name yok ama istek saglayiciya ulasmadi, cikti beklenmedik ($IKILI)"
   printf '%s\n' "$CIKTI" | tail -10
   exit 1

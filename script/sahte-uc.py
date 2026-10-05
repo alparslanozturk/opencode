@@ -15,6 +15,7 @@ Ortam degiskenleri (hepsi opsiyonel):
   SAHTE_ARAC          "0" ise tool_calls dondurmez (duz metin doner)
   SAHTE_KAYIT         dosya yolu: gelen her istek JSON satiri olarak eklenir
   SAHTE_BITIS_YOK     "1" ise akista finish_reason gonderilmez (eksik uc davranisi)
+  SAHTE_HATA          HTTP kodu (or. 500): her sohbet istegi bu hatayla doner
   SAHTE_AKIS_ARAC     JSON liste [{"name":..,"arguments":{..}}]: akista bu araclari cagirir
 """
 
@@ -77,6 +78,11 @@ class Islek(BaseHTTPRequestHandler):
 
         if not self.path.rstrip("/").endswith("/chat/completions"):
             self._json(404, {"error": {"message": "bilinmeyen yol: %s" % self.path}})
+            return
+
+        if os.environ.get("SAHTE_HATA"):  # ornek: SAHTE_HATA=500 -> her sohbet istegine o HTTP kodu + hata govdesi
+            self._json(int(os.environ["SAHTE_HATA"]), {"error": {
+                "message": "sahte uc hatasi (SAHTE_HATA=%s)" % os.environ["SAHTE_HATA"], "type": "server_error"}})
             return
 
         # T3 probe: asiri buyuk max_tokens -> uc kendi cikti sinirini hatada bildirir.

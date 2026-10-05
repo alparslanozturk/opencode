@@ -876,10 +876,9 @@ if ctx:
     # reserved = tampon (taşmayı önler), preserve_recent_tokens = compaction sonrası korunan bütçe.
     d.setdefault("compaction", {})
     d["compaction"]["auto"] = True
-    d["compaction"]["prune"] = True
     d["compaction"]["reserved"] = max(1024, min(4096, ctx_n // 8))
     d["compaction"]["preserve_recent_tokens"] = max(2048, min(8192, ctx_n // 4))
-    d["compaction"]["tail_turns"] = 2
+    # "prune" ve "tail_turns" opencode 2.x'te yok (config normalize uyarı veriyordu) — yazılmaz.
 
 json.dump(d, open(dst, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
 # Denetim bulgusu #8: dosya varsayılan umask ile (genelde 644, dünya-okunur)

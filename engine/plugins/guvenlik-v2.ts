@@ -16,6 +16,9 @@
 // $(...) içi de ayrı komut) — guard'ın kapattığı allowlist açığı upstream'de kapalı (2026-10-05 deneyi).
 //
 // Çalışma zamanı bağımlılığı yok: tipler yerel (aşağıda), içe aktarımlar yalnız Node çekirdeği + ./lib.
+import { readFileSync } from "fs"
+import { homedir } from "os"
+import { join } from "path"
 import { deriveTarget, truncate } from "./lib/maskele"
 import { kilitDenetle } from "./lib/kilit"
 import type { Yetki } from "./lib/kilit"
@@ -71,6 +74,18 @@ const modelAdi = (m: unknown) => {
   return typeof r.providerID === "string" && typeof id === "string" ? `${r.providerID}/${id}` : undefined
 }
 
+// Oturum modeli açıkça seçilmemişse session.get model alanını boş döndürür (2.0.23) — audit için config'teki
+// varsayılan model kullanılır (1.x adaptörü de config'ten alıyordu).
+function varsayilanModel(): string | undefined {
+  try {
+    const dizin = process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config")
+    const m = JSON.parse(readFileSync(join(dizin, "opencode", "opencode.json"), "utf8")).model
+    return typeof m === "string" ? m : undefined
+  } catch {
+    return undefined
+  }
+}
+
 export function guvenlikKur(ctx: Baglam) {
   const calismaDizini = ctx.location.directory
   const projeDizini = ctx.location.project?.directory
@@ -79,6 +94,8 @@ export function guvenlikKur(ctx: Baglam) {
   const yetkiler = new Map<string, Yetki>() // kök sessionID -> yetki
   const kokler = new Map<string, string>() // sessionID -> kök sessionID
   const modeller = new Map<string, string>() // sessionID -> provider/model
+  const varsayilan = varsayilanModel()
+  const model = (sessionID: string) => modeller.get(sessionID) ?? varsayilan
   const beceriler = new Map<string, { name: string; commit: string | null }>()
   const kararlar = new Map<string, { kilit: string; mesaj: string }>() // sessionID:callID -> kilit kararı
   const bekleyen = new Map<string, { tool: string; sessionID: string; timestamp: string; startedAt: number; argsHash: string; target: string }>()
@@ -150,7 +167,7 @@ export function guvenlikKur(ctx: Baglam) {
           policyDecision: "deny",
           latencyMs: 0,
           outputSha256: null,
-          model: modeller.get(e.sessionID),
+          model: model(e.sessionID),
           yetki,
         })
         if (ENFORCE) {
@@ -218,7 +235,7 @@ export function guvenlikKur(ctx: Baglam) {
         policyDecision: "allow",
         latencyMs: cagri ? Date.now() - cagri.startedAt : 0,
         outputSha256,
-        model: modeller.get(e.sessionID),
+        model: model(e.sessionID),
         yetki,
       })
       // after hiç gelmeyen (izin reddi vb.) askıdaki çağrıları kapat — audit zincirinde kaybolmasın.

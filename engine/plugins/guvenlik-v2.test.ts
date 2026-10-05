@@ -131,6 +131,22 @@ describe("kilitler 2.x kancalarında", () => {
     await h.once("s1", "read", { path: `${process.env.HOME}/.config/opencode/opencode.json` })
   })
 
+  test("audit model adı: oturumda model yoksa config'teki varsayılan model yazılır", async () => {
+    const eski = process.env.XDG_CONFIG_HOME
+    process.env.XDG_CONFIG_HOME = dizin
+    require("fs").mkdirSync(join(dizin, "opencode"), { recursive: true })
+    require("fs").writeFileSync(join(dizin, "opencode", "opencode.json"), JSON.stringify({ model: "kurum/qwen" }))
+    try {
+      const h = await kur()
+      await h.once("s1", "shell", { command: "uname -r" })
+      await h.sonra("s1", "shell", { command: "uname -r" })
+      expect(satirlar()[0].gen_ai.request.model).toBe("kurum/qwen")
+    } finally {
+      if (eski === undefined) delete process.env.XDG_CONFIG_HOME
+      else process.env.XDG_CONFIG_HOME = eski
+    }
+  })
+
   test("gözlem modu (OPS_AGENT_KAPI=GOZLEM): reddetmez, 'asked' yazar", async () => {
     process.env.OPS_AGENT_KAPI = "GOZLEM"
     const h = await kur()

@@ -15,6 +15,7 @@ Ortam degiskenleri (hepsi opsiyonel):
   SAHTE_ARAC          "0" ise tool_calls dondurmez (duz metin doner)
   SAHTE_KAYIT         dosya yolu: gelen her istek JSON satiri olarak eklenir
   SAHTE_BITIS_YOK     "1" ise akista finish_reason gonderilmez (eksik uc davranisi)
+  SAHTE_AKIS_ARAC     JSON liste [{"name":..,"arguments":{..}}]: akista bu araclari cagirir
 """
 
 from __future__ import annotations
@@ -92,6 +93,21 @@ class Islek(BaseHTTPRequestHandler):
             self.send_header("Cache-Control", "no-cache")
             self.send_header("Connection", "close")
             self.end_headers()
+            # SAHTE_AKIS_ARAC='[{"name":"shell","arguments":{"command":"echo hi"}}]': son mesaj kullanicidaysa
+            # (henuz arac sonucu yoksa) bu araclari akista cagirir; arac sonucu gelince "OK" ile biter.
+            arac_listesi = json.loads(os.environ.get("SAHTE_AKIS_ARAC") or "[]")
+            mesajlar = istek.get("messages") or []
+            if arac_listesi and mesajlar and mesajlar[-1].get("role") != "tool":
+                for i, arac in enumerate(arac_listesi):
+                    olay = {"choices": [{"index": 0, "finish_reason": None, "delta": {"tool_calls": [{
+                        "index": i, "id": "call_%d" % i, "type": "function",
+                        "function": {"name": arac["name"], "arguments": json.dumps(arac["arguments"])}}]}}]}
+                    self.wfile.write(("data: %s\n\n" % json.dumps(olay)).encode())
+                son = {"choices": [{"index": 0, "delta": {}, "finish_reason": "tool_calls"}]}
+                self.wfile.write(("data: %s\n\ndata: [DONE]\n\n" % json.dumps(son)).encode())
+                self.wfile.flush()
+                self.close_connection = True
+                return
             # Gercek vLLM gibi: son parcada finish_reason (yoksa opencode 2.x "stream ended without
             # finish_reason" der; SAHTE_BITIS_YOK=1 bu eksik-uc durumunu bilerek uretir).
             bitis_yok = os.environ.get("SAHTE_BITIS_YOK", "") == "1"

@@ -913,11 +913,12 @@ PY
   if compgen -G "$KOK/engine/plugins/*.ts" > /dev/null || compgen -G "$KOK/engine/plugins/*.js" > /dev/null; then
     # *.test.ts KOPYALANMAZ: opencode plugins/ altındaki her .ts'i eklenti diye yükler — test dosyası
     # ajan içinde çalışır, audit yolunu geçici dizine çevirirdi. Eski kurulumdan kalanı da sil.
-    rm -f "$HOME"/.config/opencode/plugins/*.test.ts "$HOME"/.config/opencode/plugins/*.test.js
+    # *-v2.ts (opencode 2.x adaptörü, ADR-0005) 1.x motora KURULMAZ — 1.x yükleyicisi onun biçimini tanımaz.
+    rm -f "$HOME"/.config/opencode/plugins/*.test.ts "$HOME"/.config/opencode/plugins/*.test.js "$HOME"/.config/opencode/plugins/*-v2.ts
     local eklenti
     for eklenti in "$KOK"/engine/plugins/*.ts "$KOK"/engine/plugins/*.js; do
       [ -f "$eklenti" ] || continue
-      case "$eklenti" in *.test.ts|*.test.js) continue ;; esac
+      case "$eklenti" in *.test.ts|*.test.js|*-v2.ts) continue ;; esac
       cp -f "$eklenti" "$HOME/.config/opencode/plugins/"
     done
     # ADR-0005: motordan bağımsız çekirdek (kilitler, maskeleme) plugins/lib/ altında — opencode alt dizini

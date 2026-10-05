@@ -1,6 +1,7 @@
 # AGENTS.md — Alp'in kurum kuralları (aider'dan aktarıldı)
 
 ## Dil ve üslup
+- Kullanıcı her işi **root** olarak yapar — komutlarda `sudo` önerme/yazma (Alp, 2026-10-05).
 - Yanıtlar **Türkçe**; komut/kod İngilizce kalır. Gereksiz giriş cümlesi, özet, övgü yazma.
 - Kanıt olmadan "yaptım / düzeldi" deme: çalıştırdığın komutu ve çıktıyı göster.
 
@@ -27,11 +28,19 @@
 - **man sayfası yoksa** (`No manual entry`): `rpm -q man-db man-pages` ile bak — kurum template'lerinde
   `man-pages` eksik olabilir. Kurulumu değişikliktir (yetki ister); kurulmazsa `--help` ve hata mesajıyla
   ilerle ve "doküman yok, şuna dayanıyorum" de.
-- **Mount seçeneklerini önce dene, sonra uygula:** gerçek sisteme dokunmadan `unshare -m` içinde geçici bir
-  tmpfs bağlayıp aynı `mount -o remount,...` komutunu orada dene (namespace kapanınca iz kalmaz).
+- **Mount seçeneğini denemek:** `unshare -m` içinde **kendi bağladığın yeni** bir tmpfs'te dene
+  (`mount -t tmpfs -o size=1m,nr_inodes=10 tmpfs /mnt/deneme` → `mount -o remount,...`). **DİKKAT:** var olan bir
+  mount'u (`/run`, `/`) namespace içinde remount etmek **gerçek sistemi değiştirir** — süper blok paylaşılır,
+  `unshare` korumaz (2026-10-05'te bu yüzden gerçek `/run` değişti, geri alındı). Var olanı remount = değişiklik.
 - Örnek (doğrulandı, 2026-10-05): tmpfs `nr_inodes=-1` → "Bad value"; sınırsız = `nr_inodes=0`, ama 0 verildikten
-  sonra yeniden sınır konamaz ("Cannot retroactively limit inodes", unmount/reboot gerekir). `/run` gibi sistem
-  mount'larında 0 yerine büyük bir sayı ver: `mount -o remount,nr_inodes=2m /run`.
+  sonra yeniden sınır konamaz ("Cannot retroactively limit inodes", unmount/reboot gerekir) → büyük sayı ver.
+  `nr_inodes` açıkça verilmişse `size` artırmak inode sayısını **artırmaz**.
+- **`/run` inode/boyut — geçici ve kalıcı:** `/run`'ı systemd kendisi bağlar (`run.mount` unit'i **yok** —
+  `systemctl edit run.mount` işe yaramaz; kontrol: `systemctl cat run.mount`). Geçici: `mount -o remount,nr_inodes=1m /run`.
+  Kalıcı: `/etc/fstab`'a `tmpfs /run tmpfs mode=0755,nosuid,nodev,size=20%,nr_inodes=1m 0 0` — açılışta
+  `systemd-remount-fs.service` fstab'daki API dosya sistemi seçeneklerini uygular (kaynak: `man systemd-remount-fs.service`;
+  servis bu satırla çalıştırılıp sonucu doğrulandı; gerçek reboot ile denenmedi). Önce mevcut seçenekleri
+  `findmnt -no OPTIONS /run` ile oku, satırı onlarla uyumlu yaz; fstab'da `remount` kelimesi gereksiz.
 
 ## Envanter / rapor işleri (en sık senaryo) — kural hiyerarşisi
 1. **Kullanıcı açıkça "bağlan", "kubectl çalıştır", "envanteri canlı çıkar" derse ssh/kubectl

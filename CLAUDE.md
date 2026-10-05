@@ -22,6 +22,9 @@ Global kural (`~/.claude/CLAUDE.md`) burada da geçerli. Projeye özel ekler:
 
 - **Oturum başı:** `script/upstream-kontrol.sh` çalıştır, sonucu tek satırla söyle
   (runbook: `knowledge/runbooks/upstream-guncelleme.md`; 2.x geçişi ayrı karar, ADR-0003).
+- **Upstream felsefesi (Alp, 2026-10-05):** yeniyi uygula → bizim işlerimizi (ADR-0006 yama tablosu,
+  `engine/plugins`, beceriler, `kur.sh`) yeni sürümle karşılaştır → upstream aynı işi yapıyorsa bizimkini
+  ona uyarla/yamayı düşür → Alp'e haber ver. Mimari önerin varsa çekinmeden söyle.
 - **Typecheck:** kökten `bun run typecheck` güvenli (`script/safe-concurrency.sh` concurrency'yi sınırlar).
   Elle `bun turbo typecheck` çağırıyorsan aynı sınırı kullan — sınırsız çalıştırma makineyi donduruyordu.
 - **Değişiklik sırası:** önce `engine/opencode.json` → `engine/AGENTS.md` → `knowledge/skills/` →

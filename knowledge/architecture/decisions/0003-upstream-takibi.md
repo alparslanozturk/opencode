@@ -32,3 +32,13 @@
   gecti. Ayni ADR-0001 cizgisi korunuyor: cekirdege dokunusu kucuk tutmak guncellemeyi ucuz tutuyor.
   **Duzeltme (2026-09-26):** o gunku duman testi derlemeden eski `bin/opencode` (1.18.30) ile kosmustu;
   1.18.32 motorlu ikili ilk kez 2026-09-26'da (urun 1.0.3) derlendi; duman testi + kilit senaryolari gecti.
+
+## Güncelleme (2026-10-05) — felsefe: yeniyi uygula, karşılaştır, uyarla, haber ver
+
+- **Alp kararı:** upstream'deki yeni değişimler uygulanır; her yeni sürümde bizim çalışmalarımız (ADR-0006
+  yama tablosu, `engine/plugins`, beceriler, `kur.sh`) yeni sürümle **karşılaştırılır**; upstream aynı işi
+  yapan bir kod/düzenleme getirdiyse **bizimki ona uyarlanır** (yama düşürülür, upstream yolu kullanılır) ve
+  Alp'e haber verilir. "2 sürümden fazla geride kalma" kuralı alt sınır olarak geçerli.
+- **m.4 için gözlem (2026-10-05, `npm view`):** `opencode-ai` paketinin `latest` etiketi hâlâ **1.18.34**;
+  2.x ayrı paket olarak yayımlanıyor: `@opencode/cli` `latest` = **2.0.23**. Yani m.4'teki "npm `latest` 2.x"
+  koşulu tek pakete bakılarak sağlanmış sayılmaz; 2.x geçiş kararı Alp'te (ADR-0005 adaptör planı hazır).

@@ -47,6 +47,13 @@
     yukarıdaki sabit yolları burada arama.
 - **kubectl için:** `KUBECONFIG=/etc/rancher/rke2/rke2.yaml` — örn.
   `kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml get nodes`.
+- **Kurumda k8s işi (Alp, 2026-10-05):** envanterden RKE2 kümesinin **1. master**'ına ssh ile bağlan, **yalnız
+  okuyan** kubectl çalıştır. RKE2'de kubectl PATH'te olmayabilir: `/var/lib/rancher/rke2/bin/kubectl`.
+  Örn. `ssh root@<master1> "/var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml get nodes"`.
+  Anthos (jumpbox üzerinden) şu an kapsam dışı. Hangi host'un 1. master olduğu belli değilse kullanıcıya sor.
+- **Kurum sunucu gerçekleri:** RHEL 7/8/9/10; template'ten kurulur (RHEL 9: CIS uygulanmış ESX template'i,
+  RHEL 10: Satellite'ta CIS Level 1 template'i). **SELinux ve firewalld kapalı** (kurum kararı, SELinux grub'dan
+  disable) — bunları "açın" diye önerme, sorun teşhisinde sebep sayma. Yeni sunucuda IPv6 kapatılmış olabilir.
 - **ssh güvenliği:** `StrictHostKeyChecking=accept-new` kullan — **asla `no`**.
 - **🚫 dahili-bulut erişilemez** (bilinen kısıt): `dahili-bulut.ornek.local` / `192.0.2.x` / `198.51.100.x` —
   bu adreslere ssh **denenmez**; envantere "erişilemez (bilinen kısıt)" notuyla konur (gerçek

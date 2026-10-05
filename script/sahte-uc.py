@@ -13,6 +13,8 @@ Ortam degiskenleri (hepsi opsiyonel):
   SAHTE_PROBE_HATA    "1" ise buyuk max_tokens istegine 400 + sinir mesaji doner
   SAHTE_PROBE_SINIR   probe hatasinda bildirilen cikti siniri (varsayilan 8192)
   SAHTE_ARAC          "0" ise tool_calls dondurmez (duz metin doner)
+  SAHTE_KAYIT         dosya yolu: gelen her istek JSON satiri olarak eklenir
+  SAHTE_BITIS_YOK     "1" ise akista finish_reason gonderilmez (eksik uc davranisi)
 """
 
 from __future__ import annotations
@@ -68,6 +70,10 @@ class Islek(BaseHTTPRequestHandler):
         except Exception:
             istek = {}
 
+        if os.environ.get("SAHTE_KAYIT"):  # gelen istegi dosyaya ekle (test: sistem istemi/araclar ne gitti)
+            with open(os.environ["SAHTE_KAYIT"], "a", encoding="utf-8") as f:
+                f.write(json.dumps(istek, ensure_ascii=False) + "\n")
+
         if not self.path.rstrip("/").endswith("/chat/completions"):
             self._json(404, {"error": {"message": "bilinmeyen yol: %s" % self.path}})
             return
@@ -86,8 +92,11 @@ class Islek(BaseHTTPRequestHandler):
             self.send_header("Cache-Control", "no-cache")
             self.send_header("Connection", "close")
             self.end_headers()
-            for parca in ("OK", ""):
-                olay = {"choices": [{"delta": {"content": parca}, "index": 0}]}
+            # Gercek vLLM gibi: son parcada finish_reason (yoksa opencode 2.x "stream ended without
+            # finish_reason" der; SAHTE_BITIS_YOK=1 bu eksik-uc durumunu bilerek uretir).
+            bitis_yok = os.environ.get("SAHTE_BITIS_YOK", "") == "1"
+            for parca, bitis in (("OK", None), ("", None if bitis_yok else "stop")):
+                olay = {"choices": [{"delta": {"content": parca}, "index": 0, "finish_reason": bitis}]}
                 self.wfile.write(("data: %s\n\n" % json.dumps(olay)).encode())
             self.wfile.write(b"data: [DONE]\n\n")
             self.wfile.flush()

@@ -18,6 +18,21 @@
   aracın çıktısından ver, kanıtını (tablo satırı / kaynak dosya) yaz. Sürüm tabloda yoksa
   **"❓ hesaplanamadı (veri yok)"** de; "varsayım", "muhtemelen", tarihten çıkarım ile uyum kararı verme.
 
+## Komut hata verirse ya da seçeneğinden emin değilsen: önce makinedeki doküman (Alp, 2026-10-05)
+- Bir komut/seçenek hata verdiyse **tahminle yeni değer deneme** — önce hata mesajını aynen oku, sonra o
+  makinedeki dokümana bak, değeri dokümandan al ve kaynağını yaz. Her komut için geçerli.
+- Sıra: `<komut> --help` · `man <komut>` · dosya sistemi/biçim için bölüm 5 (`man 5 tmpfs`, `man 5 fstab`) ·
+  `man 8 mount` · `man -k <kelime>` · `rpm -qd <paket>` ve `/usr/share/doc/<paket>/` · çekirdek hatası için
+  `dmesg | tail` / `journalctl -k -n 50` (mount hatası "dmesg(1) may have more information" der).
+- **man sayfası yoksa** (`No manual entry`): `rpm -q man-db man-pages` ile bak — kurum template'lerinde
+  `man-pages` eksik olabilir. Kurulumu değişikliktir (yetki ister); kurulmazsa `--help` ve hata mesajıyla
+  ilerle ve "doküman yok, şuna dayanıyorum" de.
+- **Mount seçeneklerini önce dene, sonra uygula:** gerçek sisteme dokunmadan `unshare -m` içinde geçici bir
+  tmpfs bağlayıp aynı `mount -o remount,...` komutunu orada dene (namespace kapanınca iz kalmaz).
+- Örnek (doğrulandı, 2026-10-05): tmpfs `nr_inodes=-1` → "Bad value"; sınırsız = `nr_inodes=0`, ama 0 verildikten
+  sonra yeniden sınır konamaz ("Cannot retroactively limit inodes", unmount/reboot gerekir). `/run` gibi sistem
+  mount'larında 0 yerine büyük bir sayı ver: `mount -o remount,nr_inodes=2m /run`.
+
 ## Envanter / rapor işleri (en sık senaryo) — kural hiyerarşisi
 1. **Kullanıcı açıkça "bağlan", "kubectl çalıştır", "envanteri canlı çıkar" derse ssh/kubectl
    SERBESTTİR.** Bu durumda §"SSH ve Kubernetes erişimi" altındaki gerçek yolları/kuralları kullan.

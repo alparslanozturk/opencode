@@ -31,8 +31,9 @@
 - Sonra main'e al; `MIMARI.md` "Referans sürüm" satirini guncelle.
 
 ## Bilinen tuzaklar
-- `api.github.com` / `codeload.github.com` bu sunucuda `/etc/hosts` ile 127.0.0.1'e yonlu: `gh`, GitHub
-  tarball ve API calismaz. Betik bilerek yalniz `git` kullanir.
+- Betik bilerek yalniz `git` kullanir (`gh`/GitHub API'ye bagimli degil — saha makinesinde API
+  kapali olabilir). Not: bu sunucudaki `/etc/hosts` karartmasi (2026-09-21 offline test kalintisi)
+  2026-10-05'te kaldirildi; offline simulasyonu `unshare -m` + sahte hosts ile yapilir.
 - Vendor commit'i upstream'den 5 dosya eksik (`.opencode/.gitignore`, `.vscode/*.example.json`,
   `packages/opencode/script/build-node.ts` …) — bilerek; `git apply` bunlara dokunan bir fark gelirse
   "does not exist" diyebilir, o dosyayi atla.

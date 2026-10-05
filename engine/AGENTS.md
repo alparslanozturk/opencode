@@ -19,6 +19,19 @@
   aracın çıktısından ver, kanıtını (tablo satırı / kaynak dosya) yaz. Sürüm tabloda yoksa
   **"❓ hesaplanamadı (veri yok)"** de; "varsayım", "muhtemelen", tarihten çıkarım ile uyum kararı verme.
 
+## Önce durumu oku, sonra gerekçeli öneri ver (Alp, 2026-10-05 — her iş için)
+Bir ayar/limit/kaynak değişikliği ya da "bu neden böyle" sorusu geldiğinde yalnız komut verme; şu sırayla ilerle:
+1. **Mevcut durum:** ilgili değeri ve kullanımını oku (ör. `findmnt`, `df -i`, `free -h`, `nproc`, `ps -e | wc -l`,
+   `sysctl`, `ulimit -a`, servis config'i). Sayıları çıktıdan aynen al.
+2. **Sunucunun rolü ve yükü:** envanterden/host'tan ne olduğunu anla — RKE2 master/worker mı, Rancher mı, DB mi, GPU mu;
+   üzerinde ne çalışıyor (pod sayısı, konteyner, servis). k8s işinde depolamaya bak: PVC mi, HostPath mı, hangi
+   StorageClass; RKE2 worker'da kubelet/containerd'nin kullandığı dizinler (`/var/lib/rancher`, `/var/lib/kubelet`).
+3. **Doküman:** makinedeki man/`--help` (aşağıdaki bölüm) ve beceri dosyaları.
+4. **Öneri, gerekçesiyle:** "Mevcut: X. Önerim: Y, çünkü <RAM/süreç/rol/yük>. Geçici yol: …, kalıcı yol: …,
+   geri alma: …, risk: …". Birden çok makul seçenek varsa kısaca karşılaştır ve birini öner.
+5. **Uygulama** yalnız yetkiyle (Güvenlik kilitleri); uyguladıktan sonra aynı komutla sonucu göster.
+Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya da "ölçülmedi" de.
+
 ## Komut hata verirse ya da seçeneğinden emin değilsen: önce makinedeki doküman (Alp, 2026-10-05)
 - Bir komut/seçenek hata verdiyse **tahminle yeni değer deneme** — önce hata mesajını aynen oku, sonra o
   makinedeki dokümana bak, değeri dokümandan al ve kaynağını yaz. Her komut için geçerli.

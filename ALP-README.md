@@ -9,6 +9,7 @@ Kod geliştirme YOK — sadece ayar + içerik. Amaç: **önce denemek**, sonuç 
 | Dosya | Ne işe yarar |
 |---|---|
 | `bin/opencode` | Derleme çıktısı — **yerel kalır** (git'te değil); `kur.sh` gerekirse kaynaktan üretir (hazır ikili indirme yolu YOK) |
+| `bin/bun-linux-x64-baseline-1.4.2.tgz` | Derleyici (bun) — makinede bun yoksa `kur.sh` bunu `bin/bun`'a açar; sıfır RHEL 9'da ayrıca bun kurmak gerekmez |
 | `env` | **Gerçek değerlerin tek yeri** (git'te değil) — yoksa `kur.sh` önce `env.local`'den, o da yoksa `env.example` şablonundan otomatik oluşturur (izin 600; içerik ekrana basılmaz). Şablondan üretildiyse yer tutucular gerçek uç/anahtarla doldurulmalı |
 | `engine/opencode.json` | Sağlayıcı ayarı: kurum Qwen'i OpenAI uyumlu uçtan bağlar · bağlam penceresi (`kur.sh` kurulum akışı otomatik tespit eder) · zaman aşımları · izin kuralları |
 | `engine/AGENTS.md` | Kurum kuralları: dil, envanter disiplini, güvenlik, beceri disiplini, pencere/endpoint notu |

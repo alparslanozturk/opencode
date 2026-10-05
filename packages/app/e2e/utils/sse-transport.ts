@@ -1,9 +1,10 @@
 import type { Page } from "@playwright/test"
+import type { OpenCodeEvent } from "@opencode/client/promise"
 
 export type SseConnectionRecord = {
   id: number
   url: string
-  path: "/global/event" | "/event" | "/api/event"
+  path: "/api/event"
   headers: Record<string, string>
   openedAt: number
   endedAt?: number
@@ -27,7 +28,7 @@ export type SseEventOptions = {
   marker?: string
 }
 
-export type SseTransport<T> = {
+export type SseTransport<T extends OpenCodeEvent> = {
   server: string
   waitForConnection(options?: { after?: number; timeout?: number }): Promise<SseConnectionRecord>
   send(payload: T, options?: SseEventOptions): Promise<SseDeliveryAcknowledgement>
@@ -49,19 +50,20 @@ type BrowserCommand<T> =
   | { type: "connections" }
   | { type: "acknowledgements" }
 
+// Keyed by server origin so every installed server keeps its own connections and commands.
 type BrowserTransport = Window & {
-  __testSseTransport?: {
-    command: (command: BrowserCommand<unknown>) => unknown
-  }
+  __testSseTransports?: Record<string, { command: (command: BrowserCommand<unknown>) => unknown }>
 }
 
-export async function installSseTransport<T>(
+// `keepalive` (default true) writes an SSE comment every 15 s like the real server, so long scenarios do not trip the
+// client's stall watchdog. Set it to false only to test that watchdog.
+export async function installSseTransport<T extends OpenCodeEvent = OpenCodeEvent>(
   page: Page,
-  options: { server: string; retry?: number },
+  options: { server: string; retry?: number; keepalive?: boolean },
 ): Promise<SseTransport<T>> {
   const server = new URL(options.server).origin
   await page.addInitScript(
-    ({ server, retry }) => {
+    ({ server, retry, keepalive }) => {
       type Connection = SseConnectionRecord & { controller: ReadableStreamDefaultController<Uint8Array> }
       type ProbeWindow = Window & {
         __visualStabilityProbe?: { startedAt: number; markers: { at: number; label: string }[] }
@@ -70,6 +72,11 @@ export async function installSseTransport<T>(
       const connections: Connection[] = []
       const acknowledgements: SseDeliveryAcknowledgement[] = []
       const encoder = new TextEncoder()
+      const keepalives = new Map<number, ReturnType<typeof setInterval>>()
+      const stopKeepalive = (id: number) => {
+        clearInterval(keepalives.get(id))
+        keepalives.delete(id)
+      }
       let nextConnectionID = 0
       let nextDeliveryID = 0
 
@@ -93,21 +100,6 @@ export async function installSseTransport<T>(
           eventOptions.retry === undefined ? "" : `retry: ${eventOptions.retry}\n`,
           `data: ${JSON.stringify(payload)}\n\n`,
         ].join("")
-      const currentEvent = (input: unknown) => {
-        if (!input || typeof input !== "object" || !("payload" in input)) return input
-        const envelope = input as { directory?: string; payload?: unknown }
-        if (!envelope.payload || typeof envelope.payload !== "object") return input
-        const payload = envelope.payload as { id?: string; type?: string; properties?: unknown }
-        if (!payload.type) return input
-        return {
-          id: payload.id ?? `evt_mock_${Date.now()}`,
-          created: Date.now(),
-          type: payload.type,
-          data: payload.properties ?? {},
-          location:
-            envelope.directory && envelope.directory !== "global" ? { directory: envelope.directory } : undefined,
-        }
-      }
       const acknowledge = (
         connection: Connection,
         bytes: number,
@@ -128,6 +120,7 @@ export async function installSseTransport<T>(
       const end = (mode: "close" | "disconnect" | "error", message?: string) => {
         const connection = current()
         if (!connection) throw new Error("SSE transport has no active connection")
+        stopKeepalive(connection.id)
         connection.endedAt = performance.now()
         connection.endedBy = mode
         if (message) connection.error = message
@@ -155,13 +148,14 @@ export async function installSseTransport<T>(
           output.forEach((chunk) => connection.controller.enqueue(chunk))
           return acknowledge(connection, input.bytes.length, output.length)
         }
-        const encoded = input.deliveries.map((delivery) => {
-          const payload = connection.path === "/api/event" ? currentEvent(delivery.payload) : delivery.payload
-          return { delivery, payload, bytes: encoder.encode(frame(payload, delivery.options)) }
-        })
+        const encoded = input.deliveries.map((delivery) => ({
+          delivery,
+          payload: delivery.payload,
+          bytes: encoder.encode(frame(delivery.payload, delivery.options)),
+        }))
         encoded.forEach((item) => marker(item.delivery.options?.marker))
         if (input.burst) {
-          const bytes = encoder.encode(encoded.map((item) => frame(item.payload, item.delivery.options)).join(""))
+          const bytes = encoder.encode(encoded.map((item) => new TextDecoder().decode(item.bytes)).join(""))
           connection.controller.enqueue(bytes)
           return encoded.map((item) => acknowledge(connection, item.bytes.byteLength, 1, item.delivery.options?.id))
         }
@@ -170,15 +164,12 @@ export async function installSseTransport<T>(
         return acknowledge(connection, encoded[0]!.bytes.byteLength, output.length, encoded[0]!.delivery.options?.id)
       }
 
-      ;(window as BrowserTransport).__testSseTransport = { command }
+      const host = window as BrowserTransport
+      host.__testSseTransports = { ...host.__testSseTransports, [server]: { command } }
       const fetch = (input: RequestInfo | URL, init?: RequestInit) => {
         const request = new Request(input, init)
         const url = new URL(request.url)
-        if (
-          url.origin !== server ||
-          (url.pathname !== "/global/event" && url.pathname !== "/event" && url.pathname !== "/api/event")
-        )
-          return originalFetch(request)
+        if (url.origin !== server || url.pathname !== "/api/event") return originalFetch(request)
 
         const id = ++nextConnectionID
         const record = {
@@ -193,22 +184,19 @@ export async function installSseTransport<T>(
             record.controller = controller
             connections.push(record)
             if (retry !== undefined) controller.enqueue(encoder.encode(`retry: ${retry}\n\n`))
-            if (url.pathname === "/api/event")
-              controller.enqueue(
-                encoder.encode(frame({ id: `evt_mock_connected_${id}`, type: "server.connected", data: {} })),
-              )
-            if (url.pathname === "/global/event")
-              controller.enqueue(
-                encoder.encode(
-                  frame({
-                    payload: { id: `evt_mock_connected_${id}`, type: "server.connected", properties: {} },
-                  }),
-                ),
+            controller.enqueue(
+              encoder.encode(frame({ id: `evt_mock_connected_${id}`, type: "server.connected", data: {} })),
+            )
+            if (keepalive)
+              keepalives.set(
+                id,
+                setInterval(() => controller.enqueue(encoder.encode(": keepalive\n\n")), 15_000),
               )
             request.signal.addEventListener(
               "abort",
               () => {
                 if (record.endedAt !== undefined) return
+                stopKeepalive(id)
                 record.endedAt = performance.now()
                 record.endedBy = "abort"
                 controller.error(request.signal.reason ?? new DOMException("The operation was aborted", "AbortError"))
@@ -217,6 +205,7 @@ export async function installSseTransport<T>(
             )
           },
           cancel() {
+            stopKeepalive(id)
             if (record.endedAt !== undefined) return
             record.endedAt = performance.now()
             record.endedBy = "disconnect"
@@ -234,26 +223,29 @@ export async function installSseTransport<T>(
       }
       Object.defineProperty(window, "fetch", { configurable: true, writable: true, value: fetch })
     },
-    { server, retry: options.retry },
+    { server, retry: options.retry, keepalive: options.keepalive !== false },
   )
 
   const command = <Result>(input: BrowserCommand<T>) =>
-    page.evaluate((input) => {
-      const transport = (window as BrowserTransport).__testSseTransport
-      if (!transport) throw new Error("SSE transport was not installed before page load")
-      return transport.command(input as BrowserCommand<unknown>)
-    }, input) as Promise<Result>
+    page.evaluate(
+      ({ server, input }) => {
+        const transport = (window as BrowserTransport).__testSseTransports?.[server]
+        if (!transport) throw new Error(`SSE transport for ${server} was not installed before page load`)
+        return transport.command(input as BrowserCommand<unknown>)
+      },
+      { server, input },
+    ) as Promise<Result>
 
   return {
     server,
     async waitForConnection(input = {}) {
       const connection = await page.waitForFunction(
-        (after) => {
-          const transport = (window as BrowserTransport).__testSseTransport
+        ({ server, after }) => {
+          const transport = (window as BrowserTransport).__testSseTransports?.[server]
           const connections = transport?.command({ type: "connections" }) as SseConnectionRecord[] | undefined
           return connections?.findLast((connection) => connection.id > after && connection.endedAt === undefined)
         },
-        input.after ?? 0,
+        { server, after: input.after ?? 0 },
         { timeout: input.timeout },
       )
       let result: SseConnectionRecord | undefined
@@ -279,15 +271,11 @@ export async function installSseTransport<T>(
       return command({ type: "send", deliveries: [{ payload, options: eventOptions }], burst: false, cuts: [...cuts] })
     },
     heartbeat(eventOptions) {
+      const bytes = new TextEncoder().encode(": heartbeat\n\n")
       return command({
-        type: "send",
-        deliveries: [
-          {
-            payload: { directory: "global", payload: { type: "server.heartbeat", properties: {} } } as T,
-            options: eventOptions,
-          },
-        ],
-        burst: false,
+        type: "raw",
+        bytes: Array.from(bytes),
+        marker: eventOptions?.marker,
       })
     },
     writeRaw(value, cuts, marker) {

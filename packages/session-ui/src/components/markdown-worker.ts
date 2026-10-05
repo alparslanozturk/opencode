@@ -1,4 +1,3 @@
-import MarkdownWorkerUrl from "./markdown.worker.ts?worker&url"
 import {
   applyMarkdownWorkerResponse,
   shouldReleaseMarkdownWorkerState,
@@ -55,12 +54,21 @@ const projectTransport = createWorkerTransport<Extract<MarkdownWorkerRequest, { 
   },
 })
 
-export function parseMarkdown(text: string) {
+export function parseMarkdown(text: string, signal: AbortSignal) {
+  if (signal.aborted) return Promise.reject(new MarkdownWorkerDisposedError())
   const instance = getWorker()
   const id = ++nextID
+  const abort = () => {
+    parses.get(id)?.reject(new MarkdownWorkerDisposedError())
+    parses.delete(id)
+  }
   return new Promise<string>((resolve, reject) => {
     parses.set(id, { resolve, reject })
+    signal.addEventListener("abort", abort, { once: true })
     instance.postMessage({ type: "parse", id, text } satisfies MarkdownWorkerRequest)
+  }).finally(() => {
+    signal.removeEventListener("abort", abort)
+    parses.delete(id)
   })
 }
 
@@ -84,7 +92,7 @@ export function disposeMarkdownProjection(key: string) {
 }
 
 export function highlightStreamingCode(key: string, text: string, language: string, complete = false) {
-  const instance = getWorker()
+  getWorker()
   const id = ++nextID
   latest.set(key, id)
   keys.delete(key)
@@ -117,7 +125,7 @@ function getWorker() {
   if (worker) return worker
   if (disabled) throw new MarkdownWorkerUnavailableError(disabled.message)
   try {
-    worker = new Worker(MarkdownWorkerUrl, { type: "module" })
+    worker = new Worker(new URL("./markdown.worker.ts", import.meta.url), { type: "module" })
   } catch (error) {
     disabled = error instanceof Error ? error : new Error(String(error))
     throw new MarkdownWorkerUnavailableError(disabled.message)

@@ -19,6 +19,15 @@
   aracın çıktısından ver, kanıtını (tablo satırı / kaynak dosya) yaz. Sürüm tabloda yoksa
   **"❓ hesaplanamadı (veri yok)"** de; "varsayım", "muhtemelen", tarihten çıkarım ile uyum kararı verme.
 
+## Sormak gerekeni sor — işi en iyi yapmak için (Alp, 2026-10-05)
+- **Başlamadan:** cevabı sonucu değiştirecek belirsizlik varsa (hedef sunucu/küme, amaç, kapsam, geçici mi kalıcı mı,
+  kısıt) **tek mesajda, numaralı, kısa** sor. Kendin okuyup ölçebileceğin şeyi sorma — önce bak, sonra sor.
+- **Kanıt iste:** kullanıcı bir hata/durum anlatıp çıktıyı vermediyse tahminle çözüm üretme — komutu kendin
+  çalıştır (salt-okunur) ya da "şu komutun çıktısını/ekranını paylaşır mısın" de.
+- **Tahmin ile olguyu ayır:** çıkarım yapıyorsan başına `tahmin:` yaz ve neye dayandığını söyle.
+- Sorunun cevabını beklerken yapılabilecek salt-okunur hazırlığı yap; makul varsayılanı olan küçük seçimi
+  kendin yap ve hangi varsayılanı seçtiğini söyle.
+
 ## Önce durumu oku, sonra gerekçeli öneri ver (Alp, 2026-10-05 — her iş için)
 Bir ayar/limit/kaynak değişikliği ya da "bu neden böyle" sorusu geldiğinde yalnız komut verme; şu sırayla ilerle:
 1. **Mevcut durum:** ilgili değeri ve kullanımını oku (ör. `findmnt`, `df -i`, `free -h`, `nproc`, `ps -e | wc -l`,
@@ -156,8 +165,9 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
 ## Çalışma akışı (Alp, 2026-09-28 — Claude Code gibi; eski "tek adım disiplini" 16K pencere içindi)
 - Verilen işi **sonuna kadar yap**: salt-okunur adımlar (okuma, arama, durum komutları) için her adımda
   durup onay isteme. Bitince kısa sonuç + kanıt (dosya:satır / komut çıktısı) ver.
-- **Yalnız şu durumlarda dur ve sor:** değişiklik yapan komut (K1 — CN/KURULUM/KRİZ yetkisi gerekir),
-  çalışma dizini dışına çıkma, ya da isteğin kendisi belirsiz.
+- **İş sırasında şu durumlarda dur ve sor:** değişiklik yapan komut (K1 — CN/KURULUM/KRİZ yetkisi gerekir),
+  çalışma dizini dışına çıkma, isteğin kendisi belirsiz, ya da sonucu değiştiren yeni bir durum çıktı
+  (beklenmeyen hata, istenen şey başka bir şeyi bozacak). Başlamadan önce sorulacaklar: "Sormak gerekeni sor".
 - **Eksik bilgi işi durdurmaz (A18):** çözülemeyen öğeyi `[SAHA]`/`bilinmiyor` diye işaretle, kalanlarla
   devam et; sonda **"Açık kalanlar"** listesi ver (ne eksik, nereden gelebilir).
 - Aynı başarısız adımı tekrar tekrar deneme; iki denemede olmuyorsa dur ve durumu anlat.

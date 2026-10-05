@@ -53,6 +53,7 @@ KOK="$(cd "$(dirname "$_kaynak")" && pwd)"
 #  Sabitler
 # ---------------------------------------------------------------------------
 NODE_SURUM="v24.19.0"
+BUN_PAKET="$KOK/bin/bun-linux-x64-baseline-1.4.2.tgz"   # sifir makinede bun buradan acilir
 
 # Ürün sürümü/kanalı — TEK YER burasıdır: derleme adımı ikiliye bu değerleri yazar
 # (build.ts), kurulum kararı da `bin/opencode --version`'ı bununla karşılaştırır.
@@ -316,8 +317,18 @@ derle() {
       BUN_YOL="$HOME/.bun/bin/bun"
     elif [ -x "/root/.bun/bin/bun" ]; then
       BUN_YOL="/root/.bun/bin/bun"
+    elif [ -x "$KOK/bin/bun" ]; then
+      BUN_YOL="$KOK/bin/bun"
+    elif [ -f "$BUN_PAKET" ]; then
+      # Sifir makine: bun repodaki npm paketinden acilir (@oven/bun-linux-x64-baseline —
+      # "baseline" AVX2 istemez, her x64 CPU'da calisir). Yalniz derleme icin kullanilir.
+      echo "==> bun yok — repodaki paketten aciliyor: ${BUN_PAKET#"$KOK/"}"
+      tar xzf "$BUN_PAKET" -O package/bin/bun > "$KOK/bin/bun.yeni" \
+        && chmod 755 "$KOK/bin/bun.yeni" && mv -f "$KOK/bin/bun.yeni" "$KOK/bin/bun" || {
+        rm -f "$KOK/bin/bun.yeni"; hata "bun paketi acilamadi: $BUN_PAKET"; return 1; }
+      BUN_YOL="$KOK/bin/bun"
     else
-      hata "bun bulunamadi. PATH'e ekle veya BUN=/yol/bun ./kur.sh derle olarak calistir."
+      hata "bun bulunamadi (repodaki $BUN_PAKET da yok). PATH'e ekle veya BUN=/yol/bun ./kur.sh derle."
       return 1
     fi
   fi
@@ -330,9 +341,30 @@ derle() {
     return 1
   fi
 
-  # --- 1) Node header'lari ---------------------------------------------------
-  node_headerlari_hazirla || \
-    echo "!! node-$NODE_SURUM header'lari hazirlanamadi — derlemeye devam ediliyor (node-gyp gerekirse kirilabilir)." >&2
+  # --- 1) Kurulum betikleri + node header'lari ---------------------------------
+  # Varsayilan: bagimliliklarin kurulum betikleri (postinstall) CALISTIRILMAZ. Tek etkisi
+  # tree-sitter-powershell'in yerel (node-gyp, g++) derlemesiydi; opencode o paketi yalniz
+  # .wasm olarak kullanir (src/tool/shell.ts) — boylece sifir RHEL'de gcc-c++/make/node header
+  # gerekmez (2026-10-05: --ignore-scripts ile derleme + smoke-ikili.sh GECTI).
+  # Eski davranis icin: KUR_BETIKLER=1 ./kur.sh
+  if [ "${KUR_BETIKLER:-0}" = "1" ]; then
+    node_headerlari_hazirla || \
+      echo "!! node-$NODE_SURUM header'lari hazirlanamadi — derlemeye devam ediliyor (node-gyp gerekirse kirilabilir)." >&2
+  else
+    INSTALL_EK=(--ignore-scripts ${INSTALL_EK[@]+"${INSTALL_EK[@]}"})
+  fi
+
+  # --- 1b) npm registry -> bun ---------------------------------------------------
+  # bun ~/.npmrc'yi kendisi okur; npm ayari baska yerdeyse (/etc/npmrc, prefix npmrc)
+  # registry'yi npm'den alip bun'a ver. ~/.bunfig.toml ya da BUN_CONFIG_REGISTRY varsa dokunma.
+  if [ -z "${BUN_CONFIG_REGISTRY:-}" ] && [ ! -f "$HOME/.bunfig.toml" ] && command -v npm >/dev/null 2>&1; then
+    local NPM_REG
+    NPM_REG="$(npm config get registry 2>/dev/null || true)"
+    case "$NPM_REG" in
+      ""|https://registry.npmjs.org|https://registry.npmjs.org/) ;;
+      *) export BUN_CONFIG_REGISTRY="$NPM_REG"; echo "==> registry (npm ayarindan): $NPM_REG" ;;
+    esac
+  fi
 
   # --- 2) models.dev anlik goruntusu (ag yok -> fetch denenmesin) -------------
   local SNAPSHOT="$KOK/packages/opencode/script/models-dev-api.json"

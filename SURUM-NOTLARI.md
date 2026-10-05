@@ -6,6 +6,13 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-10-05 — sıfır RHEL 9'da yalnız `al.sh` + `env` ile kurulum
+
+bun artık repoda (`bin/bun-linux-x64-baseline-1.4.2.tgz`, 37 MB); makinede bun yoksa `kur.sh` onu açar. Bağımlılık
+kurulum betikleri varsayılan kapalı (`--ignore-scripts`) → gcc-c++/make/node header gerekmez (`KUR_BETIKLER=1` eski
+davranış). npm'in registry ayarı (`/etc/npmrc` dahil) bun'a aktarılır, `~/.bunfig.toml` gerekmez. Sahada etkisi:
+mevcut makinede bun zaten kurulu → aynen o kullanılır; tek fark kurulum betiklerinin atlanması.
+
 ## 2026-10-05 — motor: upstream opencode 1.18.33 → 1.18.34
 
 Çakışma yok; yamalarımızın hiçbiri upstream'de çözülmemiş, düşürülen yama yok. Motor farkı küçük: oturum kimliği

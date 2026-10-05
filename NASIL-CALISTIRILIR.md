@@ -123,6 +123,14 @@ akışının bir parçası DEĞİLDİR.
 
 ## 🛠️ Saha kurulumu (<saha-makinesi>, offline) — `al.sh` → **`kur.sh`**
 
+> **Sıfır makine (2026-10-05, doğrulandı):** temel RHEL 9 + kurum npm proxy ayarı (npm'in kendi ayarı yeter:
+> `~/.npmrc` ya da `/etc/npmrc`) yeterli. **bun gerekmez** — yoksa `kur.sh` repodaki
+> `bin/bun-linux-x64-baseline-1.4.2.tgz`'yi `bin/bun`'a açar (baseline: AVX2 istemez). **gcc-c++/make/node
+> header'ı gerekmez** — bağımlılık kurulum betikleri varsayılan olarak çalıştırılmaz (tek etkisi kullanılmayan
+> `tree-sitter-powershell` yerel derlemesiydi; opencode onu `.wasm` ile kullanır). Eski davranış: `KUR_BETIKLER=1`.
+> Gerekenler: `git` (al.sh), `tar`+`gzip`, `curl`, `python3`. Doğrulama: temiz klon, bun hiçbir yerde yok,
+> boş bun önbelleği, boş `HOME` → `./kur.sh derle` 37 sn, `smoke-ikili.sh` GEÇTİ.
+
 > **Kime:** dış interneti olmayan, yalnız **kurum içi npm proxy**'sine erişen saha makinesi.
 > **Doğrulandı: 2026-09-21** — skyup'ta, `pkg.pr.new` / `api.github.com` / `github.com` / `models.dev`
 > host'ları bir mount namespace'inde karartılarak (`unshare -m` + sahte `/etc/hosts`) ve **boş bun

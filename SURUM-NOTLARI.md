@@ -6,6 +6,13 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-10-05 — motor: upstream opencode 1.18.33 → 1.18.34
+
+Çakışma yok; yamalarımızın hiçbiri upstream'de çözülmemiş, düşürülen yama yok. Motor farkı küçük: oturum kimliği
+başlıkları (`x-opencode-session-id`) artık tüm sağlayıcılara gidiyor (kurum ucu bilmediği başlığı yok sayar).
+Doğrulama: yamalı alan testleri + `engine/plugins` 160/0 + typecheck + `kur.sh derle` + `smoke-ikili.sh` GEÇTİ.
+Ürün sürümü değişmedi (2.0.0). Sahada `al.sh` → `./kur.sh` (kaynak yeni → yeniden derler).
+
 ## 2026-09-30 — çevrimdışı veri + uyumluluk kontrolü varsayılan gelir (T33)
 
 Alp: "opencode yetenek olarak bunlarla gelsin … uyumlulukları kontrol edebilsin matriksleri". `rke2-ansible`

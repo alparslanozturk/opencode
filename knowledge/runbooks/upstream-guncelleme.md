@@ -24,7 +24,7 @@
 - Yamali alanlarin testleri:
   `cd packages/opencode && bun test test/server/httpapi-error-middleware.test.ts test/server/httpapi-defect-classify.test.ts test/session/prompt.test.ts test/session/system.test.ts`
   ve `cd packages/core && bun test test/reference.test.ts`
-- `cd packages/opencode && bun run typecheck` (tek paket; kok typecheck de guvenli — ADR-0002)
+- `cd packages/opencode && bun run typecheck -- --singleThreaded` (tek paket; bayraksiz hali 2 vCPU makinede SIGTERM ile oluyor — 2026-10-05; kok `bun run typecheck` guvenli — ADR-0002)
 - `./kur.sh derle` **sonra** `bash script/smoke-ikili.sh packages/opencode/dist/opencode-linux-x64/bin/opencode`
   → `GECTI`. DIKKAT: argumansiz `smoke-ikili.sh` **eski** `bin/opencode`'u test eder (derlemez) — 2026-09-24'te
   1.18.32 gecisi bu yuzden yanlislikla 1.18.30 ikilisiyle "dogrulandi"; 2026-09-26'da duzeltildi.

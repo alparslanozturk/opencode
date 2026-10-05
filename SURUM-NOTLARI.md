@@ -6,6 +6,24 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-10-05 — ürün 3.0.0: motor opencode 2.0.23 (ana sürüm geçişi)
+
+Alp: "direk 2.x geç". Motor `packages/opencode` → **`packages/cli`** (+ `core`/`tui`/`server`). Sahada akış aynı:
+`al.sh` → `./kur.sh` (kaynak yeni → derler, ~10 sn) → `opencode`. Değişenler:
+- **Güvenlik:** `guvenlik-v2.ts` (2.x kancaları; çekirdek aynı). Yeni risk kapatıldı: alt ajan oturumunun mesajını model
+  yazar → yetki yalnız kök oturumdaki kullanıcı mesajından. 1.x `audit-log.ts`/`guard.ts` kurulmaz, eskileri silinir.
+- **Sınır = açılış dizini** (A35) 2.x'e taşındı (`packages/core/src/file-access.ts`); diğer fork yamaları upstream'de
+  çözülmüş ya da katman değişmiş → düşürüldü (vendor commit'i).
+- **İlk açılış:** 2.x 1.x oturum veritabanını yerinde dönüştürür; `kur.sh` öncesinde bir kerelik kopya alır
+  (`~/.local/share/opencode/yedek-1x-<tarih>/`).
+- **TUI:** fare ayarı `~/.config/opencode/cli.json` (`mouse:false`). `websearch` kapalı (çevrimdışı). Model yalnız metin.
+- **Bilinen:** 2.x her 5 dk models.dev'e çıkmayı dener (sahada başarısız + tek hata satırı, açılışı etkilemez).
+Doğrulama (geliştirme makinesi): sıfır makine benzetimi (temiz klon, bun yok, boş HOME, sahte uç) `./kur.sh` 31 sn,
+kontrol raporu kurulum + uç satırları ✓; kurulu ikiliyle uçtan uca `rm -rf /` reddedildi, `ssh … systemctl restart`
+K1 mesajıyla reddedildi, `uname -r` çalıştı, audit 3 satır; ikinci `./kur.sh` derlemeyi atladı; `engine/plugins` testleri
+175/0; `packages/core` testleri 5287 geçti / 3 başarısız (üçü yamasız 2.0.23'te de başarısız: root kullanıcı ortamı);
+CLI bağımlılık ağacı typecheck 19/19.
+
 ## 2026-10-05 — sıfır RHEL 9'da yalnız `al.sh` + `env` ile kurulum
 
 bun artık repoda (`bin/bun-linux-x64-baseline-1.4.2.tgz`, 37 MB); makinede bun yoksa `kur.sh` onu açar. Bağımlılık

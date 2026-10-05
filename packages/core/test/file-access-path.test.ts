@@ -92,7 +92,7 @@ describe("FileAccess.resolve", () => {
         yield* Effect.promise(() => fs.mkdir(active, { recursive: true }))
         const access = yield* FileAccess.Service
         const target = yield* access.resolve({ path: "../../README.md" })
-        expect(target.absolute).toBe(path.join(directory, "README.md"))
+        expect(target).toMatchObject({ absolute: path.join(directory, "README.md") })
         expect(target.externalDirectory).toMatchObject({
           action: "external_directory",
           resource: path.join(directory, "*").replaceAll("\\", "/"),

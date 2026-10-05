@@ -21,11 +21,15 @@ Global kural (`~/.claude/CLAUDE.md`) burada da geçerli. Projeye özel ekler:
 ## Çalışma
 
 - **Oturum başı:** `script/upstream-kontrol.sh` çalıştır, sonucu tek satırla söyle
-  (runbook: `knowledge/runbooks/upstream-guncelleme.md`; 2.x geçişi ayrı karar, ADR-0003).
+  (runbook: `knowledge/runbooks/upstream-guncelleme.md`; artık 2.x hattı izlenir).
 - **Upstream felsefesi (Alp, 2026-10-05):** yeniyi uygula → bizim işlerimizi (ADR-0006 yama tablosu,
   `engine/plugins`, beceriler, `kur.sh`) yeni sürümle karşılaştır → upstream aynı işi yapıyorsa bizimkini
   ona uyarla/yamayı düşür → Alp'e haber ver. Mimari önerin varsa çekinmeden söyle.
-- **Typecheck:** kökten `bun run typecheck` güvenli (`script/safe-concurrency.sh` concurrency'yi sınırlar).
+- **Motor opencode 2.x** (2026-10-05'ten beri; ürün 3.0.0): CLI `packages/cli`, çekirdek `packages/core`. Güvenlik
+  eklentisi `engine/plugins/guvenlik-v2.ts` (1.x `audit-log.ts` emekli). Testlerde `opencode run --standalone`
+  kullan (bayraksız `run` arkada kalıcı servis bırakır).
+- **Typecheck:** kökten `bun run typecheck` güvenli (`script/safe-concurrency.sh` concurrency'yi sınırlar) ve
+  yalnız sahaya giden CLI ağacını denetler (`--filter=@opencode/cli...`; desktop/console/web kapsam dışı).
   Elle `bun turbo typecheck` çağırıyorsan aynı sınırı kullan — sınırsız çalıştırma makineyi donduruyordu.
 - **Değişiklik sırası:** önce `engine/opencode.json` → `engine/AGENTS.md` → `knowledge/skills/` →
   `engine/plugins/` → en son fork kodu (`MIMARI.md`).

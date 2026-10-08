@@ -6,6 +6,14 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-10-08 — beceri: `cekirdek-teshis` (çekirdek sorunlarını loglardan teşhis)
+
+Alp: "sahada sorunları anlamakta, logları incelerken lazım olur". Sıra log → canlı gözlem → döküm:
+`journalctl -k` kalıp tablosu + `Tainted:` harfleri (çekirdek belgesinden), BTF ile debuginfo'suz
+`bpftrace` hazır araçları ve `perf`, kdump'ta önce `vmcore-dmesg.txt`, `crash` yalnız eşleşen
+`kernel-debuginfo` varsa. KGDB/JTAG/QEMU bilinçli dışarıda (KGDB çekirdeği durdurur). Paket kurma
+ve kdump açma K1 değişikliği. Sahada `./kur.sh` ile kurulur (approved/ = 14 beceri).
+
 ## 2026-10-05 — ürün 3.0.0: motor opencode 2.0.23 (ana sürüm geçişi)
 
 Alp: "direk 2.x geç". Motor `packages/opencode` → **`packages/cli`** (+ `core`/`tui`/`server`). Sahada akış aynı:

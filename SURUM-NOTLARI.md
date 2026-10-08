@@ -6,6 +6,15 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-10-08 — motor: upstream opencode 2.0.23 → 2.0.24
+
+Tek çakışma `.gitignore` (upstream `/artifacts/` ekledi; ikisi de tutuldu). Tek çekirdek yamamız (A35,
+`packages/core/src/file-access.ts`) upstream'in değiştirdiği dosyalarla kesişmiyor, taşınıyor; düşürülen yama yok.
+Motor farkı: ACP, yerel sağlayıcılar (local/ollama/lmstudio/vllm), kabuk komut ayrıştırıcı (`shell/scan.ts`).
+Doğrulama: typecheck 19/19 · `engine/plugins` 175/0 · `packages/core` 6188 geçti / 3 başarısız (bilinen üç, root
+ortamı) · `kur.sh derle` + `smoke-ikili.sh` GEÇTİ · yeni ikiliyle izole kurulumda `rm -rf /` K5 ile reddedildi,
+`uname -r` çalıştı. Ürün sürümü değişmedi (3.0.0). Sahada `al.sh` → `./kur.sh` (kaynak yeni → yeniden derler).
+
 ## 2026-10-08 — beceri: `cekirdek-teshis` (çekirdek sorunlarını loglardan teşhis)
 
 Alp: "sahada sorunları anlamakta, logları incelerken lazım olur". Sıra log → canlı gözlem → döküm:

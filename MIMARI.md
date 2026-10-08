@@ -1,8 +1,8 @@
 # MİMARİ — opencode ajan kiti
 
 Aider fork'unda (15 faz) biriken tecrübeyi **opencode**'a taşıyan ajan kiti.
-Bundan sonraki kodlama ajanı geliştirmesi bu depo üzerinden yürür. Referans sürüm: **opencode 2.0.23**
-(vendor/upstream; 2026-10-05'te 1.x → 2.x geçildi, motor `packages/cli` + `packages/core`). Upstream **takip edilir**: `script/upstream-kontrol.sh` her oturum başında çalışır,
+Bundan sonraki kodlama ajanı geliştirmesi bu depo üzerinden yürür. Referans sürüm: **opencode 2.0.24**
+(vendor/upstream; 2026-10-05'te 1.x → 2.x geçildi, 2026-10-08'de 2.0.24, motor `packages/cli` + `packages/core`). Upstream **takip edilir**: `script/upstream-kontrol.sh` her oturum başında çalışır,
 aynı ana sürüm hattında en fazla 2 sürüm geride kalınır, güncelleme `knowledge/runbooks/upstream-guncelleme.md`
 ile ayrı dalda yapılır (felsefe: yeniyi uygula, bizimkiyle karşılaştır, upstream aynı işi yapıyorsa ona uyarla —
 ADR-0003 güncellemesi). **Ürün sürümü ayrı**: `kur.sh`'ın derlediği ikili **3.0.0**'ı basar (`SURUM` sabiti,

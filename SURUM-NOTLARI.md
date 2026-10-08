@@ -15,7 +15,15 @@ Doğrulama: typecheck 19/19 · `engine/plugins` 175/0 · `packages/core` 6188 ge
 ortamı) · `kur.sh derle` + `smoke-ikili.sh` GEÇTİ · yeni ikiliyle izole kurulumda `rm -rf /` K5 ile reddedildi,
 `uname -r` çalıştı. Ürün sürümü değişmedi (3.0.0). Sahada `al.sh` → `./kur.sh` (kaynak yeni → yeniden derler).
 
-## 2026-10-08 — beceri: `cekirdek-teshis` (çekirdek sorunlarını loglardan teşhis)
+## 2026-10-08 — beceri: `cekirdek-teshis` + CPU gecikmesi (eBPF)
+
+Alp: "eBPF ile CPU latency izleyebilmek Rancher, NVIDIA vb. sistemlerde önemli". Yeni bölüm: önce cgroup v2
+`cpu.stat` (`nr_throttled`/`throttled_usec` artıyor mu — konteyner limiti), sonra `runqlat.bt`/`runqlen.bt`,
+sonra `rtla timerlat` (cyclictest/clock_nanosleep ölçümünün çekirdek içi karşılığı; sözdizimi `--help`'ten).
+GPU'nun içi eBPF ile görülmez. `k8s-rancher`'a yönlendirme satırı. Araç/alan varlığı AlmaLinux 10'da doğrulandı
+(`rtla`, `runqlat.bt`, `cpu.stat`, `CONFIG_TIMERLAT_TRACER=y`); RHEL 9 sahada denenmedi.
+
+## 2026-10-08 — beceri: `cekirdek-teshis` (ilk sürüm — çekirdek sorunlarını loglardan teşhis)
 
 Alp: "sahada sorunları anlamakta, logları incelerken lazım olur". Sıra log → canlı gözlem → döküm:
 `journalctl -k` kalıp tablosu + `Tainted:` harfleri (çekirdek belgesinden), BTF ile debuginfo'suz

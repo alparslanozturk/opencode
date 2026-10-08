@@ -1,6 +1,6 @@
 ---
 name: cekirdek-teshis
-description: Çekirdek (kernel) kaynaklı sorunları loglardan teşhis ederken kullan — çöküş/panic, donma, "call trace", oops, soft lockup, hung task, OOM, disk G/Ç hatası, beklenmeyen reboot. "kernel", "çekirdek", "dmesg", "call trace", "panic", "oops", "lockup", "donma", "hung task", "kdump", "vmcore", "crash", "bpftrace", "perf", "kgdb", "debuginfo" isteklerinde tetiklenir. Genel yavaşlık için `performans`.
+description: Çekirdek (kernel) kaynaklı sorunları loglardan teşhis ederken kullan — çöküş/panic, donma, "call trace", oops, soft lockup, hung task, OOM, disk G/Ç hatası, beklenmeyen reboot. "kernel", "çekirdek", "dmesg", "call trace", "panic", "oops", "lockup", "donma", "hung task", "kdump", "vmcore", "crash", "bpftrace", "ebpf", "perf", "gecikme", "latency", "throttling", "runqlat", "timerlat", "kgdb", "debuginfo" isteklerinde tetiklenir. Genel yavaşlık için `performans`.
 ---
 
 Çekirdek sorununda sıra hep aynı: **log → canlı gözlem → döküm.** Her adım bir
@@ -112,6 +112,54 @@ perf report -i /tmp/perf.data --stdio --sort sym | head -60
 
 Debuginfo olmadan çekirdek **fonksiyon adları** görünür (satır numarası
 görünmez) — teşhis için yeterlidir.
+
+### CPU gecikmesi (latency) — "CPU boş ama iş geç çalışıyor"
+
+Ortalama CPU kullanımı düşükken uygulama gecikiyorsa sorun **ne kadar CPU**
+değil, **ne kadar beklediği**dir. Kubernetes/Rancher düğümlerinde ve GPU'lu
+(NVIDIA) sunucularda — GPU'yu besleyen CPU iş parçacıkları gecikirse GPU da
+boşta bekler — bu sık görülür. Sıra:
+
+**a) Konteyner/pod ise önce CPU kısıtlaması (throttling).** eBPF'ten önce
+bak, en sık sebep budur: CPU `limit`'i dolan konteyner her periyotta
+durdurulur.
+
+```bash
+cat /proc/<pid>/cgroup                         # 0::/<yol>
+cat /sys/fs/cgroup/<yol>/cpu.stat              # 10 sn arayla iki kez oku
+```
+
+`nr_throttled` ve `throttled_usec` iki okuma arasında **artıyorsa**
+konteyner limitine takılıyor — çözüm limit/istek ayarı (`k8s-rancher`),
+çekirdek değil. Alanlar cgroup v2'de vardır (`stat -fc %T /sys/fs/cgroup` →
+`cgroup2fs`).
+
+**b) Çalıştırma kuyruğunda bekleme (eBPF):**
+
+```bash
+timeout 30 /usr/share/bpftrace/tools/runqlat.bt    # hazır süreç CPU'yu kaç µs bekledi (histogram)
+timeout 30 /usr/share/bpftrace/tools/runqlen.bt    # CPU başına kuyruk uzunluğu
+```
+
+Histogramın **kuyruğuna** bak (en yüksek kovalar) — ortalama gecikmeyi
+gizler. Sabit bir "iyi/kötü" eşiği yok; aynı düğümde normal zamandaki
+ölçümle karşılaştır.
+
+**c) Zamanlayıcı uyanma gecikmesi (`rtla timerlat`).** Çekirdeğin kendi
+aracı; konferanslarda `cyclictest` + `clock_nanosleep` ile gösterilen
+ölçümün (uyuması istenen an ile gerçekten uyandığı an arasındaki fark)
+çekirdek içi karşılığı. CPU başına IRQ ve iş parçacığı gecikmesini verir:
+
+```bash
+rpm -q rtla                     # yoksa kurmak değişiklik (K1)
+rtla timerlat top --help        # sözdizimini kurulu sürümden oku, ezberden yazma
+```
+
+Sanal makinede önce `%steal`'a bak (`performans` §3) — hipervizör CPU'yu
+vermiyorsa ölçülen gecikme sanal makinenin değil, hostun sorunudur.
+
+**GPU'nun içi eBPF ile görülmez** — eBPF çekirdeği izler; GPU tarafı için
+NVIDIA'nın kendi araçları (`nvidia-smi`) gerekir.
 
 ## 3. Çökme dökümü (kdump)
 

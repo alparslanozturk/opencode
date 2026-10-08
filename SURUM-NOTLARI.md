@@ -15,6 +15,14 @@ Doğrulama: typecheck 19/19 · `engine/plugins` 175/0 · `packages/core` 6188 ge
 ortamı) · `kur.sh derle` + `smoke-ikili.sh` GEÇTİ · yeni ikiliyle izole kurulumda `rm -rf /` K5 ile reddedildi,
 `uname -r` çalıştı. Ürün sürümü değişmedi (3.0.0). Sahada `al.sh` → `./kur.sh` (kaynak yeni → yeniden derler).
 
+## 2026-10-08 — beceri: `depolama` §8 yazılım RAID (mdadm) + NVMe sağlığı
+
+GPU sunucusu (Alp): 16 × 1.7 TB NVMe, 12'si yazılım RAID10 (mdadm, RHEL 9), 2 spare. Yeni bölüm salt okunur:
+`/proc/mdstat` + `mdadm --detail` okuma tablosu, yedeğin kendiliğinden devreye girmesi, near=2'de ayna çiftleri,
+`raid-check.timer` + `mismatch_cnt`, `mdmonitor` bildirimi tanımlı mı, `nvme smart-log` alanları ve RAID üyesi↔NVMe
+eşleme. Disk değiştirme K1. mdadm dosyaları (raid-check, mdmonitor) AlmaLinux 10 paketinde doğrulandı; komut
+çıktıları RHEL 9'da denenmedi. `rke2-ansible` disk notu: RAID tipi yazılım olarak güncellendi.
+
 ## 2026-10-08 — beceri: `performans` + page cache / kirli sayfa / Direct I/O izleme
 
 Alp: "Direct I/O ve vm.dirty_* ayarlarını yapmayız ama izlemek lazım". Yalnız okuma: `vm.dirty_*` anlamları

@@ -1,6 +1,6 @@
 ---
 name: performans
-description: Sunucu yavaşlığı, yüksek yük, CPU/bellek/disk darboğazı ve log analizinde kullan. "yavaş", "yük yüksek", "load average", "cpu", "bellek", "swap", "iowait", "performans", "log", "hata arıyorum" isteklerinde tetiklenir.
+description: Sunucu yavaşlığı, yüksek yük, CPU/bellek/disk darboğazı, page cache/kirli sayfa/Direct I/O izleme ve log analizinde kullan. "yavaş", "yük yüksek", "load average", "cpu", "bellek", "swap", "iowait", "page cache", "dirty", "writeback", "o_direct", "performans", "log", "hata arıyorum" isteklerinde tetiklenir.
 ---
 
 Darboğazı bulmadan çözüm önerme. Sıra: yük → hangi kaynak → hangi süreç.
@@ -82,6 +82,65 @@ pidstat -d 1 3            # süreç başına G/Ç
 
 Disk **dolu** mu diye ayrıca bak — dolu disk yavaşlık gibi görünür:
 `depolama` becerisine geç.
+
+### Page cache, kirli sayfa ve Direct I/O — yalnız izle
+
+Bu ayarları **değiştirmiyoruz** (`vm.dirty_*` sysctl'leri, `drop_caches` —
+değişiklik, K1). İş yalnız bakmak ve yorumlamak.
+
+**Ayarlar ne:**
+
+```bash
+sysctl vm.dirty_background_ratio vm.dirty_ratio vm.dirty_expire_centisecs vm.dirty_writeback_centisecs
+```
+
+| Ayar | Anlamı |
+|---|---|
+| `dirty_background_ratio` | Kirli veri kullanılabilir belleğin bu %'sini geçince arka planda diske yazma başlar |
+| `dirty_ratio` | Bu %'yi geçince **yazan uygulama da bekletilir** (yazma takılır) |
+| `dirty_expire_centisecs` | Kirli sayfa bu kadar eskiyince (1/100 sn) yazılmaya aday olur |
+| `dirty_writeback_centisecs` | Çekirdeğin yazma iş parçacıklarının uyanma sıklığı (1/100 sn) |
+
+Değerler dağıtıma ve tuned profiline göre değişir — ezberden söyleme, komutla oku.
+
+**Şu an ne kadar kirli veri var:**
+
+```bash
+grep -E '^(Dirty|Writeback|Cached|MemAvailable):' /proc/meminfo
+sar -r 1 5          # kbdirty sütunu; geçmiş için: sar -r -f /var/log/sa/saDD
+```
+
+`Dirty` sürekli büyüyüp `dirty_ratio` sınırına yaklaşıyorsa disk yazmaya
+yetişemiyor; uygulamalarda ani yazma takılmaları beklenir. `Writeback`
+uzun süre yüksek kalıyorsa disk yavaş — §5 `iostat` ile doğrula.
+
+**Pod/konteyner başına** (cgroup v2):
+
+```bash
+grep -E '^(file|file_dirty|file_writeback) ' /sys/fs/cgroup/<yol>/memory.stat
+```
+
+`file` = o cgroup'un page cache'i (bellek limitine sayılır).
+
+**Bir dosyanın ne kadarı RAM'de** (ör. büyük model dosyası):
+
+```bash
+fincore <dosya>
+```
+
+**Kim Direct I/O (`O_DIRECT`) kullanıyor** — bu süreçler page cache'i
+atlar, her okuma/yazma diske iner:
+
+```bash
+for f in /proc/[0-9]*/fdinfo/*; do fl=$(awk '/^flags/{print $2}' "$f" 2>/dev/null)
+  [ -n "$fl" ] && (( 8#$fl & 8#40000 )) && p=${f#/proc/} && \
+  echo "pid ${p%%/*} $(cat /proc/${p%%/*}/comm 2>/dev/null) $(readlink ${f/fdinfo/fd})"
+done 2>/dev/null | head -20
+```
+
+`040000` x86_64'te `O_DIRECT` bitidir. Liste anlık durumdur — dosyayı o an
+açık tutan süreci gösterir. Veritabanları bilerek kullanır; beklenmeyen bir
+süreç görürsen raporla, değiştirme.
 
 ## 6. Geçmişe bakmak
 

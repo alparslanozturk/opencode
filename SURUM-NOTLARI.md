@@ -15,6 +15,13 @@ Doğrulama: typecheck 19/19 · `engine/plugins` 175/0 · `packages/core` 6188 ge
 ortamı) · `kur.sh derle` + `smoke-ikili.sh` GEÇTİ · yeni ikiliyle izole kurulumda `rm -rf /` K5 ile reddedildi,
 `uname -r` çalıştı. Ürün sürümü değişmedi (3.0.0). Sahada `al.sh` → `./kur.sh` (kaynak yeni → yeniden derler).
 
+## 2026-10-08 — beceri: `performans` + page cache / kirli sayfa / Direct I/O izleme
+
+Alp: "Direct I/O ve vm.dirty_* ayarlarını yapmayız ama izlemek lazım". Yalnız okuma: `vm.dirty_*` anlamları
+tablosu, `/proc/meminfo` Dirty/Writeback + `sar -r` kbdirty, cgroup `memory.stat` file/file_dirty, `fincore`,
+O_DIRECT kullanan süreçleri `/proc/*/fdinfo` flags (040000) ile bulan döngü — `dd oflag=direct` ile AlmaLinux 10'da
+denendi, süreci buldu. Ayar değiştirme ve `drop_caches` K1.
+
 ## 2026-10-08 — beceri: `cekirdek-teshis` + CPU gecikmesi (eBPF)
 
 Alp: "eBPF ile CPU latency izleyebilmek Rancher, NVIDIA vb. sistemlerde önemli". Yeni bölüm: önce cgroup v2

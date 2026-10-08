@@ -36,6 +36,7 @@ RELEASE_REVIEW.md
 logs/
 *.bun-build
 tsconfig.tsbuildinfo
+/artifacts/
 
 # --- Alp katmanı (bkz. kur.sh) ---
 # Yerel derleme çıktısı git'e girmez; kurulum gerekirse kaynaktan derler.

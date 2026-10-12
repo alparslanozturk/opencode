@@ -65,3 +65,20 @@ Her madde: ne görüldü (kaynak = ekran görüntüsü) · değerlendirme · ada
 - ⚠️ Görülen event'ler yalnız NodeNotReady diyor; "container runtime down" ifadesinin kaynağı (ör. `describe node`
   Conditions mesajı) ekran görüntülerinde yok. Kaynaklı mı, çıkarım mı — doğrulanacak.
 - Not: `StrictHostKeyChecking=accept-new` kendi kuralımız (`engine/AGENTS.md:103`), sorun değil.
+
+### G8 — Özette çelişki: "erişilemez" denen node'lara yüzde değer verildi
+- Görülen (özet, 3m46s'lik tur): "Yüksek yük gösteren node'lar: wor03 CPU 61%, RAM 45%; wor12 CPU 36%, RAM 16%;
+  wor14 CPU 35%, RAM 16% — ama NotReady". Aynı özette: "`kubectl top nodes` → wor03/wor12/wor14: `<unknown>` (erişilemez)".
+- ⚠️ `top nodes` bu üç node için değer vermediyse yüzdeler nereden? ssh `free -h`/`uptime` yüzde CPU vermez.
+  tahmin: ya önceki bir çıktıdan bayat değer ya da uydurma. Kaynağı ekranda yok — doğrulanacak.
+- Ayrıca nedensellik iddiaları kaynaksız: "antrea ağında kopma", "containerd asılı", "ağ katmanı kararsız".
+- Aday aksiyon: özet/rapor satırındaki her sayı, aynı oturumdaki bir araç çıktısında geçmeli (slayttaki "structured
+  output + deterministic acceptance threshold"). Önce AGENTS.md kuralı: "her sayının yanına kaynak komutu";
+  sonra plugin: cevaptaki sayılar oturumun araç çıktılarında yoksa uyarı ekle (saglik'teki öneri A'nın aynısı).
+
+### G9 — Kapsam: altyapı mı uygulama mı
+- Alp: "antrea bizim için önemli; fluent, prometheus, starburst vb. altyapı değil, gerçek uygulamalar. Altyapı
+  sorunlarını incelemek isterim." Ajan 7 sorunu altyapı/uygulama ayırmadan aynı listede verdi.
+- Aday aksiyon: `k8s-rancher` becerisine "altyapı katmanı" tanımı (rke2/kubelet/containerd, etcd, apiserver, antrea,
+  CoreDNS, ingress, node OS/disk/ağ) ve "küme sorunu" isteğinde önce bu katmana bak; uygulama pod'ları ayrı başlık.
+  Liste Alp'ten onaylanacak [SAHA].

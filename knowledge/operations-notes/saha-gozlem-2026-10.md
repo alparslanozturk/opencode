@@ -140,3 +140,10 @@ Aday aksiyonlar (karar Alp'in; katman sırası MIMARI.md):
 5. Refuter (bağımsız denetçi) — uzun incelemede son özeti, oturumun araç çıktılarına karşı denetleyen ikinci bir
    geçiş. `task: deny` ve son-mesaj hook'u olmadığı için şimdilik 1-4'ten sonra değerlendirilecek.
 6. kur.sh — derleme öncesi git'te olmayan packages/*/package.json uyarısı (G1); KURUM_MAX_OUTPUT değeri [SAHA] (G2).
+
+### G13 — Takip: G12 kapandı, G4 tekrarladı
+- ✅ G12: ajan sonradan "tüm 17 node Ready, tüm antrea agent'lar 2/2; OVS yeniden çalıştı" dedi (2m46s'lik tur) —
+  "düzeldi" bu kez node Ready ile de desteklendi.
+- ❌ G4 tekrar: "10.14.x.x nonprod kümelerinin networklerini çıkar" isteğinde yine bash `grep -n '10\.14\.' …/hosts-rke2.ini`
+  ve `…/hosts.ini | head -30` → her biri ayrı "Shell command" izni. Kalıcı davranış; yerleşik grep aracı (izinli) kullanılmıyor.
+  Öncelik yükseldi (aksiyon 2).

@@ -31,3 +31,37 @@ Her madde: ne görüldü (kaynak = ekran görüntüsü) · değerlendirme · ada
   tutmadı, izin kapısı tuttu.
 - Aday aksiyon: AGENTS.md'ye "envanter/küme sorusunda önce cwd'de `hosts*`/`inventories` ara" adımı; birden çok
   dış dizini tek komutta toplamama.
+
+### G4 — cwd içindeki dosyayı okumak için bile izin soruldu
+- Görülen: `grep -A 20 '\[rke-nonprod-test\]' /root/ai/work/opencode/ansible/inventories/hosts-rke2.ini` → "Permission
+  required · Shell command". Dosya cwd içinde.
+- Değerlendirme: model yerleşik `grep`/`read` aracı (`engine/opencode.json`: `"grep": "allow"`, `"read": {"*": "allow"}`)
+  yerine bash `grep` kullandı; bash varsayılanı `ask` olduğu için gereksiz onay çıktı.
+- Aday aksiyon: AGENTS.md'ye "cwd içi dosya okuma/arama için yerleşik read/grep/glob aracını kullan, bash grep/cat değil".
+
+### G5 — Envanter eksikti; Alp düzeltti, ajan güncelledi
+- Görülen: ajan `[rke-nonprod-test]` grubundan "3 master + 6 worker" dedi (wor01-06, envanterle tutarlı). Alp: "14 worker
+  olması lazım, bir daha bak, envanteri güncelle." Ajan: "Kümede 3 master + 14 worker = 17 node var; 07-14 eksik" →
+  `hosts-rke2.ini`'ye wor07-14 eklendi (grup listesi + `ansible_host` satırları), edit izni soruldu ✅.
+- ⚠️ DOĞRULANACAK: eklenen IP'ler wor07=.127, wor08=.128, wor09=.129; sonra ssh wor12=.132, wor14=.134 →
+  `wor<N> = 10.14.9.(120+N)` düzenine tam uyuyor. Ekran görüntüsündeki `kubectl get nodes` çıktısı wor04'te
+  kesiliyor ("Click to expand"), IP'lerin bu çıktıdan mı geldiği yoksa düzenden mi türetildiği görülemiyor.
+  tahmin: kaynak `get nodes -o wide` INTERNAL-IP olabilir; düzenden türetildiyse bu tam bir uydurma vakası.
+- Aday aksiyon: envantere host/IP yazan her edit için ajan kaynağı (komut + satır) göstermeli; kur/AGENTS kuralı +
+  ileride deterministik kontrol (eklenen IP, aynı turdaki araç çıktısında geçiyor mu).
+
+### G6 — Ajan dosya-başına ssh döngüsü kurdu, `filo-durum-kontrolu` becerisini kullanmadı
+- Görülen: master'a ssh ile `kubectl top/get events` ✅ (salt-okunur, rke2'nin kendi kubectl'i). Ardından her node'a
+  ayrı ayrı `ssh … "free -h; nproc; uptime; df -h"` → her biri ayrı izin.
+- Değerlendirme: `knowledge/skills/approved/filo-durum-kontrolu/SKILL.md` "SSH döngüsü kurma; ansible ad-hoc kullan"
+  diyor. İstekte tetik kelimeler ("tüm sunucularda", "toplu") yoktu → beceri yüklenmedi.
+  Doğrusu: `ansible rke-nonprod-test -m shell -a "free -h; nproc; uptime; df -h" -o` (tek izin, paralel, kaynaklı çıktı).
+- Aday aksiyon: becerinin description'ına "küme", "tüm node'lar", "darboğaz" tetikleri; performans becerisinden
+  çok-sunucu durumunda filo-durum-kontrolu'ya yönlendirme. Bu, slayttaki "deterministik araç" maddesinin karşılığı.
+
+### G7 — Teşhis iddiası: "wor03 container runtime'ı down"
+- Görülen: `get events --field-selector reason=NodeNotReady` → wor12 (4m2s), wor14 (3m21s), wor03 (26s) NodeNotReady.
+  Ajan: "wor03 container runtime'ı down; wor12 ve wor14 de 3 dk önce NotReady oldu."
+- ⚠️ Görülen event'ler yalnız NodeNotReady diyor; "container runtime down" ifadesinin kaynağı (ör. `describe node`
+  Conditions mesajı) ekran görüntülerinde yok. Kaynaklı mı, çıkarım mı — doğrulanacak.
+- Not: `StrictHostKeyChecking=accept-new` kendi kuralımız (`engine/AGENTS.md:103`), sorun değil.

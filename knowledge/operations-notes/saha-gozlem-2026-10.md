@@ -82,3 +82,14 @@ Her madde: ne görüldü (kaynak = ekran görüntüsü) · değerlendirme · ada
 - Aday aksiyon: `k8s-rancher` becerisine "altyapı katmanı" tanımı (rke2/kubelet/containerd, etcd, apiserver, antrea,
   CoreDNS, ingress, node OS/disk/ağ) ve "küme sorunu" isteğinde önce bu katmana bak; uygulama pod'ları ayrı başlık.
   Liste Alp'ten onaylanacak [SAHA].
+
+### G10 — Rancher Events ekranı (Alp, el ile) — G7'ye kısmi dayanak
+- Görülen: wor03 kubelet'i NotReady iken hâlâ event üretiyor: `FailedKillPod` (milvus-kafka-0: `KillPodSandbox …
+  rpc error … context deadline exceeded`), readiness probe `10.42.4.13:9091` / `10.42.4.19:9091` → `no route to host`,
+  `10.42.4.17:10250` → `connection refused`. wor07: oobeya-ui `ImagePullBackOff` (cr-test.kuveytturk.com.tr — uygulama
+  tarafı, kapsam dışı). `TaintManagerEviction` (oobeya-addons) iptal.
+- G7 değerlendirmesi: "container runtime" iddiasının dayanağı bu tür KillPodSandbox deadline mesajı olabilir —
+  ajanın kendi çıktısında gösterilmedi ama veri kümede mevcut.
+- tahmin (doğrulanacak): kubelet yalnız kendi node'undaki pod'ları prob'lar → 10.42.4.x wor03'ün pod CIDR'ı;
+  kubelet kendi node'undaki pod'a "no route to host" alıyor ve KillPodSandbox (CNI DEL) zaman aşımına düşüyor →
+  ikisi de wor03'teki antrea-agent/OVS'nin sağlıksız olmasıyla tutarlı (ağ kopması kümesel değil, node-yerel).

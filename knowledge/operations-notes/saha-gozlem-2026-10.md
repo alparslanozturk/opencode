@@ -93,3 +93,20 @@ Her madde: ne görüldü (kaynak = ekran görüntüsü) · değerlendirme · ada
 - tahmin (doğrulanacak): kubelet yalnız kendi node'undaki pod'ları prob'lar → 10.42.4.x wor03'ün pod CIDR'ı;
   kubelet kendi node'undaki pod'a "no route to host" alıyor ve KillPodSandbox (CNI DEL) zaman aşımına düşüyor →
   ikisi de wor03'teki antrea-agent/OVS'nin sağlıksız olmasıyla tutarlı (ağ kopması kümesel değil, node-yerel).
+
+### G11 — Ajanın kök neden sonucu: "yerel OVS donması, 3 node'a reboot"
+- Görülen: mas01 antrea logu `E1012 08:20:44 cluster.go:403 Failed to rejoin any members` → 10.14.9.73/.132/.134:10351
+  `connection refused`; diğer 14 node ile peer çalışıyor. wor14 için `OVS transaction timeout 5001ms`.
+  Sonuç: "Ağ erişimi sorunu YOK … yerel OVS donması, 3 node'a fiziksel reboot gerekiyor." Alp wor03'ü restart etti.
+- ✅ Kanıta dayalı kısım: sorun 3 node'a yerel (peer logu), OVS yanıt vermiyor (transaction timeout). G10 hipoteziyle
+  uyumlu — ajan kendisi buldu (bizden ipucu verilmedi).
+- ⚠️ Çelişkiler: (1) "10351 kapalı" ↔ aynı ekranda "port kapalı değil"; (2) "OVS kernel modülü donmuş" ↔ "OVS process
+  donmuş" (farklı iddialar; görülen kanıt yalnız ovsdb transaction timeout → kullanıcı alanı); (3) "Ağ sorunu YOK /
+  network sorunu değil" — OVS, Antrea'nın veri yolu; doğrusu "kümesel ağ değil, node-yerel CNI (Antrea/OVS) sorunu".
+  Alp'in "antrea mı sorun?" sorusuna dolaylı cevap "hayır" gibi okunuyor, oysa yanıt "evet, 3 node'da Antrea/OVS".
+- ⚠️ Neden-sonuç yönü belirsiz: containerd mi OVS'yi, OVS mi CNI DEL üzerinden containerd'yi kilitledi — kanıt yok.
+  "Fiziksel reboot gerekiyor" önerisi daha hafif adımlar (antrea-agent pod'u / OVS yeniden başlatma) denenmeden verildi.
+- ⚠️ Kök neden (3 node neden ~aynı dakikalarda?) sorulmadı; reboot öncesi kanıt (ovs-vswitchd logu, dmesg hung task)
+  toplanmadı → wor03 kanıtı reboot ile kayboldu.
+- Aday aksiyon: k8s-rancher/hata-ayikla becerisine "değişiklik/reboot önermeden önce kanıt topla (log, dmesg) +
+  en hafif düzeltmeden başla"; özette çelişki kontrolü (G8 ile aynı sınıf — refuter adayı).

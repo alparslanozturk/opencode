@@ -110,3 +110,33 @@ Her madde: ne görüldü (kaynak = ekran görüntüsü) · değerlendirme · ada
   toplanmadı → wor03 kanıtı reboot ile kayboldu.
 - Aday aksiyon: k8s-rancher/hata-ayikla becerisine "değişiklik/reboot önermeden önce kanıt topla (log, dmesg) +
   en hafif düzeltmeden başla"; özette çelişki kontrolü (G8 ile aynı sınıf — refuter adayı).
+
+### G12 — "Hepsi düzeldi! 17/17 node 2/2 Running"
+- Görülen: `get pods -n kube-system | grep antrea-agent` çıktısı ekranda 11 satır + "Click to expand"; iki agent'ta
+  yakın restart: `35 (6m36s ago)`, `14 (29m ago)`. Özet tablosu: `mas01-03 · IP – · 2/2 Running · Restarts 0-4`.
+  Bağlam: 107.5K (%41).
+- ⚠️ "Düzeldi" yalnız pod durumuna dayanıyor; node `Ready`, restart sayısının artmadığı, mas01 peer logunda
+  `connection refused`'ın kesildiği, yeni NodeNotReady/FailedKillPod event'i olmadığı kontrol edilmedi.
+  Özet tablosunda IP "–" ve restart "0-4" aralığı — çıktıdaki tekil değerler yerine özetlenmiş/belirsiz.
+- Alp'in ifadesiyle restart sonrası durum iyi — sonuç doğru, ama "düzeldi" kararının kanıt listesi yok.
+
+## Değerlendirme — 2026-10-12 oturumu (G1–G12)
+
+Genel: ajan kaynağı buldu (envanter, events, peer logu), sordu, izin kapılarına uydu ve kök nedeni ipucusuz
+buldu (node-yerel Antrea/OVS). Zayıf nokta tek sınıf: **özet/sonuç cümleleri araç çıktısından kopuyor**
+(G5 IP kaynağı, G7, G8 yüzdeler, G11 çelişkiler, G12 erken "düzeldi"). Prompt'taki kaynak kuralı bunu tutmuyor
+(saglik'teki ders ve konferans slaytıyla aynı: deterministik araç + bağımsız denetçi + eşik).
+
+Aday aksiyonlar (karar Alp'in; katman sırası MIMARI.md):
+1. engine/AGENTS.md — "Sonuç yazma kuralı": her sayı/IP/durum iddiasının yanında kaynak komut; "düzeldi" demeden
+   önce doğrulama listesi; özetin kendi içinde çelişki kontrolü. (G5, G7, G8, G11, G12)
+2. engine/AGENTS.md — cwd içi okuma/arama yerleşik read/grep/glob ile; envanter sorusunda önce cwd. (G3, G4)
+3. Beceriler — filo-durum-kontrolu tetikleri ("küme", "tüm node'lar", "darboğaz"); k8s-rancher'a altyapı katmanı
+   tanımı, "reboot/değişiklik önermeden önce kanıt topla, en hafif düzeltmeden başla", "Running ≠ sağlıklı" doğrulama
+   listesi. (G6, G9, G11, G12)
+4. engine/plugins/guvenlik-v2.ts — deterministik kapı: envanter dosyasına (hosts*.ini) yazılan YENİ IP/host, aynı
+   oturumdaki bir araç çıktısında geçmiyorsa edit'i durdur ve kaynağını sor (mevcut `execute.before`/`execute.after`
+   hook'larıyla yapılabilir). (G5)
+5. Refuter (bağımsız denetçi) — uzun incelemede son özeti, oturumun araç çıktılarına karşı denetleyen ikinci bir
+   geçiş. `task: deny` ve son-mesaj hook'u olmadığı için şimdilik 1-4'ten sonra değerlendirilecek.
+6. kur.sh — derleme öncesi git'te olmayan packages/*/package.json uyarısı (G1); KURUM_MAX_OUTPUT değeri [SAHA] (G2).

@@ -196,3 +196,30 @@ setinin gözden geçirilmesi. Kaynak: Alp'in ekran görüntüleri (MobaXterm, sr
 - DNS yalnız nmcli; `08/09-dns-resolv` kaldırıldı. `07-disks-root` `/`'yi büyütmek yerine `/root2` LV açıyordu, düzeltildi.
 - Disk: sda = OS (şablon); ek diskin hedefi kurulumda sorulur; genesys yalnız proje talebiyle.
 - Açık: `07-disks-genesys.yaml` geri getirildi mi — bilinmiyor; sahadaki değişiklikler commit edildi mi — bilinmiyor.
+
+## 2026-10-13 (öğleden sonra) — srvcvma1-5 geriye dönük kaynak kullanımı
+
+İstek: "srvcvma1-5 sunucularında 2-3 aylık geriye dönük kaynak kullanımı… kapasite planlama", sonra "sadece ram, cpu ve
+varsa load". Kaynak: Alp'in ekran görüntüleri.
+
+### G21 — ❌ sar metin dosyasını ayrıştırma döngüsü (5 deneme, durmadı)
+- Görülen: ajan `/var/log/sa/sarDD` (metin) üzerinde `grep '^[0-9]{2}:'`/awk/python denedi; ağ bölümü başlıkları
+  (`dropd/s squeezd/s`) CPU sanıldı. Çıktılar: `cpu_avg=243599121`, `mem_used%=0.0`, `load=3823620335846`,
+  `load=38998215`. Her seferinde "format karmaşık, daha basit yapayım" deyip yeni yöntem denedi; "dosyalar çok büyük
+  (4MB), 10-15 dk sürer" dedi. Son denemelerde komutta `ssh` yoktu → srvsatellite'ın kendi `/var/log/sa`'sı.
+- Doğrusu: `sar -u|-r|-q -f /var/log/sa/saDD` → `Average:` satırı (saniyeler). Doktor tek satırlık ansible komutunu
+  bu sunucuda (AlmaLinux 10, sysstat) test etti.
+- Değerlendirme: AGENTS.md "iki denemede olmuyorsa dur" kuralı tutmadı; sar bilgisi skill'de yetersizdi.
+- Aksiyon (yapıldı): `performans` §6 yeniden yazıldı (saDD/sarDD, Average, gün numarası=ayın günü, HISTORY=28,
+  ansible tek komut, çöp çıktı eşikleri) + tetikler ("kapasite", "geriye dönük", "son 7 gün", "sar", "trend").
+
+### G22 — ❌ Uydurma kapasite raporu
+- Görülen: "17 günlük (14-30 Eylül)" tablosunda CPU 46.2/46.2/45.5/46.1 ve load 383k/414k/423k/430k dörtlü deseni
+  tekrar ediyor (7 günlük tablo çoğaltılmış). Final raporda srvcvma1-4'ün hepsi CPU %53.8 — anlık load'lar 80 / 11 /
+  0.10 / 0.98 iken. srvcvma2-4'ün "load 414k/423k/430k" değerleri srvcvma1'in 25-27 Eylül değerleri. "Load 380k-430k,
+  48 CPU'ya göre normal (her CPU ~10k process)". "En yeni 30 Eylül (dün)" — tarih 13 Ekim; `sa01-sa12` (Ekim) hiç
+  okunmadı. "2 aylık veride sabit" — tabloda 17 gün.
+- Değerlendirme: G12 sınıfının en ağır örneği — özet araç çıktısından tamamen kopuk; kullanıcı fark etmese yönetime
+  gidecek bir kapasite raporuydu. tahmin: bağlam %76'da önceki tablolardan "tamamladı".
+- Aday aksiyon: deterministik kontrol (Refuter, 2026-10-12 değerlendirmesi madde 5) önceliği yükseldi — rapordaki
+  her sayının aynı oturumdaki bir araç çıktısında geçmesi; host'lar arası birebir aynı değer = uyarı.

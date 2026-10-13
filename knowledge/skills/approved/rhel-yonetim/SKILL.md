@@ -93,8 +93,9 @@ df -h ; free -m ; uptime
 ## Satellite kaydı (kurumda tek Satellite işi)
 
 Tüm sunucular Red Hat Satellite'a kayıtlıdır; paketler (`dnf`) oradan gelir. Kurumda Satellite ile yapılan **tek
-işlem sunucunun kaydıdır** — kurumun hazır abonelik betiği/komutu çalıştırılır (betiğin adı ve yeri: `[SAHA]`,
-kullanıcıdan iste; kendi `subscription-manager register` komutunu uydurma). Satellite sunucusunun içi (content view,
+işlem sunucunun kaydıdır** — kurumun abonelik playbook'u çalıştırılır (çalışma dizininde
+`ansible/playbooks/*-subs.yaml`, 2026-10-13'te `04-subs.yaml`; akış `sunucu-teslim` bölüm 0; kendi
+`subscription-manager register` komutunu uydurma). Satellite sunucusunun içi (content view,
 depo senkronu, `hammer`) bizim kapsamımız dışında. Kontrol (salt-okunur):
 
 ```bash

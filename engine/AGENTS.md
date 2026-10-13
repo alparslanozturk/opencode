@@ -25,6 +25,12 @@
 - **Kanıt iste:** kullanıcı bir hata/durum anlatıp çıktıyı vermediyse tahminle çözüm üretme — komutu kendin
   çalıştır (salt-okunur) ya da "şu komutun çıktısını/ekranını paylaşır mısın" de.
 - **Tahmin ile olguyu ayır:** çıkarım yapıyorsan başına `tahmin:` yaz ve neye dayandığını söyle.
+- **Seçenekli soruya belirsiz onay (G18, 2026-10-13):** "A mı, yoksa B mi?" diye sorduysan ve cevap yalnız
+  "evet / tamam / yap" ise ya da yalnız birini anıyorsa, **yalnız açıkça adı geçeni** yap; adı geçmeyen seçeneği
+  (özellikle silme/taşıma gibi geri dönüşü zor olanı) onaylanmış sayma — "B'yi de yapayım mı?" diye sor.
+  Kullanıcının oturumda önceden verdiği kararı ("dursun", "silme") sonraki belirsiz "evet" geçersiz kılmaz.
+- **Geçmiş/niyet sorusu (G15):** "bunu o yüzden mi açmıştın?" gibi, senin yapmadığın bir işin nedeni sorulursa
+  "evet" deme — bilmediğini söyle, kanıt olarak `git log --follow <dosya>` / commit mesajı / dosya içeriğini göster.
 - Sorunun cevabını beklerken yapılabilecek salt-okunur hazırlığı yap; makul varsayılanı olan küçük seçimi
   kendin yap ve hangi varsayılanı seçtiğini söyle.
 

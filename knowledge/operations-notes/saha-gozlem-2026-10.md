@@ -147,3 +147,52 @@ Aday aksiyonlar (karar Alp'in; katman sırası MIMARI.md):
 - ❌ G4 tekrar: "10.14.x.x nonprod kümelerinin networklerini çıkar" isteğinde yine bash `grep -n '10\.14\.' …/hosts-rke2.ini`
   ve `…/hosts.ini | head -30` → her biri ayrı "Shell command" izni. Kalıcı davranış; yerleşik grep aracı (izinli) kullanılmıyor.
   Öncelik yükseldi (aksiyon 2).
+
+## 2026-10-13 — yeni sunucu kurulumu (splsplunksh05-07)
+
+İstek: "yeni sunucular kurulacak splsplunksh05-06-07, ssh ile bağlanmayı dener misin?" → ardından kurum playbook
+setinin gözden geçirilmesi. Kaynak: Alp'in ekran görüntüleri (MobaXterm, srvsatellite, `/root/ai/work/opencode`).
+
+### G14 — ✅ Envanter önce, IP sorulu; ⚠️ aynı IP yakalandı ama yanlış yorumlandı
+- Görülen: `grep splsplunksh` → envanterde 01-04 var, 05-07 yok; IP'yi uydurmadı, sordu ✅. `nslookup` →
+  05=10.13.55.188, 06=10.13.55.189, 07=10.13.55.189. Ajan "DNS round-robin", "VIP / load balancer", "06 ve 07 aynı
+  fiziksel sunucuya yönlendiriliyor" dedi.
+- Değerlendirme: bulgu (iki ad → tek IP) değerli; yorum kaynaksız. Round-robin tek ad → çok IP'dir, burada tersi.
+  07 için "SSH OK" fiilen 06'nın cevabı. Alp: IP tahsisi hatası, ağ ekibine bildirildi.
+- Aday aksiyon: `sunucu-teslim` bölüm 0 "ön kontrol: iki ad aynı IP → o sunucuya playbook çalıştırma" (yapıldı).
+
+### G15 — ❌ Niyet sorusuna uydurma onay
+- Görülen: Alp "08/09 dns-resolv'u … onun için mi açmış idin?" → ajan "Evet, tam olarak o yüzden." Dosyaları ajan
+  yazmamıştı; içerik açıklaması doğru, "o yüzden açtım" uydurma.
+- Aday aksiyon: AGENTS.md "Geçmiş/niyet sorusu" kuralı (yapıldı); kanıt `git log --follow`.
+
+### G16 — ⚠️ Talimattan sapma: "ping.yaml çalıştır" → elle `ansible -m ping`
+- Görülen: `01-ping.yaml` okundu, ardından üç ayrı `ansible -i … -l splsplunksh0X -m ping` kuruldu. Hostlar
+  envanterde yokken `-l` ile nasıl eşleştiği ekranda görünmüyor (bilinmiyor).
+
+### G17 — ❌ Edit + "değişiklik yok" çelişkisi
+- Görülen: `10-dns-nmcli.yaml` yorum satırı `stl/sxl*` → `stl/sxl/sdl*` düzenlendi, ikinci Edit'in içeriği görünmüyor;
+  ardından "Aslında değişiklik yok". G12 sınıfı: özet araç çıktısından kopuk.
+
+### G18 — ❌ Seçenekli soruya "evet" → iki seçenek birden uygulandı (genesys silindi)
+- Görülen: Alp önce "genesys … dursun" dedi. Ajan sonra "Dosyayı düzeltelim mi? Veya sadece genesys playbookunu sil…"
+  diye sordu; Alp "evet dosyayı düzel" → `07-disks-genesys.yaml` da silindi, "Silinen (projeye özel)" diye raporlandı.
+- Ayrıca ajan bir tur önce "genesis dışına çıkmayacaksa silinebilir, kalsın mı?" diye yine sormuştu (kararı unuttu;
+  bağlam %53).
+- Aday aksiyon: AGENTS.md "Seçenekli soruya belirsiz onay" kuralı (yapıldı). İleride deterministik: oturumda
+  kullanıcının "silme/dursun" dediği yola `rm`/`git rm` → `guvenlik-v2.ts` ile sor.
+
+### G19 — ⚠️ Kanıtı görünmeyen disk iddiası
+- Görülen: "sda zaten LVM dolu (sistem), sdb 40G boş disk" — o turda yalnız 3 playbook okundu, `lsblk` görünmüyor.
+  Önceki turda çalıştırılmış olabilir (bilinmiyor).
+
+### G20 — Bağlam büyümesi
+- Görülen: kısa bir oturumda 129.6K (%49) → 142.1K (%54); önceki kararların kaybı G18'de görüldü.
+- Aday aksiyon: uzun kurulum işini aşamalara böl, her `/new`'a kısa karar özeti ver (kullanıcı alışkanlığı + belki
+  `sunucu-teslim`'e "aşama sonu özet" maddesi).
+
+### Kurum bilgisi (bu oturumda Alp'ten) → `sunucu-teslim` bölüm 0
+- Playbook sırası: ping → dns-nmcli → ntp → subs → ipa → dnf → sep-install → sep-sinirlama → disk (seçilir) → reboot.
+- DNS yalnız nmcli; `08/09-dns-resolv` kaldırıldı. `07-disks-root` `/`'yi büyütmek yerine `/root2` LV açıyordu, düzeltildi.
+- Disk: sda = OS (şablon); ek diskin hedefi kurulumda sorulur; genesys yalnız proje talebiyle.
+- Açık: `07-disks-genesys.yaml` geri getirildi mi — bilinmiyor; sahadaki değişiklikler commit edildi mi — bilinmiyor.

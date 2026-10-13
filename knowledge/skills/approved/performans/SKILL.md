@@ -1,6 +1,6 @@
 ---
 name: performans
-description: Sunucu yavaşlığı, yüksek yük, CPU/bellek/disk darboğazı, page cache/kirli sayfa/Direct I/O izleme ve log analizinde kullan. "yavaş", "yük yüksek", "load average", "cpu", "bellek", "swap", "iowait", "page cache", "dirty", "writeback", "o_direct", "performans", "log", "hata arıyorum" isteklerinde tetiklenir.
+description: Sunucu yavaşlığı, yüksek yük, CPU/bellek/disk darboğazı, page cache/kirli sayfa/Direct I/O izleme ve log analizinde kullan. "yavaş", "yük yüksek", "load average", "cpu", "bellek", "swap", "iowait", "page cache", "dirty", "writeback", "o_direct", "performans", "kapasite", "geriye dönük", "son 7 gün", "sar", "trend", "log", "hata arıyorum" isteklerinde tetiklenir.
 ---
 
 Darboğazı bulmadan çözüm önerme. Sıra: yük → hangi kaynak → hangi süreç.
@@ -142,17 +142,44 @@ done 2>/dev/null | head -20
 açık tutan süreci gösterir. Veritabanları bilerek kullanır; beklenmeyen bir
 süreç görürsen raporla, değiştirme.
 
-## 6. Geçmişe bakmak
+## 6. Geçmişe bakmak — sar (kapasite planlama, "son N gün", "geriye dönük")
 
-Sorun geçmişte olduysa `sar` kayıtlarına bak:
+Kurallar (G21-G22, 2026-10-13 — bu kuralları çiğneyen oturum 5 deneme yaptı ve uydurma rapor üretti):
+
+- **Veri dosyası `saDD`'dir** (ikili, `sar -f` okur). `sarDD` metin raporudur — **grep/awk/python ile
+  ayrıştırma**; bölümler karışır (CPU, ağ, disk aynı saat damgasıyla), çıkan sayı anlamsız olur.
+- **Hazır günlük ortalama:** `sar ... -f saDD` çıktısının `Average:` satırı. Script yazmaya gerek yok;
+  dosya başına saniyeler sürer ("dosya çok büyük, 10-15 dk" doğru değil).
+- `DD` **ayın günüdür**: bugün 13'üyse `sa01`-`sa12` bu ay, `sa14`-`sa31` geçen ay. En yeni veri en büyük
+  numara değildir — tarihi `sar` çıktısının ilk satırından oku.
+- **Saklama süresi:** RHEL'de varsayılan 28 gün (`/etc/sysconfig/sysstat` → `HISTORY`). Kullanıcı 2-3 ay
+  isterse önce `ls /var/log/sa` + `HISTORY` ile kaç gün olduğunu söyle; olmayan dönemi raporlama
+  (daha uzun geçmiş: vCenter performans grafikleri / izleme sistemi — `[SAHA]`).
+- **Çok sunucu:** `ssh` döngüsü kurma, tek `ansible ... -m shell` (bkz. `filo-durum-kontrolu`). Komutta
+  hedef sunucu yoksa yerel makineyi (srvsatellite) okursun — çıktının hangi host'tan geldiği satırda görünmeli.
+- **İki denemede çöp çıktı** (yüzde > 100, %0 bellek, milyonluk load) → dur, ham `Average:` satırını göster,
+  kullanıcıya sor. Yeni ayrıştırma yöntemi deneme.
+
+Tek sunucu, tek gün (önce bununla sütunları doğrula):
 
 ```bash
-systemctl is-enabled sysstat-collect.timer    # önce toplama açık mı
-sar -u -f /var/log/sa/sa$(date +%d -d yesterday)    # CPU, dün
-sar -r      # bellek
-sar -b      # G/Ç
-sar -q      # yük kuyruğu
+systemctl is-enabled sysstat-collect.timer     # toplama açık mı
+grep HISTORY /etc/sysconfig/sysstat; ls /var/log/sa/
+LC_ALL=C sar -u -f /var/log/sa/sa12 | tail -2    # CPU: 100 - %idle (son sütun)
+LC_ALL=C sar -r -f /var/log/sa/sa12 | tail -2    # bellek: %memused (Average'dan sonra 4. değer)
+LC_ALL=C sar -q -f /var/log/sa/sa12 | tail -2    # yük: ldavg-1/5/15
+sar -b -f /var/log/sa/sa12 | tail -2             # G/Ç
 ```
+
+Çok sunucu, tüm günler — her host için gün başına tek satır (2026-10-13 doğrulandı, sysstat Average sütunları):
+
+```bash
+ansible <grup|ip1,ip2,> -m shell -a 'for f in /var/log/sa/sa[0-9][0-9]; do c=$(LC_ALL=C sar -u -f $f | grep ^Average | tail -1 | awk "{printf \"%.1f\", 100-\$NF}"); m=$(LC_ALL=C sar -r -f $f | grep ^Average | tail -1 | awk "{print \$5}"); l=$(LC_ALL=C sar -q -f $f | grep ^Average | tail -1 | awk "{print \$5}"); echo "$(basename $f) cpu%=$c mem%=$m load5=$l"; done'
+```
+
+Raporda: host başına satır, gün aralığı (gerçek tarih), ortalama + en yüksek gün. Değerleri bu çıktıdan
+aynen al; iki host'un sayıları birebir aynıysa ya da bir desen tekrar ediyorsa yanlış kaynak okuyorsun — dur.
+Load average 0-çekirdek sayısının birkaç katı aralığındadır; binlerce/milyonlarca ise yanlış sütundur.
 
 Toplama kapalıysa geçmiş veri **yoktur**; o zaman şimdiden açtır ve bir
 sonraki olayda hazır ol.

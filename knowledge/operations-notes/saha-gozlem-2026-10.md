@@ -444,3 +444,7 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   olmalı, değilse regülasyon ihlali" diyordu — `engine/AGENTS.md` "Kurum sunucu gerçekleri" ile çelişkiliydi; Doktor da
   bunu okumadan Alp'e aktardı. Beceri düzeltildi (bağlam, §4, §5, yapmayacakların). Madde 6'daki "getenforce,
   firewall" teslim kontrolü değildir.
+- G39 takip (Alp onayı, 2026-10-14): `engine/AGENTS.md` "Beceri disiplini" → değişiklik yapan işten önce ilgili beceriyi
+  yükle (kullanıcı adını söylemese de). Aday (deterministik, sonraki adım): `guvenlik-v2.ts` disk değiştiren komutta
+  (`mkfs`/`pvcreate`/`vgcreate`/`/etc/fstab` yazımı) oturumda `disk-ekleme` yüklenmemişse uyarı. K5'in sahada neden
+  devrede olmadığı `./kur.sh kontrol` çıktısıyla bakılacak.

@@ -11,7 +11,9 @@ kuruluyor. Bu şu anlama gelir:
 - Sıkılaştırma ve temel yapılandırma **zaten hazır** — yeniden yapma (DNS ve NTP'yi kurumun
   playbook seti yine de uygular — bölüm 0)
 - AD ekibi DNS A kaydını girer, sunucu sana öyle gelir
-- Güvenlik duvarı izinlerini FW ekibi verir — sen açmazsın, **talep edersin**
+- **SELinux ve firewalld şablondan kapalı gelir** (kurum kararı; Alp, 2026-10-14; AGENTS.md "Kurum sunucu gerçekleri").
+  `Disabled` / `inactive` normaldir — eksik sayma, açmayı önerme, sorun sebebi sayma. Ağ erişim izinlerini
+  sunucuda değil ağ tarafında FW ekibi verir — sen açmazsın, **talep edersin**
 
 Şablonun getirdiği bir şeyi "eksik" sanıp yeniden yapılandırma. Bir ayar
 beklediğinden farklıysa önce şablonda öyle mi diye sor; CIS gereği bilinçli
@@ -184,13 +186,9 @@ timedatectl
 systemctl --failed
 df -h
 free -h
-getenforce                                   # CIS şablonunda Enforcing olmalı
-firewall-cmd --list-all
 ```
 
-`getenforce` **Enforcing** dönmeli. `Permissive` ya da `Disabled` ise şablon
-bozulmuş demektir — teslim etme, araştır. Bunu sen kapatmadıysan biri
-kapatmıştır ve regülasyon ihlalidir.
+SELinux ve firewalld şablondan kapalı gelir — `getenforce` / `firewall-cmd` teslim kontrolü değildir.
 
 ## 5. Teslim raporu
 
@@ -200,16 +198,14 @@ Teslim ettiğin birime şunları yaz:
 - RHEL sürümü ve çekirdek sürümü (`uname -r`)
 - Satellite kaydı: organizasyon ve içerik görünümü
 - Uygulanan güncellemelerin tarihi, yeniden başlatıldı mı
-- Açık portlar (`firewall-cmd --list-all`) — ek port gerekiyorsa FW ekibine
-  talep açmaları gerektiğini belirt
+- Ek ağ erişimi gerekiyorsa FW ekibine talep açmaları gerektiğini belirt
 - Bilinen eksik ya da beklemede olan bir şey varsa açıkça
 
 Rapor `rapor-uret` becerisiyle CSV ya da HTML olarak da üretilebilir.
 
 ## Yapmayacakların
 
-- SELinux'u kapatma, `getenforce` çıktısını değiştirme
-- Güvenlik duvarına kalıcı kural ekleme — o FW ekibinin işi
+- SELinux / firewalld durumunu değiştirme (şablonda kapalı; açmayı da önerme)
 - Şablondan gelen sıkılaştırma ayarlarını "kolaylık olsun" diye gevşetme
 - Parola politikası, `sshd_config`, `auditd` yapılandırmasına dokunma
 

@@ -440,3 +440,7 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
    "sda = OS" (G38).
 5. Bağlam gün boyu %84-87; kritik hatalar (G32-G39) bu bölgede.
 6. Açık: 05-07 envanterde yok; teslim son kontrolü (getenforce, firewall) ve teslim raporu ekranda yok.
+- Düzeltme (Alp, 2026-10-14): SELinux ve firewalld şablondan **kapalı** gelir. `sunucu-teslim` §4 "getenforce Enforcing
+  olmalı, değilse regülasyon ihlali" diyordu — `engine/AGENTS.md` "Kurum sunucu gerçekleri" ile çelişkiliydi; Doktor da
+  bunu okumadan Alp'e aktardı. Beceri düzeltildi (bağlam, §4, §5, yapmayacakların). Madde 6'daki "getenforce,
+  firewall" teslim kontrolü değildir.

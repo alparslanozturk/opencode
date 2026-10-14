@@ -39,6 +39,9 @@ Sıra (2026-10-13 itibarıyla):
 11-reboot
 ```
 
+- **Adım adım, kullanıcı kontrolünde (Alp, 2026-10-14):** her adım bitince dur, sonucu göster, sonraki adımı **sor**.
+  Araya başka iş girdiyse (disk düzeltme, reboot) önceki "X ile devam et" onayı düşer — sıradaki adıma yeniden sor.
+  "Verilen işi sonuna kadar yap" (AGENTS.md) bu akışta adımın **içi** içindir, adımlar arası geçiş için değil.
 - **Her zaman `-l <sunucu>` ile çalıştır** — playbook'ların çoğu `hosts: all`; limitsiz çalıştırma envanterdeki
   tüm sunuculara uygular. Birden çok yeni sunucuda önce birinde bitir, sonra diğerlerine geç.
 - **DNS:** yalnız NetworkManager üzerinden (`nmcli`); RHEL'de `/etc/resolv.conf`'u NM yazar, elle düzenleme

@@ -103,7 +103,16 @@ kapsam dışıdır (`rhel-yonetim` → "Satellite kaydı"); sorunu Satellite yö
 **Hedef sürüm (Alp, 2026-10-14):** amaç sunucuyu sorunsuz biçimde **ana sürümünün en son minor'üne** getirmek
 (RHEL 8 → 8'in, RHEL 9 → 9'un en sonu). Belirli bir minor'de kalacaksa Alp `subscription-manager release --set 9.4`
 gibi sabitler; o zaman 9.4'ü geçmez. `release` boşsa (`Release not set`) en son sürüme gider — Satellite bunu
-Content View ile yönetir. Güncellemeden önce oku, tahmin etme, sonucu kullanıcıya söyle:
+Content View ile yönetir:
+
+- Kayıt varsayılan olarak ana sürümün CV'sine bağlanır (RHEL8 / RHEL9 / RHEL10); bu CV'ler genelde en son minor'ü
+  taşır (2026-10-14 itibarıyla RHEL 9 için **9.8**).
+- 9.4 özel durum: o sürümde tutulacak sunucular için ayrı bir CV yapıldı ve `release --set 9.4` ile sabitlendi.
+  Kullanıcı istemedikçe sunucuyu bu CV'ye bağlama, `release` ayarına dokunma.
+- Güncelleme sonrası `cat /etc/redhat-release` CV'deki minor'ü göstermeli; göstermiyorsa (ör. `release` boş ama 9.2'de
+  kaldı) teslim etme, kullanıcıya bildir.
+
+Güncellemeden önce oku, tahmin etme, sonucu kullanıcıya söyle:
 
 ```bash
 subscription-manager release --show          # sabit minor var mı

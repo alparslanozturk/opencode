@@ -415,3 +415,10 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   çıktısı "Click to expand" altında — "tüm 3 sunucuda" iddiası ekranda doğrulanamadı (bilinmiyor). Süre 7m 49s.
 - "SEP limitleri uygulansın mı? (CPU 400%, Memory High 2G, Max 3G)" — değerler repoda yok; `08-sep-sinirlama`
   playbook'undan okunduysa doğru, ekranda okuma görünmüyor (bilinmiyor). Adımlar arası soruyu sordu ✅ (G43 sonrası).
+
+### G45 — ⚠️ "Kalan adımlar"da DNS tekrar: eski `10-dns-nmcli.yaml` artığı
+- Görülen: kalan adımlar = 08-sep-sinirlama, "DNS (`10-dns-nmcli.yaml`) — spl* için … zaten doğru mu, kon…", 11-reboot.
+  Alp: "DNS zaten yapılmış olmalıydı, onun numarası değişmişti?" → ajan `ls …/ansible/playbooks/ | grep dns` (izin istendi).
+- Değerlendirme: 2026-10-13'te DNS 02'ye taşındı (`sunucu-teslim` §0: `02-dns-nmcli`); 10 numarası disk-add'e ait.
+  Alp: tahminen eski `10-dns-nmcli.yaml` dizinde kalmış, ajan silecek. Silmeden önce `02-…` ile `diff` + dosya git'te mi
+  (`git rm` vs `rm`) kontrolü gerekir (G18). Salt-okunur `ls | grep` yine izin istedi (G13 sınıfı).

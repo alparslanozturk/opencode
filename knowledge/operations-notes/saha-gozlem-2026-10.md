@@ -325,3 +325,25 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Aksiyon (yapıldı): `sunucu-teslim` §3'e "bağlantı koptuysa sunucudan oku" kontrolü (`pgrep -a dnf`, `dnf history`,
   `dnf check`, `dnf repoquery --duplicates`; komutlar Doktor'da dnf 4.20 ile denendi).
 - Açık: 05-07 envanterde yok (ajanın kendi sözü) — `-l <sunucu>` ile playbook'lar nasıl çalıştı? (G16'daki soru).
+
+### G35 — ❌ SCA'da normal olan "Disabled" kayıt sorunu sanıldı → yeniden kayıt önerildi
+- Görülen (ajan tablosu): 05/06 Satellite "Registered", 07 "Disabled"; "Satellite kaydı Disabled (muhtemelen CV bindirme
+  veya bağlanma sorunu) … subs ve dnf yapayım mı?"
+- Görülen (Alp, 07'de elle): `subscription-manager status` → `Overall Status: Disabled` + "Content Access Mode is set to
+  Simple Content Access. This host has access to content, regardless of subscription status." `yum repolist` →
+  `rhel-9-for-x86_64-baseos-rpms`, `…-appstream-rpms`. `dnf update -y` → kernel `5.14.0-687.56.1.el9_8` kuruluyor.
+  Yani 07 kayıtlı ve içerik alıyor; eksik olan yalnız güncellemeydi.
+- Kök neden (Doktor, dosyadan): `sunucu-teslim` §2 "Overall Status: Current", `rhel-yonetim` "Registered / Current"
+  bekleniyordu — SCA'yı bilmiyordu. "muhtemelen …" kanıtsız tahmin; 05/06 için "Registered" hangi komuttan geldi bilinmiyor
+  (07 ile aynı komut kullanılmamış olabilir — tahmin).
+- Aksiyon (yapıldı): iki beceride SCA notu; kayıt kanıtı = `identity` + `dnf repolist`.
+
+### G36 — ⚠️ Durum tablosunda "Kernel" sütunu RHEL sürümü gibi (9.8 / 9.6)
+- Görülen: Kernel 05=9.8, 06=9.8, 07=9.6; RHEL sürümü 07=9.2. Çekirdek `uname -r` (ör. `5.14.0-687.56.1.el9_8`) olmalı;
+  değer türetilmiş. 07'de 9.2 sürüm + "9.6 çekirdek" açıklanmadı. `sunucu-teslim` §5 zaten `uname -r` diyor.
+- ✅ 05 ve 06 9.8 — G28'deki `el9_2` sorusu bu ikisi için kapandı; 07 güncelleme sonrası kontrol edilecek.
+
+### G37 — Alp 07'de dnf'i elle başlattı; ajanla eşzamanlı işlem riski
+- Alp mesajı: "tekrar subs komutunu çalıştır istersen … 07 ne oldu? bak sorun yok devam ediyor update". Alp'in `dnf update`
+  sürerken ajan 07'de `04-subs`/dnf çalıştırırsa dnf kilidi/yarım işlem riski. Kural (§3 kopma kontrolü): `pgrep -a dnf`
+  boş olmadan ikinci işlem başlatılmaz.

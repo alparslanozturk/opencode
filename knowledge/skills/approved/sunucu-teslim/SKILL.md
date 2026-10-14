@@ -89,8 +89,14 @@ talebinde — tahmin etme (yanlış anahtar yanlış yama setine bağlar).
 
 Doğrulama:
 
+Kurum Satellite'ı **Simple Content Access (SCA)** modunda: bu modda `Overall Status: Disabled` ve
+`System Purpose Status: Disabled` **normaldir** — çıktının kendisi "This host has access to content, regardless of
+subscription status" der (saha, 2026-10-14). Kayıt sorunu sanıp yeniden kayıt (`04-subs`/`register`) önerme;
+kayıt kanıtı `identity` + `dnf repolist`'te kurum depolarının (`rhel-9-for-x86_64-baseos-rpms` …) görünmesidir.
+
 ```bash
-subscription-manager status                  # Overall Status: Current
+subscription-manager status                  # SCA: "Disabled" + "Simple Content Access" satırı = normal
+subscription-manager identity                # kayıtlı mı, hangi organizasyon/ortam
 subscription-manager repos --list-enabled | grep -E '^Repo ID'
 dnf repolist
 ```

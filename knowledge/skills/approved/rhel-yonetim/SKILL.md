@@ -99,7 +99,7 @@ işlem sunucunun kaydıdır** — kurumun abonelik playbook'u çalıştırılır
 depo senkronu, `hammer`) bizim kapsamımız dışında. Kontrol (salt-okunur):
 
 ```bash
-subscription-manager status          # Overall Status: Registered / Current
+subscription-manager status          # SCA modunda "Overall Status: Disabled" NORMAL (bkz. sunucu-teslim §2)
 subscription-manager identity        # hangi Satellite/organizasyon
 dnf repolist                         # depolar geliyor mu
 ```

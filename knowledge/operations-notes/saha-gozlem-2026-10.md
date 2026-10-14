@@ -408,3 +408,10 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Ayrıca: `07-sep-install` playbook'u yerine yine elle döngü; `curl -s` (−f yok) HTTP hatasında hata sayfasını dosyaya
   yazar, sessiz kalır (`file` kontrolü kısmen yakalar).
 - Aksiyon (yapıldı): `sunucu-teslim` §0 → adımlar arası geçiş her seferinde sorulur; araya iş girerse eski onay düşer.
+
+### G44 — ✅ SEP kuruldu (ekranda yalnız 05 görünüyor); limit değerlerinin kaynağı görünmüyor
+- Görülen: `chmod +x …/LinuxInstaller; …/LinuxInstaller -- --local-repo http://srvsatellite/pu…` (döngü, playbook değil).
+  05 çıktısı: cafagent / sisamdagent / sisidsagent / sisipsagent / sisevtd `running`, sisevt / sisap `loaded`. 06/07
+  çıktısı "Click to expand" altında — "tüm 3 sunucuda" iddiası ekranda doğrulanamadı (bilinmiyor). Süre 7m 49s.
+- "SEP limitleri uygulansın mı? (CPU 400%, Memory High 2G, Max 3G)" — değerler repoda yok; `08-sep-sinirlama`
+  playbook'undan okunduysa doğru, ekranda okuma görünmüyor (bilinmiyor). Adımlar arası soruyu sordu ✅ (G43 sonrası).

@@ -295,3 +295,11 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 ### G30 — ⚠️ Bağlam %84 (220.0K)
 - Görülen: alt satırda `220.0K (84%)`. G22'deki uydurma rapor %76'da üretilmişti.
 - Aday aksiyon: kalan adımlara (07-sep → 11-reboot) yeni oturumda kısa durum özetiyle devam.
+
+### G31 — Kurum bilgisi (Alp'in ajana cevabı): Content View düzeni
+- Alp: "varsayılan olarak RHEL8, RHEL9 veya RHEL10 CV ekliyor ki orada da genelde en son sürüm oluyor. Şu an için 9.8 …
+  9.4 çok özel bir durum, o sürümde tutmak için CV yaptık ve onu oraya set ettik."
+- → `sunucu-teslim` §3'e yazıldı (varsayılan ana sürüm CV'si = en son minor, şu an 9.8; 9.4 = ayrı CV + `release --set`;
+  güncelleme sonrası `/etc/redhat-release` kontrolü). G29'daki "aktif CV ne?" sorusunun cevabı bu.
+- Hâlâ açık (G28): ekrandaki `el9_2` çekirdeği — 9.8 beklenirken Installed listesindeyse sorun. Reboot sonrası
+  `cat /etc/redhat-release` + `uname -r` ile kapanır.

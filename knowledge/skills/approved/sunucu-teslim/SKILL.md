@@ -132,6 +132,19 @@ Sonucu playbook çıktısından (`failed=0`) oku; kendi "tamamlandı" mesajını
 needs-restarting -r                          # yeniden başlatma gerekiyor mu (okuma)
 ```
 
+**Güncelleme sırasında bağlantı koptuysa** işlem yarım kalmış olabilir. Hafızadan durum söyleme, sunucudan oku
+(hepsi okuma; komutlar dnf 4.20'de denendi):
+
+```bash
+pgrep -a dnf                                 # hâlâ çalışıyor mu — çalışıyorsa bekle, ikinci dnf başlatma
+dnf history list | head -5                   # son işlem tamamlandı mı ("Altered" sütununda E/EE = hata)
+dnf history info last                        # son işlemin ayrıntısı
+dnf check                                    # bağımlılık/çift paket sorunu
+dnf repoquery --duplicates                   # yarım kalan işlemden çift paket
+```
+
+Sorun görürsen düzeltmeyi kendin seçme — çıktıyı göster, kullanıcıya sor.
+
 `needs-restarting -r` sıfırdan farklı dönerse çekirdek ya da temel kütüphane
 güncellenmiştir; yeniden başlatma gerekir. Bunu **teslimden önce** yap,
 teslim ettiğin birime bırakma.

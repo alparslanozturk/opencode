@@ -11,19 +11,44 @@ doğrulanmadı — raporda "öneri" olarak yaz, "kural" olarak değil.
 ## 0. Ortam (Alp, 2026-10-14)
 
 - Rancher → RKE2 kümeleri; her kümede 3 master + worker'lar (sanal ya da fiziksel). İşletim sistemi genelde RHEL 9.
-- Fiziksel GPU worker: **H200** (B300 yakında gelecek). NVIDIA GPU Operator kümede kurulu.
-- Küme: GPU kümesi, alt ortamlar için (dev / test / prep → `d`/`t`/`x`). Kubeconfig'teki **bağlam adı `[SAHA]`** —
-  `kubectl config get-contexts` ile bul, kullanıcıya teyit ettir (`k8s-rancher` "Önce hangi kümedesin").
-- `/models`: NVMe SSD, RAID10 + 2 yedek, ~10 TB (Alp). Ayrıntı: 16 × 1.7 TB NVMe, 12'si yazılım RAID10 (mdadm),
-  2'si yedek — `depolama` §8. LVM düzeni (`vg_gpu` → `lv_models` → `/models`, xfs `noatime`) — `rke2-ansible`
-  "Elle worker ekleme".
-- vLLM pod'ları modelleri **hostPath `/models`** ile okur; uygulama Python + vLLM.
+- **İki GPU kümesi:**
+  - `gpu-prod` — prod Rancher'ın (`rke-prod.<kurum>`) altında; **3 fiziksel H200** worker.
+  - `gpu-dtx` — nonprod Rancher'ın (`rke-nonprod.<kurum>`) altında (dev/test/prep = `d`/`t`/`x`); **1 fiziksel H200**
+    (`h200w1`) + **L40S'li VM worker'lar** (VMware sanallaştırması).
+  - Kubeconfig'teki bağlam adı küme adıyla aynı olmayabilir — `kubectl config get-contexts` ile bul, teyit ettir
+    (`k8s-rancher` "Önce hangi kümedesin"). Prod'da yalnız okuma bile olsa hangi kümede olduğunu her raporda yaz.
+- B300 yakında gelecek. NVIDIA GPU Operator iki kümede de çalışıyor. H200 host'unda (RHEL 9) `nvidia-smi` çalışıyor.
+- Node RAM'i ~1 TB (H200 sunucusu).
+- `/models`: host'ta NVMe RAID10 (+2 yedek) → LVM → xfs, ~10 TB; **yazılabilir** — modelleri ekip NFS ya da scp ile
+  kopyalıyor. Ayrıntı: 16 × 1.7 TB NVMe, 12'si yazılım RAID10 (mdadm), 2'si yedek — `depolama` §8; LV düzeni
+  (`vg_gpu` → `lv_models`, xfs `noatime`) — `rke2-ansible` "Elle worker ekleme".
+- vLLM pod'ları modelleri **hostPath `/models`** ile okur. Neden hostPath: eskiden `nfs-sc` StorageClass kullanılıyordu;
+  blok StorageClass yok, Longhorn kurulu değil ve tercih edilmiyor → tek seçenek hostPath. Sonuç: model açılışı
+  ~45 dk'dan saniyeler düzeyine indi. hostPath'i "kötü uygulama" diye bulgu yazma — bilinçli kurum kararı.
+- vLLM deployment'ları fiziksel H200'e sabitleniyor; yöntem (nodeSelector mı taint/toleration mı) `[SAHA]` — §1/§3'te
+  bul ve yaz.
+- Geçmişte vLLM pod'ları **OOMKilled** oldu; `/dev/shm` boyutu (8 GB olabilir) ve pod bellek limiti belirsiz — §3'te
+  mutlaka incele.
 - OS ayarı örneği (Alp): `/tmp`'nin inode sayısı artırılıyor — kurumun hedef değeri `[SAHA]`.
 - SELinux ve firewalld kurum kararıyla kapalı — bulgu sayma (`engine/AGENTS.md` "Kurum sunucu gerçekleri").
 
 Erişim: yerelde `kubectl` yoksa `engine/AGENTS.md` "SSH ve Kubernetes erişimi" kalıbı
 (`ssh root@<master1> "/var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml …"`).
 GPU node'una OS komutları için `ssh root@<gpu-node>`. Hepsi okuma; yine de her ssh izin ister.
+
+## Canlı ortam — yalnız okuma (Alp, 2026-10-14)
+
+Kümeler canlı. Amaç **öğrenmek**: yalnız durum okuyan komut çalıştır. Yük bindiren test (`fio`, `dd`, benchmark,
+`stress`), `kubectl exec`, pod/node üzerinde herhangi bir değişiklik **yok** — gerekirse öneri olarak yaz.
+
+## Bağlamı koru
+
+Sahadaki model uzun oturumda öncekini unutur ve sayı uydurur (saha G20, G22). Bu yüzden:
+
+- Her komutun çıktısını sınırla (`--tail`, `head`, `grep`, `custom-columns`); tam `-o yaml`'ı yalnız tek pod için al.
+- Tek node / tek pod ile başla, sonra diğerine geç. Katman bitince **en fazla 5 satır ara özet** yaz; sonraki katmanda
+  ham çıktıyı tekrar etme, ara özete dayan.
+- İki küme varsa önce birini bitir (önerilen: `gpu-dtx`), raporu ver, sonra diğerine geç.
 
 ## Akış
 
@@ -45,6 +70,8 @@ kubectl describe node <gpu-node> | sed -n '/Taints/,/Events/p'   # taint, Alloca
 - `nvidia.com/gpu.*` etiketlerini GPU Feature Discovery koyar (genel). Etiket yoksa operator'ün GFD bileşenine bak (§2).
 - `Allocatable` içindeki `nvidia.com/gpu` sayısı = node'daki fiziksel GPU sayısı mı? Karşılaştır: node'da `nvidia-smi -L | wc -l`.
 - GPU node'unda taint var mı? Yoksa GPU'suz iş yükleri de oraya düşebilir — bulgu olarak yaz (genel).
+- `gpu-dtx`'te L40S VM node'ları da GPU node'u olarak görünür: ürün adı etiketinden H200 ile ayır; vLLM pod'larının
+  hangisinde çalıştığını §3'teki `NODE` sütunundan doğrula.
 
 ## 2. NVIDIA GPU Operator
 
@@ -61,7 +88,7 @@ Bakılacaklar:
 |---|---|---|
 | Durum | `status.state` | `ready` |
 | Bileşen pod'ları | driver, container-toolkit, device-plugin, dcgm-exporter, gpu-feature-discovery, operator-validator | hepsi `Running`/`Completed`, restart artmıyor |
-| Sürücü kimde | `spec.driver.enabled` | `true` = sürücüyü operator kurar (driver pod'u); `false` = host'a önceden kurulmuş. İkisi birden olmamalı (genel) |
+| Sürücü kimde | `spec.driver.enabled` + host'ta `rpm -qa \| grep -i -e nvidia -e cuda \| head` | `true` = sürücüyü operator kurar (driver pod'u); `false` = host'a kurulu. Host'ta `nvidia-smi` çalışıyor (Alp) — hangisi olduğunu bu iki kanıtla yaz; ikisi birden olmamalı (genel) |
 | GPU paylaşımı | `spec.devicePlugin.config` → ConfigMap, `timeSlicing` / `replicas` | Varsa yaz: bir GPU birden çok pod'a bölünüyor; vLLM için genelde istenmez (genel) |
 | MIG | `spec.mig.strategy`, node etiketi `nvidia.com/mig.config` | Bilinçli mi? Kullanıcıya sor |
 | Validator | `kubectl logs -n <ns> <nvidia-operator-validator-…> --all-containers --tail=50` | hata yok |
@@ -86,10 +113,23 @@ Her vLLM pod'u için (kanıt = yaml'daki alan):
   `nr_throttled` artıyorsa GPU'yu besleyen iş parçacıkları bekliyor. `requests` = `limits` ise QoS `Guaranteed`.
 - **Bellek:** `limits.memory`. Ağırlık yükleme ve vLLM'in CPU tarafı (`--swap-space`, varsayılanı GPU başına GiB
   düzeyinde — sürümde `--help` ile oku) host RAM'i kullanır. Geçmişte `OOMKilled` (`Last State`) var mı?
-- **`/dev/shm`:** Birden çok GPU'lu (tensor parallel) pod'da `emptyDir: {medium: Memory}` → `/dev/shm` bağlı mı?
-  Yoksa konteynerin varsayılan küçük shm'si NCCL'i yavaşlatır/çökertir (genel; vLLM belgesi `--ipc=host`/shm ister).
-- **hostPath `/models`:** `readOnly: true` mu (model yalnız okunuyorsa), `type: Directory` mi; pod GPU node'una
-  `nodeSelector`/affinity ile sabit mi; namespace PSA istisnasında mı (`rke2-ansible`).
+- **`/dev/shm` (Alp: mutlaka incele — geçmişte OOMKilled):**
+  - Yaml'da `volumes` → `emptyDir: {medium: Memory, sizeLimit: …}` ve `volumeMounts` → `/dev/shm` var mı, `sizeLimit` kaç?
+    Birden çok GPU'lu (tensor parallel) pod'da yoksa konteynerin küçük varsayılan shm'si NCCL'i bozar (genel; vLLM
+    belgesi `--ipc=host`/büyük shm ister).
+  - **Bellek tabanlı emptyDir'e yazılan veri pod'un bellek hesabına sayılır** (genel, Kubernetes belgesi): shm kullanımı +
+    süreç belleği `limits.memory`'yi aşarsa pod OOMKilled olur. Yani `sizeLimit` ile `limits.memory`'yi **birlikte**
+    değerlendir; limit yoksa pod node belleğiyle (~1 TB) sınırlıdır — bu da node'daki diğer pod'ları riske atar.
+  - Gerçek boyutu pod'a girmeden, node'dan oku (okuma):
+    ```bash
+    kubectl get pod <pod> -n <ns> -o jsonpath='{.metadata.uid}'; echo
+    ssh root@<gpu-node> "findmnt -t tmpfs | grep <pod-uid>; df -h /var/lib/kubelet/pods/<pod-uid>/volumes/kubernetes.io~empty-dir/*"
+    ```
+  - OOMKilled kanıtı: `describe pod` → `Last State: Terminated, Reason: OOMKilled` + restart sayısı; node'da
+    `journalctl -k --since -7d | grep -i -e oom -e "memory cgroup" | tail -20`.
+- **hostPath `/models`:** host'ta yazılabilir olması normal (kopyalama oradan yapılıyor). Pod tarafında `readOnly: true`
+  önerilebilir (genel; vLLM yalnız okur) — mevcut değeri yaz. `type`, pod'un H200'e sabitlenme yöntemi
+  (`nodeSelector` / `affinity` / `tolerations`) ve namespace PSA istisnası (`rke2-ansible`).
 - **Prob'lar:** model yüklemesi dakikalar sürebilir. `startupProbe` yok ve `livenessProbe` erken başlıyorsa pod yükleme
   sırasında öldürülür → `CrashLoopBackOff`. `initialDelaySeconds`/`failureThreshold`'u gerçek yükleme süresiyle karşılaştır.
 - **vLLM parametreleri** (değerini yaz, iş yükü bilinmeden "yanlış" deme): `--gpu-memory-utilization`,
@@ -160,11 +200,9 @@ xfs_info /models
 mdadm --detail /dev/md<N> | grep -i -e level -e layout -e chunk -e 'array size'
 ```
 
-- **Okuma hızı:** en zararsız ölçü vLLM'in kendi logundaki ağırlık yükleme süresi (§3). `fio` / `dd` ile test yük
-  bindirir; çalışan modelleri yavaşlatır — **yalnız onayla**, okuma testi olarak ve hedef dosyayı göstererek.
-  `/models` üzerine **yazma testi yapma.**
-- Model dizinleri kaç model, ne kadar yer: `du -sh /models/* 2>/dev/null | sort -h | tail` (büyük dizinde uzun sürer —
-  önce `df` yeterli mi diye bak).
+- **Okuma hızı:** tek ölçü vLLM'in kendi logundaki ağırlık yükleme süresi (§3). `fio` / `dd` / benchmark **yok**
+  (canlı ortam, Alp).
+- Kaç model var: `ls /models | head -50` yeterli; `du` büyük dizinde disk okuması yapar, çalıştırma.
 
 ## 6. Ölçüm (yük altında)
 
@@ -206,4 +244,5 @@ Açık kalanlar: [SAHA] …
 - vLLM pod'unu silme/yeniden başlatma — model yeniden yüklenir, dakikalarca kesinti
 - `kubectl drain/cordon` GPU node'u, ClusterPolicy'yi düzenleme, operator/sürücü yükseltme
 - `tuned-adm profile`, sysctl, kubelet argümanı, `/tmp` düzeni değişikliği — öneri olarak yaz
-- `/models` üzerinde yazma testi, `mdadm` değişikliği (`depolama` §8)
+- `/models` üzerinde herhangi bir test, `mdadm` değişikliği (`depolama` §8)
+- `kubectl exec` (pod içine girmek) — gereken bilgiyi yaml'dan, loglardan ve node'dan oku

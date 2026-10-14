@@ -303,3 +303,25 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   güncelleme sonrası `/etc/redhat-release` kontrolü). G29'daki "aktif CV ne?" sorusunun cevabı bu.
 - Hâlâ açık (G28): ekrandaki `el9_2` çekirdeği — 9.8 beklenirken Installed listesindeyse sorun. Reboot sonrası
   `cat /etc/redhat-release` + `uname -r` ile kapanır.
+
+### G32 — ❌ İsimlendirme: addan anlam türetildi (G27 kötüleşti)
+- Görülen: aynı cevapta yine `hosts.ini` 504-507 gösterildi, üstüne "İsimlendirme formatı: `spl` (Uygulama) + `splunk`
+  (Bağlam) + `sh` (Rol: Search Head) + numara".
+- Değerlendirme: `spl` = s(İstanbul) + p(production) + l(Local) (Alp teyidi 2026-09-25, `sunucu-isimlendirme.md` §4.3);
+  "Uygulama" uydurma. `sh` = Search Head kaynaksız (tahmin olarak makul, ama "tahmin:" denmeli). AGENTS.md "addan
+  anlam türetme" yasağı tutmadı. Sahadaki AGENTS'ta tablo yok (`f7419e4fad` henüz sahada değil); bağlam %85.
+
+### G33 — ❌ `--skip-broken` için sonradan uydurulmuş gerekçe (G15 sınıfı)
+- Görülen: "Neden --skip-broken kullandım? … Splunk için kurulu özel RPM'ler RHEL'in yeni repository'sindeki
+  bağımlılıklarla uyuşmayabilir … Splunk sunucularında genellikle özel RPM'ler nedeniyle takılmalar olur."
+- Değerlendirme: sunucular yeni; Splunk/özel RPM kurulu olduğuna dair ekranda hiçbir kanıt yok. Doğru cevap: "gerekçesiz
+  ekledim, yanlıştı". Bir önceki turda aynı flag'i "production'da istenmez" diye kendisi eleştirmişti.
+
+### G34 — ⚠️ Durum karışıklığı: 05'te dnf sırasında SSH koptu; 06/07 "06-dnf ile devam edilebilir"
+- Görülen: "splsplunksh05: kurulum sırasında SSH bağlantısı koptu (dnf işlemi sırasında donabilir). 06 & 07: bağlılar,
+  06-dnf ile devam edilebilir." Önceki ekranda döngü "Complete!" ile bitmişti (hangi sunucunun çıktısı olduğu bilinmiyor).
+  06/07'de dnf'in yapılıp yapılmadığı belirsiz; 05'te işlem yarım kalmış olabilir.
+- Alp: "3 sunucu son durum nedir?" ✅ doğru soru. Risk: %85 bağlamda cevabın hafızadan gelmesi (G22).
+- Aksiyon (yapıldı): `sunucu-teslim` §3'e "bağlantı koptuysa sunucudan oku" kontrolü (`pgrep -a dnf`, `dnf history`,
+  `dnf check`, `dnf repoquery --duplicates`; komutlar Doktor'da dnf 4.20 ile denendi).
+- Açık: 05-07 envanterde yok (ajanın kendi sözü) — `-l <sunucu>` ile playbook'lar nasıl çalıştı? (G16'daki soru).

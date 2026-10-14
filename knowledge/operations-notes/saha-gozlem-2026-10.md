@@ -44,7 +44,7 @@ Her madde: ne görüldü (kaynak = ekran görüntüsü) · değerlendirme · ada
   olması lazım, bir daha bak, envanteri güncelle." Ajan: "Kümede 3 master + 14 worker = 17 node var; 07-14 eksik" →
   `hosts-rke2.ini`'ye wor07-14 eklendi (grup listesi + `ansible_host` satırları), edit izni soruldu ✅.
 - ⚠️ DOĞRULANACAK: eklenen IP'ler wor07=.127, wor08=.128, wor09=.129; sonra ssh wor12=.132, wor14=.134 →
-  `wor<N> = 10.14.9.(120+N)` düzenine tam uyuyor. Ekran görüntüsündeki `kubectl get nodes` çıktısı wor04'te
+  `wor<N> = <test-ağı>.(120+N)` düzenine tam uyuyor. Ekran görüntüsündeki `kubectl get nodes` çıktısı wor04'te
   kesiliyor ("Click to expand"), IP'lerin bu çıktıdan mı geldiği yoksa düzenden mi türetildiği görülemiyor.
   tahmin: kaynak `get nodes -o wide` INTERNAL-IP olabilir; düzenden türetildiyse bu tam bir uydurma vakası.
 - Aday aksiyon: envantere host/IP yazan her edit için ajan kaynağı (komut + satır) göstermeli; kur/AGENTS kuralı +
@@ -86,7 +86,7 @@ Her madde: ne görüldü (kaynak = ekran görüntüsü) · değerlendirme · ada
 ### G10 — Rancher Events ekranı (Alp, el ile) — G7'ye kısmi dayanak
 - Görülen: wor03 kubelet'i NotReady iken hâlâ event üretiyor: `FailedKillPod` (milvus-kafka-0: `KillPodSandbox …
   rpc error … context deadline exceeded`), readiness probe `10.42.4.13:9091` / `10.42.4.19:9091` → `no route to host`,
-  `10.42.4.17:10250` → `connection refused`. wor07: oobeya-ui `ImagePullBackOff` (cr-test.kuveytturk.com.tr — uygulama
+  `10.42.4.17:10250` → `connection refused`. wor07: oobeya-ui `ImagePullBackOff` (cr-test.<kurum>.com.tr — uygulama
   tarafı, kapsam dışı). `TaintManagerEviction` (oobeya-addons) iptal.
 - G7 değerlendirmesi: "container runtime" iddiasının dayanağı bu tür KillPodSandbox deadline mesajı olabilir —
   ajanın kendi çıktısında gösterilmedi ama veri kümede mevcut.
@@ -95,7 +95,7 @@ Her madde: ne görüldü (kaynak = ekran görüntüsü) · değerlendirme · ada
   ikisi de wor03'teki antrea-agent/OVS'nin sağlıksız olmasıyla tutarlı (ağ kopması kümesel değil, node-yerel).
 
 ### G11 — Ajanın kök neden sonucu: "yerel OVS donması, 3 node'a reboot"
-- Görülen: mas01 antrea logu `E1012 08:20:44 cluster.go:403 Failed to rejoin any members` → 10.14.9.73/.132/.134:10351
+- Görülen: mas01 antrea logu `E1012 08:20:44 cluster.go:403 Failed to rejoin any members` → <test-ağı>.73/.132/.134:10351
   `connection refused`; diğer 14 node ile peer çalışıyor. wor14 için `OVS transaction timeout 5001ms`.
   Sonuç: "Ağ erişimi sorunu YOK … yerel OVS donması, 3 node'a fiziksel reboot gerekiyor." Alp wor03'ü restart etti.
 - ✅ Kanıta dayalı kısım: sorun 3 node'a yerel (peer logu), OVS yanıt vermiyor (transaction timeout). G10 hipoteziyle
@@ -144,7 +144,7 @@ Aday aksiyonlar (karar Alp'in; katman sırası MIMARI.md):
 ### G13 — Takip: G12 kapandı, G4 tekrarladı
 - ✅ G12: ajan sonradan "tüm 17 node Ready, tüm antrea agent'lar 2/2; OVS yeniden çalıştı" dedi (2m46s'lik tur) —
   "düzeldi" bu kez node Ready ile de desteklendi.
-- ❌ G4 tekrar: "10.14.x.x nonprod kümelerinin networklerini çıkar" isteğinde yine bash `grep -n '10\.14\.' …/hosts-rke2.ini`
+- ❌ G4 tekrar: "<nonprod-ağı> nonprod kümelerinin networklerini çıkar" isteğinde yine bash `grep -n '<nonprod-ağı>' …/hosts-rke2.ini`
   ve `…/hosts.ini | head -30` → her biri ayrı "Shell command" izni. Kalıcı davranış; yerleşik grep aracı (izinli) kullanılmıyor.
   Öncelik yükseldi (aksiyon 2).
 
@@ -155,7 +155,7 @@ setinin gözden geçirilmesi. Kaynak: Alp'in ekran görüntüleri (MobaXterm, sr
 
 ### G14 — ✅ Envanter önce, IP sorulu; ⚠️ aynı IP yakalandı ama yanlış yorumlandı
 - Görülen: `grep splsplunksh` → envanterde 01-04 var, 05-07 yok; IP'yi uydurmadı, sordu ✅. `nslookup` →
-  05=10.13.55.188, 06=10.13.55.189, 07=10.13.55.189. Ajan "DNS round-robin", "VIP / load balancer", "06 ve 07 aynı
+  05=<ip-A>, 06=<ip-B>, 07=<ip-B>. Ajan "DNS round-robin", "VIP / load balancer", "06 ve 07 aynı
   fiziksel sunucuya yönlendiriliyor" dedi.
 - Değerlendirme: bulgu (iki ad → tek IP) değerli; yorum kaynaksız. Round-robin tek ad → çok IP'dir, burada tersi.
   07 için "SSH OK" fiilen 06'nın cevabı. Alp: IP tahsisi hatası, ağ ekibine bildirildi.
@@ -223,3 +223,44 @@ varsa load". Kaynak: Alp'in ekran görüntüleri.
   gidecek bir kapasite raporuydu. tahmin: bağlam %76'da önceki tablolardan "tamamladı".
 - Aday aksiyon: deterministik kontrol (Refuter, 2026-10-12 değerlendirmesi madde 5) önceliği yükseldi — rapordaki
   her sayının aynı oturumdaki bir araç çıktısında geçmesi; host'lar arası birebir aynı değer = uyarı.
+
+## 2026-10-14 — splsplunksh05-07 kurulumu (devam)
+
+Kaynak: Alp'in ekran görüntüleri (cwd `/root/ai/work/opencode`, model Qwen3.6-35B-A3B-FP8). Adım adım "devam?" akışı;
+playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP → `<ip-…>`, kurum domaini → `<kurum>` (Alp, 2026-10-14).
+
+### G23 — ✅ G14 kapandı: 07'nin IP'si düzeltildi, ajan doğruladı
+- Görülen: Alp "düzeltmişler" → `ssh … root@<ip-C> "echo SSH_OK; hostname"` → `splsplunksh07.<kurum>.local`.
+  Tablo: 05/06/07 artık üç ayrı IP. Ardından "03-ntp ile devam?" diye sordu ✅.
+- Değerlendirme: düzeltmeyi hostname ile kanıtladı (yalnız "SSH OK" değil) — G14'teki hatanın tersi.
+
+### G24 — 03-ntp, 04-subs: sonuç tabloları
+- Görülen: "NTP sync çalışıyor — hepsi srvbudc3'ye bağlı, stratum 3", üçü `sync`. "Satellite kayıt başarılı — Simple
+  Content Access ile hepsi kayıtlı", üç farklı ID. Her adım sonunda sonraki adımı sordu ✅.
+- Görünmeyen: playbook'ların hangi komutla (`-l` var mı) çalıştığı ekranda yok (bilinmiyor).
+
+### G25 — 05-ipa: join başarılı
+- Görülen: "IPA domain join başarılı — 3 sunucu da Online"; IPA server: 05 → splidm02, 06 → splidm01, 07 → splidm02;
+  "Hepsi idm.<kurum>.local ve <kurum>.local domainlerinde Online". "06-dnf ile devam?" ✅
+- tahmin: farklı IPA sunucusu, istemcinin DNS SRV kaydıyla sunucu seçmesinden (sorun değil). "Online" bilgisinin hangi
+  komuttan geldiği (ör. `sssctl domain-status`) ekranda yok.
+
+### G26 — ❌ 06-dnf: playbook yerine elle ssh döngüsü + koşulsuz "Update complete."
+- Görülen: `for ip in <3 IP>; do ssh … "root@$ip" "dnf update -y --skip-broken 2>&1 | tail -10; echo ---;
+  echo Update complete." done` — izin istendi (Allow once / always / Reject). Alp'in seçimi: bilinmiyor.
+- Sorunlar: (1) `sunucu-teslim` §0 "kurulum elle komutla değil, `ansible/playbooks/` ile" — `06-dnf` okunmadı/çalıştırılmadı
+  (ekranda görünmüyor). (2) §3 "önce `dnf check-update` / kuru çalıştırma" atlandı. (3) `--skip-broken` bağımlılığı
+  bozuk paketleri sessizce atlar. (4) `echo Update complete.` dnf'in sonucundan bağımsız basılır; `| tail` çıkış kodunu
+  da yutar → başarısız güncelleme "complete" görünür (G12 sınıfı: başarı sinyalini ajan kendisi üretiyor). (5) Envanter
+  ve `-l` yerine çıplak IP.
+- ✅ İzin kapısı (`dnf update` → ask) yakaladı.
+- Kök neden (Doktor, dosyadan): `sunucu-teslim` §3 elle `dnf update -y` örneği veriyordu, §0 ile çelişiyordu.
+- Aksiyon (yapıldı): §3 → uygulama `06-dnf` playbook'u ile `-l`; elle yalnız okuma/kuru çalıştırma; başarı mesajı çıkış
+  koduna bağlı. Aday: deterministik — kurum playbook dizini varken ssh ile `dnf update`/`subscription-manager register`/
+  `ipa-client-install` → `guvenlik-v2.ts` "playbook var" uyarısı.
+
+### Açık soru (Alp, 2026-10-14)
+- "Bu sunucuyu baseline'a uydur" gibi bir istekte klasördeki tüm playbook'ların sırayla uygulanması gerekebilir;
+  Alp emin değil — karar bekliyor. Bugünkü akış: Alp her playbook'u tek tek söylüyor.
+- `sunucu-teslim` §0 "önce bir sunucuda bitir" diyor; sahada her adım üç sunucuya birlikte uygulanıyor ve Alp memnun —
+  kural güncellenecek mi: bilinmiyor.

@@ -134,6 +134,11 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
 - Yıkıcı komut (rm -rf, mkfs, dnf remove, servis durdurma, force push) → **önce sor**.
 - Kurum dışına veri gönderme; dış ağ/telemetri kapalı varsay.
 - Üretim kümesinde çalışmadan önce "hangi küme bağlı" doğrula (`k8s-rancher` becerisi).
+- **Sunucu adı → ortam** (Alp teyidi, 2026-09-25): adın ilk 3 harfi `<lokasyon><ortam><alan>` — lokasyon
+  `s`=İstanbul, `d`=Ankara (DRC); ortam `p`=production, `d`=development, `t`=test, `x`=prep, `b`=bugfix; alan
+  `l`=Local (iç ağ), `d`=DMZ. Ör. `spl…` = İstanbul · production · iç ağ; `std…` = İstanbul · test · DMZ.
+  Production sunucuda yan etkili adımdan önce bunu kullanıcıya söyle. Tabloya uymayan adda (ör. `srv…`) anlam
+  türetme — sor.
 - **Tanımadığın/kısıtlı bir makinede tam-monorepo paralel build/typecheck/lint çalıştırma** (`bun turbo
   typecheck`, `turbo run build` gibi kökten tetiklenen, workspace'teki her paket için ayrı süreç açan
   komutlar). Önce `nproc`/`free -h`/swap durumuna bak; küçükse (ör. 2 vCPU, swap yok) tek paket bazında

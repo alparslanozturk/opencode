@@ -7,7 +7,7 @@
 > **Not (2026-09-16):** `/root/ai-danis/` bu makinede **mevcut değil** — harici kaynak, bu repoda tutulmaz.
 > Referans silinmedi (izlenebilirlik için), içerik zaten bu politika dosyasına özetlenmiş durumda.
 >
-> Maskeleme yok (Alp, 2026-09-28): kurum içi offline sistem — gerçek ad/IP/URL yazılır. Aşağıdaki `test-sunucu`/`KUME-A`/`10.0.0.x` yalnız örnek addır.
+> Maskeleme (Alp, 2026-10-14): maskeleme VAR (Alp, 2026-10-14; A48'in yerine): repo GitHub'da **public** — iç IP ve kurum domaini yazılmaz, yer tutucu kullanılır (`<ip-…>`, `<kurum>.local`). Sunucu kısa adları için ayrı karar yok (şimdilik yazılıyor). Aşağıdaki `test-sunucu`/`KUME-A`/`10.0.0.x` yalnız örnek addır.
 
 ## 1. Faz 0 tanımı
 

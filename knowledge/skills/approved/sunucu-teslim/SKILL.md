@@ -42,8 +42,8 @@ Sıra (2026-10-13 itibarıyla):
 - **Her zaman `-l <sunucu>` ile çalıştır** — playbook'ların çoğu `hosts: all`; limitsiz çalıştırma envanterdeki
   tüm sunuculara uygular. Birden çok yeni sunucuda önce birinde bitir, sonra diğerlerine geç.
 - **DNS:** yalnız NetworkManager üzerinden (`nmcli`); RHEL'de `/etc/resolv.conf`'u NM yazar, elle düzenleme
-  kaybolur (eski `resolv.conf` playbook'ları bu yüzden kaldırıldı). Değerler playbook içinde; 2026-10-13'te Alp
-  doğruladı: `spl*` → 10.13.8.1 / 10.13.9.1, `stl*`/`sxl*`/`sdl*` → 10.14.6.1 / 10.14.6.2.
+  kaybolur (eski `resolv.conf` playbook'ları bu yüzden kaldırıldı). Değerler playbook içinde (2026-10-13'te Alp
+  doğruladı): `spl*` bir DNS çifti, `stl*`/`sxl*`/`sdl*` başka bir çift kullanır — IP'leri playbook'tan oku.
 - **Disk:** `sda` = OS diski, VM şablonundan gelir. Ek disklerin (sdb, sdc …) ne olacağı **kurulum talebinde
   sorulur** — `/` büyütme, `/var` büyütme, `/data` ya da proje adıyla yeni dizin (ör. `/genesys/gcti`). Hedefi
   tahmin etme, kullanıcıya sor. Disk adı sabit değildir: `lsblk -f` ile oku, boş olduğunu `disk-ekleme`
@@ -105,11 +105,12 @@ dnf check-update                             # önce ne geleceğini gör
 dnf update --security --assumeno             # kuru çalıştırma
 ```
 
-Uygulama (yan etkili, **onay al**):
+Uygulama (yan etkili, **onay al**): kurumun `06-dnf` playbook'u ile, `-l <sunucu>` vererek — önce playbook'u oku.
+Aynı işi `ssh … "dnf update -y"` döngüsüyle yapma; `--skip-broken` ekleme (bozuk bağımlılığı sessizce atlar).
+Sonucu playbook çıktısından (`failed=0`) oku; kendi "tamamlandı" mesajını basma — `| tail` çıkış kodunu yutar.
 
 ```bash
-dnf update -y
-needs-restarting -r                          # yeniden başlatma gerekiyor mu
+needs-restarting -r                          # yeniden başlatma gerekiyor mu (okuma)
 ```
 
 `needs-restarting -r` sıfırdan farklı dönerse çekirdek ya da temel kütüphane

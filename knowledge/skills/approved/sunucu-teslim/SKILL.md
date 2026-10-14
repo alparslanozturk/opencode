@@ -5,7 +5,7 @@ description: Yeni sunucu devralma, Satellite'e kaydetme, güncelleme ve ilgili b
 
 ## Bağlam
 
-Sunucular **CIS uyumlu, kurumsal regülasyona uygun RHEL 10 şablonundan**
+Sunucular **CIS uyumlu, kurumsal regülasyona uygun RHEL şablonundan** (RHEL 9 de var — 2026-10-14 splsplunksh kurulumunda `el9` çekirdek görüldü)
 kuruluyor. Bu şu anlama gelir:
 
 - Sıkılaştırma ve temel yapılandırma **zaten hazır** — yeniden yapma (DNS ve NTP'yi kurumun
@@ -99,6 +99,16 @@ Kayıt başarısız olursa hata mesajını aynen göster. Satellite sunucusunun 
 kapsam dışıdır (`rhel-yonetim` → "Satellite kaydı"); sorunu Satellite yöneticisine ilet.
 
 ## 3. Güncelleme
+
+**Hedef sürüm (Alp, 2026-10-14):** amaç sunucuyu sorunsuz biçimde **ana sürümünün en son minor'üne** getirmek
+(RHEL 8 → 8'in, RHEL 9 → 9'un en sonu). Belirli bir minor'de kalacaksa Alp `subscription-manager release --set 9.4`
+gibi sabitler; o zaman 9.4'ü geçmez. `release` boşsa (`Release not set`) en son sürüme gider — Satellite bunu
+Content View ile yönetir. Güncellemeden önce oku, tahmin etme, sonucu kullanıcıya söyle:
+
+```bash
+subscription-manager release --show          # sabit minor var mı
+cat /etc/redhat-release                      # şu anki minor
+```
 
 ```bash
 dnf check-update                             # önce ne geleceğini gör

@@ -264,3 +264,34 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   Alp emin değil — karar bekliyor. Bugünkü akış: Alp her playbook'u tek tek söylüyor.
 - `sunucu-teslim` §0 "önce bir sunucuda bitir" diyor; sahada her adım üç sunucuya birlikte uygulanıyor ve Alp memnun —
   kural güncellenecek mi: bilinmiyor.
+
+### G27 — ❌ "İsimlendirme bilgin nereden?" → envanter dosyası gösterildi
+- Görülen: Alp sunucu isimlendirme bilgisinin kaynağını sordu. Ajan "Dosya: `ansible/inventories/hosts.ini` satır
+  504-507" deyip splsplunksh01-04'ü listeledi. Bu bir envanter listesi, isimlendirme kuralı değil.
+- Değerlendirme: sahadaki ajanda kural yoktu (`knowledge/sunucu-isimlendirme.md` sahaya kurulmuyor; AGENTS.md
+  eklemesi `f7419e4fad` henüz sahada değil). Doğru cevap "elimde isimlendirme kuralı yok" olmalıydı — soruyu
+  elindeki en yakın dosyaya uydurarak cevapladı.
+- Aksiyon: sahada güncelleme + `./kur.sh` sonrası aynı soru tekrar sorulup doğrulanacak.
+
+### G28 — ⚠️ 06-dnf koştu ("Complete!"); `--skip-broken` sorusuna "neden ekledim" cevabı yok
+- Görülen: çıktının sonu `kernel-modules-core-5.14.0-284.11.1.el9_2.x86_64 … Complete!` (G26'daki döngü çalıştırıldı;
+  playbook değil). Alp "`--skip-broken` neden var?" diye sordu; ajan flag'i doğru tanımladı ("production'da istenmez,
+  en iyi practice değil") ama kendisinin eklediğini ve neden eklediğini söylemedi (G15 sınıfı niyet sorusu).
+- Açık: `el9_2` çekirdeği listenin hangi bölümünde (Installed / Removed) — ekranda görünmüyor. tahmin: `installonly`
+  sınırı nedeniyle eski çekirdeğin silinmesi. Installed ise sunucu 9.2'de kalmış olabilir → `uname -r` (reboot
+  sonrası), `rpm -q kernel`, `cat /etc/redhat-release`, `subscription-manager release --show` ile doğrulanmalı.
+
+### G29 — ⚠️ Release/Content View açıklaması kısmen yanlış; makineden okunabilecek şeyleri sordu
+- Görülen: "`subscription-manager release --show` → RHEL'in ana sürümünü (ör. 9) gösterir". tahmin (Red Hat bilgisi,
+  burada doğrulanmadı — Doktor'un makinesinde subscription-manager yok): `--show` ana sürümü değil, sabitlenmiş
+  minor'ü ya da "Release not set" gösterir.
+- Ajanın soruları: "aktif CV nedir (PROD_RHEL9_9.4 / Latest?)", "Satellite'te 9.4 sonrası kapalı mı?" — ikisi de
+  sunucudan okunabilir (`subscription-manager release --show`, `subscription-manager identity`, `dnf repolist -v`);
+  önce bakıp sonra sormalıydı. "05 şu an SSH ile koptu/dondurabilir" — ne olduğu ekranda yok (bilinmiyor).
+- Alp'in kuralı (kaynak: Alp'in ajana mesajı) → `sunucu-teslim` §3'e yazıldı: hedef = ana sürümün en son minor'ü;
+  sabit minor `release --set` ile; boşsa Satellite CV ile en son. tahmin (doğrulanmadı): istemci yalnız bağlı olduğu
+  CV sürümünde yayımlanmış paketleri görür → "en son" = CV'nin yayımlandığı tarihteki en son.
+
+### G30 — ⚠️ Bağlam %84 (220.0K)
+- Görülen: alt satırda `220.0K (84%)`. G22'deki uydurma rapor %76'da üretilmişti.
+- Aday aksiyon: kalan adımlara (07-sep → 11-reboot) yeni oturumda kısa durum özetiyle devam.

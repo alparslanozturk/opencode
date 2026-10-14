@@ -15,8 +15,10 @@ doğrulanmadı — raporda "öneri" olarak yaz, "kural" olarak değil.
   - `gpu-prod` — prod Rancher'ın (`rke-prod.<kurum>`) altında; **3 fiziksel H200** worker.
   - `gpu-dtx` — nonprod Rancher'ın (`rke-nonprod.<kurum>`) altında (dev/test/prep = `d`/`t`/`x`); **1 fiziksel H200**
     (`h200w1`) + **L40S'li VM worker'lar** (VMware sanallaştırması).
-  - Kubeconfig'teki bağlam adı küme adıyla aynı olmayabilir — `kubectl config get-contexts` ile bul, teyit ettir
-    (`k8s-rancher` "Önce hangi kümedesin"). Prod'da yalnız okuma bile olsa hangi kümede olduğunu her raporda yaz.
+  - **Şimdilik yalnız `gpu-dtx` incelenir** (Alp, 2026-10-14). `gpu-prod`'a Alp açıkça istemedikçe komut çalıştırma.
+- Worker'lar (H200 fiziksel ve L40S VM'ler) RKE2 kümesinin worker node'larıdır — **ikisi de denetim kapsamında.** VM
+  worker'da ayrıca hipervizör etkisine bak (`performans` §3 `%steal`) ve GPU'nun VM'e nasıl verildiğini
+  (`nvidia-smi -q` ürün/sanallaştırma alanları) yaz.
 - B300 yakında gelecek. NVIDIA GPU Operator iki kümede de çalışıyor. H200 host'unda (RHEL 9) `nvidia-smi` çalışıyor.
 - Node RAM'i ~1 TB (H200 sunucusu).
 - `/models`: host'ta NVMe RAID10 (+2 yedek) → LVM → xfs, ~10 TB; **yazılabilir** — modelleri ekip NFS ya da scp ile
@@ -32,9 +34,11 @@ doğrulanmadı — raporda "öneri" olarak yaz, "kural" olarak değil.
 - OS ayarı örneği (Alp): `/tmp`'nin inode sayısı artırılıyor — kurumun hedef değeri `[SAHA]`.
 - SELinux ve firewalld kurum kararıyla kapalı — bulgu sayma (`engine/AGENTS.md` "Kurum sunucu gerçekleri").
 
-Erişim: yerelde `kubectl` yoksa `engine/AGENTS.md` "SSH ve Kubernetes erişimi" kalıbı
-(`ssh root@<master1> "/var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml …"`).
-GPU node'una OS komutları için `ssh root@<gpu-node>`. Hepsi okuma; yine de her ssh izin ister.
+**Erişim (Alp, 2026-10-14):** kubectl, kümenin master node'larından birine ssh ile bağlanıp orada çalıştırılır —
+`engine/AGENTS.md` "SSH ve Kubernetes erişimi" kalıbı:
+`ssh root@<master1> "/var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml …"`.
+Master ve worker'ların hepsine ssh açık; OS komutları için `ssh root@<node>`. Master/worker adlarını envanterden
+(`ansible/inventories/`) oku, tahmin etme. Aşağıdaki `kubectl …` satırlarının hepsi bu kalıpla çalışır.
 
 ## Canlı ortam — yalnız okuma (Alp, 2026-10-14)
 
@@ -67,6 +71,10 @@ kubectl get nodes -l nvidia.com/gpu.present=true -L nvidia.com/gpu.product,nvidi
 kubectl describe node <gpu-node> | sed -n '/Taints/,/Events/p'   # taint, Allocatable, Allocated resources
 ```
 
+- **Sürümler küme üzerinden okunur, tahmin edilmez:** RKE2/Kubernetes → `get nodes` `VERSION` sütunu
+  (`v1.xx.y+rke2rN` biçimi); Rancher → `kubectl -n cattle-system get deploy cattle-cluster-agent -o
+  jsonpath='{.spec.template.spec.containers[0].image}'` (ajan imaj etiketi, genel). Alp "Rancher 2.11.x, RKE2 1.32-1.34
+  arası" dedi (teyitsiz) — okunan değeri yaz. Uyumluluk yorumu yalnız `rke2-ansible`'daki veri tablosundan.
 - `nvidia.com/gpu.*` etiketlerini GPU Feature Discovery koyar (genel). Etiket yoksa operator'ün GFD bileşenine bak (§2).
 - `Allocatable` içindeki `nvidia.com/gpu` sayısı = node'daki fiziksel GPU sayısı mı? Karşılaştır: node'da `nvidia-smi -L | wc -l`.
 - GPU node'unda taint var mı? Yoksa GPU'suz iş yükleri de oraya düşebilir — bulgu olarak yaz (genel).
@@ -218,7 +226,7 @@ Boştaki node "iyi" görünür; darboğaz istek varken çıkar.
 - Bekleyen istek kuyruğu büyürken GPU kullanımı düşükse darboğaz GPU dışında (CPU kısıtlaması, tokenizer, ağ) —
   "GPU yetmiyor" demeden önce bunu ayır.
 
-## 7. Rapor
+## 7. Sonuç (ekrana — dosya/rapor üretme gerekmez, Alp)
 
 Katman başına kısa satırlar; her satırda **kanıt** (komut + ilgili çıktı satırı):
 

@@ -29,6 +29,11 @@ doğrulanmadı — raporda "öneri" olarak yaz, "kural" olarak değil.
   ~45 dk'dan saniyeler düzeyine indi. hostPath'i "kötü uygulama" diye bulgu yazma — bilinçli kurum kararı.
 - vLLM deployment'ları fiziksel H200'e sabitleniyor; yöntem (nodeSelector mı taint/toleration mı) `[SAHA]` — §1/§3'te
   bul ve yaz.
+- **opencode'un kendi modeli (kurum Qwen) bu GPU kümelerinden birinde vLLM ile çalışıyor** (Alp; hangi küme `[SAHA]`).
+  O pod'u bulursan (imaj/args'ta model adı, `env` dosyasındaki `MODEL_ID` ile eşle): **kesinlikle dokunma** — yeniden
+  başlarsa ajan işin ortasında cevapsız kalır. Args'ındaki `--max-model-len`, `--max-num-seqs`,
+  `--gpu-memory-utilization` değerlerini yaz ve opencode `env`'deki `KURUM_MAX_CONTEXT` / `KURUM_MAX_OUTPUT` ile
+  karşılaştır (uyuşmazlık = opencode ayarı önerisi; saha G2).
 - Geçmişte vLLM pod'ları **OOMKilled** oldu; `/dev/shm` boyutu (8 GB olabilir) ve pod bellek limiti belirsiz — §3'te
   mutlaka incele.
 - OS ayarı örneği (Alp): `/tmp`'nin inode sayısı artırılıyor — kurumun hedef değeri `[SAHA]`.

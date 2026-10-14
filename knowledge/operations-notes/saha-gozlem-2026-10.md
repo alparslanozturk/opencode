@@ -357,3 +357,5 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Değerlendirme: başlık beceri metnindeki "`sda` = OS diski" cümlesinden kopyalanmış; çıktı okunmadan dolduruldu (G12
   sınıfı). Beceri "OS `sda`'da değilse yeniden başlatılarak düzeltilir" diyor — 05 bu durumda.
 - Aksiyon (yapıldı): `sunucu-teslim` §0 disk maddesi — OS diski adından değil `lsblk`'tan, sunucu başına; sabit başlık yasak.
+- Alp'in beklediği davranış (2026-10-14): ajan "05'te OS sdb'de → reboot gerekiyor; reboot edip `lsblk`'a tekrar
+  bakıyorum" demeliydi. → `sunucu-teslim` §0 disk maddesine 4 adımlı akış olarak yazıldı.

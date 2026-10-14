@@ -16,7 +16,7 @@
 | **Alp** | Onaylar / düzeltir, kullanır |
 
 **Kural:** Şef **uydurma örnek yazmaz** — örnekler ve gerçek değerler **sahadan** gelir.
-**Gizlilik:** maskeleme yok (A48, 2026-09-28) — gerçek sunucu adı / iç FQDN envanterden olduğu gibi yazılır (A103 çelişkisi kapandı).
+**Gizlilik:** maskeleme VAR (Alp, 2026-10-14; A48'in yerine): repo GitHub'da **public** — iç IP ve kurum domaini yazılmaz, yer tutucu kullanılır (`<ip-…>`, `<kurum>.local`). Sunucu kısa adları için ayrı karar yok (şimdilik yazılıyor).
 
 > 🧭 Saha AI için tek cümle: *"Bu dosya bir öneri iskeletidir. Envanterdeki gerçek verilerle
 > `[SAHA]` işaretli yerleri doldur, `🟡 öneri` maddelerini doğrula ya da düzelt, sonucu geri gönder."*

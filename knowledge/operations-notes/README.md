@@ -5,4 +5,4 @@ tekrar eden küçük usüller, "şunu şöyle yaparız" notları.
 
 - Dosya adı: `konu.md`
 - Olgunlaşan not terfi eder: usülse `../skills/` veya `../runbooks/`; kararsa `../architecture/decisions/`
-- Künye yazarken gerçek IP / hostname / kullanıcı adı / domain yazılabilir (maskeleme yok, A48 — 2026-09-28)
+- Künye yazarken: maskeleme VAR (Alp, 2026-10-14; A48'in yerine): repo GitHub'da **public** — iç IP ve kurum domaini yazılmaz, yer tutucu kullanılır (`<ip-…>`, `<kurum>.local`). Sunucu kısa adları için ayrı karar yok (şimdilik yazılıyor)

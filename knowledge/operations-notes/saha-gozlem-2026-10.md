@@ -359,3 +359,33 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Aksiyon (yapıldı): `sunucu-teslim` §0 disk maddesi — OS diski adından değil `lsblk`'tan, sunucu başına; sabit başlık yasak.
 - Alp'in beklediği davranış (2026-10-14): ajan "05'te OS sdb'de → reboot gerekiyor; reboot edip `lsblk`'a tekrar
   bakıyorum" demeliydi. → `sunucu-teslim` §0 disk maddesine 4 adımlı akış olarak yazıldı.
+
+### G39 — ❌ /data: beceri yüklenmedi, LVM'siz `mkfs.xfs -f /dev/sdb` + fstab'a `/dev/sdb`
+- Görülen: Alp "300GB /data olarak ekle" → 3 IP'ye tek döngü: `mkfs.xfs -f /dev/sdb | tail -3; mkdir -p /data;
+  mount /dev/sdb /data; echo '/dev/sdb /data xfs defaults,nodiratime 0 2' >> /etc/fstab`. "fstab'a eklendi, reboot
+  sonrası kalıcı" dendi. Alp: "yanlış oldu, lvm yapıp ekleyecektin" + splsplunksh02 örneği (`sdb` → `kt_rhel_vg-kt_rhel_lv`
+  → `/data`, fstab `/dev/kt_rhel_vg/kt_rhel_lv /data xfs defaults 0 0`), "skill yüklemedin galiba?".
+- `disk-ekleme` becerisi bu hataların hepsini yasaklıyor: boşluk kanıtı (`wipefs -n`, `pvs`), adları örnek sunucudan
+  türet, UUID, çıplak `>> /etc/fstab` yok, `findmnt --verify`, fstab yedeği. Beceri yüklenmedi; `sunucu-teslim` §0
+  10-disks-add playbook'u da kullanılmadı.
+- En ağır risk: aynı gün 05 ve 07'de reboot sonrası sda/sdb yer değiştirdi; fstab'daki `/dev/sdb` bir sonraki açılışta OS
+  diskini gösterebilir → mount hatası, fsck pass 2 → açılış acil kipe düşebilir. "Reboot sonrası kalıcı" iddiası test
+  edilmedi.
+- ❌ Güvenlik kilidi: repodaki `kilit.ts` K5 bu komutu **sert** engelliyor (Doktor testi: sahadaki çok satırlı döngü →
+  `sert mkfs.xfs` + `mkfs.xfs (uzakta)`), sahada yalnız "Permission required" çıktı ve çalıştı. tahmin: sahadaki
+  kurulumda `guvenlik-v2` eklentisi etkin değil ya da eski. `./kur.sh kontrol` ile doğrulanmalı — **yüksek öncelik**.
+- Aksiyon (yapıldı): `sunucu-teslim` §0 disk maddesi → "playbook yoksa önce `disk-ekleme` yükle; kurum /data = LVM
+  (`kt_rhel_vg/kt_rhel_lv`)".
+
+### G40 — Diskler reboot sonrası düzeldi; SCA çıktısı sürüme bağlı
+- 05 reboot (Alp isteğiyle, `shutdown -r +1`) → sda 60G OS, sdb 300G. 07 de Alp'in reboot'uyla aynı düzene geldi; reboot
+  öncesi ajanın 07 satırı "sda (Sistem) 300G (LVM…)" — başlık yine sabit (G38).
+- Durum turu: 05 `subscription-manager status` → `Overall Status: Registered` (9.8). 07 9.2'deyken `Disabled` idi →
+  SCA'da çıktı sürüme göre değişiyor; beceri notu buna göre düzeltildi.
+
+### G41 — Düzeltme planı (ajan): eksik adımlar
+- Plan: umount /data → fstab'dan eski satırı sil → pvcreate → vgcreate kt_rhel_vg → lvcreate 100%FREE kt_rhel_lv → mkfs.xfs
+  → mount + fstab. Alp: "evet, bir daha böyle hata yapma, ilgili skill'i mi yüklemedin?".
+- Eksik (disk-ekleme'ye göre): her sunucuda yıkıcı adımdan hemen önce `lsblk` ile sdb'nin 300G/OS-dışı olduğunu yeniden
+  kanıtlama; fstab yedeği; eski XFS imzası (`wipefs`) — yoksa pvcreate imza uyarısında durur; `findmnt --verify`;
+  çift `/data` satırı kontrolü.

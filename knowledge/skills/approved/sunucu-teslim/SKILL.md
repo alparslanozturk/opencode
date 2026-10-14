@@ -46,7 +46,9 @@ Sıra (2026-10-13 itibarıyla):
   doğruladı): `spl*` bir DNS çifti, `stl*`/`sxl*`/`sdl*` başka bir çift kullanır — IP'leri playbook'tan oku.
 - **Disk:** OS diski **beklenen** `sda`'dır (VM şablonu) ama açılışta sıra değişebilir — hangi diskin OS olduğunu
   adından değil `lsblk` çıktısından oku (altında `/boot`, `/` ya da LVM üyesi olan disk OS'tur), her sunucu için ayrı.
-  Tablo başlığına "sda (Sistem) / sdb (Boş)" yazma. Ek disklerin (sdb, sdc …) ne olacağı **kurulum talebinde
+  Tablo başlığına "sda (Sistem) / sdb (Boş)" yazma. Disk işinde playbook kullanılmıyorsa **önce `disk-ekleme`
+  becerisini yükle**. Kurum `/data` düzeni LVM'dir (Alp'in örneği, splsplunksh02: `sdb` → `kt_rhel_vg/kt_rhel_lv` →
+  `/data`, xfs); diske doğrudan `mkfs` yapılmaz. Ek disklerin (sdb, sdc …) ne olacağı **kurulum talebinde
   sorulur** — `/` büyütme, `/var` büyütme, `/data` ya da proje adıyla yeni dizin (ör. `/genesys/gcti`). Hedefi
   tahmin etme, kullanıcıya sor. Disk adı sabit değildir: `lsblk -f` ile oku, boş olduğunu `disk-ekleme`
   becerisindeki kontrolle kanıtla. OS `sda`'da değilse sunucu yeniden başlatılarak düzeltilir (Alp, 2026-10-14 — beklenen akış):
@@ -94,8 +96,8 @@ talebinde — tahmin etme (yanlış anahtar yanlış yama setine bağlar).
 
 Doğrulama:
 
-Kurum Satellite'ı **Simple Content Access (SCA)** modunda: bu modda `Overall Status: Disabled` ve
-`System Purpose Status: Disabled` **normaldir** — çıktının kendisi "This host has access to content, regardless of
+Kurum Satellite'ı **Simple Content Access (SCA)** modunda: bu modda `Overall Status` sürüme göre `Disabled` ya da
+`Registered` görünür (saha 2026-10-14: 9.2'de `Disabled`, 9.8'de `Registered`) — ikisi de **normaldir** — çıktının kendisi "This host has access to content, regardless of
 subscription status" der (saha, 2026-10-14). Kayıt sorunu sanıp yeniden kayıt (`04-subs`/`register`) önerme;
 kayıt kanıtı `identity` + `dnf repolist`'te kurum depolarının (`rhel-9-for-x86_64-baseos-rpms` …) görünmesidir.
 

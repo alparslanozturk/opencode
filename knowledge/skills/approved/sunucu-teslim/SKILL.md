@@ -49,7 +49,10 @@ Sıra (2026-10-13 itibarıyla):
   Tablo başlığına "sda (Sistem) / sdb (Boş)" yazma. Ek disklerin (sdb, sdc …) ne olacağı **kurulum talebinde
   sorulur** — `/` büyütme, `/var` büyütme, `/data` ya da proje adıyla yeni dizin (ör. `/genesys/gcti`). Hedefi
   tahmin etme, kullanıcıya sor. Disk adı sabit değildir: `lsblk -f` ile oku, boş olduğunu `disk-ekleme`
-  becerisindeki kontrolle kanıtla. OS `sda`'da değilse sunucu yeniden başlatılarak düzeltilir.
+  becerisindeki kontrolle kanıtla. OS `sda`'da değilse sunucu yeniden başlatılarak düzeltilir (Alp, 2026-10-14 — beklenen akış):
+  1) kullanıcıya açıkça söyle: "<sunucu>'da OS `sdX`'te, `sda` boş — reboot gerekiyor, disk işine geçmiyorum";
+  2) onayla yeniden başlat; 3) açılınca `lsblk`'ı **tekrar** çalıştır ve göster; 4) OS `sda`'ya geçtiyse disk adımına
+  devam, hâlâ değilse dur ve sor. Bu sunucuda reboot öncesi `lsblk` sonucuyla disk işlemi yapılmaz.
 - **Ön kontrol:** iki sunucu adı aynı IP'ye çözülüyorsa (`getent hosts`) o sunucuya hiçbir playbook çalıştırma —
   ikinci sunucuya giden iş ilkinin üstüne uygulanır. IP tahsisi/DNS kaydını düzeltecek ekibe bildir.
 

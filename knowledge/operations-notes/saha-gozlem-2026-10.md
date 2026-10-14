@@ -397,3 +397,14 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   `/dev/kt_rhel_vg/kt_rhel_lv /data xfs defaults 0 0`.
 - Aksiyon (yapıldı): `disk-ekleme` §4 → LVM'de LV yolu, LVM'siz bölümde UUID, `/dev/sdX` asla; `sunucu-teslim` aynı not.
   05/06'daki sonuç ekranda yok (bilinmiyor). UUID satırı çalışır; değiştirmek Alp'in kararı.
+
+### G43 — ✅ fstab LV yolu ile düzeldi; ⚠️ SEP adımına sormadan geçti, yine playbook'suz
+- Görülen: üç sunucuda `/dev/kt_rhel_vg/kt_rhel_lv /data xfs defaults 0 0` ✅. Ardından "SEP kurulumuna başlıyorum:" →
+  `for ip …; ssh … "mkdir -p /root/sep_install; curl -s -o …/LinuxInstaller http://srvsatellite/pub/SAL/1.4/…; file …"`
+  (izin istendi). Alp: "otomatik başladı, niye anlayamadım; kontrolle gidiyorum".
+- tahmin (kaynak: önceki ekran): Alp disk işinden önce "evet sep ile devam et. ama disk durumlarına da bakabilir miyim"
+  demişti; ajan bu onayı disk düzeltmesinden sonra hâlâ geçerli saydı + AGENTS.md "verilen işi sonuna kadar yap".
+  İzin kapısı (`ssh` → ask) kontrolü yine Alp'te tuttu.
+- Ayrıca: `07-sep-install` playbook'u yerine yine elle döngü; `curl -s` (−f yok) HTTP hatasında hata sayfasını dosyaya
+  yazar, sessiz kalır (`file` kontrolü kısmen yakalar).
+- Aksiyon (yapıldı): `sunucu-teslim` §0 → adımlar arası geçiş her seferinde sorulur; araya iş girerse eski onay düşer.

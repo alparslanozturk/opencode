@@ -389,3 +389,11 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Eksik (disk-ekleme'ye göre): her sunucuda yıkıcı adımdan hemen önce `lsblk` ile sdb'nin 300G/OS-dışı olduğunu yeniden
   kanıtlama; fstab yedeği; eski XFS imzası (`wipefs`) — yoksa pvcreate imza uyarısında durur; `findmnt --verify`;
   çift `/data` satırı kontrolü.
+
+### G42 — ✅ /data LVM ile düzeltildi; ⚠️ fstab'a UUID yazıldı (kurum LV yolu kullanıyor)
+- Görülen (07): `sdb 300G` → `kt_rhel_vg-kt_rhel_lv 300G lvm /data`; fstab'da `/dev/sdb` satırı yok, yeni satır
+  `UUID=0fa2643c-… /data xfs defaults 0 0`. Alp: "düzelmiş ama burada UUID kullanmana gerek yok".
+- Kök neden (Doktor, dosyadan): `disk-ekleme` §4 her durumda UUID istiyordu. Kurum örneği (splsplunksh02):
+  `/dev/kt_rhel_vg/kt_rhel_lv /data xfs defaults 0 0`.
+- Aksiyon (yapıldı): `disk-ekleme` §4 → LVM'de LV yolu, LVM'siz bölümde UUID, `/dev/sdX` asla; `sunucu-teslim` aynı not.
+  05/06'daki sonuç ekranda yok (bilinmiyor). UUID satırı çalışır; değiştirmek Alp'in kararı.

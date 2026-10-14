@@ -48,7 +48,7 @@ Sıra (2026-10-13 itibarıyla):
   adından değil `lsblk` çıktısından oku (altında `/boot`, `/` ya da LVM üyesi olan disk OS'tur), her sunucu için ayrı.
   Tablo başlığına "sda (Sistem) / sdb (Boş)" yazma. Disk işinde playbook kullanılmıyorsa **önce `disk-ekleme`
   becerisini yükle**. Kurum `/data` düzeni LVM'dir (Alp'in örneği, splsplunksh02: `sdb` → `kt_rhel_vg/kt_rhel_lv` →
-  `/data`, xfs); diske doğrudan `mkfs` yapılmaz. Ek disklerin (sdb, sdc …) ne olacağı **kurulum talebinde
+  `/data`, xfs; fstab'da LV yolu `/dev/kt_rhel_vg/kt_rhel_lv`, UUID değil); diske doğrudan `mkfs` yapılmaz. Ek disklerin (sdb, sdc …) ne olacağı **kurulum talebinde
   sorulur** — `/` büyütme, `/var` büyütme, `/data` ya da proje adıyla yeni dizin (ör. `/genesys/gcti`). Hedefi
   tahmin etme, kullanıcıya sor. Disk adı sabit değildir: `lsblk -f` ile oku, boş olduğunu `disk-ekleme`
   becerisindeki kontrolle kanıtla. OS `sda`'da değilse sunucu yeniden başlatılarak düzeltilir (Alp, 2026-10-14 — beklenen akış):

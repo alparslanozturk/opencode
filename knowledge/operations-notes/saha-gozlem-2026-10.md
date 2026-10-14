@@ -422,3 +422,21 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Değerlendirme: 2026-10-13'te DNS 02'ye taşındı (`sunucu-teslim` §0: `02-dns-nmcli`); 10 numarası disk-add'e ait.
   Alp: tahminen eski `10-dns-nmcli.yaml` dizinde kalmış, ajan silecek. Silmeden önce `02-…` ile `diff` + dosya git'te mi
   (`git rm` vs `rm`) kontrolü gerekir (G18). Salt-okunur `ls | grep` yine izin istedi (G13 sınıfı).
+
+### G46 — ✅ 08-sep-sinirlama, DNS kontrolü, özet; 11-reboot üçüne birden
+- Görülen: SEP limitleri `sdcss.slice` / `sdcss-amd.slice` → `CPUAccounting=true`, `CPUQuota=400%`, `MemoryHigh=2G`,
+  `MemoryMax=3G` (çıktı ekranda ✅). DNS: `/etc/resolv.conf` okundu, "hepsinde spl* çifti — zaten doğru" ✅ (yeniden
+  uygulamadı). Kurulum özeti tablosu 01→08 + Disks LVM; üçü 9.8, SEP ✓. "Son adım — reboot yapayım mı?" diye sordu ✅.
+- Alp "evet 3 sunucu reboot edilsin" → `shutdown -r now` üçüne aynı döngüde. Reboot sonrası doğrulama (`uname -r` el9_8,
+  `findmnt /data`, `systemctl --failed`, SEP servisleri) ekranda yok — bilinmiyor.
+
+### 2026-10-14 gün sonu — toplu değerlendirme için öne çıkanlar
+1. 🔴 K5 güvenlik kilidi sahada devrede değil (G39): repodaki `kilit.ts` uzak `mkfs`'i sert engelliyor, sahada yalnız ask.
+   `./kur.sh kontrol` çıktısı bekleniyor.
+2. Playbook yerine ssh döngüsü sistematik: 06-dnf, 07-sep, 08, disk — hepsi elle `for ip …; ssh`. Beceri §0 kuralı
+   tutmadı; deterministik kontrol adayı (G26).
+3. Beceri yüklenmeden iş (disk-ekleme, G39); addan anlam türetme (G32); sonradan gerekçe uydurma (G33).
+4. Beceri hataları kaynaklı yanlışlar düzeltildi: SCA "Current" (G35), her durumda UUID (G42), §3 elle dnf (G26),
+   "sda = OS" (G38).
+5. Bağlam gün boyu %84-87; kritik hatalar (G32-G39) bu bölgede.
+6. Açık: 05-07 envanterde yok; teslim son kontrolü (getenforce, firewall) ve teslim raporu ekranda yok.

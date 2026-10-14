@@ -347,3 +347,13 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Alp mesajı: "tekrar subs komutunu çalıştır istersen … 07 ne oldu? bak sorun yok devam ediyor update". Alp'in `dnf update`
   sürerken ajan 07'de `04-subs`/dnf çalıştırırsa dnf kilidi/yarım işlem riski. Kural (§3 kopma kontrolü): `pgrep -a dnf`
   boş olmadan ikinci işlem başlatılmaz.
+
+### G38 — ❌ Disk tablosu ters: 05'te OS sdb'de, tablo "sdb (Boş)" diyor
+- Görülen (`lsblk`, splsplunksh05): `sda 300G disk` (alt bölüm yok) · `sdb 60G` → `sdb1 /boot/efi`, `sdb2 /boot`,
+  `sdb3 LVM` (`rhel-root /`, swap, `/var/tmp`). Ajan tablosu: başlıklar sabit "sda (Sistem)" / "sdb (Boş)"; 05 satırı
+  "sda 300G / sdb 60G". Yani 05 için **OS diski "boş" diye gösterildi**. 06 satırı (sda 60G, sdb 300G) — 06'nın lsblk'ı
+  ekranda yok. 07: "bağlantı koptu (muhtemelen kernel update sonrası reboot yaptı)" — kanıtsız tahmin.
+- Risk: tabloya güvenip "sdb boş" diye 09/10-disk playbook'u 05'te sdb'ye uygulanırsa OS diski gider.
+- Değerlendirme: başlık beceri metnindeki "`sda` = OS diski" cümlesinden kopyalanmış; çıktı okunmadan dolduruldu (G12
+  sınıfı). Beceri "OS `sda`'da değilse yeniden başlatılarak düzeltilir" diyor — 05 bu durumda.
+- Aksiyon (yapıldı): `sunucu-teslim` §0 disk maddesi — OS diski adından değil `lsblk`'tan, sunucu başına; sabit başlık yasak.

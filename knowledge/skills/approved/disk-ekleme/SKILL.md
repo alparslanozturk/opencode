@@ -52,12 +52,13 @@ XFS **küçültülemez**.
 ```bash
 cp -a /etc/fstab /etc/fstab.$(date +%F-%H%M)                       # önce yedek
 mkdir -p <dizin>                                                  # verify'dan ÖNCE (yoksa [E] target)
-UUID=$(blkid -s UUID -o value /dev/<vg>/<lv>)
-grep -q "UUID=$UUID" /etc/fstab || echo "UUID=$UUID  <dizin>  xfs  defaults  0 0" >> /etc/fstab
+grep -q "^/dev/<vg>/<lv>[[:space:]]" /etc/fstab || echo "/dev/<vg>/<lv>  <dizin>  xfs  defaults  0 0" >> /etc/fstab
 findmnt --verify                                                  # [E] satırı varsa DUR, yeniden başlatma
 systemctl daemon-reload && mount <dizin> && findmnt <dizin>
 ```
-- **UUID kullan** — `/dev/sdb` yeniden başlatmada `/dev/sdc` olabilir.
+- **LVM birimi → LV yolu** (`/dev/<vg>/<lv>`; kurum düzeni, Alp 2026-10-14 — örnek `/dev/kt_rhel_vg/kt_rhel_lv /data xfs
+  defaults 0 0`). LV yolu disk sırasından bağımsızdır, UUID gerekmez. LVM'siz bölümde **UUID** kullan. Hiçbir zaman
+  `/dev/sdX` yazma — 2026-10-14'te iki sunucuda reboot sonrası sda/sdb yer değiştirdi.
 - Satır zaten varsa **ekleme** (plan ikinci kez çalışırsa çift satır = açılışta hata). Çıplak `>> /etc/fstab` yazma.
 - `mount -a` yerine yalnız yeni dizini bağla: `mount -a` ilgisiz, bozuk başka satırları da tetikler.
 

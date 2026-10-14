@@ -44,7 +44,9 @@ Sıra (2026-10-13 itibarıyla):
 - **DNS:** yalnız NetworkManager üzerinden (`nmcli`); RHEL'de `/etc/resolv.conf`'u NM yazar, elle düzenleme
   kaybolur (eski `resolv.conf` playbook'ları bu yüzden kaldırıldı). Değerler playbook içinde (2026-10-13'te Alp
   doğruladı): `spl*` bir DNS çifti, `stl*`/`sxl*`/`sdl*` başka bir çift kullanır — IP'leri playbook'tan oku.
-- **Disk:** `sda` = OS diski, VM şablonundan gelir. Ek disklerin (sdb, sdc …) ne olacağı **kurulum talebinde
+- **Disk:** OS diski **beklenen** `sda`'dır (VM şablonu) ama açılışta sıra değişebilir — hangi diskin OS olduğunu
+  adından değil `lsblk` çıktısından oku (altında `/boot`, `/` ya da LVM üyesi olan disk OS'tur), her sunucu için ayrı.
+  Tablo başlığına "sda (Sistem) / sdb (Boş)" yazma. Ek disklerin (sdb, sdc …) ne olacağı **kurulum talebinde
   sorulur** — `/` büyütme, `/var` büyütme, `/data` ya da proje adıyla yeni dizin (ör. `/genesys/gcti`). Hedefi
   tahmin etme, kullanıcıya sor. Disk adı sabit değildir: `lsblk -f` ile oku, boş olduğunu `disk-ekleme`
   becerisindeki kontrolle kanıtla. OS `sda`'da değilse sunucu yeniden başlatılarak düzeltilir.

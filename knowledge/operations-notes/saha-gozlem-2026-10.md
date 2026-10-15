@@ -467,3 +467,16 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   `runai.gpudtx.<kurum>` → Qwen `gpu-dtx`'te; tahmin: Run:ai (beceriye eklendi).
 - Aday aksiyon (Alp kararı): (a) derleme başarısız + ikili sürümü ≠ beklenen → kur.sh dursun ya da en azından
   `kilit ✗` + `SORUN: kilitler devre dışı`; (b) kontrol "kilit" satırı motor sürümüne göre doğru eklentiyi denetlesin.
+
+### G48 — Rancher ekranları: sürümler ve test kümesinde tekrar eden Unavailable → `kume-denetim` becerisi
+- Görülen (nonprod Rancher arayüzü): Rancher **v2.14.3**; `gpu-dtx`, `test`, `local` vb. **v1.33.13+rke2r1** (Alp önceki
+  gün "2.11.x, 1.32-1.34" demişti — ekran kesin kaynak). `test` kümesi 17 node: wor03 ve wor08 `Unavailable`
+  (not-ready taint'leri); Events: milvus zookeeper/etcd readiness "cannot exec in a stopped state" (wor03), wor14'te
+  `coredns-autoscaler` ve `antrea-agent`/`antrea-ovs` liveness hatası. 2026-10-12'de de wor03/wor12/wor14 düşmüştü
+  (G7-G11) → aynı node'lar tekrar ediyor.
+- Alp: GPU'ya özgü olmayan genel bir RKE2/Rancher küme inceleme yeteneği istiyor (node'ların neden düştüğü, çekirdek,
+  sürüm matrisi uyumu). İlk aday kullanım: `test` kümesi.
+- Aksiyon (yapıldı): yeni `kume-denetim` becerisi — ilkeler G6/G7/G8/G9/G11/G20'den (yalnız okuma, önce altyapı, her
+  iddia çıktıdan, reboot öncesi kanıt, ansible ad-hoc, bağlam koruma); Ready mesajı sınıflandırma tablosu; tekrar eden
+  node kalıbı; Antrea/OVS bölümü; uyumluluk yalnız `rke2-ansible` matrisinden. `gpu-kume-denetim` temel katmanlar için
+  ona yönlendiriyor.

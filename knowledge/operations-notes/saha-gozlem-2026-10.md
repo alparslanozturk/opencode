@@ -625,3 +625,20 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Alp kararı (2026-10-15): "kurum kapalı sistem, hiçbir okuma kısıtı yok — her dosyaya baksın". → `etcdctl get` tam serbest
   (keys-only şartı kaldırıldı); sır dosyası `cat` kilidi önerisi **reddedildi**; `gpu-kume-denetim`'deki "env okuma" yasağı
   (G51) kaldırıldı. Kilitler yalnız **değişikliğe** bakar. (Repoda maskeleme ayrı konu: GitHub public — sürer.)
+
+### G59 — gpu-dtx 2. rapor (24m 5s, bağlam %26): belirgin iyileşme + yeni bulgular
+- ✅ Düzelenler: sürüm sapması (h200w1 v1.32.6 / RHEL 9.4 / el9_4) **ilk bulgu ve tabloda**; Run:ai ayırması annotation'dan
+  (`runai-allocated-gpus "1"`, `gpu-memory 150754` MiB, scheduler `runai-scheduler-h200-nonprod`); DCGM çelişkisi yok;
+  NFD restart'ının sebebine gidildi (Last State okundu); "Açık kalanlar" listesi dürüst (nvidia-smi K1 — G57 düzeltmesi
+  sahada henüz yok).
+- Yeni bulgular: (1) `vllm` ns pod'ları **NFS PVC** (`nfs-sc`, 250-450Gi), yalnız `runai-inference` hostPath `/models` —
+  Alp "hostPath'e geçtik" demişti; hangisi güncel [SAHA]. (2) `qwen3-235b`'de `--no-enable-prefix-caching` ve
+  `--enable-prefix-caching` birlikte. (3) `qwen36-35b` (opencode modeli) `/dev/shm` emptyDir **sizeLimit yok**, RAM limit
+  32Gi. (4) NFD worker 512Mi limit, son çıkış `Reason: Error, Exit Code: 2`, `panic at namespace-lister.go:67`; master 65
+  restart, `panic at nfd-master.go:67`. (5) `gemma-4-31b-it` deployment 0 replica.
+- ❌ Hatalı yorum: NFD "OOM / Crash tekrarı", "memory limit düşük olabilir" — Exit Code 2 + panic = kod hatası, OOM değil
+  (OOM: OOMKilled/137). Çince karakter sızması tekrar ("进程").
+- ⚠️ Önceki rapor (G52) qwen3-14b/32b/4b için "portion 0.35/0.50/0.20" demişti; bu rapor dördü için "GPU 1" yazıyor — biri
+  yanlış (bilinmiyor; pod başına `runai-allocated-gpus` annotation'ı okunmalı).
+- Aksiyon (yapıldı): AGENTS dil kuralı (CJK karakter yok); `gpu-kume-denetim` → iki depolama yolu, restart sebebi tablosu
+  (OOM ↔ panic ayrımı), çelişen bayrak maddesi.

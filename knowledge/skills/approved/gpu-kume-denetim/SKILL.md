@@ -31,6 +31,9 @@ doğrulanmadı — raporda "öneri" olarak yaz, "kural" olarak değil.
   kopyalıyor. Ayrıntı: 16 × 1.7 TB NVMe, 12'si yazılım RAID10 (mdadm), 2'si yedek — `depolama` §8; LV düzeni
   (`rke2-ansible` "Elle worker ekleme" planı). **Sahada (2026-10-15):** `/dev/mapper/vg_models-lv_models` → `/models`,
   xfs, 13T (900G dolu), seçenek `relatime` (`noatime` değil) — planla fark varsa yaz, değiştirme.
+- **Depolama iki türlü (saha 2026-10-15, gpu-dtx):** `runai-inference` pod'ları **hostPath `/models`** (readOnly);
+  `vllm` namespace pod'ları **NFS PVC** (`nfs-sc`, ör. `vllm-qwen3-235b-fp8-storage-claim` 250Gi). Hangisinin kalıcı
+  yol olduğu `[SAHA]` — iki yolu ayrı raporla, birini "yanlış" sayma.
 - vLLM pod'ları modelleri **hostPath `/models`** ile okur. Neden hostPath: eskiden `nfs-sc` StorageClass kullanılıyordu;
   blok StorageClass yok, Longhorn kurulu değil ve tercih edilmiyor → tek seçenek hostPath. Sonuç: model açılışı
   ~45 dk'dan saniyeler düzeyine indi. hostPath'i "kötü uygulama" diye bulgu yazma — bilinçli kurum kararı.
@@ -138,6 +141,7 @@ Bakılacaklar:
 | DCGM | `spec.dcgmExporter.enabled` ve `spec.dcgm.enabled` **ayrı** alanlar | Metrik için bakılacak `dcgmExporter`; `dcgm.enabled: false` yalnız ayrı DCGM hostengine'in kapalı olduğunu söyler, "metrik yok" demek değildir (genel; saha G52) |
 | Paylaşım (Run:ai) | device-plugin `sharing-strategy: none` | Run:ai kesirli GPU (`runai-allocated-gpus`) ayrıca paylaştırır — "GPU paylaşımı yok" yazmadan önce Run:ai annotation'larına bak (saha G52) |
 | Validator | `kubectl logs -n <ns> <nvidia-operator-validator-…> --all-containers --tail=50` | hata yok (`Could not create symlink … file exists` uyarısı zararsız — genel) |
+| Restart sebebi | `describe pod` → `Last State` | **OOM yalnız `Reason: OOMKilled` / `Exit Code: 137`** ise denir. `Reason: Error, Exit Code: 2` + loglarda `panic at …go:NN` = programın kendi hatası (Go panic) — "bellek limiti düşük" deme (saha G59) |
 | Restart | `get pods -n <ns> -o wide` RESTARTS sütunu | Artmıyor. Saha 2026-10-15: `node-feature-discovery-worker` pod'ları 270-313 restart (27 günde), `master` 65 → `logs --previous` ve `describe` (`Last State` OOMKilled mi) ile sebebini oku |
 
 Sürüm (operator, sürücü, CUDA) **tahmin edilmez** — pod imaj etiketinden ve `nvidia-smi` başlığından oku.
@@ -179,6 +183,8 @@ Her vLLM pod'u için (kanıt = yaml'daki alan):
   (`nodeSelector` / `affinity` / `tolerations`) ve namespace PSA istisnası (`rke2-ansible`).
 - **Prob'lar:** model yüklemesi dakikalar sürebilir. `startupProbe` yok ve `livenessProbe` erken başlıyorsa pod yükleme
   sırasında öldürülür → `CrashLoopBackOff`. `initialDelaySeconds`/`failureThreshold`'u gerçek yükleme süresiyle karşılaştır.
+- **Çelişen bayraklar:** aynı args'ta hem `--enable-X` hem `--no-enable-X` (ör. prefix caching, saha G59) → bulgu;
+  hangisinin geçerli olduğu sıraya bağlı (argparse'ta sonuncu kazanır — genel), vLLM başlangıç logundan doğrula.
 - **vLLM parametreleri** (değerini yaz, iş yükü bilinmeden "yanlış" deme): `--gpu-memory-utilization`,
   `--max-model-len`, `--max-num-seqs`, `--tensor-parallel-size`, `--dtype`/`--quantization`, `--enforce-eager`.
 - **Ortam değişkenleri:** `CUDA_VISIBLE_DEVICES`/`NVIDIA_VISIBLE_DEVICES` elle verilmişse device plugin'in atamasıyla

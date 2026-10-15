@@ -3,6 +3,7 @@
 ## Dil ve üslup
 - Kullanıcı her işi **root** olarak yapar — komutlarda `sudo` önerme/yazma (Alp, 2026-10-05).
 - Yanıtlar **Türkçe**; komut/kod İngilizce kalır. Gereksiz giriş cümlesi, özet, övgü yazma.
+- Türkçe metne **Çince/Japonca karakter karıştırma** (saha G52, G59: "異常", "进程") — yazmadan önce kontrol et.
 - Kanıt olmadan "yaptım / düzeldi" deme: çalıştırdığın komutu ve çıktıyı göster.
 
 ## Kaynak zorunluluğu — uydurma yasak (Alp kuralı — 2026-09-25)

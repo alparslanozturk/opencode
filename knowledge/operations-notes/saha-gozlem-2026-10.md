@@ -580,3 +580,9 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   `workspace:*` bağımlılığı **yok**. `@opencode-ai/*@workspace:*` isteyenler yalnız 2.x'te silinen paket dizinleri
   (`packages/opencode`, `llm`, `sdk-next`, `slack`, `effect-sqlite-node` — `78839d283c`'de silindi, sahada kalmış;
   `packages/*` glob'u onları workspace sayıyor). → Kalıntılar "zararsız" değil: derleme ve dolayısıyla kilitler bunlara bağlı.
+- Aksiyon (yapıldı, Alp onayı "ikisini de yap"): `kur.sh` (a) `kalinti_paketler` — derleme gerekiyorsa önce git'te
+  izlenmeyen workspace paketlerini arar, varsa listeyi + `git clean -nd/-fd` önerisini basıp **çıkış 1** ile durur
+  (bilerek geçmek: `ALP_KALINTI_GEC=1`); (b) `motor_2x_mi` — kontrol "kilit" satırı, ikili künye commit'i
+  `78839d283c`'nin soyundan değilse (yoksa `--version` biçimi) `✗ motor 1.x … kilitler/audit DEVRE DISI` + SORUN.
+  Test (Doktor): sahte kalıntı paketiyle `ALP_DERLE=1 ./kur.sh` → durdu, çıkış 1, değişiklik yok; geçici HOME'da künye
+  commit `12d89ff2f5` → `kilit ✗`, HEAD → `kilit ✓`; `duman-kontrol-rapor.sh` 23/0; `bash -n` temiz.

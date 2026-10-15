@@ -541,9 +541,7 @@ const ETCDCTL_DEGERLI = new Set(["--endpoints", "--cacert", "--cert", "--key", "
 const CTR_DEGERLI = new Set(["-n", "--namespace", "-a", "--address", "--timeout", "--connect-timeout"])
 export function etcdctlOkur(a: string[]): boolean {
   const [k1 = "", k2 = ""] = konumsal(a, ETCDCTL_DEGERLI)
-  if (k1 === "version") return true
-  // değerler (ör. /registry/secrets) sır içerebilir → yalnız anahtar/sayı okuması serbest
-  if (k1 === "get") return a.includes("--keys-only") || a.includes("--count-only")
+  if (["get", "version"].includes(k1)) return true // kurum kapalı sistem: okuma kısıtı yok (Alp, 2026-10-15)
   if (k1 === "member" || k1 === "alarm") return k2 === "list"
   if (k1 === "endpoint") return ["health", "status", "hashkv"].includes(k2)
   return k1 === "" && a.some((x) => x === "--version" || x === "version")

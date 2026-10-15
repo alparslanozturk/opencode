@@ -111,6 +111,7 @@ describe("G58: etcdctl / ctr / containerd / json.tool okumaları serbest, deği�
     `ssh m1 "etcdctl --endpoints https://127.0.0.1:2379 --cacert /a --cert /b --key /c member list -w table"`,
     `ssh m1 "etcdctl endpoint status --cluster -w table"`,
     `ssh m1 "etcdctl get /registry/ --prefix --keys-only"`,
+    `ssh m1 "etcdctl get /registry/secrets/default/x"`,
     `ssh m1 "ctr -n k8s.io containers ls"`,
     `ssh m1 "/var/lib/rancher/rke2/bin/containerd --version"`,
   ]
@@ -118,7 +119,6 @@ describe("G58: etcdctl / ctr / containerd / json.tool okumaları serbest, deği�
   const degistirir = [
     `ssh m1 "python3 -c 'import os'"`,
     `ssh m1 "python3 -m json.tool in.json out.json"`,
-    `ssh m1 "etcdctl get /registry/secrets/default/x"`,
     `ssh m1 "etcdctl put a b"`,
     `ssh m1 "etcdctl defrag"`,
     `ssh m1 "etcdctl snapshot save /tmp/s"`,

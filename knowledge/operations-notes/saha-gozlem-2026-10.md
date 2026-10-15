@@ -622,3 +622,6 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Not: ajan `cat /var/lib/rancher/rke2/agent/kubelet.kubeconfig` da istedi — kimlik bilgisi içerebilecek dosya; kilit
   `cat`'i engellemez. Aday (Alp kararı): sır dosyası yolları (`*.kubeconfig`, `rke2.yaml`, `*/tls/*.key`, `node-token`) için
   uzak `cat` → uyarı/K1.
+- Alp kararı (2026-10-15): "kurum kapalı sistem, hiçbir okuma kısıtı yok — her dosyaya baksın". → `etcdctl get` tam serbest
+  (keys-only şartı kaldırıldı); sır dosyası `cat` kilidi önerisi **reddedildi**; `gpu-kume-denetim`'deki "env okuma" yasağı
+  (G51) kaldırıldı. Kilitler yalnız **değişikliğe** bakar. (Repoda maskeleme ayrı konu: GitHub public — sürer.)

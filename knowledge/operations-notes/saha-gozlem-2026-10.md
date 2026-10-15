@@ -480,3 +480,17 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   iddia çıktıdan, reboot öncesi kanıt, ansible ad-hoc, bağlam koruma); Ready mesajı sınıflandırma tablosu; tekrar eden
   node kalıbı; Antrea/OVS bölümü; uyumluluk yalnız `rke2-ansible` matrisinden. `gpu-kume-denetim` temel katmanlar için
   ona yönlendiriyor.
+
+### G49 — gpu-kume-denetim ilk koşu: ✅ beceri yüklendi, envanterden master; H200 node'unda sürüm sapması
+- Görülen: `Read ansible/inventories/hosts-rke2.ini` (yerleşik okuma aracı — G4 düzelmiş ✅) → master'ı envanterden aldı,
+  becerideki komutları birebir kullandı (`get nodes -o wide`, `-l nvidia.com/gpu.present=true -L …`) ✅. GPU etiketi
+  olmayan worker'ları fark edip ayrıca bakmak istedi ✅. Her kubectl yine ayrı ssh izni (salt-okunur için sürtünme).
+- Kümeden (gpu-dtx): `sdlgpuh200w1` AGE 11d · **v1.32.6+rke2r1 · RHEL 9.4 · çekirdek 5.14.0-427.42.1.el9_4 ·
+  containerd 2.0.5-k3s1**; masterlar ve worker1-3 AGE 366d · v1.33.13+rke2r1 · RHEL 9.6 · 5.14.0-570.51.1.el9_6 ·
+  containerd 2.2.5-k3s1. GPU: `NVIDIA-H200`, count 8. Rol etiketleri `runai-system` → Run:ai (G47 tahmini güçlendi).
+- Değerlendirme (Doktor, `rke2-ansible` matrisi): Rancher v2.14.3 downstream hatları 1.35/1.34/1.33, RHEL listesi
+  10.2…9.6, 8.10, 8.8 → H200 node'unun **RKE2 1.32 ve RHEL 9.4'ü matris dışı**. `rke2-ansible` "Elle worker ekleme"
+  kümenin **aynı** RKE2 sürümünü ister. 9.4 bilinçli olabilir (Satellite'ta 9.4 CV'si, Alp 2026-10-14; tahmin: NVIDIA
+  sürücü uyumu) — sebep Alp'e soruldu. Ajanın bu sapmayı görüp görmediği ekranda yok (henüz).
+- Aday aksiyon: salt-okunur uzak kubectl için izin sürtünmesi — `kilit.ts` uzak komutu zaten salt-okunur/değişiklik
+  diye sınıflıyor; 2.x motor sahada çalışınca okuma komutları otomatik onaylanabilir (mimari öneri, Alp kararı).

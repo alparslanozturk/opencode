@@ -570,3 +570,13 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   `--delete` olmadan kopyalıyor (Alp: "rsync komutunda galiba sorun var").
 - Alp: "kalsın, zarar yoksa". Doktor'un değerlendirmesi: zararsız değil olabilir — derleme başarısızlığı (G47) ve
   dolayısıyla kilitlerin devre dışı kalması bu kalıntılardan olabilir (tahmin; `git clean -fd` + `./kur.sh` ile sınanır).
+
+### G55 — Kanıt: derlemeyi 1.x kalıntıları bozuyor (G1/G47/G54 kök neden)
+- Görülen (`./kur.sh`, srvsatellite, `git clean` yapılmadan): `bun install --filter=./packages/cli` → `Workspace dependency
+  "@opencode-ai/{core,server,sdk,tui,client,schema,plugin,protocol,codemode,script,http-recorder}" not found` →
+  `@opencode-ai/*@workspace:* failed to resolve` → "derleme başarısız, mevcut bin/opencode kullanıldı"; kontrol yine
+  `kilit ✓`, `SORUN: yok`. `ls`'te `artifacts/`, `CONTEXT.md` hâlâ duruyor (temizlenmemiş).
+- Doktor (repodan): izlenen `package.json`'larda `@opencode-ai/` yalnız npm paketi `@opencode-ai/pty: 0.2.0` (cli, core) —
+  `workspace:*` bağımlılığı **yok**. `@opencode-ai/*@workspace:*` isteyenler yalnız 2.x'te silinen paket dizinleri
+  (`packages/opencode`, `llm`, `sdk-next`, `slack`, `effect-sqlite-node` — `78839d283c`'de silindi, sahada kalmış;
+  `packages/*` glob'u onları workspace sayıyor). → Kalıntılar "zararsız" değil: derleme ve dolayısıyla kilitler bunlara bağlı.

@@ -32,8 +32,8 @@ doğrulanmadı — raporda "öneri" olarak yaz, "kural" olarak değil.
   (`rke2-ansible` "Elle worker ekleme" planı). **Sahada (2026-10-15):** `/dev/mapper/vg_models-lv_models` → `/models`,
   xfs, 13T (900G dolu), seçenek `relatime` (`noatime` değil) — planla fark varsa yaz, değiştirme.
 - **Depolama iki türlü (saha 2026-10-15, gpu-dtx):** `runai-inference` pod'ları **hostPath `/models`** (readOnly);
-  `vllm` namespace pod'ları **NFS PVC** (`nfs-sc`, ör. `vllm-qwen3-235b-fp8-storage-claim` 250Gi). Hangisinin kalıcı
-  yol olduğu `[SAHA]` — iki yolu ayrı raporla, birini "yanlış" sayma.
+  `vllm` namespace pod'ları **NFS PVC** (`nfs-sc`, ör. `vllm-qwen3-235b-fp8-storage-claim` 250Gi). Alp: hedef hostPath,
+  geçiş DevOps tarafında **sürüyor**; kalan PVC tanımları eski — bulgu değil, yalnız "geçiş durumu" olarak yaz.
 - vLLM pod'ları modelleri **hostPath `/models`** ile okur. Neden hostPath: eskiden `nfs-sc` StorageClass kullanılıyordu;
   blok StorageClass yok, Longhorn kurulu değil ve tercih edilmiyor → tek seçenek hostPath. Sonuç: model açılışı
   ~45 dk'dan saniyeler düzeyine indi. hostPath'i "kötü uygulama" diye bulgu yazma — bilinçli kurum kararı.
@@ -171,6 +171,9 @@ Her vLLM pod'u için (kanıt = yaml'daki alan):
   - **Bellek tabanlı emptyDir'e yazılan veri pod'un bellek hesabına sayılır** (genel, Kubernetes belgesi): shm kullanımı +
     süreç belleği `limits.memory`'yi aşarsa pod OOMKilled olur. Yani `sizeLimit` ile `limits.memory`'yi **birlikte**
     değerlendir; limit yoksa pod node belleğiyle (~1 TB) sınırlıdır — bu da node'daki diğer pod'ları riske atar.
+  - `sizeLimit` yoksa tmpfs boyutu pod'un bellek limitine (yoksa node'un ayrılabilir belleğine) eşitlenir (genel,
+    Kubernetes `SizeMemoryBackedVolumes`) — yani shm, `limits.memory` ile aynı havuzdan yer. tp=1 pod'da NCCL shm'yi az
+    kullanır (tahmin); risk asıl tp>1 pod'larında. Ölçmeden "OOM olur" deme: `df` ile shm doluluğu + `kubectl top pod`.
   - Gerçek boyutu pod'a girmeden, node'dan oku (okuma):
     ```bash
     kubectl get pod <pod> -n <ns> -o jsonpath='{.metadata.uid}'; echo

@@ -494,3 +494,13 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   sürücü uyumu) — sebep Alp'e soruldu. Ajanın bu sapmayı görüp görmediği ekranda yok (henüz).
 - Aday aksiyon: salt-okunur uzak kubectl için izin sürtünmesi — `kilit.ts` uzak komutu zaten salt-okunur/değişiklik
   diye sınıflıyor; 2.x motor sahada çalışınca okuma komutları otomatik onaylanabilir (mimari öneri, Alp kararı).
+
+### G50 — ⚠️ Node'un tam yaml'ı döküldü; özette sürüm sapması yok; RAM değeri teyitsiz
+- Görülen: `get nodes -l nvidia.com/gpu.present=true -o yaml` → ekranı yüzlerce `cpu-cpuid.*` etiketi doldurdu (bağlam).
+  Özet: "sdlgpuh200w1: H200 × 8, CPU 256, RAM ~2266 GiB, Driver 580.82.07, CUDA 13.0 · worker1-3 GPU etiketi yok ·
+  RunAI kullanılıyor". Sonra becerideki sırayla taint / gpu-operator pod'ları / clusterpolicy durumu istendi ✅.
+- ⚠️ Özette G49'daki sapma (RKE2 1.32.6, RHEL 9.4, containerd 2.0.5) yok — ilk tabloda görünmesine rağmen.
+- ⚠️ "RAM ~2266 GiB": Alp 2026-10-14'te "~1 TB" demişti. Değer yaml'daki capacity'den türetilmiş olabilir; çevirisi
+  ekranda yok → node'da `free -g` ile doğrulanmalı. Sürücü 580.82.07 / CUDA 13.0 muhtemelen `nvidia.com/cuda.*`
+  etiketlerinden (kaynak satırı ekranda kesik).
+- Aksiyon (yapıldı): `gpu-kume-denetim` §1 → tam node yaml'ı yasak, etiket/capacity seçerek; sürüm sapması ilk özette.

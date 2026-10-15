@@ -87,6 +87,15 @@ kubectl get nodes -l nvidia.com/gpu.present=true -L nvidia.com/gpu.product,nvidi
 kubectl describe node <gpu-node> | sed -n '/Taints/,/Events/p'   # taint, Allocatable, Allocated resources
 ```
 
+- **Node'un tam `-o yaml`'ını alma** — yüzlerce `feature.node.kubernetes.io/cpu-cpuid.*` etiketi bağlamı doldurur
+  (saha G50). Gerekeni seçerek al:
+  ```bash
+  kubectl get node <gpu-node> -o jsonpath='{.metadata.labels}' | tr ',' '\n' | grep -e 'nvidia.com/' -e runai | head -40
+  kubectl get node <gpu-node> -o jsonpath='{.status.capacity}'; echo     # memory Ki cinsinden — GiB'e çevirirken hesabı göster
+  ```
+- **İlk özete sürüm sapmasını yaz:** `get nodes -o wide`'daki VERSION / OS-IMAGE / KERNEL-VERSION / CONTAINER-RUNTIME
+  sütunlarında GPU node'u diğerlerinden farklıysa bunu ilk bulgu olarak ver (`kume-denetim` §1, matris `rke2-ansible`).
+
 - **Sürümler küme üzerinden okunur, tahmin edilmez:** RKE2/Kubernetes → `get nodes` `VERSION` sütunu
   (`v1.xx.y+rke2rN` biçimi); Rancher → `kubectl -n cattle-system get deploy cattle-cluster-agent -o
   jsonpath='{.spec.template.spec.containers[0].image}'` (ajan imaj etiketi, genel). Nonprod Rancher ekranı (2026-10-15):

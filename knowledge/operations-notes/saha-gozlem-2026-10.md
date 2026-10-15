@@ -504,3 +504,23 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   ekranda yok → node'da `free -g` ile doğrulanmalı. Sürücü 580.82.07 / CUDA 13.0 muhtemelen `nvidia.com/cuda.*`
   etiketlerinden (kaynak satırı ekranda kesik).
 - Aksiyon (yapıldı): `gpu-kume-denetim` §1 → tam node yaml'ı yasak, etiket/capacity seçerek; sürüm sapması ilk özette.
+
+### G51 — gpu-kume-denetim h200w1 turu: bulgular ve ajan davranışı
+- ✅ Davranış: becerinin sırasını izledi (operator → pod'lar → nvidia-smi → OS → /models → topo → fabric → XID → loglar),
+  çıktıları çoğunlukla sınırladı (`head -60`, `tail -30`), değişiklik yok. Her komut ayrı izin (~30 onay).
+- ⚠️ `Glob "**/opencode/**/env"`, `"**/env*"` — becerideki "env'deki MODEL_ID ile eşle" cümlesi yüzünden; env'de
+  `KURUM_KEY` var → beceriden kaldırıldı (kur.sh kontrol "ayar" satırı / kullanıcı).
+- Kümeden (kaynak: ekranlar): ClusterPolicy `ready`; gpu-operator `node-feature-discovery-worker` pod'ları **270/272/313/
+  294 restart** (son 46 sa önce), `nfd-master` 65, `gpu-operator` 6. GPU dağılımı h200w1: vllm qwen3-235b 2 GPU, qwen35-397b
+  3 GPU, 2 runai-reservation, runai-inference'ta qwen36-35b (opencode modeli), qwen3-14b, qwen3-32b-vlm, qwen3-4b-embd.
+  Bir runai-inference pod'unda `runai-allocated-gpus 0.35`, `gpu-memory 52764`, `--cpu-memory-limit 8Gi`, imaj
+  `vllm-openai:v0.17.1` (hangi pod — grep -A5 karışık, bilinmiyor). Node: `free -g` total 2266 (Alp "~1 TB" demişti),
+  swap 0, THP always, `tuned-adm` yok; 2× EPYC 9575F; 8× H200 NV18 tam bağlı, Fabric Completed/Success; sürücü
+  580.82.07 / CUDA 13.0; `journalctl -k` **Xid 31** (MMU fault, `VLLM::EngineCor…`). `/models` = `vg_models-lv_models`
+  xfs 13T, `relatime` (beceride `vg_gpu`/`noatime` planı yazılıydı → düzeltildi).
+- tahmin (doğrulanacak): `--cpu-memory-limit 8Gi` Alp'in hatırladığı "8GB" ve geçmiş OOMKilled ile tutarlı; opencode
+  modeli 0.35 GPU ise KV-cache küçük kalır, 220K bağlamlı uzun turlar (7-8 dk) bununla ilişkili olabilir → vLLM
+  `/metrics` (kv cache kullanımı, preemption) ile kanıtlanmalı.
+- Aksiyon (yapıldı): `gpu-kume-denetim` donanım/Run:ai/XID/NFD-restart/env-yasağı; `rke2-ansible` LV adı notu.
+- Mimari aday (Alp kararı): sahada 2.x motor çalışınca `guvenlik-v2` + `kilit.ts` salt-okunur sınıflandırmasıyla uzak
+  okuma komutlarını (kubectl get/logs/describe, nvidia-smi, df, free…) otomatik onayla → ~30 onay → birkaç.

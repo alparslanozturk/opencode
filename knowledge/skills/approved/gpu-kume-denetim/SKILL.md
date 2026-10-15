@@ -24,20 +24,32 @@ doğrulanmadı — raporda "öneri" olarak yaz, "kural" olarak değil.
   worker'da ayrıca hipervizör etkisine bak (`performans` §3 `%steal`) ve GPU'nun VM'e nasıl verildiğini
   (`nvidia-smi -q` ürün/sanallaştırma alanları) yaz.
 - B300 yakında gelecek. NVIDIA GPU Operator iki kümede de çalışıyor. H200 host'unda (RHEL 9) `nvidia-smi` çalışıyor.
-- Node RAM'i ~1 TB (H200 sunucusu).
+- `sdlgpuh200w1` donanımı (saha, 2026-10-15): 2 × AMD EPYC 9575F (256 iş parçacığı, NUMA 0: GPU0-3, NUMA 1: GPU4-7),
+  RAM **2266 GiB** (`free -g`), 8 × H200 SXM — NVSwitch, `topo -m` hepsi `NV18`, Fabric `Completed/Success`; sürücü
+  580.82.07, CUDA 13.0; `tuned` kurulu değil; THP `always`.
 - `/models`: host'ta NVMe RAID10 (+2 yedek) → LVM → xfs, ~10 TB; **yazılabilir** — modelleri ekip NFS ya da scp ile
   kopyalıyor. Ayrıntı: 16 × 1.7 TB NVMe, 12'si yazılım RAID10 (mdadm), 2'si yedek — `depolama` §8; LV düzeni
-  (`vg_gpu` → `lv_models`, xfs `noatime`) — `rke2-ansible` "Elle worker ekleme".
+  (`rke2-ansible` "Elle worker ekleme" planı). **Sahada (2026-10-15):** `/dev/mapper/vg_models-lv_models` → `/models`,
+  xfs, 13T (900G dolu), seçenek `relatime` (`noatime` değil) — planla fark varsa yaz, değiştirme.
 - vLLM pod'ları modelleri **hostPath `/models`** ile okur. Neden hostPath: eskiden `nfs-sc` StorageClass kullanılıyordu;
   blok StorageClass yok, Longhorn kurulu değil ve tercih edilmiyor → tek seçenek hostPath. Sonuç: model açılışı
   ~45 dk'dan saniyeler düzeyine indi. hostPath'i "kötü uygulama" diye bulgu yazma — bilinçli kurum kararı.
 - vLLM deployment'ları fiziksel H200'e sabitleniyor; yöntem (nodeSelector mı taint/toleration mı) `[SAHA]` — §1/§3'te
   bul ve yaz.
 - **opencode'un kendi modeli (kurum Qwen) bu GPU kümelerinden birinde vLLM ile çalışıyor** (Alp; hangi küme `[SAHA]`).
-  O pod'u bulursan (imaj/args'ta model adı, `env` dosyasındaki `MODEL_ID` ile eşle): **kesinlikle dokunma** — yeniden
-  başlarsa ajan işin ortasında cevapsız kalır. Args'ındaki `--max-model-len`, `--max-num-seqs`,
-  `--gpu-memory-utilization` değerlerini yaz ve opencode `env`'deki `KURUM_MAX_CONTEXT` / `KURUM_MAX_OUTPUT` ile
-  karşılaştır (uyuşmazlık = opencode ayarı önerisi; saha G2).
+  Saha (2026-10-15): `gpu-dtx`, ns `runai-inference`, pod `qwen36-35b-a3b-fp8-00001-deployment-…` (model dizini
+  `/models/models--Qwen--Qwen36-35B-A3B-FP8`). **Kesinlikle dokunma** — yeniden başlarsa ajan işin ortasında cevapsız
+  kalır. vLLM parametrelerini (`--max-model-len`, `--max-num-seqs`, `--gpu-memory-utilization`) ve Run:ai ayırmasını
+  yaz; opencode tarafındaki değerler `./kur.sh kontrol` "ayar" satırında (bağlam / çıktı) — kullanıcıdan iste.
+  **opencode `env` dosyasını okuma/glob'lama:** içinde `KURUM_KEY` var (saha G51).
+- **Run:ai (saha 2026-10-15, doğrulandı):** h200w1'de `runai-inference` pod'ları (qwen36-35b, qwen3-14b, qwen3-32b-vlm,
+  qwen3-4b-embd) + `runai-reservation` ns'te 2 `gpu-reservation-<node>-…` pod'u + `vllm` ns'te 2 deployment
+  (qwen3-235b: 2 GPU, qwen35-397b: 3 GPU). Kesirli GPU ayırması `nvidia.com/gpu` limitinde **görünmez** — pod
+  annotation'larında: `runai-allocated-gpus` (ör. "0.35"), `runai-allocated-gpu-memory` (MiB), `runai-nodepools`;
+  CPU/RAM isteği `--cpu-core-request/limit`, `--cpu-memory-request/limit` (bir pod'da `limit 8Gi` görüldü — hangi pod
+  olduğunu `-o jsonpath` ile pod adıyla birlikte al, `grep -A` ile birden çok pod'u karıştırma). `-00001-deployment`
+  adı Knative revizyonu olabilir (tahmin). Kesirli pod'lar aynı fiziksel GPU'yu paylaşır → gecikmeyi o GPU'daki diğer
+  modellerle birlikte değerlendir.
 - **Run:ai olabilir:** kurum Qwen ucunun adı `runai.gpudtx.<kurum>` (saha `kur.sh kontrol`, 2026-10-15) — tahmin: `gpu-dtx`'te
   NVIDIA Run:ai kurulu. Doğrula: `kubectl get ns | grep -i runai`. Varsa iş yükleri Run:ai üzerinden zamanlanır (proje
   kotası, kesirli GPU) — §3'teki `nvidia.com/gpu` limiti tek kaynak olmayabilir; Run:ai nesnelerini de listele, yorumu
@@ -124,7 +136,8 @@ Bakılacaklar:
 | Sürücü kimde | `spec.driver.enabled` + host'ta `rpm -qa \| grep -i -e nvidia -e cuda \| head` | `true` = sürücüyü operator kurar (driver pod'u); `false` = host'a kurulu. Host'ta `nvidia-smi` çalışıyor (Alp) — hangisi olduğunu bu iki kanıtla yaz; ikisi birden olmamalı (genel) |
 | GPU paylaşımı | `spec.devicePlugin.config` → ConfigMap, `timeSlicing` / `replicas` | Varsa yaz: bir GPU birden çok pod'a bölünüyor; vLLM için genelde istenmez (genel) |
 | MIG | `spec.mig.strategy`, node etiketi `nvidia.com/mig.config` | Bilinçli mi? Kullanıcıya sor |
-| Validator | `kubectl logs -n <ns> <nvidia-operator-validator-…> --all-containers --tail=50` | hata yok |
+| Validator | `kubectl logs -n <ns> <nvidia-operator-validator-…> --all-containers --tail=50` | hata yok (`Could not create symlink … file exists` uyarısı zararsız — genel) |
+| Restart | `get pods -n <ns> -o wide` RESTARTS sütunu | Artmıyor. Saha 2026-10-15: `node-feature-discovery-worker` pod'ları 270-313 restart (27 günde), `master` 65 → `logs --previous` ve `describe` (`Last State` OOMKilled mi) ile sebebini oku |
 
 Sürüm (operator, sürücü, CUDA) **tahmin edilmez** — pod imaj etiketinden ve `nvidia-smi` başlığından oku.
 
@@ -189,7 +202,9 @@ journalctl -k --since -7d | grep -i -e xid -e nvrm | tail -30
   kullanılamaz, CUDA başlatma hata verir. Sürücü host'taysa `systemctl status nvidia-fabricmanager` (sürümü sürücüyle
   aynı olmalı); operator kuruyorsa driver pod'unun içinde çalışır. H200'ün kart tipi (SXM/HGX mi, PCIe mi) `[SAHA]` —
   `nvidia-smi -q` ürün adı ve `topo -m`'den oku.
-- **XID:** her XID bir sürücü/donanım olayıdır; kodu ve tarihi raporla, anlamını uydurma (NVIDIA XID belgesine bak).
+- **XID:** her XID bir sürücü/donanım olayıdır; kodu, tarihi, sayısı ve satırdaki `pid=…, name=…`'yi raporla. Xid 31 =
+  GPU bellek sayfa hatası (MMU fault) — NVIDIA belgesine göre çoğunlukla uygulama kaynaklı (genel); süreç adını
+  (`VLLM::EngineCor…`) ve GPU'yu pod'la eşle. Diğer kodların anlamını uydurma.
 - **ECC uncorrected > 0**, sürekli düşük saat, `power.limit` beklenenden düşük → bulgu.
 - **PCIe:** boşta `gen.current` güç tasarrufuyla düşer (genel) — karşılaştırmayı **yük altında** yap.
 

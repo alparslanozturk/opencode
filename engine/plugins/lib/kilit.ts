@@ -500,8 +500,31 @@ export const SALT_OKUNUR = new Set([
   "basename", "dirname", "lscpu", "lsmem", "lspci", "lsusb", "lsmod", "modinfo", "dmidecode", "ping",
   "traceroute", "tracepath", "dig", "nslookup", "host", "sleep", "tree", "getfacl", "lsattr", "atq",
   "systemd-analyze", "needs-restarting", "awk", "top", "vmstat", "iostat", "mpstat", "sar", "nproc", "arch",
-  "locale", "localectl", "ntpq", "chronyc", "nc", "curl", "wget", "openssl", "ansible", "cd",
+  "locale", "localectl", "ntpq", "chronyc", "nc", "curl", "wget", "openssl", "ansible", "cd", "xfs_info",
 ])
+
+// nvidia-smi: YALNIZ okuma biçimleri (izin listesi; listede olmayan bayrak/alt komut = değişiklik). Saha G57:
+// gpu-kume-denetim'in `nvidia-smi --query-gpu=… --format=csv` / `topo -m` komutları uzakta K1'e düşüyordu.
+// Değiştirenler (bilerek listede yok): -pm -pl -ac -rac -e -p -c -r/--gpu-reset -mig -lgc -rgc -am -caa -f
+// (dosyaya yazar), drain, mig, nvlink -r/-sc, clocks, boost-slider, power-hint, conf-compute …
+const NVSMI_DEGERLI = new Set(["-i", "--id", "-d", "--display", "-l", "--loop", "-lms", "--loop-ms"])
+const NVSMI_BAYRAK = new Set(["-L", "--list-gpus", "-q", "--query", "-x", "--xml-format", "-h", "--help", "--version",
+  "-B", "--list-excluded-gpus"])
+const NVSMI_ESIT = /^--(query-(gpu|compute-apps|accounted-apps|supported-clocks|retired-pages|remapped-rows)|format|id|display|loop|loop-ms|help-query-[a-z-]+)=/
+export function nvidiaSmiOkur(a: string[]): boolean {
+  let i = 0
+  for (; i < a.length && a[i].startsWith("-"); i++) {
+    if (NVSMI_DEGERLI.has(a[i])) { i++; continue } // "-i 0", "-d PERFORMANCE"
+    if (!NVSMI_BAYRAK.has(a[i]) && !NVSMI_ESIT.test(a[i])) return false
+  }
+  if (i >= a.length) return true // alt komut yok, yalnız okuma bayrakları
+  const alt = a[i]
+  const kalan = a.slice(i + 1)
+  if (alt === "topo") return kalan.every((x) => ["-m", "--matrix", "-mp", "-p2p", "-i", "-c", "-n", "-p", "-h"].includes(x) || /^[0-9a-z,]+$/i.test(x))
+  if (alt === "dmon" || alt === "pmon") return !kalan.some((x) => x === "-f" || x === "--filename" || x.startsWith("--filename="))
+  if (alt === "nvlink") return kalan.length > 0 && kalan.every((x) => ["-s", "--status", "-c", "--capabilities", "-i", "-e", "--errorcounters", "-g"].includes(x) || /^[0-9,]+$/.test(x))
+  return false
+}
 
 export function saltOkunur(argv: string[]): boolean {
   const p = taban(argv[0] ?? "")
@@ -567,6 +590,18 @@ export function saltOkunur(argv: string[]): boolean {
     case "docker":
     case "podman":
       return ["ps", "images", "inspect", "logs", "version", "info", "stats", "top", "port", "diff", "events"].includes(ilk)
+    case "nvidia-smi":
+      return nvidiaSmiOkur(a)
+    case "mdadm":
+      return a.length > 0 && a.every((x) => ["--detail", "-D", "--examine", "-E", "--query", "-Q", "--brief", "-b", "--scan", "-s", "--verbose", "-v"].includes(x) || /^\/dev\//.test(x))
+    case "nvme":
+      return ["list", "list-subsys", "smart-log", "id-ctrl", "id-ns", "error-log", "fw-log", "show-regs", "version", "--version"].includes(ilk)
+    case "cpupower":
+      return ["frequency-info", "idle-info", "info", "monitor"].includes(ilk)
+    case "crictl":
+      return ["ps", "pods", "images", "info", "inspect", "inspectp", "inspecti", "logs", "stats", "statsp", "version", "imagefsinfo"].includes(ilk)
+    case "vmware-toolbox-cmd":
+      return ilk === "stat" || ilk === "-v" || ilk === "--version"
     case "tuned-adm":
       return ["active", "list", "recommend", "verify"].includes(ilk)
     case "authselect":

@@ -586,3 +586,15 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   `78839d283c`'nin soyundan değilse (yoksa `--version` biçimi) `✗ motor 1.x … kilitler/audit DEVRE DISI` + SORUN.
   Test (Doktor): sahte kalıntı paketiyle `ALP_DERLE=1 ./kur.sh` → durdu, çıkış 1, değişiklik yok; geçici HOME'da künye
   commit `12d89ff2f5` → `kilit ✗`, HEAD → `kilit ✓`; `duman-kontrol-rapor.sh` 23/0; `bash -n` temiz.
+
+### G56 — ✅ 2.x motor sahada: derleme geçti, K6 kilidi çalıştı, G53 kuralı tuttu
+- Görülen: `git clean -fd` → `./kur.sh` → "derlendi: evet", ikili `3.0.0 · commit ca51d1a093 (=HEAD)`, `kilit ✓`. Yeni
+  kalıntı kontrolü ilk koşuda `packages/{effect-drizzle-sqlite,effect-sqlite-node,llm,opencode,sdk-next,slack}`'i bulup
+  durdu ✅. Kalan: `surum ! derleme anında çalışma ağacı kirliydi` (sebep bilinmiyor), `cikti 4096` (G2).
+- Yeni oturum, Alp: "gpu-test kümesini kontrol etmiştin, özetini ver" → ajan "oturumlar arası hafızam yok" ✅ (G53 kuralı),
+  sordu ✅. Önceki oturumu dosyada aradı (`~/.local/state/opencode`, `~/.config/opencode/sessions`) → **[güvenlik kilidi K6]**
+  `~/.config/opencode` erişimini engelledi ✅ — sahada kilitlerin çalıştığının ilk kanıtı (G47 kapandı).
+- "gpu-test" diye küme yok; ajan gpu-dtx / gpu-prod diye sordu ✅. ⚠️ "splgpuh200w1/2/3 (sanal makine adlarından)" — H200'ler
+  fiziksel. Hız: 164.1 tok/s.
+- Aksiyon (yapıldı): AGENTS.md → önceki oturum için dosya arama yerine `opencode session list` / `-c` / `-s <id>`
+  (Doktor: `packages/cli/src/commands/commands.ts` `--continue`/`--session`, `handlers/session/list.ts`).

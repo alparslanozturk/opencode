@@ -65,6 +65,9 @@ Sahadaki model uzun oturumda öncekini unutur ve sayı uydurur (saha G20, G22). 
 
 ## Akış
 
+**Temel küme katmanları (sürüm matrisi, control plane, node NotReady, Antrea, OS) `kume-denetim` becerisinde** —
+önce onu uygula (en azından §1 sürüm envanteri ve §4 node durumu), bu beceri GPU'ya özgü katmanları ekler.
+
 Katman katman git, her katmanda **kanıt topla → değerlendir**. Bir katmanda ❌ varsa sonrakine geçmeden önce kullanıcıya
 söyle (ör. operator bozuksa pod ayarını tartışmak boşa).
 
@@ -82,8 +85,8 @@ kubectl describe node <gpu-node> | sed -n '/Taints/,/Events/p'   # taint, Alloca
 
 - **Sürümler küme üzerinden okunur, tahmin edilmez:** RKE2/Kubernetes → `get nodes` `VERSION` sütunu
   (`v1.xx.y+rke2rN` biçimi); Rancher → `kubectl -n cattle-system get deploy cattle-cluster-agent -o
-  jsonpath='{.spec.template.spec.containers[0].image}'` (ajan imaj etiketi, genel). Alp "Rancher 2.11.x, RKE2 1.32-1.34
-  arası" dedi (teyitsiz) — okunan değeri yaz. Uyumluluk yorumu yalnız `rke2-ansible`'daki veri tablosundan.
+  jsonpath='{.spec.template.spec.containers[0].image}'` (ajan imaj etiketi, genel). Nonprod Rancher ekranı (2026-10-15):
+  Rancher v2.14.3, `gpu-dtx` v1.33.13+rke2r1 — yine de okunan değeri yaz. Uyumluluk yorumu yalnız `rke2-ansible`'daki veri tablosundan.
 - `nvidia.com/gpu.*` etiketlerini GPU Feature Discovery koyar (genel). Etiket yoksa operator'ün GFD bileşenine bak (§2).
 - `Allocatable` içindeki `nvidia.com/gpu` sayısı = node'daki fiziksel GPU sayısı mı? Karşılaştır: node'da `nvidia-smi -L | wc -l`.
 - GPU node'unda taint var mı? Yoksa GPU'suz iş yükleri de oraya düşebilir — bulgu olarak yaz (genel).

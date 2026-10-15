@@ -524,3 +524,31 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Aksiyon (yapıldı): `gpu-kume-denetim` donanım/Run:ai/XID/NFD-restart/env-yasağı; `rke2-ansible` LV adı notu.
 - Mimari aday (Alp kararı): sahada 2.x motor çalışınca `guvenlik-v2` + `kilit.ts` salt-okunur sınıflandırmasıyla uzak
   okuma komutlarını (kubectl get/logs/describe, nvidia-smi, df, free…) otomatik onayla → ~30 onay → birkaç.
+
+### G52 — gpu-kume-denetim h200w1 raporu (11m48s, bağlam 86.9K %33): değerlendirme
+- ✅ Doğru ve kaynaklı: sürüm farkı tabloda (v1.32.6 vs v1.33.13), taint yok, operator v25.3.4 / ready, sürücü host'ta
+  (`driver.enabled: false`), MIG kapalı, GPU başına bellek/güç/sıcaklık, pod tablosu (GPU, tp/pp, vCPU, RAM, /dev/shm 20Gi
+  veya runai large-shm, restart 0), vLLM parametreleri, SELinux "kurum kararı" (kural uygulandı ✅), /tmp, /models,
+  beceri-saha farkı (noatime/relatime) kendiliğinden bulundu ✅. Bağlam %33 — dünkü %85'e göre çok iyi.
+- Önemli bulgular (kaynak: rapor):
+  - opencode modeli `qwen36-35b-a3b`: **tam 1 GPU**, tp=1, vCPU 8/4, RAM 32Gi/8Gi, `--max-model-len 262144`,
+    `--gpu-memory-utilization 0.92`, `--max-num-seqs 16`. → G51'deki "0.35 GPU / 8Gi" tahmini **yanlıştı**: o değerler
+    `qwen3-14b`'nin (portion 0.35, RAM 8Gi/1Gi). Bağlam 262144 = opencode `ctx` ✅.
+  - `NCCL_P2P_DISABLE=1`, `NCCL_IB_DISABLE=1` — NVSwitch'li node'da tp=2 (qwen3-235b) ve pp=3 (qwen35-397b) pod'larında
+    NVLink kullanılmıyor olabilir (hangi pod'larda olduğu ekranda yok). Neden konduğu DevOps'a sorulacak.
+  - GPU 3 (PCI 29:00): 8-13 Ekim **28 Xid 31**, hepsi `GPC1 GPCCLIENT_T1_4`, `VIRT_WRITE`, VLLM::EngineCore; 13 Ekim
+    `nvAssertFailedNoLog … KGSP`. Hangi pod — eşlenmedi.
+  - NFD worker 270-313 restart (sebep okunmadı).
+- ❌/⚠️ Hatalar:
+  - "CPU governor: nonstop_tsc — frekans scaling yok": `nonstop_tsc` lscpu bayrağı; `scaling MHz 69%` scaling'in var
+    olduğunu gösterir. `scaling_governor` okunmadı → uydurma yorum (G12 sınıfı).
+  - DCGM çelişkisi: tabloda "DCGM Exporter enabled: true, 15s", dikkat listesinde "`spec.dcgm.enabled: false` — metrik
+    toplama yok". `dcgm` ≠ `dcgmExporter` (genel).
+  - "GPU paylaşımı yok (sharing none)" — Run:ai kesirli paylaşım aynı raporda var.
+  - "GPU 4 306W … 異常 yüksek": anlık yük normal; ayrıca **Çince karakter sızması** (dil kuralı).
+  - RKE2 1.32 / RHEL 9.4 matris dışı oluşu "Dikkat"e girmedi (G50 düzeltmesi sahaya henüz gitmedi).
+  - "NDM" yazım hatası (NFD).
+- Aksiyon (yapıldı): `gpu-kume-denetim` → DCGM alanları, Run:ai paylaşımı, NCCL P2P (pod adıyla, "neden" sor), GPU
+  belleği %90+ normal, governor yalnız sysfs'ten, XID→GPU→pid→pod eşleme komutları, anlık güç yorumu.
+- opencode için (G2): uç çıktı sınırı vermiyor (vLLM'de ayrı sınır yok; `max-model-len` bağlam+çıktı toplamı — genel)
+  → `env`'e `KURUM_MAX_OUTPUT` yazılmalı; değer Alp'in kararı.

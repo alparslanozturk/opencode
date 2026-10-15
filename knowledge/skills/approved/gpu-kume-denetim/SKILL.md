@@ -136,6 +136,8 @@ Bakılacaklar:
 | Sürücü kimde | `spec.driver.enabled` + host'ta `rpm -qa \| grep -i -e nvidia -e cuda \| head` | `true` = sürücüyü operator kurar (driver pod'u); `false` = host'a kurulu. Host'ta `nvidia-smi` çalışıyor (Alp) — hangisi olduğunu bu iki kanıtla yaz; ikisi birden olmamalı (genel) |
 | GPU paylaşımı | `spec.devicePlugin.config` → ConfigMap, `timeSlicing` / `replicas` | Varsa yaz: bir GPU birden çok pod'a bölünüyor; vLLM için genelde istenmez (genel) |
 | MIG | `spec.mig.strategy`, node etiketi `nvidia.com/mig.config` | Bilinçli mi? Kullanıcıya sor |
+| DCGM | `spec.dcgmExporter.enabled` ve `spec.dcgm.enabled` **ayrı** alanlar | Metrik için bakılacak `dcgmExporter`; `dcgm.enabled: false` yalnız ayrı DCGM hostengine'in kapalı olduğunu söyler, "metrik yok" demek değildir (genel; saha G52) |
+| Paylaşım (Run:ai) | device-plugin `sharing-strategy: none` | Run:ai kesirli GPU (`runai-allocated-gpus`) ayrıca paylaştırır — "GPU paylaşımı yok" yazmadan önce Run:ai annotation'larına bak (saha G52) |
 | Validator | `kubectl logs -n <ns> <nvidia-operator-validator-…> --all-containers --tail=50` | hata yok (`Could not create symlink … file exists` uyarısı zararsız — genel) |
 | Restart | `get pods -n <ns> -o wide` RESTARTS sütunu | Artmıyor. Saha 2026-10-15: `node-feature-discovery-worker` pod'ları 270-313 restart (27 günde), `master` 65 → `logs --previous` ve `describe` (`Last State` OOMKilled mi) ile sebebini oku |
 
@@ -181,7 +183,11 @@ Her vLLM pod'u için (kanıt = yaml'daki alan):
 - **vLLM parametreleri** (değerini yaz, iş yükü bilinmeden "yanlış" deme): `--gpu-memory-utilization`,
   `--max-model-len`, `--max-num-seqs`, `--tensor-parallel-size`, `--dtype`/`--quantization`, `--enforce-eager`.
 - **Ortam değişkenleri:** `CUDA_VISIBLE_DEVICES`/`NVIDIA_VISIBLE_DEVICES` elle verilmişse device plugin'in atamasıyla
-  çakışabilir — neden verildiğini sor (genel). `NCCL_*` değişkenlerini listele.
+  çakışabilir — neden verildiğini sor (genel). `NCCL_*` değişkenlerini **pod adıyla** listele.
+  `NCCL_P2P_DISABLE=1` NVLink/NVSwitch'li node'da (`topo -m` → `NV#`) GPU'lar arası doğrudan yolu kapatır; tensor
+  parallel trafiği host belleği üzerinden gider (genel). Bulgu olarak yaz ve **neden konduğunu sor** — geçmişte bir
+  hatayı aşmak için bilinçli konmuş olabilir; "kaldırın" deme. Etkisi yalnız tp>1 / pp>1 pod'larda.
+- **GPU belleği %90+ normaldir:** vLLM `--gpu-memory-utilization` kadarını baştan ayırır (genel) — doluluk sorun değil.
 - **Restart sayısı ve son loglar:** `kubectl logs <pod> -n <ns> --tail=200 | grep -i -e error -e warn -e "out of memory" -e weights`
   — ağırlık yükleme süresini veren satır (`/models` hızı için §5).
 
@@ -202,6 +208,13 @@ journalctl -k --since -7d | grep -i -e xid -e nvrm | tail -30
   kullanılamaz, CUDA başlatma hata verir. Sürücü host'taysa `systemctl status nvidia-fabricmanager` (sürümü sürücüyle
   aynı olmalı); operator kuruyorsa driver pod'unun içinde çalışır. H200'ün kart tipi (SXM/HGX mi, PCIe mi) `[SAHA]` —
   `nvidia-smi -q` ürün adı ve `topo -m`'den oku.
+- **XID → pod eşlemesi:** Xid satırındaki `PCI:0000:29:00` → `nvidia-smi --query-gpu=index,pci.bus_id --format=csv`
+  ile GPU numarası; o GPU'daki süreç `nvidia-smi --query-compute-apps=gpu_bus_id,pid,process_name --format=csv`;
+  pid → pod: `cat /proc/<pid>/cgroup` (pod UID) → `kubectl get pods -A -o custom-columns=NS:.metadata.namespace,AD:.metadata.name,UID:.metadata.uid | grep <uid>`.
+  Aynı GPU + aynı birimde (`GPCCLIENT_…`) tekrar eden Xid + `KGSP`/`nvAssert` satırı → donanım/sürücü olasılığını da
+  yaz, ama tek başına "GPU arızalı" deme (tahmin) — NVIDIA/sunucu üreticisi destek kaydı önerisi.
+- **Anlık güç/saat yorumlama:** tek okumadaki yüksek güç o anda iş yapan GPU demektir, "anormal" değildir —
+  `nvidia-smi dmon -s pucm -c 10` ile zaman içinde bak (§6).
 - **XID:** her XID bir sürücü/donanım olayıdır; kodu, tarihi, sayısı ve satırdaki `pid=…, name=…`'yi raporla. Xid 31 =
   GPU bellek sayfa hatası (MMU fault) — NVIDIA belgesine göre çoğunlukla uygulama kaynaklı (genel); süreç adını
   (`VLLM::EngineCor…`) ve GPU'yu pod'la eşle. Diğer kodların anlamını uydurma.
@@ -212,7 +225,8 @@ journalctl -k --since -7d | grep -i -e xid -e nvrm | tail -30
 
 ```bash
 tuned-adm active
-cpupower frequency-info -p 2>/dev/null || cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_driver /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>&1
+cpupower frequency-info -p 2>/dev/null
 lscpu | grep -i -e numa -e 'model name' -e '^cpu(s)'
 free -g; swapon --show                       # RKE2 için swap kapalı olmalı (rke2-ansible)
 cat /sys/kernel/mm/transparent_hugepage/enabled
@@ -221,6 +235,8 @@ grep -i -e kubelet-arg -A15 /etc/rancher/rke2/config.yaml
 cat /var/lib/kubelet/cpu_manager_state 2>/dev/null
 ```
 
+- **Frekans yöneticisini yalnız `scaling_governor` dosyasından yaz.** `lscpu` bayrağındaki `nonstop_tsc` yönetici değildir;
+  `CPU(s) scaling MHz: 69%` frekansın değiştiğini gösterir, "scaling yok" demez (saha G52).
 - `tuned` profili, CPU frekans yöneticisi (`performance` mı `powersave` mı), THP: değeri **raporla**; kurum hedef
   değeri `[SAHA]` — tek başına "yanlış" deme, kullanıcıya hedefi sor.
 - **NUMA (genel):** `topo -m`'deki CPU yakınlığı ile pod'un çalıştığı CPU'lar örtüşüyor mu? kubelet

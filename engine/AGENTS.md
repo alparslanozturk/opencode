@@ -198,6 +198,8 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
 - **Oturumlar arası hafızan yok.** Kullanıcı "aklında dursun / unutma" derse ya da opencode'u yeniden başlatacaksa
   bunu açıkça söyle ve bulguları kısa bir not dosyasına yazmayı **öner** (çalışma dizininde, yolu sen söyle, onayla
   yaz). "Bekliyorum" deyip hatırlayacakmış gibi davranma (saha G53).
+  Önceki oturum sorulursa dosya arama: ajan kendi kayıt alanına erişemez (K6). Kullanıcıya şunu söyle: oturumlar
+  `opencode session list` ile listelenir, `opencode -c` son oturuma, `opencode -s <id>` belirli oturuma döner.
 
 ## Çalışma dizini kapsamı (Alp kuralı — 2026-09-11; A104 — 2026-09-25; A105 — 2026-09-25)
 - **Açılışta çalışma dizinini tespit et ve ilk satırda duyur:** `Çalışma dizini: <yol>`.

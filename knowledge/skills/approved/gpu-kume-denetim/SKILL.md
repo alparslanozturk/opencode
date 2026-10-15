@@ -15,6 +15,10 @@ doğrulanmadı — raporda "öneri" olarak yaz, "kural" olarak değil.
   - `gpu-prod` — prod Rancher'ın (`rke-prod.<kurum>`) altında; **3 fiziksel H200** worker.
   - `gpu-dtx` — nonprod Rancher'ın (`rke-nonprod.<kurum>`) altında (dev/test/prep = `d`/`t`/`x`); **1 fiziksel H200**
     (`h200w1`) + **L40S'li VM worker'lar** (VMware sanallaştırması).
+  - `gpu-dtx` node'ları (saha `get nodes -o wide`, 2026-10-15): `sdlgpumaster1-3` (control-plane), `sdlgpuworker1-3`
+    (rol etiketi `runai-system`, **GPU etiketi yok** — L40S bunlarda mı `[SAHA]`), `sdlgpuh200w1` (rol `runai-system`,
+    `NVIDIA-H200` × 8). H200 node'u o gün **RKE2 v1.32.6 / RHEL 9.4 / containerd 2.0.5**, diğerleri v1.33.13 / 9.6 / 2.2.5
+    — sapmayı her incelemede yeniden oku (`kume-denetim` §1); 9.4 bilinçli olabilir (Satellite'ta 9.4 CV'si var, Alp).
   - **Şimdilik yalnız `gpu-dtx` incelenir** (Alp, 2026-10-14). `gpu-prod`'a Alp açıkça istemedikçe komut çalıştırma.
 - Worker'lar (H200 fiziksel ve L40S VM'ler) RKE2 kümesinin worker node'larıdır — **ikisi de denetim kapsamında.** VM
   worker'da ayrıca hipervizör etkisine bak (`performans` §3 `%steal`) ve GPU'nun VM'e nasıl verildiğini

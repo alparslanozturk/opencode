@@ -598,3 +598,14 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   fiziksel. Hız: 164.1 tok/s.
 - Aksiyon (yapıldı): AGENTS.md → önceki oturum için dosya arama yerine `opencode session list` / `-c` / `-s <id>`
   (Doktor: `packages/cli/src/commands/commands.ts` `--continue`/`--session`, `handlers/session/list.ts`).
+
+### G57 — ❌ K1 yanlış pozitif: uzak `nvidia-smi` okuma komutları "değişiklik" sayıldı
+- Görülen: `ssh root@<h200> "nvidia-smi --query-gpu=… --format=csv"` ve `"nvidia-smi topo -m"` → `[güvenlik kilidi K1] Bu komut
+  değişiklik yapıyor (nvidia-smi (uzakta)) … Çalıştırılmadı`. Ajan GPU katmanını inceleyemiyordu. (2.x sahada → kilitler
+  artık gerçekten uyguluyor; 1.x'te bu sınıflandırma hiç devreye girmiyordu.)
+- Kök neden (Doktor): `kilit.ts` uzak salt-okunur listesi (`SALT_OKUNUR` + `saltOkunur`) `nvidia-smi`'yi bilmiyordu; listede
+  olmayan her şey uzakta değişiklik (bilinçli "şüphede kilit").
+- Aksiyon (yapıldı): `nvidiaSmiOkur` — izin listesi: yalnız okuma bayrakları (`-L -q -x -d -i -l --query-*= --format=`) ve
+  `topo`, `dmon`/`pmon` (`-f` yok), `nvlink -s/-c/-e`; `-pm -pl -r -mig -f`, `mig`, `drain`, `nvlink -r` vb. K1 kalır. Ayrıca
+  becerilerdeki okuma komutları: `mdadm --detail/--examine`, `nvme list/smart-log/…`, `xfs_info`, `cpupower frequency-info`,
+  `crictl ps/logs/…`, `vmware-toolbox-cmd stat`. Test: `kilit.test.ts` +24 (12 serbest, 12 K1); plugin testleri 199/0.

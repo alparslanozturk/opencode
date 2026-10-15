@@ -71,3 +71,36 @@ describe("kilit çekirdeği (motordan bağımsız sözleşme)", () => {
     expect(kilitDenetle("webfetch", { url: "https://x" }, workdir, undefined)).toBeNull()
   })
 })
+
+describe("G57: GPU/depolama denetim komutları uzakta salt-okunur, değiştirenler K1", () => {
+  const okur = [
+    `ssh h200 "nvidia-smi --query-gpu=index,name,power.draw --format=csv"`,
+    `ssh h200 "nvidia-smi topo -m"`,
+    `ssh h200 "nvidia-smi -q -d PERFORMANCE"`,
+    `ssh h200 "nvidia-smi -q | grep -i -A3 fabric"`,
+    `ssh h200 "nvidia-smi -i 0 --query-gpu=pci.bus_id --format=csv"`,
+    `ssh h200 "nvidia-smi dmon -s pucm -c 10"`,
+    `ssh h200 "mdadm --detail /dev/md0"`,
+    `ssh h200 "nvme smart-log /dev/nvme0"`,
+    `ssh h200 "xfs_info /models"`,
+    `ssh h200 "cpupower frequency-info -p"`,
+    `ssh w3 "/var/lib/rancher/rke2/bin/crictl ps"`,
+    `ssh w3 "vmware-toolbox-cmd stat balloon"`,
+  ]
+  for (const c of okur) test(`serbest: ${c}`, () => expect(kilitDenetle("bash", { command: c }, workdir, undefined)).toBeNull())
+  const degistirir = [
+    `ssh h200 "nvidia-smi -pm 1"`,
+    `ssh h200 "nvidia-smi -pl 500"`,
+    `ssh h200 "nvidia-smi -i 0 -r"`,
+    `ssh h200 "nvidia-smi --gpu-reset -i 0"`,
+    `ssh h200 "nvidia-smi -mig 1"`,
+    `ssh h200 "nvidia-smi -q -f /tmp/x"`,
+    `ssh h200 "nvidia-smi mig -cgi 9"`,
+    `ssh h200 "nvidia-smi nvlink -r"`,
+    `ssh h200 "mdadm --fail /dev/md0 /dev/nvme1n1"`,
+    `ssh h200 "nvme format /dev/nvme0"`,
+    `ssh h200 "cpupower frequency-set -g performance"`,
+    `ssh w3 "crictl rm abc"`,
+  ]
+  for (const c of degistirir) test(`K1: ${c}`, () => expect(kilitDenetle("bash", { command: c }, workdir, undefined)?.kilit).toBe("K1"))
+})

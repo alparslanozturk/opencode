@@ -33,11 +33,14 @@ bilgisi — "(genel)" maddeyi öneri olarak yaz, kural olarak değil.
   hangi ESX host'unda/datastore'da olduğu kümeden görünmez → `[SAHA]`, gerekirse kullanıcıdan vCenter bilgisi iste.
 - CNI: **Antrea** (OVS veri yolu). İşletim sistemi RHEL (8/9/10 — node başına `get nodes -o wide`'dan oku).
 - `test` kümesi: 3 master (`stlranchermas01-03`) + 14 worker (`stlrancherwor01-14`). Worker'ların bir kısmı zaman
-  zaman `Unavailable` oluyor: 2026-10-12 wor03/wor12/wor14 (saha G7-G11: wor03/wor14'te OVS transaction timeout),
+  zaman `Unavailable` oluyor. **Yaş kalıbı (Rancher, 2026-10-15):** wor01-03 535 gün, wor04-06 304 gün, wor07-14 **13 gün**
+  (son eklenen grup); o gün Unavailable: wor03 (eski grup) + wor08-11 (yeni grup), wor07 yeni ama sağlam. Önce
+  karşılaştır: wor07 ↔ wor08 (aynı grup, biri sağlam) ve wor01 ↔ wor03. Önceki kayıtlar: 2026-10-12 wor03/wor12/wor14 (saha G7-G11: wor03/wor14'te OVS transaction timeout),
   2026-10-15 wor03/wor08 Unavailable, wor14'te `antrea-ovs` liveness hatası (Rancher ekranı). **Aynı node'lar
   tekrarlıyor** — kalıp ara (§4).
 - Erişim: kubectl → bir master'a ssh, `/var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml`
-  (`engine/AGENTS.md`). Node'lara ssh açık. Envanter: `ansible/inventories/` (test kümesi grubu `hosts-rke2.ini` içinde,
+  (`engine/AGENTS.md`). Node'lara ssh açık. Envanter: **çalışma dizinindeki** `ansible/inventories/` — cwd dışında
+  (`~/ai`, `/root`) glob'lama, izin kapısı açar (saha G3, G60) (test kümesi grubu `hosts-rke2.ini` içinde,
   ör. `[rke-nonprod-test]` — adı dosyadan oku).
 
 Aşağıda `kubectl …` yazan her satır bu kalıpla çalışır.

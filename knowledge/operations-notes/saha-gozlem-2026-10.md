@@ -642,3 +642,14 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   yanlış (bilinmiyor; pod başına `runai-allocated-gpus` annotation'ı okunmalı).
 - Aksiyon (yapıldı): AGENTS dil kuralı (CJK karakter yok); `gpu-kume-denetim` → iki depolama yolu, restart sebebi tablosu
   (OOM ↔ panic ayrımı), çelişen bayrak maddesi.
+
+### G60 — test kümesi incelemesi başladı; Unavailable kalıbı yeni node grubunda
+- Görülen: Alp "test cluster incelemesi, rke-nonprod(test)" → ajan `kume-denetim` becerisini **kendiliğinden yükledi** ✅;
+  ardından envanteri `~/ai` altında glob'ladı → `external_directory` izni (envanter cwd'deki `ansible/inventories/`'de; G3
+  tekrarı).
+- Rancher ekranları (Alp, aynı saatte üç görüntü): Unavailable kümesi değişiyor — önce wor03/08/09/10, sonra wor08/09/10/11;
+  wor03 tekrar Active. Yaş: wor01-03 535 g, wor04-06 304 g, **wor07-14 13 g**. Düşenlerin çoğu son eklenen grupta
+  (12 Ekim: wor03/12/14; bugün 03/08/09/10/11). Birkaç node'da CPU/RAM metriği `n/a` (satır hizası fotoğrafta net değil).
+- Değerlendirme (tahmin): yeni grup ile eski grup arasındaki fark (şablon/RHEL-çekirdek, ESX host/datastore, boyut, Antrea/OVS)
+  aday sebep; wor07 sağlam olduğu için "yeni grubun hepsi" değil. Kanıt yok — `kume-denetim` §4/§5 karşılaştırması gerekiyor.
+- Aksiyon (yapıldı): `kume-denetim` §0 → yaş kalıbı + önce wor07↔wor08, wor01↔wor03 karşılaştırması; envanter cwd'de.

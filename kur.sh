@@ -437,6 +437,41 @@ kaynak_agaci_var() {
   [ -f "$KOK/bun.lock" ] && [ -d "$KOK/packages/cli" ]
 }
 
+# G55 (2026-10-15): git'te İZLENMEYEN workspace paketleri (ör. 2.x'te silinmiş 1.x dizinleri packages/opencode,
+# llm, sdk-next, slack — `rsync` --delete'siz kopyalayınca sahada kalır). Root package.json'daki `packages/*` glob'u
+# onları da workspace sayar → `@opencode-ai/*@workspace:* failed to resolve` → derleme düşer, eski ikili kalır.
+# Çıktı: izlenmeyen paket dizinleri (satır başına bir). git/.git yoksa boş döner (kontrol yapılamaz).
+kalinti_paketler() {
+  command -v git > /dev/null 2>&1 && [ -d "$KOK/.git" ] || return 0
+  local pj d
+  for pj in "$KOK"/packages/*/package.json "$KOK"/services/*/package.json \
+            "$KOK"/packages/console/*/package.json "$KOK"/packages/stats/*/package.json; do
+    [ -f "$pj" ] || continue
+    d="${pj%/package.json}"; d="${d#"$KOK"/}"
+    git -C "$KOK" ls-files --error-unmatch -- "$d/package.json" > /dev/null 2>&1 || printf '%s\n' "$d"
+  done
+}
+
+# Kurulu ikilinin motoru 2.x mi? 0=2.x · 1=1.x · 2=belirlenemedi. Önce derleme künyesindeki commit'e bakar
+# (2.x geçişi 78839d283c'nin soyundan mı); künye/git yoksa --version biçimine (2.x "opencode vX", 1.x yalın "X").
+MOTOR_2X_COMMIT="78839d283c"
+motor_2x_mi() { # <ikili> <kunye-commit>
+  local ikili="$1" commit="$2" ham
+  if [ -n "$commit" ] && command -v git > /dev/null 2>&1 && [ -d "$KOK/.git" ] \
+     && git -C "$KOK" cat-file -e "$commit^{commit}" 2> /dev/null \
+     && git -C "$KOK" cat-file -e "$MOTOR_2X_COMMIT^{commit}" 2> /dev/null; then
+    git -C "$KOK" merge-base --is-ancestor "$MOTOR_2X_COMMIT" "$commit" && return 0
+    return 1
+  fi
+  [ -x "$ikili" ] || return 2
+  ham="$(timeout 30 "$ikili" --version 2>&1 | head -1)" || return 2
+  case "$ham" in
+    "opencode v"*) return 0 ;;
+    [0-9]*) return 1 ;;
+    *) return 2 ;;
+  esac
+}
+
 # Kaynak ağacında bin/opencode'dan YENİ bir dosya var mı? (tek dosya bulunca durur — ucuz)
 kaynak_daha_yeni() {
   local yeni hedefler=()
@@ -676,6 +711,19 @@ kur() {
       DERLE_NEDEN="ikilinin sürümü okunamadı (bozuk olabilir)"
     elif [ "$bin_surum" != "$SURUM" ]; then
       DERLE_NEDEN="sürüm uyuşmuyor (kurulu: $bin_surum, istenen: $SURUM)"
+    fi
+  fi
+  if [ -n "$DERLE_NEDEN" ] && [ "${ALP_KALINTI_GEC:-0}" != 1 ]; then
+    local kalinti
+    kalinti="$(kalinti_paketler)"
+    if [ -n "$kalinti" ]; then
+      hata "derlemeden önce durdum: git'te OLMAYAN workspace paketleri var (eski sürümden kalıntı — derlemeyi bozar):"
+      printf '%s\n' "$kalinti" | head -15 | sed 's/^/     /'
+      bilgi "Çözüm (kök: $KOK):  git clean -nd | head -50   → listeyi gör"
+      bilgi "                     git clean -fd                → sil (env, env.local, bin/opencode .gitignore'da — dokunulmaz)"
+      bilgi "Sonra tekrar: ./kur.sh   ·   Bilerek geçmek için: ALP_KALINTI_GEC=1 ./kur.sh (eski ikiliyle devam eder)"
+      bilgi "Kalıcı: kaynak kopyalanırken silinen dosyalar da silinmeli (rsync --delete, env/bin hariç tutularak)."
+      exit 1
     fi
   fi
   if [ -n "$DERLE_NEDEN" ]; then
@@ -1356,6 +1404,9 @@ kontrol_kurulum() {
     if [ -n "$eksik_lib" ]; then
       satir "kilit" hata "eklenti var ama eksik:$eksik_lib — kilitler/audit YUKLENMEZ (./kur.sh)"
       sorun_kaydet "guvenlik eklentisi eksik dosya:$eksik_lib — ./kur.sh"
+    elif motor_2x_mi "$kurulu_bin" "$k_commit"; [ $? -eq 1 ]; then
+      satir "kilit" hata "motor 1.x (ikili commit ${k_commit:-?}) — guvenlik-v2 2.x kancalari calismaz, kilitler/audit DEVRE DISI"
+      sorun_kaydet "kilitler devre disi: kurulu ikili 1.x motor — derleme basarisiz olmus olabilir, ./kur.sh ciktisina bak"
     elif [ "${OPS_AGENT_KAPI:-}" = "GOZLEM" ]; then
       satir "kilit" uyar "eklenti kurulu ama GOZLEM modu (OPS_AGENT_KAPI=GOZLEM) — kilitler engellemez"
     else

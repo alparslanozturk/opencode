@@ -609,3 +609,16 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   `topo`, `dmon`/`pmon` (`-f` yok), `nvlink -s/-c/-e`; `-pm -pl -r -mig -f`, `mig`, `drain`, `nvlink -r` vb. K1 kalır. Ayrıca
   becerilerdeki okuma komutları: `mdadm --detail/--examine`, `nvme list/smart-log/…`, `xfs_info`, `cpupower frequency-info`,
   `crictl ps/logs/…`, `vmware-toolbox-cmd stat`. Test: `kilit.test.ts` +24 (12 serbest, 12 K1); plugin testleri 199/0.
+
+### G58 — ❌ K1 yanlış pozitif (devam): `python3 -m json.tool`, `etcdctl`, `ctr`/`containerd` okumaları
+- Görülen (Alp'in açtığı "gpu-prod kümesi log kontrolü" oturumu): `… curl -sk https://<rancher>/v3/clusters | python3 -m json.tool`
+  → K1 (python3 uzakta); `etcdctl` → K1; `containerd`/`crictl`/`ctr` → K1 (crictl G57'de eklendi, sahada henüz yok).
+  Ajan her seferinde komutu yeniden kurup tekrar denedi (kilit mesajı "salt-okunur işlerle devam" diyor ✅).
+- Aksiyon (yapıldı): `kilit.ts` — `python3 -m json.tool` (stdin'den, çıktı dosyası yok) serbest, başka python K1;
+  `etcdctl` `member list`, `endpoint health/status/hashkv`, `alarm list`, `version` serbest, `get` **yalnız `--keys-only`/
+  `--count-only`** (değerler `/registry/secrets` içerebilir); `put/del/defrag/compact/snapshot/member add|remove` K1;
+  `ctr <containers|images|tasks|namespaces|…> ls|list|info`, `version` serbest; `containerd --version` / `config dump`.
+  Test +15; plugin testleri 214/0.
+- Not: ajan `cat /var/lib/rancher/rke2/agent/kubelet.kubeconfig` da istedi — kimlik bilgisi içerebilecek dosya; kilit
+  `cat`'i engellemez. Aday (Alp kararı): sır dosyası yolları (`*.kubeconfig`, `rke2.yaml`, `*/tls/*.key`, `node-token`) için
+  uzak `cat` → uyarı/K1.

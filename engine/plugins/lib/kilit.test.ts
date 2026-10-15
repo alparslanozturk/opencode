@@ -104,3 +104,27 @@ describe("G57: GPU/depolama denetim komutları uzakta salt-okunur, değiştirenl
   ]
   for (const c of degistirir) test(`K1: ${c}`, () => expect(kilitDenetle("bash", { command: c }, workdir, undefined)?.kilit).toBe("K1"))
 })
+
+describe("G58: etcdctl / ctr / containerd / json.tool okumaları serbest, değiştirenler K1", () => {
+  const okur = [
+    `ssh m1 "curl -sk https://r/v3/clusters | python3 -m json.tool | head -50"`,
+    `ssh m1 "etcdctl --endpoints https://127.0.0.1:2379 --cacert /a --cert /b --key /c member list -w table"`,
+    `ssh m1 "etcdctl endpoint status --cluster -w table"`,
+    `ssh m1 "etcdctl get /registry/ --prefix --keys-only"`,
+    `ssh m1 "ctr -n k8s.io containers ls"`,
+    `ssh m1 "/var/lib/rancher/rke2/bin/containerd --version"`,
+  ]
+  for (const c of okur) test(`serbest: ${c}`, () => expect(kilitDenetle("bash", { command: c }, workdir, undefined)).toBeNull())
+  const degistirir = [
+    `ssh m1 "python3 -c 'import os'"`,
+    `ssh m1 "python3 -m json.tool in.json out.json"`,
+    `ssh m1 "etcdctl get /registry/secrets/default/x"`,
+    `ssh m1 "etcdctl put a b"`,
+    `ssh m1 "etcdctl defrag"`,
+    `ssh m1 "etcdctl snapshot save /tmp/s"`,
+    `ssh m1 "etcdctl member remove 123"`,
+    `ssh m1 "ctr -n k8s.io images rm x"`,
+    `ssh m1 "ctr -n k8s.io tasks kill x"`,
+  ]
+  for (const c of degistirir) test(`K1: ${c}`, () => expect(kilitDenetle("bash", { command: c }, workdir, undefined)?.kilit).toBe("K1"))
+})

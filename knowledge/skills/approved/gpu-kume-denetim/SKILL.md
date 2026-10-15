@@ -34,6 +34,10 @@ doğrulanmadı — raporda "öneri" olarak yaz, "kural" olarak değil.
   başlarsa ajan işin ortasında cevapsız kalır. Args'ındaki `--max-model-len`, `--max-num-seqs`,
   `--gpu-memory-utilization` değerlerini yaz ve opencode `env`'deki `KURUM_MAX_CONTEXT` / `KURUM_MAX_OUTPUT` ile
   karşılaştır (uyuşmazlık = opencode ayarı önerisi; saha G2).
+- **Run:ai olabilir:** kurum Qwen ucunun adı `runai.gpudtx.<kurum>` (saha `kur.sh kontrol`, 2026-10-15) — tahmin: `gpu-dtx`'te
+  NVIDIA Run:ai kurulu. Doğrula: `kubectl get ns | grep -i runai`. Varsa iş yükleri Run:ai üzerinden zamanlanır (proje
+  kotası, kesirli GPU) — §3'teki `nvidia.com/gpu` limiti tek kaynak olmayabilir; Run:ai nesnelerini de listele, yorumu
+  kullanıcıya sor.
 - Geçmişte vLLM pod'ları **OOMKilled** oldu; `/dev/shm` boyutu (8 GB olabilir) ve pod bellek limiti belirsiz — §3'te
   mutlaka incele.
 - OS ayarı örneği (Alp): `/tmp`'nin inode sayısı artırılıyor — kurumun hedef değeri `[SAHA]`.

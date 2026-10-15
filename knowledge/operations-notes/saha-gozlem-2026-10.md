@@ -448,3 +448,22 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   yükle (kullanıcı adını söylemese de). Aday (deterministik, sonraki adım): `guvenlik-v2.ts` disk değiştiren komutta
   (`mkfs`/`pvcreate`/`vgcreate`/`/etc/fstab` yazımı) oturumda `disk-ekleme` yüklenmemişse uyarı. K5'in sahada neden
   devrede olmadığı `./kur.sh kontrol` çıktısıyla bakılacak.
+
+## 2026-10-15
+
+### G47 — 🔴 G39'un kök nedeni: sahada 1.x motor + yalnız 2.x güvenlik eklentisi → kilitler devre dışı
+- Görülen (`al.sh` + `./kur.sh`, 08:02): "derlendi: hayır — derleme başarısız, mevcut bin/opencode kullanıldı";
+  `ikili ✓ surum 2.0.0 · commit 12d89ff2f5 · derleme 2026-09-29`; `surum ! … kur.sh beklenen 3.0.0`; buna rağmen
+  `kilit ✓ guvenlik kilitleri + audit kurulu (K1-K7, kilitli mod)` ve `SORUN: yok — uc saglikli`.
+- Kanıt (Doktor, repodan): `12d89ff2f5` (2026-09-29) 1.x motor dönemi — o commit'te `packages/opencode` sürümü
+  `1.18.33`; 2.x geçişi `78839d283c` (2026-10-05). `kur.sh:937-945` yalnız `*-v2.ts` kurar ve 1.x adaptörlerini
+  (`audit-log.ts`, `guard.ts`) **siler**. Yani sahadaki 1.x motorda 1.x kilit adaptörü yok; v2 eklentisi 2.x kancalarını
+  (`permission "evaluate"`, `tool "execute.before"`) kullanıyor. tahmin (sahada doğrulanacak): 1.x'te bu kancalar
+  çağrılmıyor → K1/K5 ve audit çalışmıyor. G39'da uzak `mkfs`'in yalnız "Permission required" ile geçmesi bununla tutarlı.
+- İkinci sorun: `kur.sh kontrol` "kilit" satırı yalnız dosyanın varlığına bakıyor; motor/eklenti uyumsuzluğunu görmüyor;
+  `surum !` uyarısı `SORUN:` satırına yansımıyor → yanlış güven.
+- Derleme neden başarısız: ekranda yok. G1 (2026-10-12) ile aynı sebep olabilir (1.x'ten kalan izlenmeyen `packages/*`).
+- Diğer: `cikti 4096 (uctan alinamadi)` — G2 sürüyor. `log ! son hata … level=ERROR` (ayrıntı yok). Kurum Qwen ucu
+  `runai.gpudtx.<kurum>` → Qwen `gpu-dtx`'te; tahmin: Run:ai (beceriye eklendi).
+- Aday aksiyon (Alp kararı): (a) derleme başarısız + ikili sürümü ≠ beklenen → kur.sh dursun ya da en azından
+  `kilit ✗` + `SORUN: kilitler devre dışı`; (b) kontrol "kilit" satırı motor sürümüne göre doğru eklentiyi denetlesin.

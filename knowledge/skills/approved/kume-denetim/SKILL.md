@@ -29,6 +29,8 @@ bilgisi — "(genel)" maddeyi öneri olarak yaz, kural olarak değil.
 - Nonprod Rancher (`rke-nonprod.<kurum>`) **v2.14.3**. Prod Rancher (`rke-prod.<kurum>`) sürümü `[SAHA]`.
 - Nonprod downstream RKE2 kümeleri (`gpu-dtx`, `test`, `test-sasviya`, `peaka-poc`, `vibecode-test`, `devops-utilities`
   …) ve `local`: **v1.33.13+rke2r1**. Anthos (GKE) kümeleri de Rancher'da görünür — bu becerinin kapsamı dışı.
+- **Masterlar ve VM worker'lar VMware üzerinde**; GPU worker'lar (H200) fiziksel sunucu (Alp, 2026-10-15). Bir VM'in
+  hangi ESX host'unda/datastore'da olduğu kümeden görünmez → `[SAHA]`, gerekirse kullanıcıdan vCenter bilgisi iste.
 - CNI: **Antrea** (OVS veri yolu). İşletim sistemi RHEL (8/9/10 — node başına `get nodes -o wide`'dan oku).
 - `test` kümesi: 3 master (`stlranchermas01-03`) + 14 worker (`stlrancherwor01-14`). Worker'ların bir kısmı zaman
   zaman `Unavailable` oluyor: 2026-10-12 wor03/wor12/wor14 (saha G7-G11: wor03/wor14'te OVS transaction timeout),
@@ -123,7 +125,15 @@ chronyc tracking | head -5
 
 - `crictl` cevap vermiyor / zaman aşımı → containerd takılı (saha G10: `KillPodSandbox … context deadline exceeded`).
 - `hung task` / `blocked for more than` → çekirdek düzeyinde G/Ç ya da kilit; `cekirdek-teshis` becerisi.
-- VM ise `%steal` (`performans` §3) — hipervizör CPU vermiyorsa kubelet zamanında durum yazamaz.
+- **VMware VM ise** (genel; komutlar open-vm-tools ile gelir — yoksa `rpm -q open-vm-tools`):
+  ```bash
+  vmware-toolbox-cmd stat balloon; vmware-toolbox-cmd stat swap     # ESX bu VM'den bellek geri alıyor mu (MB)
+  sar -u 1 5 | tail -2                                               # %steal — hipervizör CPU vermiyor mu (performans §3)
+  journalctl -k --since -3h --no-pager | grep -i -e vmxnet -e pvscsi -e "clocksource" -e "time jump" | tail -20
+  journalctl -u chronyd --since -3h --no-pager | grep -i -e "step" -e "jump" | tail
+  ```
+  Balloon/swap > 0, yüksek `%steal`, saat sıçraması (vMotion/snapshot sonrası) → VM'in donması hipervizör kaynaklı
+  olabilir (tahmin olarak yaz); kanıtı vCenter tarafı (host CPU ready, bellek baskısı, olay zamanı) kesinleştirir.
 
 **Antrea / OVS (saha G10-G11 — test kümesinde tekrar eden):**
 

@@ -526,6 +526,35 @@ export function nvidiaSmiOkur(a: string[]): boolean {
   return false
 }
 
+// Değer alan bayrakları atlayıp konumsal argümanları döndürür ("--endpoints x get k" → ["get","k"]).
+function konumsal(a: string[], degerli: Set<string>): string[] {
+  const out: string[] = []
+  for (let i = 0; i < a.length; i++) {
+    if (a[i].startsWith("-")) { if (degerli.has(a[i])) i++; continue }
+    out.push(a[i])
+  }
+  return out
+}
+// Saha G58: gpu-prod incelemesinde etcdctl / ctr / containerd / `python3 -m json.tool` okumaları K1'e düştü.
+const ETCDCTL_DEGERLI = new Set(["--endpoints", "--cacert", "--cert", "--key", "-w", "--write-out", "--command-timeout",
+  "--dial-timeout", "--user", "--password", "--prefix-range"])
+const CTR_DEGERLI = new Set(["-n", "--namespace", "-a", "--address", "--timeout", "--connect-timeout"])
+export function etcdctlOkur(a: string[]): boolean {
+  const [k1 = "", k2 = ""] = konumsal(a, ETCDCTL_DEGERLI)
+  if (k1 === "version") return true
+  // değerler (ör. /registry/secrets) sır içerebilir → yalnız anahtar/sayı okuması serbest
+  if (k1 === "get") return a.includes("--keys-only") || a.includes("--count-only")
+  if (k1 === "member" || k1 === "alarm") return k2 === "list"
+  if (k1 === "endpoint") return ["health", "status", "hashkv"].includes(k2)
+  return k1 === "" && a.some((x) => x === "--version" || x === "version")
+}
+export function ctrOkur(a: string[]): boolean {
+  const [k1 = "", k2 = ""] = konumsal(a, CTR_DEGERLI)
+  if (k1 === "version" || a.includes("--version") || a.includes("-v")) return k1 === "" || k1 === "version"
+  return ["containers", "c", "container", "images", "i", "image", "tasks", "t", "task", "namespaces", "ns", "namespace",
+    "snapshots", "snapshot", "content", "plugins", "plugin"].includes(k1) && ["list", "ls", "info"].includes(k2)
+}
+
 export function saltOkunur(argv: string[]): boolean {
   const p = taban(argv[0] ?? "")
   const a = argv.slice(1)
@@ -602,6 +631,16 @@ export function saltOkunur(argv: string[]): boolean {
       return ["ps", "pods", "images", "info", "inspect", "inspectp", "inspecti", "logs", "stats", "statsp", "version", "imagefsinfo"].includes(ilk)
     case "vmware-toolbox-cmd":
       return ilk === "stat" || ilk === "-v" || ilk === "--version"
+    case "etcdctl":
+      return etcdctlOkur(a)
+    case "ctr":
+      return ctrOkur(a)
+    case "containerd":
+      return a.length > 0 && a.every((x) => ["--version", "-v", "config", "dump"].includes(x)) && (a.includes("--version") || a.includes("-v") || (a[0] === "config" && a[1] === "dump"))
+    case "python":
+    case "python3":
+      // yalnız stdin'den okuyup biçimleyen json.tool (çıktı dosyası argümanı yok) — gerisi kod çalıştırır
+      return a[0] === "-m" && a[1] === "json.tool" && a.slice(2).filter(secenekDegil).length === 0
     case "tuned-adm":
       return ["active", "list", "recommend", "verify"].includes(ilk)
     case "authselect":

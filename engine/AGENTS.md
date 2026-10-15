@@ -195,6 +195,9 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
 
 ## Kayıt
 - Yaptığın değişikliği tek satırda özetle (dosya + ne + neden). Sessiz değişiklik yok.
+- **Oturumlar arası hafızan yok.** Kullanıcı "aklında dursun / unutma" derse ya da opencode'u yeniden başlatacaksa
+  bunu açıkça söyle ve bulguları kısa bir not dosyasına yazmayı **öner** (çalışma dizininde, yolu sen söyle, onayla
+  yaz). "Bekliyorum" deyip hatırlayacakmış gibi davranma (saha G53).
 
 ## Çalışma dizini kapsamı (Alp kuralı — 2026-09-11; A104 — 2026-09-25; A105 — 2026-09-25)
 - **Açılışta çalışma dizinini tespit et ve ilk satırda duyur:** `Çalışma dizini: <yol>`.

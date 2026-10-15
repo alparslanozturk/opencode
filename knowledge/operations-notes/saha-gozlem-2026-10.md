@@ -552,3 +552,13 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   belleği %90+ normal, governor yalnız sysfs'ten, XID→GPU→pid→pod eşleme komutları, anlık güç yorumu.
 - opencode için (G2): uç çıktı sınırı vermiyor (vLLM'de ayrı sınır yok; `max-model-len` bağlam+çıktı toplamı — genel)
   → `env`'e `KURUM_MAX_OUTPUT` yazılmalı; değer Alp'in kararı.
+
+### G53 — ⚠️ "opencode restart edeceğim, bunlar aklında dursun" → yanlış anlama + sahte hafıza
+- Görülen: Alp (yeni becerileri almak için opencode'u yeniden açacaktı) "teşekkür ederim. bunlar aklında dursun. opencode
+  restart edeceğim. geleceğim." → ajan: "Opencode'un modeli qwen36-35b-a3b-fp8 … Restart sonrası model yeniden yüklenecek
+  (hostPath /models zaten orada, yükleme saniyeler alır). Dönene kadar bekliyorum."
+- Değerlendirme: (1) "opencode restart" = istemci; ajan kendi **model pod'unun** yeniden başlatılması diye anladı (beceri
+  bağlamı Qwen pod'unu öne çıkarmıştı) — belirsizse sormalıydı. (2) Yeni oturumda bu bağlam yok; "aklında dursun"a
+  hatırlayacakmış gibi cevap verdi. (3) "yükleme saniyeler alır" — ölçülmedi (Alp'in "1 sn gibi" sözü mü, tahmin mi).
+- Aksiyon (yapıldı): AGENTS.md "Kayıt" → hafıza yok de, not dosyası öner. Aday: opencode oturum devamı
+  (`opencode --continue` / oturum listesi — 2.x'te var mı, sahada denenecek) NASIL-CALISTIRILIR'a.

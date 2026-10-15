@@ -562,3 +562,11 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   hatırlayacakmış gibi cevap verdi. (3) "yükleme saniyeler alır" — ölçülmedi (Alp'in "1 sn gibi" sözü mü, tahmin mi).
 - Aksiyon (yapıldı): AGENTS.md "Kayıt" → hafıza yok de, not dosyası öner. Aday: opencode oturum devamı
   (`opencode --continue` / oturum listesi — 2.x'te var mı, sahada denenecek) NASIL-CALISTIRILIR'a.
+
+### G54 — Saha kopyası akışı: splsonatype01 (git, temiz) → rsync → srvsatellite (1.x kalıntıları)
+- Görülen: `splsonatype01:~/ai/opencode` `git status` → "up to date with origin/main, working tree clean"; srvsatellite'ta
+  aynı dizinde izlenmeyen 1.x dosyaları (`packages/ui/src/components/*`, `specs/`, `patches/`, `script/beta.ts`,
+  `artifacts/`, `CONTEXT.md` — Doktor: hepsi `78839d283c`'de silinmiş). → G1 tahmini doğrulandı: `al.sh` rsync'i
+  `--delete` olmadan kopyalıyor (Alp: "rsync komutunda galiba sorun var").
+- Alp: "kalsın, zarar yoksa". Doktor'un değerlendirmesi: zararsız değil olabilir — derleme başarısızlığı (G47) ve
+  dolayısıyla kilitlerin devre dışı kalması bu kalıntılardan olabilir (tahmin; `git clean -fd` + `./kur.sh` ile sınanır).

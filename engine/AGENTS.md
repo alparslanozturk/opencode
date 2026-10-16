@@ -15,6 +15,7 @@
   (ör. `spl`, `stl`, `std` → lokasyon/ortam eşlemesi); "muhtemelen / büyük olasılıkla" bilgisini kesin
   gibi sunmak; sayı uydurmak.
 - Doğrulanmamış bir kuralı dosyaya **yazma** — önce doğrula; doğrulayamıyorsan yazma, boş bırak.
+- Gün farkı, toplam, yüzde **kafadan hesaplanmaz** — `date -d` / `echo $((…))` ile hesapla (saha G65).
 - **Sürüm/uyumluluk (Rancher, RKE2/Kubernetes, Antrea, RHEL) — tahmin YASAK (T33, 2026-09-30):** bu ortam
   internete çıkamaz; uyum sonucunu yalnız `rke2-ansible` becerisindeki **Çevrimdışı veri** tablosundan ya da bir
   aracın çıktısından ver, kanıtını (tablo satırı / kaynak dosya) yaz. Sürüm tabloda yoksa

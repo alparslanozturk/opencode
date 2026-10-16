@@ -69,6 +69,7 @@ hazır olmadığı demektir; readiness probe başarısız olabilir.
   görünüyorsa bu podların loglarına bak.
 - Rancher CLI (`rancher`) kurulumdan kuruluma değişir. Önce `rancher --help`
   çıktısını oku, ezberden komut yazma.
+- Anthos (GKE) kümeleri → `k8s-anthos` becerisi (erişim yolu farklı).
 - Kümeyi bütün olarak incelemek (sürüm matrisi, control plane, node Unavailable, Antrea/OVS, OS) → `kume-denetim`.
 - GPU kümesi / H200 node / vLLM pod'u / NVIDIA GPU Operator denetimi → `kume-denetim` becerisi.
 - Pod yavaş ama CPU kullanımı düşük görünüyorsa: CPU limit kısıtlaması

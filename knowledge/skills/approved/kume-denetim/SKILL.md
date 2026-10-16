@@ -115,6 +115,20 @@ wor14) o node'larda ortak olan ne — aynı hipervizör/ESX, aynı RHEL/çekirde
 bilgisi kümeden görünmez → kullanıcıya sor. Aynı dakikada birden çok node düşüyorsa ortak altyapıyı (ağ, depolama,
 yedekleme penceresi, vMotion) sor.
 
+**ssh hatasını sınıflandır (genel — node'un hangi katmanda takıldığını söyler):**
+
+| ssh çıktısı | Ne demek |
+|---|---|
+| `Connection timed out` (bağlantı kurulamadı) | TCP cevabı yok: node kapalı/donmuş ya da ağ yolu kesik |
+| `Connection refused` | Node ayakta, sshd çalışmıyor |
+| `No route to host` | Ağ/ARP katmanı — node ağda görünmüyor |
+| `Connection timed out during banner exchange` | **TCP kuruldu (çekirdek cevap veriyor) ama sshd banner gönderemiyor** → kullanıcı alanı takılı: bellek baskısı/swap, G/Ç beklemesi (datastore), hung task, CPU açlığı |
+
+Banner timeout'ta tekrar tekrar ssh deneme (her deneme sürer, bağlam yer): bir kez dene, sonucu yaz. Node donukken
+kanıt dışarıda: VMware konsolu / vCenter (CPU ready, balloon, datastore gecikmesi, olay zamanı) — kullanıcıdan iste.
+Node düzelince önceki açılışı oku: `journalctl -b -1 -p warning --no-pager | tail -50` (reboot olduysa),
+`journalctl -k --since "<düşüş saati>"`. Erişilemeyen node sayısını **listeyle** ver ("belki başkaları" yazma).
+
 **Node tarafı (ssh, okuma — reboot'tan önce):**
 
 ```bash

@@ -653,3 +653,15 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Değerlendirme (tahmin): yeni grup ile eski grup arasındaki fark (şablon/RHEL-çekirdek, ESX host/datastore, boyut, Antrea/OVS)
   aday sebep; wor07 sağlam olduğu için "yeni grubun hepsi" değil. Kanıt yok — `kume-denetim` §4/§5 karşılaştırması gerekiyor.
 - Aksiyon (yapıldı): `kume-denetim` §0 → yaş kalıbı + önce wor07↔wor08, wor01↔wor03 karşılaştırması; envanter cwd'de.
+
+## 2026-10-16
+
+### G61 — test kümesi: wor08/wor09 "Connection timed out during banner exchange"
+- Görülen: rancher-agent imajı `v2.14.3` okundu ✅ (§1). `ssh … root@<wor08>` ve `<wor09>` `uptime; free; df` → `Connection
+  timed out during banner exchange`, exit 255. Ajan: "6 worker erişilemez (wor03, wor08, wor09, wor10, wor13, ve belki
+  başkaları)".
+- Değerlendirme: banner timeout = TCP bağlantısı kuruldu (çekirdek ayakta), sshd cevap veremiyor → node kullanıcı alanında
+  takılı (genel bilgi; sebep bellek/G/Ç/CPU — kanıt yok). Ağ kopması değil. G11'deki "OVS transaction timeout" ile tutarlı
+  olabilir (tahmin). ⚠️ "6" deyip 5 ad saydı; wor13 Rancher'da Active görünüyordu (kaynak ekranda yok).
+- Aksiyon (yapıldı): `kume-denetim` §4 → ssh hata sınıflandırma tablosu, banner timeout'ta tekrar deneme yok, kanıt vCenter
+  + `journalctl -b -1`, erişilemeyen node'ları liste ile ver.

@@ -501,6 +501,9 @@ export const SALT_OKUNUR = new Set([
   "traceroute", "tracepath", "dig", "nslookup", "host", "sleep", "tree", "getfacl", "lsattr", "atq",
   "systemd-analyze", "needs-restarting", "awk", "top", "vmstat", "iostat", "mpstat", "sar", "nproc", "arch",
   "locale", "localectl", "ntpq", "chronyc", "nc", "curl", "wget", "openssl", "ansible", "cd", "xfs_info",
+  // kabuk sözdizimi (saha G62): döngü/koşul kapanışları ve `read` kendi başına bir şey değiştirmez; gövdedeki
+  // komutlar ayrı segment olarak ayrıca incelenir
+  "done", "fi", "esac", "read", "{", "}",
 ])
 
 // nvidia-smi: YALNIZ okuma biçimleri (izin listesi; listede olmayan bayrak/alt komut = değişiklik). Saha G57:
@@ -617,6 +620,10 @@ export function saltOkunur(argv: string[]): boolean {
     case "docker":
     case "podman":
       return ["ps", "images", "inspect", "logs", "version", "info", "stats", "top", "port", "diff", "events"].includes(ilk)
+    case "for":
+    case "select":
+      // yalnız başlık: `for f in <liste>` — liste içinde komut ikamesi ayrı segment olarak incelenir
+      return true
     case "nvidia-smi":
       return nvidiaSmiOkur(a)
     case "mdadm":

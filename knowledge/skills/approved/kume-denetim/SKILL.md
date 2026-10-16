@@ -175,6 +175,31 @@ ansible <grup> -i <envanter> -m shell -o -a 'uname -r; cat /etc/redhat-release; 
 - SELinux ve firewalld kapalı olması **normal** (kurum kararı) — bulgu sayma.
 - Sorunlu node'larla sağlıklı node'ları yan yana koy: fark neyse aday sebep odur (yine "tahmin:").
 
+## 5b. Node donması (VM tamamen cevapsız, hipervizörden reset gerekiyor)
+
+Test kümesinde master ve worker'lar **tamamen donuyor** (ssh banner timeout, Rancher Unavailable, sanallaştırma ekibi
+reset atıyor — Alp, 2026-10-16). Bu Kubernetes'in değil, **işletim sistemi ya da hipervizör** katmanının işidir; pod
+restart'ları (antrea, ingress, fluent-bit) çoğunlukla bunun **sonucu**, sebebi değil. Önceliklendirmeyi buna göre yap:
+inceleme sırasında bir master'a ssh banner timeout alınırsa ya da Rancher→master `i/o timeout` görülürse bu "düşük"
+değil **en yüksek** bulgudur; "Control plane sağlam" yazma.
+
+Reset sonrası (okuma):
+
+```bash
+journalctl --list-boots | tail -3                       # önceki açılış var mı (journal kalıcı mı)
+ls -d /var/log/journal 2>/dev/null || echo "journal kalici DEGIL — donma oncesi log yok"
+journalctl -b -1 -n 80 --no-pager                       # donmadan önceki son satırlar — kesildiği an
+journalctl -b -1 -k --no-pager | grep -i -e "hung task" -e "blocked for" -e "soft lockup" -e "rcu.*stall" -e oom -e "i/o error" -e vmxnet -e pvscsi | tail -30
+sar -q -r -f /var/log/sa/sa$(date -d yesterday +%d) | tail -30   # donma saatine yakın yük/bellek (performans §6)
+```
+
+Kullanıcıdan (vCenter — kümeden görünmez): donma saatinde VM'in **CPU ready / co-stop**, **balloon / swap**, **datastore
+gecikmesi**, aynı anda snapshot/yedek/vMotion olayı; donan VM'ler aynı ESX host'unda ya da datastore'da mı. Donmuş
+VM'in konsol ekranı (panic/hung task mesajı) reset'ten **önce** alınırsa en değerli kanıttır.
+
+Öneri (değişiklik — uygulamak kullanıcının işi): journal kalıcı değilse `Storage=persistent`; kdump açık değilse açmak;
+`kernel.hung_task_panic`/`softlockup_panic` ile donma yerine dökümlü panic (kdump ile birlikte, test kümesinde).
+
 ## 6. Sonuç (ekrana, kısa)
 
 ```

@@ -665,3 +665,15 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   olabilir (tahmin). ⚠️ "6" deyip 5 ad saydı; wor13 Rancher'da Active görünüyordu (kaynak ekranda yok).
 - Aksiyon (yapıldı): `kume-denetim` §4 → ssh hata sınıflandırma tablosu, banner timeout'ta tekrar deneme yok, kanıt vCenter
   + `journalctl -b -1`, erişilemeyen node'ları liste ile ver.
+
+### G62 — test kümesi raporu (bağlam %69): pod belirtileri öne, donma arka plana
+- Alp (kaynak): sabah **mas03 dondu**, sonra **wor07 dondu**, sanallaştırma ekibi reset attı.
+- Rapor: "Control plane: Sağlam (bulgu yok)" — oysa aynı turda master'a (`etcdctl endpoint health`) ssh **banner timeout**;
+  "Rancher remotedialer mas01→mas03 i/o timeout" **DÜŞÜK** önceliği. Bulgular tablosu pod belirtileriyle dolu (wor07 reboot →
+  antrea-ovs 34 restart, ingress 31, `InvalidDiskCapacity 0`, fluent-bit wor11 75 / wor12 44 / wor13 38; wor03 kernel
+  `Failed to associate timeout policy ovs_test_tp`). Çelişki: fluent-bit "node reboot'larından kaynaklanıyor" ↔ wor11 "node
+  stable ama pod crash".
+- ❌ K1 yanlış pozitif: uzakta `for f in …/tls/*.crt; do … openssl x509 …; done` → "for (uzakta); done (uzakta)" değişiklik.
+- Aksiyon (yapıldı): `kilit.ts` kabuk sözdizimi (`for`/`select` başlığı, `done fi esac read { }`) serbest, gövde ayrıca incelenir
+  (test +4, 218/0); `kume-denetim` §5b "Node donması" — donma > pod belirtisi önceliği, reset sonrası `journalctl -b -1`,
+  kalıcı journal kontrolü, vCenter kanıt listesi, kdump/hung_task_panic önerisi.

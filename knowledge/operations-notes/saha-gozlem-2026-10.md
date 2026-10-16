@@ -726,3 +726,10 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   o an takılı). Alp ardından: "42dk önce wor03'te ne oldu tam olarak merak ettim".
 - Aksiyon (yapıldı): §2 erişim kaybı → bir kez daha dene, dönerse "kısa takılma"; §5b "Kısa takılma": olay penceresi ±5 dk
   journal (warning/kernel/rke2) + `sar -s/-e` + PSI; aynı gecedeki node takılmalarını saatle yan yana koy.
+- Devam (Alp, 2026-10-17): IPv6 değil (katıldı); **matris çok önemli, supported olmalı** — Antrea v2.3.0 + 1.33 kural dışı uyarısı
+  kabul. `nf_conntrack_max`'ı **Alp sabah elle** yükseltti, yalnız yeni node'larda (wor07-14; 393216 → 786432); başka değişiklik
+  yok. Doktor: gece olayları (wor03 00:42, mas01 01:2x) eski node'larda, onlar zaten 786432 → bu olayların sebebi conntrack
+  değil; fark büyük ihtimalle kube-proxy'nin 32768×vCPU hesabı (tahmin, `nproc`).
+- Aksiyon (yapıldı): `kume-denetim` §1 Antrea↔K8s satırı zorunlu; Antrea/OVS altına "sonuç olabilir" + conntrack genel bilgisi
+  (kube-proxy formülü, table full ↔ banner farkı); §5b "Duraklama göstergeleri" (eşzamanlılık, chrony sıçraması, OVS poll
+  interval, etcd fdatasync, çekirdek lockup/abort, balloon).

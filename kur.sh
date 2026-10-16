@@ -26,7 +26,8 @@
 #
 #  İç detay (ortam değişkenleri — yalnız ayıklama için):
 #    ALP_DERLE=1 ikili güncel olsa da derle · ALP_DERLEME_YOK=1 hiç derleme ·
-#    ALP_TUM_BECERILER=1 tüm beceriler · ALP_DERLE_EK="--ignore-scripts" bun'a ek bayrak ·
+#    ALP_TUM_BECERILER=1 tüm beceriler · ALP_KALINTI_GEC=1 git'te olmayan paket/beceri kalıntısını yok say ·
+#    ALP_DERLE_EK="--ignore-scripts" bun'a ek bayrak ·
 #    KURUM_MAX_CONTEXT/KURUM_MAX_OUTPUT (env) uç bildirmezse bağlam/çıktı sınırı ·
 #    KISAYOL_DIZIN (varsayılan /usr/local/bin, yazılamıyorsa ~/.local/bin) ·
 #    BUN bun ikilisinin yolu · MODELS_DEV_API_JSON models.dev anlık görüntüsü ·
@@ -452,6 +453,18 @@ kalinti_paketler() {
   done
 }
 
+# Git'te OLMAYAN beceri dizinleri (approved/ + parked/): birleştirilen/silinen beceriler --delete'siz
+# rsync ile sahada kalır, kur.sh onları gerçek beceri sanıp kurardı (saha G64). git/.git yoksa boş döner.
+kalinti_beceriler() {
+  command -v git > /dev/null 2>&1 && [ -d "$KOK/.git" ] || return 0
+  local d
+  for d in "$KOK"/knowledge/skills/approved/*/ "$KOK"/knowledge/skills/parked/*/; do
+    [ -d "$d" ] || continue
+    d="${d%/}"; d="${d#"$KOK"/}"
+    git -C "$KOK" ls-files --error-unmatch -- "$d/SKILL.md" > /dev/null 2>&1 || printf '%s\n' "$d"
+  done
+}
+
 # Kurulu ikilinin motoru 2.x mi? 0=2.x · 1=1.x · 2=belirlenemedi. Önce derleme künyesindeki commit'e bakar
 # (2.x geçişi 78839d283c'nin soyundan mı); künye/git yoksa --version biçimine (2.x "opencode vX", 1.x yalın "X").
 MOTOR_2X_COMMIT="78839d283c"
@@ -803,28 +816,36 @@ kur() {
   # A8/A17: saha sabitleri isteğe bağlı — kur.sh dosya OLUŞTURMAZ (Alp: bilgiyi oturumda kendisi veriyor).
   # İstenirse: cp knowledge/templates/saha-sabitleri.md ~/.config/opencode/ → her oturumda okunur.
   rm -rf "$HOME/.config/opencode/skills"; mkdir -p "$HOME/.config/opencode/skills"
-  if [ "$TUM_BECERILER" = 1 ]; then
-    cp -r "$KOK/knowledge/skills/approved/." "$HOME/.config/opencode/skills/"
-    # 2026-09-16 beceri sadeleştirmesi (Alp kararı): kalan beceriler approved/'dan
-    # parked/'a taşındı (bkz. knowledge/skills/parked/README.md) — ALP_TUM_BECERILER
-    # eskisi gibi hepsini kursun diye parked/'ı da ekliyoruz. parked/README.md bir
-    # beceri değil (klasör değil) — cp ile beceri dizinlerine karışmasın diye tek
-    # tek beceri alt dizinleri kopyalanıyor.
-    if [ -d "$KOK/knowledge/skills/parked" ]; then
-      for d in "$KOK/knowledge/skills/parked"/*/; do
-        [ -d "$d" ] && cp -r "$d" "$HOME/.config/opencode/skills/$(basename "$d")"
-      done
-    fi
-    sari "  tüm beceriler kuruldu (taban bağlam büyür)"
-  else
-    local d
-    for d in "$KOK/knowledge/skills/approved"/*/; do
-      [ -d "$d" ] && cp -r "$d" "$HOME/.config/opencode/skills/$(basename "$d")"
+  # G64: git'te olmayan beceri dizini (eski senkron kalıntısı) KURULMAZ — ALP_KALINTI_GEC=1 ile kurulur.
+  local kalinti_bec="" atlanan="" d rel k
+  [ "${ALP_KALINTI_GEC:-0}" = 1 ] || kalinti_bec="$(kalinti_beceriler)"
+  local -a kaynaklar=("$KOK/knowledge/skills/approved")
+  # 2026-09-16 beceri sadeleştirmesi (Alp kararı): kalan beceriler approved/'dan
+  # parked/'a taşındı (bkz. knowledge/skills/parked/README.md) — ALP_TUM_BECERILER
+  # eskisi gibi hepsini kursun diye parked/'ı da ekliyoruz. parked/README.md bir
+  # beceri değil (klasör değil) — cp ile beceri dizinlerine karışmasın diye tek
+  # tek beceri alt dizinleri kopyalanıyor.
+  [ "$TUM_BECERILER" = 1 ] && kaynaklar+=("$KOK/knowledge/skills/parked")
+  for k in "${kaynaklar[@]}"; do
+    for d in "$k"/*/; do
+      [ -d "$d" ] || continue
+      d="${d%/}"; rel="${d#"$KOK"/}"
+      case $'\n'"$kalinti_bec"$'\n' in
+        *$'\n'"$rel"$'\n'*) atlanan="$atlanan $(basename "$d")"; continue ;;
+      esac
+      cp -r "$d" "$HOME/.config/opencode/skills/$(basename "$d")"
     done
-  fi
-  local toplam_mevcut
-  toplam_mevcut=$(( $(find "$KOK/knowledge/skills/approved" -mindepth 1 -maxdepth 1 -type d | wc -l) + $(find "$KOK/knowledge/skills/parked" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l) ))
+  done
+  [ "$TUM_BECERILER" = 1 ] && sari "  tüm beceriler kuruldu (taban bağlam büyür)"
+  local toplam_mevcut kalinti_sayi
+  kalinti_sayi="$(printf '%s\n' "$kalinti_bec" | awk 'NF' | wc -l)"
+  toplam_mevcut=$(( $(find "$KOK/knowledge/skills/approved" -mindepth 1 -maxdepth 1 -type d | wc -l) + $(find "$KOK/knowledge/skills/parked" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l) - kalinti_sayi ))
   yesil "  beceri: $(ls "$HOME/.config/opencode/skills" | wc -l) adet kuruldu (repoda mevcut: $toplam_mevcut)"
+  if [ -n "$atlanan" ]; then
+    sari "  beceri: git'te OLMAYAN dizin(ler) kurulmadı (eski senkron kalıntısı):$atlanan"
+    bilgi "Temizle: cd $KOK && git clean -nd knowledge/skills  → listeyi gör → git clean -fd knowledge/skills"
+    bilgi "Kalıcı: al.sh rsync'ine --delete (NASIL-CALISTIRILIR → 'Senkron'). Bilerek kurmak: ALP_KALINTI_GEC=1 ./kur.sh"
+  fi
 
   # -------------------------------------------------------------------------
   #  Bağlam penceresi + ÇIKTI SINIRI tespiti — uydurma değer yok, kurum uçtan
@@ -1367,7 +1388,21 @@ kontrol_kurulum() {
   park="$(find "$KOK/knowledge/skills/parked" -mindepth 1 -maxdepth 1 -type d 2> /dev/null | wc -l)"
   if [ -d "$ayar_dizin/skills" ]; then
     kurulu_beceri="$(find "$ayar_dizin/skills" -mindepth 1 -maxdepth 1 -type d | wc -l)"
-    if [ "$kurulu_beceri" -gt 0 ] && [ "$kurulu_beceri" -lt "$onayli" ]; then
+    # G64: kurulu ama repoda (git) approved/parked'ta olmayan beceri = eski kalıntı (birleştirilmiş/silinmiş)
+    local kurulu_kalinti="" b
+    if command -v git > /dev/null 2>&1 && [ -d "$KOK/.git" ]; then
+      for b in "$ayar_dizin/skills"/*/; do
+        [ -d "$b" ] || continue
+        b="$(basename "$b")"
+        git -C "$KOK" ls-files --error-unmatch -- "knowledge/skills/approved/$b/SKILL.md" > /dev/null 2>&1 \
+          || git -C "$KOK" ls-files --error-unmatch -- "knowledge/skills/parked/$b/SKILL.md" > /dev/null 2>&1 \
+          || kurulu_kalinti="$kurulu_kalinti $b"
+      done
+    fi
+    if [ -n "$kurulu_kalinti" ]; then
+      satir "beceri" uyar "repoda olmayan eski beceri kurulu:$kurulu_kalinti — ./kur.sh (kalintiyi atlar)"
+      sorun_kaydet "eski/kalinti beceri kurulu — ./kur.sh calistir"
+    elif [ "$kurulu_beceri" -gt 0 ] && [ "$kurulu_beceri" -lt "$onayli" ]; then
       satir "beceri" uyar "kurulu $kurulu_beceri < approved $onayli — yeni beceriler kurulmamis (./kur.sh)"
     elif [ "$kurulu_beceri" -gt 0 ]; then
       satir "beceri" ok "kurulu $kurulu_beceri · repo: approved $onayli + parked $park"

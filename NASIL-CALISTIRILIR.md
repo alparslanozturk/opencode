@@ -36,6 +36,15 @@ Seçenekler (kontrole aktarılır; `kur`/varsayılan akışta da verilebilir):
 Saha akışı: **`al.sh`** (senkron, git+rsync) → **`./kur.sh`** → (sorun varsa) **`./kur.sh kontrol`**.
 Derleme ve kurulum tek betiğin içindeki aşamalardır (`derle()`/`kur()`/`kontrol()`) — ayrı betik YOK.
 
+> **Senkron (`al.sh`) — rsync `--delete` şart (saha G1/G54/G64):** `--delete`'siz rsync repoda silinen
+> dosyaları sahada bırakır (1.x paketleri derlemeyi bozdu; birleştirilen beceriler kurulmaya devam etti).
+> `P` (protect) kuralı yerel dosyayı silinmekten korur ama kaynakta varsa yine kopyalar — bugünkü davranış aynen sürer:
+> ```bash
+> rsync -ahv --delete --filter='P /env' --filter='P /env.local' --filter='P /bin/opencode*' --filter='P /bin/bun*' --filter='P /node_modules/' splsonatype01:/root/ai/opencode/ /root/ai/opencode/
+> ```
+> İlk seferde `-n` ekleyip `| grep '^deleting'` ile silinecekleri gör. kur.sh git'te olmayan beceri dizinini
+> zaten kurmaz (uyarı basar); `./kur.sh kontrol` kurulu eski beceriyi `beceri !` satırında gösterir.
+
 > **Env kopyalama adımı GEREKMEZ:** `env` yoksa `kur.sh` önce `env.local`'i, o da yoksa
 > `env.example` **şablonunu** `env` olarak kopyalar (izin 600, içerik ekrana basılmaz). Elle
 > `cp env.example env` adımı kalktı. **Ama şablon yalnız yer tutucu taşır** (kurum adresi/anahtarı

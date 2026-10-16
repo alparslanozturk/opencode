@@ -687,3 +687,14 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   `report` yerleşik becerisi GitHub'a issue açar, saha internetsiz → `engine/opencode.json` `permission.skill.report: deny`
   (core `Skill.available` deny'ı listeden çıkarır). `opencode` yerleşik becerisi kaldı.
 - Açık: `k8s-rancher`'a Anthos eklenmesi — içerik Alp'ten bekleniyor (AGENTS.md'de "Anthos şu an kapsam dışı").
+
+### G64 — srvsatellite'ta 20 beceri kurulu (14 olmalı): birleştirilenler rsync kalıntısı olarak kuruldu
+- Görülen (Alp ekranı, 2026-10-17): `find /root/.config/opencode/skills` → 20 beceri; G63'te birleştirilen 6'sı
+  (`cekirdek-teshis`, `disk-ekleme`, `gpu-kume-denetim`, `hata-ayikla`, `rapor-excel-pdf`, `rapor-uret`) yenileriyle yan yana.
+  `al.sh` (Alp ekranı): `ssh splsonatype01 "cd /root/ai/opencode/ && git pull"` + `rsync -ahv splsonatype01:/root/ai/opencode/ /root/ai/opencode/`.
+- Kök: kur.sh beceri dizinini silip `approved/`'dan baştan kuruyor (doğru); ama `--delete`'siz rsync silinen dizinleri
+  sahadaki `approved/`'da bırakmış → kur.sh onları da kurdu (G54 ile aynı kök). Zararı: model aynı konuda eski + yeni beceri görür.
+- Doktor sunucusunda da `./kur.sh kontrol` → kurulu eski beceri: `hata-ayikla rapor-excel-pdf rapor-uret` (kurulum G63 öncesinden).
+- Aksiyon (yapıldı): kur.sh git'te olmayan beceri dizinini kurmaz, uyarır (`ALP_KALINTI_GEC=1` ile kurar); `kontrol` kurulu
+  kalıntıyı `beceri !` + SORUN olarak gösterir. NASIL-CALISTIRILIR → `--delete` + `P` (protect) kurallı rsync satırı
+  (env/env.local/bin/node_modules korunur). Alp: al.sh satırını kendisi değiştirecek.

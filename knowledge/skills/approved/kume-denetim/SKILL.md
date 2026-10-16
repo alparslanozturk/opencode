@@ -82,7 +82,16 @@ df -h /var/lib/rancher; cat /proc/pressure/io
 - etcd logunda `apply request took too long` / `slow fdatasync` (genel) → master diski yavaş; `performans` becerisi
   disk bölümü. Üç master'da da aynı mı, tek birinde mi?
 - Sertifika bitişi 30 günden yakınsa bulgu (RKE2 süresi yaklaşan sertifikayı yeniden başlatmada yeniler — genel;
-  yenileme değişikliktir).
+  yenileme değişikliktir). 30 gün ve üstü → yalnız bilgi satırı, "rotasyon gerekli" yazma. **Kalan günü kafadan
+  hesaplama**, komutla: `echo $(( ($(date -d "2027-01-09" +%s) - $(date +%s)) / 86400 ))` (saha G65: 84 gün "120 gün" yazıldı).
+
+**Control plane kararı (saha G62/G65 — iki kez yanlış "✅" yazıldı):**
+- "Control plane ✅" yalnız readyz temiz **ve** her master'a ssh bu turda başarılıysa. Bir master'a ssh banner timeout →
+  Control plane **⚠️, en yüksek bulgu** (§4 tablo, §5b). "Geçici" yazmak için sonradan başarılı bir ssh çıktısı gerekir.
+- API'deki pod "Running" / node "Ready" donmuş node'da bir süre eski kalır; kubelet canlılığının kanıtı lease
+  (genel: ~10 sn'de yenilenir): `kubectl -n kube-node-lease get lease <node> -o jsonpath='{.spec.renewTime}'; date -u`.
+- **İnceleme sırasında erişim kaybı** (aynı node'a önce ssh çalıştı, sonra banner timeout) → node **şu an** donuyor
+  olabilir: raporu bekletme, kullanıcıya hemen söyle; vCenter konsol ekranı reset'ten **önce** alınmalı (§5b).
 
 ### 3. Sistem pod'ları (altyapı)
 
@@ -217,6 +226,10 @@ Uygulama tarafı (yalnız not): …
 Öneri (uygulanmadı, en hafiften): …
 Açık kalanlar: [SAHA] …
 ```
+
+Yazmadan önce tutarlılık (saha G65): DaemonSet sayısı ilgili node sayısına eşit mi (antrea-agent = tüm node, ingress =
+worker); eşit değilse farkı yaz, ✅ koyma. Aynı olay iki yerde farklı zamanla geçmesin ("84g önce" ↔ "4 gün önce").
+Bu turda iki node etkilendiyse (ör. biri NotReady→Ready, biri ssh banner timeout) ayrı satır değil **tek kalıp** olarak yaz.
 
 ### Yapmayacakların
 

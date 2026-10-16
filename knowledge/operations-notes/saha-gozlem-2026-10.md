@@ -702,3 +702,21 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   atlanan uyarısı yok (kalıntı rsync'le silinmiş); kontrol `beceri ✓ kurulu 14 · approved 14 + parked 26`, `kilit ✓ K1-K7`.
   Kalan: `surum !` ikili `ca51d1a093` + "derleme anında ağaç kirliydi" (o commit'ten beri `packages/` değişmedi — temiz ağaçtan
   `ALP_DERLE=1 ./kur.sh` ile silinir); `log !` 22:01Z ERROR (mesaj kırpık, `--ayrintili` bekleniyor).
+
+## 2026-10-17
+
+### G65 — test kümesi read-only kontrol (bağlam %83): master banner timeout'a yine "Control plane ✅"
+- Görülen (Alp ekranları, ~01:25): ajan `kume-denetim` + `k8s-rancher`'ı kendiliğinden yükledi ✅, hep okuma komutu ✅.
+  mas01'e ilk komutlar ssh ile çalıştı, sonra aynı node'a `Connection timed out during banner exchange` (exit 255, iki deneme —
+  §4 "bir kez dene"). Ajan mas02'ye geçip kubectl'e devam etti ✅.
+- Rapor hataları: (1) "Control plane ✅ Hazır (mas01 SSH **geçici** sorunlu)": §5b'deki "master banner timeout = en yüksek,
+  'sağlam' yazma" kuralı G62'den sonra yine çiğnendi; "geçici" kanıtsız; "pod'lar Running" donmuş node'da eski kalabilir.
+  İnceleme **sırasında** erişim kaybı (şu an donuyor olabilir) kullanıcıya hemen söylenmedi. (2) Sertifika: bitiş 2027-01-09
+  → "120 gün sonra"; doğrusu 84 gün (Doktor hesabı). Beceri eşiği 30 gün, yine de "rotasyon gerekli". (3) Özet "Antrea 18/18"
+  ↔ "Tüm node'lar 17/17" (DaemonSet ≠ node sayısı, açıklanmadı). (4) mas03: olaylar tablosunda "84g önce", özette "4 gün önce"
+  (etcd-mas03 yaşı 4d14h). (5) wor03 bu gece 00:48'de NotReady→Ready + mas01 banner timeout ayrı satırlarda; kalıp kurulmadı.
+- Aksiyon (yapıldı): `kume-denetim` §2 → "Control plane kararı" (✅ için her master'a ssh şart; geçici için sonraki başarılı ssh;
+  lease `renewTime` kanıtı; inceleme sırasında erişim kaybında hemen söyle + konsol ekranı reset'ten önce) ve sertifika kalan
+  günü komutla; §6 → yazmadan önce tutarlılık (DaemonSet = node, aynı olay tek zaman, aynı turdaki node olayları tek kalıp).
+  AGENTS.md: gün/toplam/yüzde komutla hesaplanır. Önerilen komutlar kilitten geçiyor (`kilitDenetle` → null).
+- Not: kural G62'de beceriye girmişti ama §5b'de, karar anından uzaktaydı; şimdi §2'de (control plane'i yazdığı yerde).

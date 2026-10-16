@@ -90,8 +90,9 @@ df -h /var/lib/rancher; cat /proc/pressure/io
   Control plane **⚠️, en yüksek bulgu** (§4 tablo, §5b). "Geçici" yazmak için sonradan başarılı bir ssh çıktısı gerekir.
 - API'deki pod "Running" / node "Ready" donmuş node'da bir süre eski kalır; kubelet canlılığının kanıtı lease
   (genel: ~10 sn'de yenilenir): `kubectl -n kube-node-lease get lease <node> -o jsonpath='{.spec.renewTime}'; date -u`.
-- **İnceleme sırasında erişim kaybı** (aynı node'a önce ssh çalıştı, sonra banner timeout) → node **şu an** donuyor
-  olabilir: raporu bekletme, kullanıcıya hemen söyle; vCenter konsol ekranı reset'ten **önce** alınmalı (§5b).
+- **İnceleme sırasında erişim kaybı** (aynı node'a önce ssh çalıştı, sonra banner timeout) → kullanıcıya hemen söyle;
+  2-3 dk sonra **bir kez** daha dene. Hâlâ yoksa donma (§5b: vCenter konsol ekranı reset'ten **önce**); döndüyse kısa takılma
+  (§5b "Kısa takılma": olay penceresinin logu — "sorun yok" deme).
 
 ### 3. Sistem pod'ları (altyapı)
 
@@ -206,6 +207,21 @@ journalctl -b -1 -n 80 --no-pager                       # donmadan önceki son s
 journalctl -b -1 -k --no-pager | grep -i -e "hung task" -e "blocked for" -e "soft lockup" -e "rcu.*stall" -e oom -e "i/o error" -e vmxnet -e pvscsi | tail -30
 sar -q -r -f /var/log/sa/sa$(date -d yesterday +%d) | tail -30   # donma saatine yakın yük/bellek (performans §6)
 ```
+
+**Kısa takılma (kendiliğinden düzelen)** — ssh banner timeout sonra tekrar çalıştı, ya da node kısa NotReady→Ready (saha
+G65: mas01 01:2x banner timeout → 01:29 `up 229 days`, reboot yok; wor03 00:48 NotReady→Ready). "Bağlantı hatasıydı, sorun
+yok" **yazma**: banner timeout'ta TCP kurulmuştu, sshd o an cevap verememişti (§4 tablo). Kullanıcı "neden" diye sorduysa
+yeniden denemek cevap değildir; olay penceresini oku (saati ±5 dk, node'un yerel saatiyle):
+
+```bash
+journalctl --since "00:43" --until "00:53" -p warning --no-pager | tail -40           # her şey, uyarı ve üstü
+journalctl -k --since "00:43" --until "00:53" --no-pager | tail -30                   # hung task / soft lockup / vmxnet / i/o
+journalctl -u rke2-agent -u rke2-server --since "00:43" --until "00:53" --no-pager | grep -i -e "not ready" -e pleg -e lease -e deadline -e timeout | tail -20
+sar -q -r -d -s 00:40:00 -e 00:55:00 | tail -40                                        # yük, bellek, disk await o pencerede
+cat /proc/pressure/{cpu,memory,io}                                                     # şimdiki baskı (avg300 = son 5 dk)
+```
+
+Aynı gece birden çok node kısa takıldıysa saatleri yan yana yaz (aynı dakika mı → ortak altyapı: datastore/ESX/ağ).
 
 Kullanıcıdan (vCenter — kümeden görünmez): donma saatinde VM'in **CPU ready / co-stop**, **balloon / swap**, **datastore
 gecikmesi**, aynı anda snapshot/yedek/vMotion olayı; donan VM'ler aynı ESX host'unda ya da datastore'da mı. Donmuş

@@ -698,3 +698,7 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Aksiyon (yapıldı): kur.sh git'te olmayan beceri dizinini kurmaz, uyarır (`ALP_KALINTI_GEC=1` ile kurar); `kontrol` kurulu
   kalıntıyı `beceri !` + SORUN olarak gösterir. NASIL-CALISTIRILIR → `--delete` + `P` (protect) kurallı rsync satırı
   (env/env.local/bin/node_modules korunur). Alp: al.sh satırını kendisi değiştirecek.
+- Sonuç (Alp ekranı, 2026-10-17 01:03): al.sh'ye `--delete` eklendi → `./kur.sh` "beceri: 14 adet kuruldu (repoda mevcut: 40)",
+  atlanan uyarısı yok (kalıntı rsync'le silinmiş); kontrol `beceri ✓ kurulu 14 · approved 14 + parked 26`, `kilit ✓ K1-K7`.
+  Kalan: `surum !` ikili `ca51d1a093` + "derleme anında ağaç kirliydi" (o commit'ten beri `packages/` değişmedi — temiz ağaçtan
+  `ALP_DERLE=1 ./kur.sh` ile silinir); `log !` 22:01Z ERROR (mesaj kırpık, `--ayrintili` bekleniyor).

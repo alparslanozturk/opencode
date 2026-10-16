@@ -128,3 +128,14 @@ describe("G58: etcdctl / ctr / containerd / json.tool okumaları serbest, deği�
   ]
   for (const c of degistirir) test(`K1: ${c}`, () => expect(kilitDenetle("bash", { command: c }, workdir, undefined)?.kilit).toBe("K1"))
 })
+
+describe("G62: uzakta kabuk döngüsü/koşulu — sözdizimi serbest, gövde ayrıca incelenir", () => {
+  test("for … openssl … done serbest", () =>
+    expect(kilitDenetle("bash", { command: `ssh m1 'for f in /x/*.crt; do printf "%s " "$f"; openssl x509 -enddate -noout -in "$f"; done | sort'` }, workdir, undefined)).toBeNull())
+  test("if … then cat … fi serbest", () =>
+    expect(kilitDenetle("bash", { command: `ssh m1 'if [ -f x ]; then cat x; fi'` }, workdir, undefined)).toBeNull())
+  test("while read … done serbest", () =>
+    expect(kilitDenetle("bash", { command: `ssh m1 'while read l; do echo $l; done < /etc/hosts'` }, workdir, undefined)).toBeNull())
+  test("döngü gövdesinde değişiklik → K1", () =>
+    expect(kilitDenetle("bash", { command: `ssh m1 'for f in a b; do rm -f $f; done'` }, workdir, undefined)?.kilit).toBe("K1"))
+})

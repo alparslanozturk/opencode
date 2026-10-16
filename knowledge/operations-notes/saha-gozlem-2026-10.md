@@ -677,3 +677,13 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Aksiyon (yapıldı): `kilit.ts` kabuk sözdizimi (`for`/`select` başlığı, `done fi esac read { }`) serbest, gövde ayrıca incelenir
   (test +4, 218/0); `kume-denetim` §5b "Node donması" — donma > pod belirtisi önceliği, reset sonrası `journalctl -b -1`,
   kalıcı journal kontrolü, vCenter kanıt listesi, kdump/hung_task_panic önerisi.
+
+### G63 — Beceri listesi sadeleştirildi (Alp, 2026-10-16): 17 → 13 + yerleşik `report` kapatıldı
+- Görülen: ajanın beceri tablosu 19 satır — bizim 17 + upstream'in yerleşik `opencode` ve `report` becerileri
+  (`packages/core/src/plugin/skill.ts`). Alp tekrar edenleri birleştirmek istedi.
+- Yapılan: `sorun-giderme` ← hata-ayikla + cekirdek-teshis · `depolama` ← depolama + disk-ekleme (A teşhis / B disk ekleme)
+  · `kume-denetim` ← kume-denetim + gpu-kume-denetim (A temel / B GPU) · `rapor-envanter` ← rapor-uret + rapor-excel-pdf.
+  İçerik kaybı yok (bölümler alt başlık oldu); çapraz referanslar güncellendi (`depolama` §8 → `depolama` A §8 vb.).
+  `report` yerleşik becerisi GitHub'a issue açar, saha internetsiz → `engine/opencode.json` `permission.skill.report: deny`
+  (core `Skill.available` deny'ı listeden çıkarır). `opencode` yerleşik becerisi kaldı.
+- Açık: `k8s-rancher`'a Anthos eklenmesi — içerik Alp'ten bekleniyor (AGENTS.md'de "Anthos şu an kapsam dışı").

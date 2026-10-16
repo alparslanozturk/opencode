@@ -81,7 +81,7 @@ ls /tmp/sonuc          # her sunucu için bir JSON dosyası
 ```
 
 Ölçüldü: her dosya `rc`, `stdout`, `stderr`, `delta` alanlarını içeren tam
-bir JSON. CSV ya da HTML rapora çevirmek için `rapor-uret` becerisine geç;
+bir JSON. CSV ya da HTML rapora çevirmek için `rapor-envanter` becerisine geç;
 `stdout` alanını ayrıştır, `rc != 0` olanları ayır.
 
 ## 6. Sonucu ayıkla — asıl iş bu

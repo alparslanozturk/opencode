@@ -92,7 +92,7 @@ değişiklik önerirken bunu açıkça söyle.
 
 ## ZFS — Linux LVM refleksiyle yaklaşma
 
-Disk büyütme, `disk-ekleme` becerisindeki LVM/XFS yordamıyla **aynı değildir**.
+Disk büyütme, `depolama` becerisindeki LVM/XFS yordamıyla **aynı değildir**.
 ZFS'te havuz ve dosya sistemi ayrı kavramlar, `xfs_growfs` karşılığı yok.
 
 Salt-okunur bakış:

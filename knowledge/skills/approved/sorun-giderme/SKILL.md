@@ -1,7 +1,66 @@
 ---
-name: cekirdek-teshis
-description: Çekirdek (kernel) kaynaklı sorunları loglardan teşhis ederken kullan — çöküş/panic, donma, "call trace", oops, soft lockup, hung task, OOM, disk G/Ç hatası, beklenmeyen reboot. "kernel", "çekirdek", "dmesg", "call trace", "panic", "oops", "lockup", "donma", "hung task", "kdump", "vmcore", "crash", "bpftrace", "ebpf", "perf", "gecikme", "latency", "throttling", "runqlat", "timerlat", "kgdb", "debuginfo" isteklerinde tetiklenir. Genel yavaşlık için `performans`.
+name: sorun-giderme
+description: Bir hata, çöken iş ya da beklenmeyen davranış araştırırken kullan — önce genel kanıt disiplini, çekirdek kaynaklıysa log → canlı gözlem (bpftrace/perf) → döküm (kdump). "hata", "çalışmıyor", "bug", "neden böyle", "debug", "troubleshooting", "sorun giderme", "kernel", "çekirdek", "dmesg", "call trace", "panic", "oops", "lockup", "donma", "hung task", "kdump", "vmcore", "crash", "bpftrace", "ebpf", "perf", "gecikme", "latency", "throttling", "runqlat", "timerlat" isteklerinde tetiklenir. Genel yavaşlık için `performans`.
 ---
+
+Bu beceri iki bölüm: **A. Genel disiplin** (her hata için) ve **B. Çekirdek teşhisi** (kernel kaynaklı belirti varsa).
+
+## A. Genel disiplin — tahmin değil kanıt
+
+En sık yapılan hata, ilk makul açıklamayı doğru sanıp onu düzeltmeye
+girişmektir. Bu beceri buna karşı bir disiplindir.
+
+### 1. Hatayı gör
+
+Rapor edilen belirtiyi **kendi gözünle** üret. Komutu çalıştır, testi çalıştır,
+tam hata çıktısını al.
+
+Üretemiyorsan, düzeltmeye başlama. Önce nasıl üretileceğini sor ya da bul.
+Üretemediğin bir hatayı düzelttiğini iddia edemezsin.
+
+### 2. Tam çıktıyı oku
+
+Yığın izinin **en alt** satırından başla, en üstünden değil. İlk okunan satır
+genelde belirtiyi verir, kaynağı değil.
+
+- Hangi dosya ve satır?
+- Hangi değer beklenmiyordu?
+- Bu koda hangi yoldan gelindi?
+
+### 3. Hipotez kur, sonra sına
+
+Tek bir açıklama yaz ve onu **yanlışlayacak** bir gözlem tasarla.
+
+Kanıt toplama yolları:
+- Şüpheli değeri Read ile oku ya da geçici bir print/log ekle
+- Grep ile o değerin nerede atandığını bul
+- `git log -S "<ifade>"` ile ne zaman değiştiğini bul
+- Testi tek başına, sonra hep birlikte çalıştır — fark varsa durum sızıntısı var
+
+Hipotez tutmadıysa **bırak**, yenisini kur. Aynı hipotezi zorlamaya devam etme.
+
+### 4. Kök nedeni düzelt
+
+Belirtiyi susturmak düzeltme değildir. `except: pass` eklemek, `None`
+kontrolü ile üstünü örtmek, testi devre dışı bırakmak — bunlar hatayı
+gizler, çözmez.
+
+Kök nedene ulaşamadıysan bunu açıkça söyle ve geçici çözüm olduğunu belirt.
+
+### 5. Doğrula
+
+- Hatanın gittiğini **çalıştırarak** gör
+- Tüm test takımını çalıştır — düzeltme başka bir şeyi kırmış olabilir
+- Bu hatayı yakalayacak bir test ekle; testi düzeltmeden önceki hâlde
+  çalıştırıp gerçekten başarısız olduğunu doğrula
+
+### Raporlama
+
+Şunları söyle: belirti neydi, kök neden neydi, ne değiştirdin, nasıl doğruladın.
+Araştırma sırasında elediğin yanlış hipotezleri de bir cümleyle geç — aynı yolu
+tekrar yürümeyi önler.
+
+## B. Çekirdek teşhisi
 
 Çekirdek sorununda sıra hep aynı: **log → canlı gözlem → döküm.** Her adım bir
 öncekinden pahalıdır; bir önceki cevap verdiyse sonrakine geçme.
@@ -16,7 +75,7 @@ description: Çekirdek (kernel) kaynaklı sorunları loglardan teşhis ederken k
 breakpoint'te **bütün çekirdeği durdurur** ve seri konsol ister — çalışan bir
 sunucuda bu kesinti demektir. Bizim işimiz çekirdek yazmak değil, teşhis.
 
-## 1. Log: çekirdek ne demiş
+### 1. Log: çekirdek ne demiş
 
 ```bash
 journalctl -k -b --no-pager | tail -100        # bu önyükleme
@@ -65,7 +124,7 @@ liste orada; sayısal değer `cat /proc/sys/kernel/tainted`, 0 = temiz).
 `P`/`O`/`E` varsa üretici desteği (Red Hat dahil) önce o modülü sorar:
 `lsmod` ve `modinfo <modül>` ile adını, sürümünü, sağlayıcısını rapora koy.
 
-## 2. Canlı gözlem (sistemi durdurmadan)
+### 2. Canlı gözlem (sistemi durdurmadan)
 
 Sorun **şu an** oluyorsa (takılma, gecikme, açıklanamayan yük) loglar
 yetmez; çekirdeğin ne yaptığını izle. Debuginfo **gerekmez** — RHEL çekirdeği
@@ -113,7 +172,7 @@ perf report -i /tmp/perf.data --stdio --sort sym | head -60
 Debuginfo olmadan çekirdek **fonksiyon adları** görünür (satır numarası
 görünmez) — teşhis için yeterlidir.
 
-### CPU gecikmesi (latency) — "CPU boş ama iş geç çalışıyor"
+#### CPU gecikmesi (latency) — "CPU boş ama iş geç çalışıyor"
 
 Ortalama CPU kullanımı düşükken uygulama gecikiyorsa sorun **ne kadar CPU**
 değil, **ne kadar beklediği**dir. Kubernetes/Rancher düğümlerinde ve GPU'lu
@@ -161,7 +220,7 @@ vermiyorsa ölçülen gecikme sanal makinenin değil, hostun sorunudur.
 **GPU'nun içi eBPF ile görülmez** — eBPF çekirdeği izler; GPU tarafı için
 NVIDIA'nın kendi araçları (`nvidia-smi`) gerekir.
 
-## 3. Çökme dökümü (kdump)
+### 3. Çökme dökümü (kdump)
 
 Sunucu kendiliğinden reboot ettiyse ya da panic olduysa:
 
@@ -202,7 +261,7 @@ bellek ayırır ve **reboot ister** → değişiklik (K1). Öner, kendin açma.
 doğrulandı); RHEL 9'da `kexec-tools` içindedir — emin olmak için
 `rpm -qf $(command -v kdumpctl)`.
 
-## Raporlama
+### Raporlama
 
 Log satırını **olduğu gibi** alıntıla (zaman + ilk mesaj + `Tainted:` +
 `Call Trace`'teki ilk modül). "Çekirdek hatası var" demek rapor değildir;

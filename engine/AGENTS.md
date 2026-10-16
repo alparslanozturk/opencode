@@ -164,8 +164,8 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
   Tek bir hedefli arama dene, sonucu değerlendir, gerekiyorsa bir sonrakini öner.
 
 ## Beceri (skill) disiplini
-- **Değişiklik yapan işe başlamadan önce o konunun becerisini yükle** (disk/mount/fstab → `disk-ekleme`, kurulum/teslim →
-  `sunucu-teslim`, GPU → `gpu-kume-denetim` …). Kullanıcı beceri adını söylemese de. Kanıt: saha G39 (2026-10-14) —
+- **Değişiklik yapan işe başlamadan önce o konunun becerisini yükle** (disk/mount/fstab → `depolama`, kurulum/teslim →
+  `sunucu-teslim`, GPU → `kume-denetim` …). Kullanıcı beceri adını söylemese de. Kanıt: saha G39 (2026-10-14) —
   beceri yüklenmeden diske LVM'siz `mkfs` + fstab'a `/dev/sdb` yazıldı; becerideki her kural bunu yasaklıyordu.
 - Beceriler talep üzerine yüklenir; konu kapanınca bırak. Kullanıcı "ansible işlerini bırak" dediyse
   o beceriyi tekrar yükleme.

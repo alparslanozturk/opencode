@@ -59,7 +59,7 @@ bu beceri şu an fiilen kullanılamaz durumda, MCP entegrasyonu gelene kadar par
 (`ansible` ↔ `filo-durum-kontrolu` adayı — ikisi de çekirdekte kaldığı için burada değil, ayrıca
 değerlendirilmeli.)
 
-## Tam liste (26 — `disk-ekleme` 2026-09-26'da, `sunucu-teslim` 2026-10-13'te onaylıya taşındı)
+## Tam liste (26 — `depolama` 2026-09-26'da, `sunucu-teslim` 2026-10-13'te onaylıya taşındı)
 
 ```
 ag-teshis, beceri-gelistir, beceri-yaz, belge-yaz, git-azuredevops, guvenlik-ajani,

@@ -51,7 +51,7 @@ Yerel dosya plugin tercih edilir (gerekirse yanına `package.json` ile bağıml�
 | Araç | Ne yapar | Neden beceri yetmez |
 |---|---|---|
 | `envanter-dogrula` | hosts.ini / CSV-XLSX ayrıştır, satır toplamlarını tek tek doğrula | Elle aritmetik hata yapıyor; deterministik olmalı |
-| `rapor-uret` | Tablo → Markdown/Excel/PDF (font/kütüphane kontrolüyle) | Tekrarlı üretim, tutarlı biçim |
+| `rapor-envanter` | Tablo → Markdown/Excel/PDF (font/kütüphane kontrolüyle) | Tekrarlı üretim, tutarlı biçim |
 | `kapsam-gate` | Kök dizin dışı erişimi reddet (plugin `tool.execute.before`) | `AGENTS.md` kuralı "rica"; tool "kapı" |
 | ~~`guvenlik-kapisi`~~ | **Yapıldı** (2026-09-24) — `audit-log.ts` içinde K5/K1 olarak; **bileşik komut aşımı** ise ayrıca `guard.ts` (GOREV oc-T5) | — |
 

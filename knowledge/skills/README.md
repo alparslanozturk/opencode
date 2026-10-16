@@ -14,4 +14,4 @@ gerektiğinde `skill` aracıyla içeriği çeker → bağlam şişmez.
 Dosya biçimi her üç dizinde aynı: `<ad>/SKILL.md`, frontmatter'da `name` + `description`.
 
 **Kural (2026-09-28):** `approved/`'daki her beceri `./kur.sh` ile sahaya kurulur — ayrı bir liste yok,
-sayı hedefi yok (eski "6-10" hedefi kaldırıldı; şu an 17). Kullanılmayan beceri silinmez, `parked/`'a taşınır.
+sayı hedefi yok (eski "6-10" hedefi kaldırıldı; şu an 13 — 2026-10-16 birleştirme: sorun-giderme, depolama, kume-denetim, rapor-envanter). Kullanılmayan beceri silinmez, `parked/`'a taşınır.

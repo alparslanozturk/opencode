@@ -41,7 +41,8 @@
   },
   "permission": {
     "skill": {
-      "*": "allow"
+      "*": "allow",
+      "report": "deny"
     },
     "bash": {
       "*": "ask",

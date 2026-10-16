@@ -720,3 +720,9 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   günü komutla; §6 → yazmadan önce tutarlılık (DaemonSet = node, aynı olay tek zaman, aynı turdaki node olayları tek kalıp).
   AGENTS.md: gün/toplam/yüzde komutla hesaplanır. Önerilen komutlar kilitten geçiyor (`kilitDenetle` → null).
 - Not: kural G62'de beceriye girmişti ama §5b'de, karar anından uzaktaydı; şimdi §2'de (control plane'i yazdığı yerde).
+- Devam (Alp: "mas1 neden ssh yapamadın bir daha dene"): 01:29 ssh çalıştı, `up 229 days`, load 1.07 → reboot yok, kendiliğinden
+  düzelmiş. Doktor'un "şu an donuyor olabilir" uyarısı gerçekleşmedi (donma değil kısa takılma). Ajan: "bağlantı hatası idi,
+  sunucu tarafında sorun yok": "neden"e cevap vermedi, yeniden denemeyi cevap saydı; banner timeout'ta TCP kurulmuştu (sshd
+  o an takılı). Alp ardından: "42dk önce wor03'te ne oldu tam olarak merak ettim".
+- Aksiyon (yapıldı): §2 erişim kaybı → bir kez daha dene, dönerse "kısa takılma"; §5b "Kısa takılma": olay penceresi ±5 dk
+  journal (warning/kernel/rke2) + `sar -s/-e` + PSI; aynı gecedeki node takılmalarını saatle yan yana koy.

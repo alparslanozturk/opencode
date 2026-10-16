@@ -51,11 +51,11 @@ Sıra (2026-10-13 itibarıyla):
   doğruladı): `spl*` bir DNS çifti, `stl*`/`sxl*`/`sdl*` başka bir çift kullanır — IP'leri playbook'tan oku.
 - **Disk:** OS diski **beklenen** `sda`'dır (VM şablonu) ama açılışta sıra değişebilir — hangi diskin OS olduğunu
   adından değil `lsblk` çıktısından oku (altında `/boot`, `/` ya da LVM üyesi olan disk OS'tur), her sunucu için ayrı.
-  Tablo başlığına "sda (Sistem) / sdb (Boş)" yazma. Disk işinde playbook kullanılmıyorsa **önce `disk-ekleme`
+  Tablo başlığına "sda (Sistem) / sdb (Boş)" yazma. Disk işinde playbook kullanılmıyorsa **önce `depolama`
   becerisini yükle**. Kurum `/data` düzeni LVM'dir (Alp'in örneği, splsplunksh02: `sdb` → `kt_rhel_vg/kt_rhel_lv` →
   `/data`, xfs; fstab'da LV yolu `/dev/kt_rhel_vg/kt_rhel_lv`, UUID değil); diske doğrudan `mkfs` yapılmaz. Ek disklerin (sdb, sdc …) ne olacağı **kurulum talebinde
   sorulur** — `/` büyütme, `/var` büyütme, `/data` ya da proje adıyla yeni dizin (ör. `/genesys/gcti`). Hedefi
-  tahmin etme, kullanıcıya sor. Disk adı sabit değildir: `lsblk -f` ile oku, boş olduğunu `disk-ekleme`
+  tahmin etme, kullanıcıya sor. Disk adı sabit değildir: `lsblk -f` ile oku, boş olduğunu `depolama`
   becerisindeki kontrolle kanıtla. OS `sda`'da değilse sunucu yeniden başlatılarak düzeltilir (Alp, 2026-10-14 — beklenen akış):
   1) kullanıcıya açıkça söyle: "<sunucu>'da OS `sdX`'te, `sda` boş — reboot gerekiyor, disk işine geçmiyorum";
   2) onayla yeniden başlat; 3) açılınca `lsblk`'ı **tekrar** çalıştır ve göster; 4) OS `sda`'ya geçtiyse disk adımına
@@ -201,7 +201,7 @@ Teslim ettiğin birime şunları yaz:
 - Ek ağ erişimi gerekiyorsa FW ekibine talep açmaları gerektiğini belirt
 - Bilinen eksik ya da beklemede olan bir şey varsa açıkça
 
-Rapor `rapor-uret` becerisiyle CSV ya da HTML olarak da üretilebilir.
+Rapor `rapor-envanter` becerisiyle CSV ya da HTML olarak da üretilebilir.
 
 ## Yapmayacakların
 

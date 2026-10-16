@@ -70,9 +70,9 @@ hazır olmadığı demektir; readiness probe başarısız olabilir.
 - Rancher CLI (`rancher`) kurulumdan kuruluma değişir. Önce `rancher --help`
   çıktısını oku, ezberden komut yazma.
 - Kümeyi bütün olarak incelemek (sürüm matrisi, control plane, node Unavailable, Antrea/OVS, OS) → `kume-denetim`.
-- GPU kümesi / H200 node / vLLM pod'u / NVIDIA GPU Operator denetimi → `gpu-kume-denetim` becerisi.
+- GPU kümesi / H200 node / vLLM pod'u / NVIDIA GPU Operator denetimi → `kume-denetim` becerisi.
 - Pod yavaş ama CPU kullanımı düşük görünüyorsa: CPU limit kısıtlaması
-  (throttling) ve çalıştırma kuyruğu gecikmesi — `cekirdek-teshis` becerisi,
+  (throttling) ve çalıştırma kuyruğu gecikmesi — `sorun-giderme` becerisi,
   "CPU gecikmesi" bölümü (cgroup `cpu.stat`, `runqlat.bt`, `rtla timerlat`).
 
 ## Yan etkili komutlar — onaysız çalıştırma
@@ -105,7 +105,7 @@ RHEL ailesinde varsayılan `podman`'dır; `docker` genelde kurulu değildir.
 
 ## Raporlama
 
-Birden çok kümeyi/namespace'i tek özette topluyorsan (M-1, `rapor-uret`
+Birden çok kümeyi/namespace'i tek özette topluyorsan (M-1, `rapor-envanter`
 becerisiyle aynı kural): node/master sayısını **kümeye göre ayrı say**, sonra
 genel toplamı bunların toplamıyla çapraz kontrol et — "34+18=52" derken
 envanterde 75 kayıt varsa bu fark edilmeden geçmemeli. Bellek/CPU

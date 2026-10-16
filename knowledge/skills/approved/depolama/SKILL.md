@@ -1,12 +1,16 @@
 ---
 name: depolama
-description: Disk dolması, LVM, mount, dosya sistemi, yazılım RAID (mdadm) ve NVMe disk sağlığı sorunlarında kullan. "raid", "mdadm", "mdstat", "degraded", "nvme", "smart", "disk dol", "disk doldu", "yer kalmadı", "yer yok", "no space", "lvm", "mount", "partition", "inode", "nfs" isteklerinde tetiklenir.
+description: Disk/depolama işlerinin hepsinde kullan — teşhis (disk dolması, inode, LVM, mount, yazılım RAID mdadm, NVMe sağlığı) ve değişiklik (disk ekleme, yeni birim/mount, LVM/bölüm büyütme, fstab). "raid", "mdadm", "mdstat", "degraded", "nvme", "smart", "disk dol", "yer kalmadı", "no space", "inode", "lvm", "mount", "partition", "nfs", "disk ekle", "mount et", "pvcreate", "vgextend", "lvextend", "xfs_growfs", "growpart", "büyüt", "yer aç", "fstab", "/data" isteklerinde tetiklenir. Değişiklik yapmadan önce **B. Disk ekleme** bölümünü oku.
 ---
+
+Bu beceri iki bölüm: **A. Teşhis** (salt-okunur) ve **B. Disk ekleme / büyütme** (değişiklik — kurallarıyla).
+
+## A. Teşhis
 
 Disk dolması bir numaralı olaydır ve iki tuzağı vardır: inode ayrı dolar,
 silinen dosya yer açmayabilir.
 
-## 1. Genel tablo
+### 1. Genel tablo
 
 ```bash
 df -h                # blok kullanımı
@@ -17,7 +21,7 @@ df -i                # inode kullanımı — AYRI DOLAR
 alırsın ama yer vardır; sorun dosya *sayısı*dır. Genelde küçük dosya üreten
 bir dizin (oturum dosyaları, mail kuyruğu, cache) suçludur.
 
-## 2. Yeri kim yiyor
+### 2. Yeri kim yiyor
 
 ```bash
 du -xh --max-depth=1 / 2>/dev/null | sort -rh | head -15
@@ -30,7 +34,7 @@ saatlerce sürer ve yanlış sayı verir.
 En sık suçlular: `/var/log`, `/var/lib/docker`, `/var/lib/containers`,
 `/var/cache`, kullanıcı ev dizinleri, uygulamanın kendi log dizini.
 
-## 3. Silinmiş ama açık tutulan dosyalar
+### 3. Silinmiş ama açık tutulan dosyalar
 
 `df` doluyu, `du` boşu gösteriyorsa sebep budur: bir süreç silinmiş bir
 dosyayı hâlâ açık tutuyor, alan ancak süreç kapanınca serbest kalır.
@@ -56,7 +60,7 @@ done
 Çözüm: ilgili servisi yeniden başlat (yan etkili, **onay al**). Genelde
 suçlu, log dosyası döndürülmüş ama yeniden başlatılmamış bir servistir.
 
-## 4. Log şişmesi
+### 4. Log şişmesi
 
 ```bash
 journalctl --disk-usage
@@ -74,7 +78,7 @@ Tekrarlıyorsa `/etc/systemd/journald.conf` içinde `SystemMaxUse` ayarla ve
 `logrotate` yapılandırmasına bak. Kalıcı çözüm budur; elle temizlemek
 belirtiyi bastırır.
 
-## 5. Container katmanı
+### 5. Container katmanı
 
 ```bash
 docker system df
@@ -86,7 +90,7 @@ kullanılmayan **volume'ları da** silebilir — veri kaybı riski, onaysız
 çalıştırma. Güvenli sıra: önce `-a` olmadan imaj temizliği, volume'lara en son
 ve ancak sahibiyle konuşup dokun.
 
-## 6. LVM ile büyütme
+### 6. LVM ile büyütme
 
 ```bash
 lsblk
@@ -105,7 +109,7 @@ resize2fs /dev/<vg>/<lv>         # ext4
 XFS **küçültülemez**, yalnızca büyütülür. Bu geri alınamaz bir yön, karar
 verirken bunu hesaba kat.
 
-## 7. Mount sorunları
+### 7. Mount sorunları
 
 ```bash
 findmnt
@@ -120,7 +124,7 @@ G/Ç hatası vardır. `dmesg`'e bakmadan yeniden mount etme.
 NFS asılı kaldıysa `df` de asılır. `findmnt` ile hangi mount'un sorunlu
 olduğunu bul, `df` ile aramaya çalışma.
 
-## 8. Yazılım RAID (mdadm) ve NVMe sağlığı
+### 8. Yazılım RAID (mdadm) ve NVMe sağlığı
 
 GPU sunucusu: 16 × 1.7 TB NVMe, 12'si **yazılım RAID10** (mdadm, RHEL 9), 2'si
 yedek (spare) — Alp, 2026-10-08. RAID10 bir disk kaybında çalışmaya devam
@@ -185,16 +189,82 @@ yıpranan çift, aynı anda arızalanabilir.
 Disk değiştirme (`mdadm --fail/--remove/--add`) **değişikliktir** (K1);
 teşhis edip öner, kendin yapma.
 
-## Disk eklemek gerekiyorsa
 
-Bu beceri teşhis içindir. Alan açmak yerine **disk eklemek** ya da var olanı
-büyütmek gerekiyorsa `disk-ekleme` becerisine geç: LVM, XFS büyütme, fstab ve
-NFS orada.
-
-## Raporlama
+### Raporlama
 
 Sayıyı ve nedeni birlikte ver: "`/var` %98 dolu, `/var/log/app` 40 GB, en
 büyük dosya 12 GB'lık `app.log` — logrotate yapılandırılmamış." Yalnızca
 "disk dolu" demek raporlama değildir.
 
 Temizlik önerirken hangisinin geri alınamaz olduğunu ayrıca belirt.
+
+## B. Disk ekleme / büyütme
+
+Doğrulandı: AlmaLinux 10.2 — 2026-08-29; lvextend -r — RHEL 10, 2026-09-10; `findmnt --verify`,
+`wipefs -n`, `lsblk -f` bayrakları util-linux 2.40 — 2026-09-26 (A24/A26-A28 dersleriyle yeniden yazıldı).
+
+**Yanlış diske yazmak veri kaybıdır.** Sıra her zaman: **keşfet → kurum düzenini oku → plan göster → onay
+(CN/KURULUM yetkisi) → uygula → doğrula.** Değişiklik adımlarını güvenlik kilidi yetkisiz çalıştırmaz.
+
+### 1. Keşif — hiçbir şeyi varsayma (A27, A28)
+
+```bash
+lsblk -f -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINTS   # cihaz harfi VARSAYILMAZ, buradan okunur
+pvs; vgs; lvs -o +devices                       # LVM var mı, hangi disk nerede
+findmnt -t xfs,ext4 -o TARGET,SOURCE,FSTYPE     # mevcut bağlama düzeni
+```
+
+**Hedef diskin boş olduğu kanıtlanmadan yıkıcı adım yok** (`pvcreate`, `mkfs`, `parted`). Boş sayılması için:
+`lsblk -f`'te FSTYPE yok **ve** alt bölümü yok **ve** `pvs`'te yok **ve** mount edilmemiş **ve**
+`wipefs -n /dev/<disk>` hiçbir imza listelemiyor. Biri bile tutmazsa **dur**, çıktıyı kullanıcıya göster.
+Aynı boyutta iki disk varsa hangisi olduğunu kullanıcıya sor — boyuttan tahmin etme.
+
+### 2. Kurumun düzenine uy — ad uydurma (A28)
+
+- VG/LV adlarını **aynı sunucudaki ya da kullanıcının gösterdiği örnek sunucudaki** mevcut adlardan türet
+  (`vgs`, `lvs` çıktısındaki önek/sonek kalıbı). Kalıp çıkmıyorsa **sor**; `vg_veri` gibi kendi adını koyma.
+- Bağlama noktası: kurumun ek diskleri nereye bağladığını mevcut `findmnt` çıktısından ya da kullanıcıdan
+  öğren; hedef dizine doğrudan mı, ortak bir veri dizininin altına mı — **varsayma**.
+- Bunları **planın başında** yaz: "örnek: <sunucu> → <vg>/<lv>, bağlama <dizin> — bu düzene uydum".
+
+### 3. Uygulama
+
+Disk görünmüyorsa (salt-okunur tarama): `for h in /sys/class/scsi_host/host*/scan; do echo "- - -" > "$h"; done`
+— var olan disk büyütüldüyse `echo 1 > /sys/class/block/<disk>/device/rescan`.
+
+**Yol A — LVM varsa, mevcut birimi büyüt:**
+```bash
+pvcreate /dev/<disk> && vgextend <vg> /dev/<disk> && vgs     # VFree arttı mı
+lvextend -r -l +100%FREE /dev/<vg>/<lv>                         # -r: dosya sistemini de büyütür
+```
+**Yeni birim:** `pvcreate` → `vgcreate <vg>` → `lvcreate -l 100%FREE -n <lv> <vg>` → `mkfs.xfs /dev/<vg>/<lv>`
+(adlar 2. adımdan).
+
+**Yol B — LVM yok, bölüm büyüt:** `parted -s /dev/<disk> print` (göster, onay al) → `growpart /dev/<disk> <no>`
+(disk ve bölüm **ayrı** argüman) → `xfs_growfs <mount-noktası>` (XFS mount noktası alır; `resize2fs` cihaz alır).
+XFS **küçültülemez**.
+
+### 4. fstab — tekrar çalıştırılabilir olmalı (A26)
+
+```bash
+cp -a /etc/fstab /etc/fstab.$(date +%F-%H%M)                       # önce yedek
+mkdir -p <dizin>                                                  # verify'dan ÖNCE (yoksa [E] target)
+grep -q "^/dev/<vg>/<lv>[[:space:]]" /etc/fstab || echo "/dev/<vg>/<lv>  <dizin>  xfs  defaults  0 0" >> /etc/fstab
+findmnt --verify                                                  # [E] satırı varsa DUR, yeniden başlatma
+systemctl daemon-reload && mount <dizin> && findmnt <dizin>
+```
+- **LVM birimi → LV yolu** (`/dev/<vg>/<lv>`; kurum düzeni, Alp 2026-10-14 — örnek `/dev/kt_rhel_vg/kt_rhel_lv /data xfs
+  defaults 0 0`). LV yolu disk sırasından bağımsızdır, UUID gerekmez. LVM'siz bölümde **UUID** kullan. Hiçbir zaman
+  `/dev/sdX` yazma — 2026-10-14'te iki sunucuda reboot sonrası sda/sdb yer değiştirdi.
+- Satır zaten varsa **ekleme** (plan ikinci kez çalışırsa çift satır = açılışta hata). Çıplak `>> /etc/fstab` yazma.
+- `mount -a` yerine yalnız yeni dizini bağla: `mount -a` ilgisiz, bozuk başka satırları da tetikler.
+
+### 5. Doğrulama ve rapor
+
+`lsblk -f`, `vgs`, `lvs -o +devices`, `df -h <dizin>`, `findmnt <dizin>` — öncesi/sonrası. Raporda: hangi cihaz
+(keşif kanıtıyla), hangi ad kalıbına uyuldu, fstab satırı, yedek dosyasının adı, geri alınamaz adımlar.
+
+### Plan istenince (uygulamadan)
+
+Plan = keşif komutları + çıktılarına göre dallanan adımlar, **sabit cihaz harfi ya da uydurma ad içermez**.
+Her yıkıcı adımın önünde onun ön koşulu yazar ("yalnız 1. adımda `/dev/<disk>` boş çıktıysa").

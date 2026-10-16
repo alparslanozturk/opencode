@@ -62,7 +62,9 @@ kubectl -n kube-system get pods -l app=antrea -o jsonpath='{range .items[*]}{.sp
 - Rancher sürümü: Rancher arayüzü sol alt ya da downstream'de `kubectl -n cattle-system get deploy cattle-cluster-agent
   -o jsonpath='{.spec.template.spec.containers[0].image}'` (genel).
 - **Uyumluluk yorumu yalnız `rke2-ansible` becerisindeki çevrimdışı matristen** (Rancher ↔ RKE2 ↔ RHEL; Antrea notu
-  orada). Matriste olmayan sürüm → "matriste yok — `--kaydet` ile eklenmeli" de, tahmin etme.
+  orada). **Antrea ↔ K8s satırı her raporda zorunlu** (Alp, 2026-10-17: "matris çok önemli, supported olmalı"); Antrea RKE2
+  ile gelmez, ayrı yükseltilir — K8s yükseltilip Antrea unutulabilir. Bilinen: `test` Antrea v2.3.0 + 1.33 → ❌ (v2.3 →
+  1.29–1.32); saha G65 raporunda bu satır hiç yoktu. Matriste olmayan sürüm → "matriste yok — `--kaydet` ile eklenmeli" de, tahmin etme.
 
 ### 2. Control plane
 
@@ -179,6 +181,20 @@ lsmod | grep -e openvswitch -e br_netfilter -e overlay              # node'da (s
 - `OVS transaction timeout`, `Failed to rejoin any members` (saha G11) → node-yerel Antrea/OVS sorunu: kümesel ağ
   değil ama **ağ veri yolu** — "ağ sorunu yok" deme, "node-yerel CNI sorunu" de.
 - Neden-sonuç yönünü (OVS mi containerd'yi, containerd mi OVS'yi kilitledi) kanıt olmadan yazma.
+- Node bir süre durursa (§5b) ovsdb transaction timeout, antrea liveness hatası ve memberlist `connection refused` **sonuç**
+  olarak da görülür; aynı dakikada master'da da takılma varsa Antrea'yı kök neden yazma (Antrea master'da sshd'yi dondurmaz).
+
+**conntrack (genel bilgi):** kube-proxy açılışta `nf_conntrack_max`'ı `max(32768 × çekirdek, 131072)` yapar (varsayılan
+`--conntrack-max-per-core`) → node'lar arası farklı değer çoğu zaman **vCPU farkıdır**, yanlış ayar değil (`nproc` ile
+doğrula: 786432 = 24×32768, 393216 = 12×32768). Elle sysctl ile yükseltilen değeri kube-proxy yeniden başlarken kendi
+hesabına geri çekebilir (tahmin — restart sonrası değeri oku); kalıcı yol kube-proxy argümanı (`conntrack-max-per-core`,
+değişiklik). Tablo dolduysa çekirdek `nf_conntrack: table full, dropping packet` yazar ve **yeni SYN düşer** → ssh
+`Connection timed out` verir, `banner exchange` değil (banner'da TCP kurulmuştu).
+
+```bash
+nproc; sysctl net.netfilter.nf_conntrack_max net.netfilter.nf_conntrack_count
+journalctl -k --since -7d --no-pager | grep -c "table full"        # 0 → tablo hiç dolmamış
+```
 
 ### 5. Node işletim sistemi — toplu (ansible ad-hoc, tek izin)
 
@@ -207,6 +223,19 @@ journalctl -b -1 -n 80 --no-pager                       # donmadan önceki son s
 journalctl -b -1 -k --no-pager | grep -i -e "hung task" -e "blocked for" -e "soft lockup" -e "rcu.*stall" -e oom -e "i/o error" -e vmxnet -e pvscsi | tail -30
 sar -q -r -f /var/log/sa/sa$(date -d yesterday +%d) | tail -30   # donma saatine yakın yük/bellek (performans §6)
 ```
+
+**Duraklama göstergeleri (genel bilgi)** — "node bir süre durdu mu, durduysa neden" sorusunun izleri:
+- Birden çok node **aynı dakikalarda**, rol (master/worker) ve yaştan bağımsız takılıyor → Kubernetes'in altı: hipervizör /
+  datastore (VM stun: snapshot, yedek, vMotion; CPU ready; datastore gecikmesi). Saatleri yan yana yaz; vCenter'dan host +
+  datastore eşlemesini iste.
+- `chronyd` günlüğünde saat sıçraması (`System clock wrong by`, `Forward time jump`) → VM bir süre durmuş.
+- OVS günlüğünde `Unreasonably long NNNNms poll interval` → ovs-vswitchd o kadar ms çalışamamış; birden çok node'da aynı
+  dakikada ise ortak altyapı. (Antrea'da: `kubectl logs <antrea-agent> -c antrea-ovs`.)
+- etcd: `slow fdatasync`, `apply request took too long`, `leader failed to send out heartbeat on time` → disk/CPU duraklaması.
+- Çekirdek: `soft lockup`, `rcu_sched … stall`, `blocked for more than 120 seconds` (hung task), `pvscsi`/`sd … abort`
+  (disk komutu zaman aşımı), `nfs: server … not responding`.
+- Bellek: `vmware-toolbox-cmd stat balloon` > 0 (ESX belleği geri alıyor), `sar -W` swap, PSI `memory`.
+- Kendiliğinden düzelen olayın kanıtı **şu an** node'da: reboot ya da log dönmeden topla (birden çok node → ansible ad-hoc).
 
 **Kısa takılma (kendiliğinden düzelen)** — ssh banner timeout sonra tekrar çalıştı, ya da node kısa NotReady→Ready (saha
 G65: mas01 01:2x banner timeout → 01:29 `up 229 days`, reboot yok; wor03 00:48 NotReady→Ready). "Bağlantı hatasıydı, sorun

@@ -1,0 +1,86 @@
+# Çevrimdışı sürüm verisi — uyum.py okur. Saha internetsiz: bu dosya internetli makinede güncellenir (SKILL.md → "Veriyi güncelleme").
+# Biçim: [bölüm] satırları, sütunlar boşlukla; '#' yorum. Her bölümün kaynağı ve indirme tarihi başında yazılı.
+# Bilinmeyen değer UYDURULMAZ: '-' yazılır, uyum.py "bilinmiyor" der.
+
+[rancher-matris]
+# SUSE Rancher destek matrisi (rancher-vX-Y-Z sayfaları) — kurum rke2-ansible araclar/matris/, indirme 2026-09-30.
+# RANCHER  UPSTREAM_ALT  UPSTREAM_UST  DOWNSTREAM_HATLARI  RKE2_ICIN_RHEL  KAYNAK
+v2.11.3   1.30  1.32  1.30,1.31,1.32  8.8,8.9,8.10,9.3,9.4,9.5            rancher-v2-11-3.txt
+v2.14.3   1.33  1.35  1.33,1.34,1.35  8.8,8.10,9.6,9.7,9.8,10.0,10.1,10.2 rancher-v2-14-3.txt
+v2.14.4   1.33  1.35  1.33,1.34,1.35  8.8,8.10,9.6,9.8,10.0,10.2          rancher-v2-14-4.txt
+v2.14.5   1.33  1.35  1.33,1.34,1.35  8.8,8.10,9.6,9.8,10.0,10.2          rancher-v2-14-5.txt
+v2.14.6   1.33  1.35  1.33,1.34,1.35  8.8,8.10,9.6,9.8,10.0,10.2          rancher-v2-14-6.txt
+v2.15.1   1.34  1.36  1.34,1.35,1.36  8.10,9.6,9.8,10.0,10.2              rancher-v2-15-1.txt
+v2.15.2   1.34  1.36  1.34,1.35,1.36  8.10,9.6,9.8,10.0,10.2              rancher-v2-15-2.txt
+
+[rancher-yama]
+# Rancher minor → en son yama. Kaynak: endoflife.date/api/rancher.json (latest, 2026-09-23), indirme 2026-10-17.
+# MINOR  EN_SON_YAMA
+2.15  v2.15.2
+2.14  v2.14.6
+2.13  v2.13.10
+2.12  v2.12.14
+2.11  v2.11.18
+
+[rancher-omur]
+# SUSE Rancher Prime yaşam döngüsü — suse.com/lifecycle (indirme 2026-10-17). EOM = bakım (yama) sonu, EOL = destek sonu.
+# MINOR  GA          EOM         EOL
+2.15  2026-08-27  2027-02-27  2028-02-27
+2.14  2026-04-30  2026-10-30  2027-10-10
+2.13  2025-12-17  2026-06-17  2027-06-17
+2.12  2025-08-29  2026-02-28  2027-02-28
+2.11  2025-04-24  2025-10-24  2026-10-24
+
+[rke2-yama]
+# RKE2 hattı → en son kararlı yama. Kaynak: github.com/rancher/rke2 releases (kurum rke2-ansible, üretim 2026-09-30).
+# HAT   EN_SON_YAMA
+1.30  v1.30.14+rke2r4
+1.31  v1.31.14+rke2r2
+1.32  v1.32.13+rke2r2
+1.33  v1.33.13+rke2r2
+1.34  v1.34.11+rke2r1
+1.35  v1.35.8+rke2r1
+1.36  v1.36.4+rke2r1
+
+[rke2-omur]
+# SUSE RKE2 yaşam döngüsü — suse.com/lifecycle (indirme 2026-10-17). Kurum için geçerli olan budur (satıcı desteği).
+# HAT   GA          EOM         EOL
+1.37  2026-09-14  2027-08-28  2028-02-28
+1.36  2026-05-12  2027-04-12  2027-10-12
+1.35  2025-12-30  2026-12-28  2027-06-28
+1.34  2025-09-10  2026-08-27  2027-02-27
+1.33  2025-05-07  2026-04-28  2026-10-28
+1.32  2025-01-02  2025-12-28  2026-06-28
+
+[k8s-omur]
+# Upstream Kubernetes (topluluk) — endoflife.date/api/kubernetes.json (indirme 2026-10-17). Bilgi amaçlı; RKE2 için SUSE tarihi esas.
+# HAT   EOL
+1.37  2027-10-28
+1.36  2027-06-28
+1.35  2027-02-28
+1.34  2026-10-27
+1.33  2026-06-28
+1.32  2026-02-28
+1.31  2025-11-11
+1.30  2025-07-15
+
+[antrea]
+# Antrea minor → desteklenen K8s (kural: çıktığı gün bakımdaki son 4 K8s). Kaynak: kurum rke2-ansible araclar/matris/antrea-uyum.txt (2026-09-30).
+# MINOR  EN_SON_YAMA  CIKIS       K8S_ALT  K8S_UST
+2.0  v2.0.1  2024-04-26  1.27  1.30
+2.1  v2.1.2  2024-07-26  1.27  1.30
+2.2  v2.2.2  2024-11-10  1.28  1.31
+2.3  v2.3.2  2025-02-22  1.29  1.32
+2.4  v2.4.5  2025-07-10  1.30  1.33
+2.5  v2.5.3  2025-12-04  1.31  1.34
+2.6  v2.6.3  2026-03-21  1.32  1.35
+2.7  v2.7.0  2026-08-15  1.33  1.36
+
+[rhel-omur]
+# RHEL ana sürüm — endoflife.date/api/rhel.json (indirme 2026-10-17). TAM = full support sonu, BAKIM = maintenance sonu.
+# Ara sürüm (9.2, 9.4 …) bitiş tarihleri Red Hat sayfasında resim içinde → '-' (bilinmiyor). Politika (access.redhat.com/support/policy/updates/errata,
+# 2026-10-17): uzatılmış destek (ELCP) yalnız çift ara sürümlere (RHEL 9.2'den itibaren); aboneliği olmayan sunucu en son ara sürümde tutulmalı.
+# ANA  EN_SON_ARA  TAM         BAKIM
+10   10.2        2030-05-31  2035-05-31
+9    9.8         2027-05-31  2032-05-31
+8    8.10        2024-05-31  2029-05-31

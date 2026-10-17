@@ -943,9 +943,12 @@ if ctx:
     p["models"][m]["limit"]["context"] = ctx_n
     # thrash'i bitirmek icin makul degerler (asama 2, GOREV-ASAMA-2.md paket A):
     # reserved = tampon (taşmayı önler), preserve_recent_tokens = compaction sonrası korunan bütçe.
+    # Saha G65 (2026-10-17): 262K pencerede min(4096, ctx/8) tampon compaction'ı %98.4'e itiyordu (core
+    # calculateCeiling = pencere − tampon); Qwen %70+ bağlamda bozuluyor (G62 %69, G65 %83 döngü) → büyük pencerede
+    # tampon %40 = özetleme ~%60'ta. Küçük pencerede (16K) eski formül: %40 tampon taban promptla thrash yapar.
     d.setdefault("compaction", {})
     d["compaction"]["auto"] = True
-    d["compaction"]["reserved"] = max(1024, min(4096, ctx_n // 8))
+    d["compaction"]["reserved"] = (ctx_n * 40 // 100) if ctx_n >= 65536 else max(1024, min(4096, ctx_n // 8))
     d["compaction"]["preserve_recent_tokens"] = max(2048, min(8192, ctx_n // 4))
     # "prune" ve "tail_turns" opencode 2.x'te yok (config normalize uyarı veriyordu) — yazılmaz.
 

@@ -61,6 +61,8 @@ kubectl -n kube-system get pods -l app=antrea -o jsonpath='{range .items[*]}{.sp
   davranış farkı demektir).
 - Rancher sürümü: Rancher arayüzü sol alt ya da downstream'de `kubectl -n cattle-system get deploy cattle-cluster-agent
   -o jsonpath='{.spec.template.spec.containers[0].image}'` (genel).
+- **Uyum + destek sonu (EOL) + en son yama kararı betikten:** `python3 /root/ai/opencode/knowledge/skills/approved/yukseltme-plani/uyum.py
+  kontrol --rancher … --rke2 … --antrea … --rhel …` — çıktıyı olduğu gibi aktar (`yukseltme-plani`). Güvenlik puan kartı: `guvenlik-saglik`.
 - **Uyumluluk yorumu yalnız `rke2-ansible` becerisindeki çevrimdışı matristen** (Rancher ↔ RKE2 ↔ RHEL; Antrea notu
   orada). **Antrea ↔ K8s satırı her raporda zorunlu** (Alp, 2026-10-17: "matris çok önemli, supported olmalı"); Antrea RKE2
   ile gelmez, ayrı yükseltilir — K8s yükseltilip Antrea unutulabilir. Bilinen: `test` Antrea v2.3.0 + 1.33 → ❌ (v2.3 →
@@ -83,9 +85,12 @@ df -h /var/lib/rancher; cat /proc/pressure/io
 
 - etcd logunda `apply request took too long` / `slow fdatasync` (genel) → master diski yavaş; `performans` becerisi
   disk bölümü. Üç master'da da aynı mı, tek birinde mi?
-- Sertifika bitişi 30 günden yakınsa bulgu (RKE2 süresi yaklaşan sertifikayı yeniden başlatmada yeniler — genel;
-  yenileme değişikliktir). 30 gün ve üstü → yalnız bilgi satırı, "rotasyon gerekli" yazma. **Kalan günü kafadan
-  hesaplama**, komutla: `echo $(( ($(date -d "2027-01-09" +%s) - $(date +%s)) / 86400 ))` (saha G65: 84 gün "120 gün" yazıldı).
+- Sertifika (RKE2 docs security/certificates): istemci/sunucu sertifikaları 365 gün geçerli; **120 gün** kala (v1.33.1+rke2r1'den
+  beri, öncesi 90) `CertificateExpirationWarning` event'i çıkar ve sertifika **rke2 bir sonraki yeniden başlatmada kendiliğinden
+  yenilenir**. Yani uyarı event'i = "bu master uzun süredir yeniden başlamadı", elle rotasyon gerekmez; yükseltme ya da planlı
+  restart yeniler (yenileme değişikliktir — öneri). Bulgu eşiği: 30 günden az kaldıysa. **Kalan günü kafadan hesaplama**, komutla:
+  `echo $(( ($(date -d "2027-01-09" +%s) - $(date +%s)) / 86400 ))` (saha G65: event'teki 120 gün eşiği "120 gün sonra" diye
+  yazıldı; gerçek kalan 84 gündü).
 
 **Control plane kararı (saha G62/G65 — iki kez yanlış "✅" yazıldı):**
 - "Control plane ✅" yalnız readyz temiz **ve** her master'a ssh bu turda başarılıysa. Bir master'a ssh banner timeout →

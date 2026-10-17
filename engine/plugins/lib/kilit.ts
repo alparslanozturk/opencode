@@ -31,6 +31,7 @@ export interface Yetki {
   krizMetni: boolean
   sunucular: string[]
   zaman: number
+  uyari?: string
 }
 export const YETKI_OMRU_MS = 12 * 60 * 60 * 1000
 // Kriz mesajında yetki satırları dışında en az bu kadar metin (yapıştırılmış mail/toplantı notu) olmalı.
@@ -44,11 +45,47 @@ export interface YetkiSatiri {
   cn?: string
   sunucular?: string[]
   kapat?: boolean
+  uyari?: string
   govde: number
+}
+
+// --- serbest biçim (Alp, 2026-10-17: "formatsız verdiğimde anlayabiliyor olması lazım — bu bir zeka göstergesi") ---
+// CN satır başında olmak zorunda değil: CHG/CRQ/RFC numarası ya da "change / değişiklik numarası …" cümle içinde
+// tanınır; birden çok numara olabilir. Sunucular: "sunucular: …" (eski biçim) + sunucu sözcüğü ya da CN geçen satırdaki
+// sunucu BİÇİMLİ adlar (IP, FQDN, rakamlı ad) + bu satırların altındaki alt alta / maddeli liste. Güvenlik sınırları:
+// "hariç / dışında / değil" geçen satır listeye eklenmez (uyarı); KRİZ mesajında yalnız açık "sunucular:" satırı geçerli
+// (yapıştırılan mail kendiliğinden yetki açmaz — AGENTS kriz akışı).
+const CN_KIMLIK = /(?:^|[^A-Z0-9])((?:CHG|CRQ|RFC|CR)[-_]?\d{4,})(?![A-Z0-9])/g
+const CN_CUMLE = /(?:^|[^A-Z0-9])(?:CN|CHANGE|DE[GĞ]I[SŞ]IKLIK)(?:\s+(?:NO|NR|ID|NUMBER|NUMARA[A-ZÇĞÖŞÜ]*|KAYD[A-ZÇĞÖŞÜ]*|KAYIT))*\s*[:#=]?\s*([A-Z]{0,4}[-_]?\d{4,})(?![A-Z0-9])/g
+const SUNUCU_SOZ = /(?:^|[^a-zçğıöşü])(?:sunucu|hedef|makine|host|node|server)/i
+const OLUMSUZ = /(?:^|[^A-Z])(?:HARI[CÇ]|DI[SŞ]INDA|EXCEPT|OLMADAN|DE[GĞ]IL)(?![A-Z])/
+const DOLGU = new Set(["ve", "ile", "and", "veya", "ya", "da", "de", "ayrıca", "ayrica", "+", "&"])
+// Rakam içeren ürün/teknoloji adları sunucu adı değildir (cümlede "rke2 sunucuları", "rhel9 makineleri" geçer).
+const URUN_ADI = /^(?:rke2|k3s|k8s|rhel\d*|el\d+|centos\d*|alma\d*|rocky\d*|h[12]\d\d|b[12]\d\d|a100|l40s?|ipv[46]|x86(?:_64)?|amd64|arm64|aarch64|s3|tls1\d*|sha\d+|md5|utf-?8|vcf\d*|esxi?\d*|vsphere\d*|nsx\d*|anthos\d*|gke\d*|p2v|v2v|2fa|mfa\d*|cis\d*|scap\d*|fips\d*|ha\d*)$/
+const DOSYA_UZANTI = /\.(ya?ml|sh|conf|cfg|json|txt|log|md|ini|py|ts|j2|repo|rpm|tar|gz|xz)$/
+const temizTok = (t: string) => t.replace(/^[\s"'`*•(\[<-]+/, "").replace(/['’].*$/, "").replace(/[\s"'`*)\]>.,;:!?]+$/, "")
+// Cümle içinden alınacak ad: IP, harfli FQDN ya da rakam içeren ad (stlrancherwor07, web01) — düz sözcük alınmaz.
+function sunucuBicimli(ham: string): boolean {
+  const t = ham.toLowerCase()
+  if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(t)) return true
+  if (/^v?\d+(?:\.\d+)+$/.test(t) || DOSYA_UZANTI.test(t) || /^(?:chg|crq|rfc|cr|cn)[-_]?\d+$/.test(t) || URUN_ADI.test(t)) return false
+  if (/^[a-z0-9][a-z0-9-]*(?:\.[a-z0-9-]+)+$/.test(t)) return /[a-z]/.test(t)
+  return /^[a-z][a-z0-9-]*\d[a-z0-9-]*$/.test(t) || /^[a-z0-9-]*\*[a-z0-9-]*$/.test(t)
+}
+// Alt alta liste satırı: yalnız ad(lar)dan oluşur (madde imi, virgül, "ve" serbest); rakamsız ad (srvsatellite) da olur.
+function listeSatiri(satir: string): string[] | null {
+  const toks = satir.split(/[\s,;]+/).map(temizTok).filter((t) => t && !DOLGU.has(t.toLowerCase()))
+  if (!toks.length) return null
+  return toks.every((t) => /^[a-z0-9][a-z0-9._*-]*$/i.test(t) && !DOSYA_UZANTI.test(t.toLowerCase()) && !/^v?\d+(\.\d+)*$/.test(t)) ? toks : null
 }
 
 export function yetkiSatirlariniOku(text: string): YetkiSatiri {
   const out: YetkiSatiri = { govde: 0 }
+  const cnler: string[] = []
+  const serbest: string[] = [] // cümle içinden / alt alta listeden — KRİZ değilse eklenir
+  const acik: string[] = [] // "sunucular: …" satırları
+  let devam: "acik" | "serbest" | null = null // önceki satır sunucu başlığı / CN satırıydı → alt alta liste olabilir
+  const uyar = (m: string) => (out.uyari = out.uyari ? `${out.uyari} · ${m}` : m)
   for (const hamSatir of text.split("\n")) {
     // "- CN: …", "**CN:** …", "> KRİZ", tırnaklı satır (opencode run mesajı tırnaklar) → çıplak satır
     const satir = hamSatir
@@ -62,10 +99,14 @@ export function yetkiSatirlariniOku(text: string): YetkiSatiri {
       out.kapat = true
       anahtar = true
     }
+    const cnOnce = cnler.length
     const cn = /^CN\s*[:#=]?\s*([A-Z0-9][A-Z0-9_./-]*)/.exec(b)
-    if (cn && /\d/.test(cn[1])) {
+    if (cn && /\d/.test(cn[1])) cnler.push(cn[1])
+    for (const m of b.matchAll(CN_KIMLIK)) cnler.push(m[1])
+    for (const m of b.matchAll(CN_CUMLE)) cnler.push(m[1])
+    const cnSatiri = cnler.length > cnOnce
+    if (cnSatiri) {
       out.tur = "CN"
-      out.cn = cn[1]
       anahtar = true
     }
     // T30 (Alp, 2026-09-30): "büyük ya da küçük harf fark etmez, kurulum yapacağım dediği zaman anlaması lazım".
@@ -79,18 +120,50 @@ export function yetkiSatirlariniOku(text: string): YetkiSatiri {
       out.tur = "KRIZ"
       anahtar = true
     }
+    const olumsuz = OLUMSUZ.test(b)
+    const olumsuzUyar = () =>
+      uyar(`"${satir.trim().slice(0, 60)}" satırında hariç/dışında/değil var — bu satırdaki sunucular eklenmedi, listeyi açıkça yaz`)
     // anahtar sözcüklerde İ/ı yok → /i yeterli; değerler ham satırdan alınır
-    const liste = /(?:^|\s)(?:sunucular|sunucu|hedefler|hedef)\s*[:=]\s*(.+)$/i.exec(satir.trim())
+    const liste = /(?:^|\s)(?:sunucular|sunucu|hedefler|hedef)\s*[:=]\s*(.*)$/i.exec(satir.trim())
     if (liste) {
-      out.sunucular = liste[1]
-        .split(/[\s,;]+/)
-        .map(normHost)
-        .filter((h) => h.length > 0)
-        .slice(0, 200)
       anahtar = true
+      devam = null
+      if (olumsuz) olumsuzUyar()
+      else {
+        const toks = liste[1].split(/[\s,;]+/).map(temizTok).filter((t) => t && !DOLGU.has(t.toLowerCase()))
+        acik.push(...toks)
+        if (!toks.length) devam = "acik" // "sunucular:" tek başına → altındaki satırlar liste
+      }
+      continue
+    }
+    const sunucuSatiri = SUNUCU_SOZ.test(satir)
+    if (sunucuSatiri || cnSatiri) {
+      if (olumsuz && sunucuSatiri) {
+        olumsuzUyar()
+        devam = null
+      } else {
+        serbest.push(...satir.split(/[\s,;]+/).map(temizTok).filter(sunucuBicimli))
+        devam = "serbest"
+      }
+      if (!anahtar) out.govde += satir.trim().length
+      continue
+    }
+    if (devam) {
+      const toks = listeSatiri(satir)
+      if (toks) {
+        ;(devam === "acik" ? acik : serbest).push(...toks)
+        continue
+      }
+      devam = null
     }
     if (!anahtar) out.govde += satir.trim().length
   }
+  if (cnler.length) out.cn = [...new Set(cnler)].join(",")
+  // Serbest adlar yalnız AYNI mesajda CN/KURULUM beyanı varsa sayılır: yoksa sıradan bir soru ("web05 sunucusunda disk
+  // dolu") açık yetkinin listesini sessizce değiştirirdi. KRİZ'de de sayılmaz (yapıştırılan mail yetki açmaz).
+  const hepsi = out.tur === "CN" || out.tur === "KURULUM" ? [...acik, ...serbest] : acik
+  const n = [...new Set(hepsi.map(normHost).filter((h) => h.length > 0))].slice(0, 200)
+  if (n.length) out.sunucular = n
   return out
 }
 
@@ -414,6 +487,7 @@ export function sarmalayiciSoy(argv: string[]): { argv: string[]; xargs: boolean
       a.shift() // süre
       continue
     }
+    if (p === "command" && (a[1] === "-v" || a[1] === "-V")) break // `command -v x`: yalnız yol sorgusu (saltOkunur)
     if (["nohup", "time", "command", "exec", "builtin", "stdbuf", "setsid", "unbuffer"].includes(p)) {
       a.shift()
       secenekAt(() => false)
@@ -501,6 +575,7 @@ export const SALT_OKUNUR = new Set([
   "traceroute", "tracepath", "dig", "nslookup", "host", "sleep", "tree", "getfacl", "lsattr", "atq",
   "systemd-analyze", "needs-restarting", "awk", "top", "vmstat", "iostat", "mpstat", "sar", "nproc", "arch",
   "locale", "localectl", "ntpq", "chronyc", "nc", "curl", "wget", "openssl", "ansible", "cd", "xfs_info",
+  "pidstat", "fincore", "sadf", "iotop", "slabtop", "numastat", "lsns", "lslocks", "lsipc",
   // kabuk sözdizimi (saha G62): döngü/koşul kapanışları ve `read` kendi başına bir şey değiştirmez; gövdedeki
   // komutlar ayrı segment olarak ayrıca incelenir
   "done", "fi", "esac", "read", "{", "}",
@@ -556,11 +631,45 @@ export function ctrOkur(a: string[]): boolean {
     "snapshots", "snapshot", "content", "plugins", "plugin"].includes(k1) && ["list", "ls", "info"].includes(k2)
 }
 
+// Saha G67 (Alp, 2026-10-17: "read only komutları değişiklik sanıyor, sunucunun bazı değerleri okunamıyor"). Becerilerdeki
+// 361 komutluk tarama (kilitDenetle) ile bulunan yanlış alarmlar: rke2/hammer/sshd -T/pidstat/fincore/dnf check/
+// --assumeno/docker system df/subscription-manager repos --list/kubectl --dry-run/perf report + yalnız --help/--version.
+const RKE2_DEGERLI = new Set(["--output", "-o", "--data-dir", "-d", "--config", "-c"])
+export function rke2Okur(a: string[]): boolean {
+  const [k1 = "", k2 = ""] = konumsal(a, RKE2_DEGERLI)
+  if (k1 === "") return a.some((x) => x === "--version" || x === "-v")
+  if (k1 === "certificate") return k2 === "check"
+  if (k1 === "secrets-encrypt") return k2 === "status"
+  if (k1 === "etcd-snapshot") return k2 === "list" || k2 === "ls"
+  if (k1 === "token") return k2 === "list"
+  return false
+}
+const HAMMER_OKUR = new Set(["list", "info", "ping", "status", "show"])
+const HAMMER_YAZAR = /^(create|update|delete|remove|add|publish|promote|sync|synchronize|import|export|upload|set|assign|enable|disable|start|stop|restart|cancel|resume|run|execute|refresh|clear|reboot|rebuild|attach|detach|associate|disassociate|copy|clone|lock|unlock|apply|deploy|purge|reset|regenerate|rename|move|replace)(-|$)/
+export function hammerOkur(a: string[]): boolean {
+  if (a.length && a.every((x) => ["--help", "-h", "--version"].includes(x) || !x.startsWith("-") && !HAMMER_YAZAR.test(x)) && a.some((x) => ["--help", "-h", "--version"].includes(x))) return true
+  const k = a.filter(secenekDegil)
+  return k.some((x) => HAMMER_OKUR.has(x)) && !k.some((x) => HAMMER_YAZAR.test(x))
+}
+export function sshdOkur(a: string[]): boolean {
+  // -T/-t test kipi: ayarı okur/denetler, sunucu başlatmaz. -C (bağlantı koşulu) ve -f (ayar dosyası) değer alır.
+  let test = false
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] === "-T" || a[i] === "-t") test = true
+    else if (a[i] === "-C" || a[i] === "-f") i++
+    else if (!/^-[TtC]/.test(a[i])) return false
+  }
+  return test
+}
+
 export function saltOkunur(argv: string[]): boolean {
   const p = taban(argv[0] ?? "")
   const a = argv.slice(1)
   const has = (...x: string[]) => a.some((y) => x.includes(y))
   const ilk = a.find(secenekDegil) ?? ""
+  // Yalnız yardım/sürüm: yoldan çağrılmayan (PATH'teki) araçta `--help` / `--version` bir şey değiştirmez.
+  // `./betik --help` sayılmaz (yerel betik bayrağı yok sayıp çalışabilir); `-h` sayılmaz (`shutdown -h`).
+  if (a.length > 0 && !(argv[0] ?? "").includes("/") && a.every((x) => x === "--help" || x === "--version")) return true
   switch (p) {
     case "date":
       return !has("-s", "--set") && !a.some((x) => x.startsWith("--set="))
@@ -579,7 +688,9 @@ export function saltOkunur(argv: string[]): boolean {
     case "dnf":
     case "yum":
       return ["list", "info", "repolist", "search", "check-update", "repoquery", "provides", "whatprovides",
-        "updateinfo", "--version", "deplist"].includes(ilk) || (ilk === "history" && ["", "list", "info"].includes(a.filter(secenekDegil)[1] ?? ""))
+        "updateinfo", "--version", "deplist", "check"].includes(ilk) || (ilk === "history" && ["", "list", "info"].includes(a.filter(secenekDegil)[1] ?? "")) ||
+        // deneme kipi: --assumeno her soruya "hayır" der, işlem yapılmaz (-y/--assumeyes ile birlikteyse sayılmaz)
+        (["update", "upgrade", "install", "remove", "erase", "downgrade", "distro-sync", "autoremove"].includes(ilk) && has("--assumeno") && !has("-y", "--assumeyes"))
     case "ip":
       return !a.some((x) => ["add", "del", "delete", "set", "flush", "change", "replace", "append", "save", "restore"].includes(x))
     case "nmcli":
@@ -607,6 +718,7 @@ export function saltOkunur(argv: string[]): boolean {
     case "find":
       return !a.some((x) => /^-(delete|exec|execdir|ok|okdir|fprint|fprint0|fprintf|fls)$/.test(x))
     case "subscription-manager":
+      if (ilk === "repos") return a.every((x) => x === "repos" || /^--list(-enabled|-disabled)?$/.test(x)) && a.length > 1
       return ["status", "list", "identity", "facts", "version", "orgs", "release", "syspurpose"].includes(ilk) && !has("--set", "--unset")
     case "realm":
       return ilk === "list" || ilk === "discover"
@@ -614,12 +726,17 @@ export function saltOkunur(argv: string[]): boolean {
       return /-(show|find)$/.test(ilk) || ["ping", "env", "help", "--version"].includes(ilk)
     case "kubectl":
     case "oc":
-      return KUBE_OKUR.has(kubeFiil(a))
+      // --dry-run=client|server: istek doğrulanır, kalıcı değişiklik yapılmaz (=none ya da yalın --dry-run=false değil)
+      return KUBE_OKUR.has(kubeFiil(a)) || a.some((x) => /^--dry-run=(client|server)$/.test(x))
     case "helm":
       return ["list", "ls", "status", "get", "history", "show", "search", "version", "template", "lint", "env"].includes(ilk)
     case "docker":
-    case "podman":
+    case "podman": {
+      const [, k2 = ""] = a.filter(secenekDegil)
+      if (ilk === "system") return k2 === "df" || k2 === "info"
+      if (["volume", "network", "image", "container", "pod"].includes(ilk)) return ["ls", "list", "inspect"].includes(k2)
       return ["ps", "images", "inspect", "logs", "version", "info", "stats", "top", "port", "diff", "events"].includes(ilk)
+    }
     case "for":
     case "select":
       // yalnız başlık: `for f in <liste>` — liste içinde komut ikamesi ayrı segment olarak incelenir
@@ -638,6 +755,17 @@ export function saltOkunur(argv: string[]): boolean {
       return ilk === "stat" || ilk === "-v" || ilk === "--version"
     case "etcdctl":
       return etcdctlOkur(a)
+    case "command":
+      // `command -v x` yalnız yolu yazar; `command x …` ise x'i çalıştırır (sayılmaz)
+      return a.length > 0 && (a[0] === "-v" || a[0] === "-V")
+    case "rke2":
+      return rke2Okur(a)
+    case "hammer":
+      return hammerOkur(a)
+    case "sshd":
+      return sshdOkur(a)
+    case "perf":
+      return ["report", "list", "annotate", "script", "version", "--version"].includes(ilk) && !has("-o", "--output")
     case "ctr":
       return ctrOkur(a)
     case "containerd":
@@ -920,6 +1048,7 @@ export function tekKomut(k: Komut, b: Baglam): Bulgu[] {
 
   // K1: uzak erişim araçları
   if (p === "ssh") {
+    if (a.includes("-G")) return out // `ssh -G host`: yalnız çözülmüş ayarı yazar, bağlanmaz (saha G67)
     const hedef = sshHedef(a)
     if (!hedef.host) return [...out, degisiklik("ssh (hedef çözülemedi)", ["?"])]
     if (!hedef.komut) return [...out, degisiklik("etkileşimli ssh oturumu", [hedef.host])]
@@ -977,7 +1106,7 @@ export function tekKomut(k: Komut, b: Baglam): Bulgu[] {
   }
   if (["ansible-pull", "ansible-console", "pssh", "parallel-ssh", "pdsh", "clush", "prsync", "pscp"].includes(p))
     return [...out, degisiklik(`${p} (toplu uzak komut — hedef tek tek belirtilmeli)`, ["?"])]
-  if ((p === "kubectl" || p === "oc") && !KUBE_OKUR.has(kubeFiil(a)))
+  if ((p === "kubectl" || p === "oc") && !saltOkunur(argv))
     return [...out, degisiklik(`${p} ${kubeFiil(a)}`, [kubeHedef(a, p)])]
   if (p === "helm" && !saltOkunur(argv) && !["repo", "dependency", "plugin", "completion", "help"].includes(a.find(secenekDegil) ?? ""))
     return [...out, degisiklik(`helm ${a.find(secenekDegil) ?? ""}`, [kubeHedef(a, "helm")])]
@@ -1232,9 +1361,10 @@ export const YETKI_NASIL =
   'Yetkiyi YALNIZ kullanıcı kendi mesajıyla verir (sen yazamazsın). YENİ KURULUM (yeni makineler) için numara ' +
   'GEREKMEZ: kullanıcı "kurulum yapacağım" (harf fark etmez) + "sunucular: <ad>, <ad>" (ya da --limit grubunun adı) ' +
   'yazar — yeni kurulumda CN ' +
-  'önerme. Mevcut (çalışan) sunucuda değişiklik: "CN: <numara>" + "sunucular: …" · kriz: "KRİZ" + kriz maili/toplantı ' +
-  'notu + "sunucular: …". Bu makine için listeye localhost yazılır. Salt-okunur işlerle devam edebilirsin; kullanıcıya ' +
-  "neyin neden gerektiğini tek cümleyle söyle."
+  'önerme. Mevcut (çalışan) sunucuda değişiklik: CN numarası + sunucular — BİÇİM DAYATMA: kullanıcı aynı mesajda ' +
+  'serbest yazabilir ("CHG0012345 ile web01, web02 sunucularında", alt alta liste, birden çok CN). Kriz: "KRİZ" + kriz ' +
+  'maili/toplantı notu + "sunucular: …" (yalnız açık liste). Bu makine için listeye localhost yazılır. Salt-okunur işlerle ' +
+  "devam edebilirsin; kullanıcıya yalnız EKSİK olanı (numara mı, sunucu mu) tek cümleyle söyle."
 
 export function kilitDenetle(
   tool: string,
@@ -1317,14 +1447,14 @@ export function kilitDenetle(
             : "yetkinin süresi doldu (12 saat)"
     return {
       kilit: "K1",
-      mesaj: `[güvenlik kilidi K1] Bu komut değişiklik yapıyor (${nedenler}) → hedef: ${hedefler.join(", ")}. Çalıştırılmadı: ${eksik}. ${YETKI_NASIL}`,
+      mesaj: `[güvenlik kilidi K1] Bu komut değişiklik yapıyor (${nedenler}) → hedef: ${hedefler.join(", ")}. Çalıştırılmadı: ${eksik}.${yetki?.uyari ? ` Not: ${yetki.uyari}.` : ""} ${YETKI_NASIL}`,
     }
   }
   const disarida = hedefler.filter((h) => !hostListede(h, yetki.sunucular))
   if (disarida.length)
     return {
       kilit: "K1",
-      mesaj: `[güvenlik kilidi K1] Hedef yetki listesinde yok: ${disarida.join(", ")} (geçerli yetki — ${yetkiOzeti(yetki)}). Komut: ${nedenler}. Kullanıcı listeyi "sunucular: …" satırıyla güncellemeli (IP ile bağlanıyorsan IP de listede olmalı).`,
+      mesaj: `[güvenlik kilidi K1] Hedef yetki listesinde yok: ${disarida.join(", ")} (geçerli yetki — ${yetkiOzeti(yetki)}).${yetki.uyari ? ` Not: ${yetki.uyari}.` : ""} Komut: ${nedenler}. Kullanıcı listeyi "sunucular: …" satırıyla güncellemeli (IP ile bağlanıyorsan IP de listede olmalı).`,
     }
   return null
 }

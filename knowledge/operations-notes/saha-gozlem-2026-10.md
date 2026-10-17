@@ -756,3 +756,21 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - ⚠️ Kilit: `rke2 certificate check` / `secrets-encrypt status` / `etcd-snapshot list` K1'e düşüyor; `~/.config/opencode/skills/…/uyum.py`
   K6. Doktor kilit.ts'e okuma istisnası eklemeye çalıştı — Claude Code izin sınıflandırıcısı reddetti (öz-değişiklik). Karar Alp'in;
   şimdilik betik repo yolundan (`/root/ai/opencode/knowledge/skills/approved/yukseltme-plani/uyum.py`), rke2 okumaları openssl/ls ile.
+
+### G67 — Alp: yetki (CN) serbest biçimde anlaşılmalı + okuma komutları değişiklik sanılmasın
+- Alp (2026-10-17): "Change numarası ve sunucuları farklı formatlarda vermeme rağmen illa şu formatta, alt alta, virgülle dedi —
+  uygun değil; formatsız verdiğimde anlayabiliyor olması lazım, bu bir zeka göstergesi. Çok önemli." · "Bazı read-only komutları
+  değişiklik sanıyor; kilitlerden dolayı sunucunun bazı değerleri okunamıyor — hassas çalışma."
+- Yapılan (kilit.ts, Alp'in açık isteğiyle): `yetkiSatirlariniOku` serbest biçim — CN cümle içinde (CHG/CRQ/RFC/CR+4 rakam,
+  "change/değişiklik numarası …"), birden çok CN; sunucular `sunucular:` + CN/sunucu sözcüğü geçen satırdaki sunucu biçimli adlar +
+  alt alta liste. Sınırlar: "hariç/dışında/değil" satırı eklenmez (uyarı K1 mesajında); serbest adlar yalnız aynı mesajda CN/KURULUM
+  varsa (sıradan soru yetkiyi değiştirmez); KRİZ'de yalnız açık liste; sürüm/dosya/ürün adı (rke2, rhel9) sunucu sayılmaz.
+- Okuma: becerilerdeki 361 komut `kilitDenetle` ile tarandı → yanlış alarmlar düzeltildi: rke2 (certificate check, secrets-encrypt
+  status, etcd-snapshot list, token list, -v), hammer (list/info/ping/status/--help), `sshd -T`, pidstat/fincore/sadf/iotop/slabtop/
+  numastat/lsns, `dnf check`, `--assumeno` deneme kipi, docker/podman `system df`/`volume ls`, `subscription-manager repos --list*`,
+  `kubectl --dry-run=client|server`, `perf report`, `command -v`, `ssh -G`, PATH'teki araçta yalnız `--help`/`--version`. Kalan
+  takılmalar gerçek değişiklik (lvextend, dnf -y, vacuum …) ya da bilerek dışarıda (yerel betik, `perf record`, bpftrace, crash).
+- Test: 218 → 274 (G67 okur 22 / değiştirir 23 / yetki 11), 0 hata; `tsc --strict` kilit.ts+denetim.ts temiz. AGENTS.md ve
+  GUVENLIK-KILITLERI.md "biçim dayatma"; K1 yönlendirme mesajı "yalnız eksik olanı söyle".
+- CIS (Alp): RHEL 10 şablonunda Satellite SCAP ile CIS Level 1 (SELinux/firewall hariç); K8s ve VMware CIS de önemli, uygulanabilir
+  olanlar seçilecek; RHEL şablonları/SCAP profilleri yakında gelecek → `guvenlik-saglik` kurum kararlarına eklendi.

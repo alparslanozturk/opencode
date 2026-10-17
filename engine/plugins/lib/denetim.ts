@@ -145,7 +145,7 @@ export function yetkiIsle(yetkiler: Map<string, Yetki>, sessionID: string, metin
     yetkiler.delete(sessionID)
     return "yetki kapatıldı"
   }
-  if (!s.tur && !s.cn && !s.sunucular) {
+  if (!s.tur && !s.cn && !s.sunucular && !s.uyari) {
     // KRİZ verildiyse mail/toplantı notu ayrı bir mesajla da yapıştırılabilir
     if (y?.tur === "KRIZ" && !y.krizMetni && s.govde >= KRIZ_METNI_MIN) {
       y.krizMetni = true
@@ -162,9 +162,10 @@ export function yetkiIsle(yetkiler: Map<string, Yetki>, sessionID: string, metin
   }
   if (y.tur === "KRIZ" && s.govde >= KRIZ_METNI_MIN) y.krizMetni = true
   if (s.sunucular) y.sunucular = s.sunucular
+  y.uyari = s.uyari
   y.zaman = now
   yetkiler.set(sessionID, y)
   return yetkiAktif(y, now)
-    ? `yetki: ${yetkiOzeti(y)}`
+    ? `yetki: ${yetkiOzeti(y)}${y.uyari ? ` (not: ${y.uyari})` : ""}`
     : `yetki eksik: tur=${y.tur ?? "-"} cn=${y.cn ?? "-"} kriz_metni=${y.krizMetni} sunucu=${y.sunucular.length}`
 }

@@ -120,7 +120,9 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
   servis/paket/ayar, `/etc` düzenleme) ancak kullanıcı mesajında yetki varsa ve hedef listedeyse çalışır:
   **yeni kurulum (yeni makineler): kullanıcı "kurulum yapacağım" (harf fark etmez) + `sunucular: …` yazar —
   değişiklik numarası İSTENMEZ, CN önerme** ·
-  mevcut (çalışan) sunucuda değişiklik: `CN: <numara>` + `sunucular: a, b` · kriz: `KRİZ` + yapıştırılmış kriz
+  mevcut (çalışan) sunucuda değişiklik: CN numarası + sunucular — **biçim dayatma** (Alp, 2026-10-17): kullanıcı aynı
+  mesajda serbest yazar ("CHG0012345 ile web01, web02 sunucularında", alt alta liste, birden çok CN); kilit anlar. Eksikse
+  yalnız eksik olanı sor (numara mı, sunucu mu), "şu formatta yaz" deme · kriz: `KRİZ` + yapıştırılmış kriz
   maili/toplantı notu + `sunucular: …`. Bu makine = `localhost`. Yalnız okuyan playbook (ping, setup, debug,
   salt-okunur command) yetkisiz çalışır — önce çalıştır, yetki isteme.
 - **Kriz akışı:** mail yapıştırılınca etkilenen sunucuları maildan çıkar, listeyi öner ve **dur** —

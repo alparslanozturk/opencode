@@ -555,10 +555,42 @@ export interface Bulgu {
   tur: "sert" | "degisiklik"
   neden: string
   hedefler: string[]
+  // Saha G68 (Alp, 2026-10-17): kilidin hiç tanımadığı uzak komut "belirsiz" → engel yerine kullanıcıya sorulur.
+  belirsiz?: boolean
 }
 
 export const sert = (neden: string): Bulgu => ({ tur: "sert", neden, hedefler: [] })
-export const degisiklik = (neden: string, hedefler: string[]): Bulgu => ({ tur: "degisiklik", neden, hedefler })
+export const degisiklik = (neden: string, hedefler: string[], belirsiz = false): Bulgu =>
+  belirsiz ? { tur: "degisiklik", neden, hedefler, belirsiz } : { tur: "degisiklik", neden, hedefler }
+
+// Kilidin TANIDIĞI araçlar: okuma biçimi saltOkunur'da tanımlı olanlar + bilinen değiştiriciler. Bunlar uzakta okuma
+// biçiminde değilse KESİN değişikliktir (engel). Listede olmayan araç (özel betik, kurum aracı, `./x`, `python3 x.py`)
+// "belirsiz"dir: kullanıcıya sorulur, onaylarsa çalışır (G68). Şüphede tanıdık tarafta kal: değiştirebilen her
+// bilinen araç buraya.
+export const BILINEN_ARAC = new Set([
+  // saltOkunur'da özel kuralı olanlar
+  "date", "hostname", "hostnamectl", "timedatectl", "systemctl", "journalctl", "rpm", "dnf", "yum", "ip", "nmcli",
+  "firewall-cmd", "iptables", "ip6tables", "nft", "sysctl", "mount", "swapon", "dmesg", "crontab", "sed", "find",
+  "subscription-manager", "realm", "ipa", "kubectl", "oc", "helm", "docker", "podman", "nvidia-smi", "mdadm", "nvme",
+  "cpupower", "crictl", "vmware-toolbox-cmd", "etcdctl", "ctr", "containerd", "tuned-adm", "authselect", "rke2",
+  "hammer", "sshd", "perf", "command", "chronyc", "localectl", "awk", "gawk",
+  // bilinen değiştiriciler
+  "rm", "mv", "cp", "ln", "chmod", "chown", "chgrp", "mkdir", "rmdir", "touch", "tee", "dd", "truncate", "install",
+  "shred", "unlink", "rsync", "scp", "tar", "unzip", "gzip", "gunzip", "xz", "bzip2", "zip", "patch",
+  "reboot", "shutdown", "poweroff", "halt", "init", "telinit", "kill", "pkill", "killall", "service",
+  "useradd", "usermod", "userdel", "groupadd", "groupmod", "groupdel", "passwd", "chpasswd", "chage", "gpasswd",
+  "umount", "swapoff", "mkswap", "fsck", "e2fsck", "xfs_repair", "xfs_growfs", "resize2fs", "growpart", "parted",
+  "fdisk", "sfdisk", "gdisk", "sgdisk", "wipefs", "partprobe", "lvcreate", "lvextend", "lvresize", "lvreduce",
+  "lvremove", "lvchange", "vgcreate", "vgextend", "vgreduce", "vgremove", "vgchange", "pvcreate", "pvremove",
+  "pvresize", "pvmove", "cryptsetup", "multipath", "iscsiadm", "exportfs", "modprobe", "rmmod", "insmod", "depmod",
+  "setenforce", "setsebool", "semanage", "restorecon", "chcon", "chattr", "setfacl", "ethtool", "tc", "brctl",
+  "ovs-vsctl", "ovs-ofctl", "ovs-appctl", "conntrack", "ipset", "update-crypto-policies", "update-alternatives",
+  "alternatives", "update-ca-trust", "grubby", "grub2-mkconfig", "grub2-install", "dracut", "kexec", "localectl",
+  "logrotate", "virsh", "git", "pip", "pip3", "npm", "make", "at", "batch", "wall", "systemd-run", "loginctl",
+  "ausearch", "auditctl", "augenrules", "tuned", "kdumpctl", "needs-restarting", "ansible-galaxy", "certbot",
+  "keytool", "update-motd", "vgimport", "vgexport", "lvconvert", "blockdev", "hdparm", "smartctl", "ntpdate",
+  "chronyd", "sshd-keygen", "ssh-keygen", "htpasswd", "openssl", "curl", "wget",
+])
 
 export const secenekDegil = (x: string) => !x.startsWith("-")
 
@@ -573,8 +605,8 @@ export const SALT_OKUNUR = new Set([
   "cmp", "sort", "uniq", "cut", "tr", "column", "jq", "yq", "xxd", "od", "strings", "readlink", "realpath",
   "basename", "dirname", "lscpu", "lsmem", "lspci", "lsusb", "lsmod", "modinfo", "dmidecode", "ping",
   "traceroute", "tracepath", "dig", "nslookup", "host", "sleep", "tree", "getfacl", "lsattr", "atq",
-  "systemd-analyze", "needs-restarting", "awk", "top", "vmstat", "iostat", "mpstat", "sar", "nproc", "arch",
-  "locale", "localectl", "ntpq", "chronyc", "nc", "curl", "wget", "openssl", "ansible", "cd", "xfs_info",
+  "systemd-analyze", "needs-restarting", "top", "vmstat", "iostat", "mpstat", "sar", "nproc", "arch",
+  "locale", "ntpq", "nc", "curl", "wget", "openssl", "ansible", "cd", "xfs_info",
   "pidstat", "fincore", "sadf", "iotop", "slabtop", "numastat", "lsns", "lslocks", "lsipc",
   // kabuk sözdizimi (saha G62): döngü/koşul kapanışları ve `read` kendi başına bir şey değiştirmez; gövdedeki
   // komutlar ayrı segment olarak ayrıca incelenir
@@ -755,6 +787,17 @@ export function saltOkunur(argv: string[]): boolean {
       return ilk === "stat" || ilk === "-v" || ilk === "--version"
     case "etcdctl":
       return etcdctlOkur(a)
+    case "localectl":
+      return ["", "status", "list-locales", "list-keymaps", "list-x11-keymap-models", "list-x11-keymap-layouts",
+        "list-x11-keymap-variants", "list-x11-keymap-options"].includes(ilk)
+    case "chronyc":
+      // makestep/burst/settime/add/delete/online/offline… saati ya da kaynağı değiştirir
+      return ["", "tracking", "sources", "sourcestats", "activity", "ntpdata", "serverstats", "clients", "selectdata",
+        "authdata", "waitsync", "rtcdata", "smoothing", "manual"].includes(ilk) && !(ilk === "manual" && a.length > 1)
+    case "awk":
+    case "gawk":
+      // awk programı system(), komuta boru ya da dosyaya yönlendirme ile yazabilir
+      return !a.some((x) => /system\s*\(|\|\s*"|>\s*"|\|&|print\s*>|printf[^;]*>\s*[a-zA-Z"]/.test(x)) && !has("-i", "--inplace")
     case "command":
       // `command -v x` yalnız yolu yazar; `command x …` ise x'i çalıştırır (sayılmaz)
       return a.length > 0 && (a[0] === "-v" || a[0] === "-V")
@@ -1115,7 +1158,10 @@ export function tekKomut(k: Komut, b: Baglam): Bulgu[] {
   if (p === "ipa" && !saltOkunur(argv)) return [...out, degisiklik(`ipa ${a.find(secenekDegil) ?? ""}`, [b.uzak ?? "ipa"])]
 
   if (b.uzak) {
-    if (!saltOkunur(argv)) out.push(degisiklik(`${p} (uzakta)`, [b.uzak]))
+    if (!saltOkunur(argv)) {
+      const tanimsiz = !BILINEN_ARAC.has(p) && !p.startsWith("mkfs")
+      out.push(degisiklik(tanimsiz ? `${p} (uzakta — kilit bu komutu tanımıyor)` : `${p} (uzakta)`, [b.uzak], tanimsiz))
+    }
     else if (k.yazilan.some((y) => !["/dev/null", "/dev/stderr", "/dev/stdout"].includes(y)))
       out.push(degisiklik(`${p} > dosya (uzakta)`, [b.uzak]))
     return out
@@ -1355,6 +1401,9 @@ export function yamaYollari(patch: string): string[] {
 export interface KilitKarari {
   kilit: "K1" | "K5" | "K6"
   mesaj: string
+  // G68: true → engelleme, kullanıcıya SOR (yalnız K1 ve yalnız tüm değişiklik bulguları "belirsiz"se). Onayı yalnız
+  // kullanıcı verir; "her zaman izin ver" kuralı bunu atlatamaz (adaptör evaluate'te effect'i yine "ask" yapar).
+  sor?: boolean
 }
 
 export const YETKI_NASIL =
@@ -1435,7 +1484,15 @@ export function kilitDenetle(
       kilit: "K1",
       mesaj: `[güvenlik kilidi K1] Değişiklik yapan komutun hedefi belirlenemedi (${nedenler}). ansible-playbook için hedefi --limit <sunucu,…> ile açıkça ver; toplu araç yerine sunucu başına komut kullan. ${YETKI_NASIL}`,
     }
+  // G68: tüm değişiklik bulguları "belirsiz" (kilidin tanımadığı uzak komut) ise engel yerine kullanıcıya sor.
+  const hepsiBelirsiz = degisenler.every((x) => x.belirsiz)
+  const sorKarari = (durum: string): KilitKarari => ({
+    kilit: "K1",
+    sor: true,
+    mesaj: `[kilit — ONAY] Kilit bu uzak komutu tanımıyor: ${nedenler} → hedef: ${hedefler.join(", ")} (${durum}). Salt-okunur olduğundan eminsen onayla, değilse reddet. (Ajan için: reddedilirse başka yazımla deneme.)`,
+  })
   if (!yetkiAktif(yetki, Date.now())) {
+    if (hepsiBelirsiz) return sorKarari("bu oturumda geçerli yetki yok")
     const eksik = !yetki || !yetki.tur
       ? "bu oturumda yetki yok"
       : yetki.sunucular.length === 0
@@ -1451,6 +1508,7 @@ export function kilitDenetle(
     }
   }
   const disarida = hedefler.filter((h) => !hostListede(h, yetki.sunucular))
+  if (disarida.length && hepsiBelirsiz) return sorKarari(`hedef yetki listesinde yok: ${disarida.join(", ")}`)
   if (disarida.length)
     return {
       kilit: "K1",

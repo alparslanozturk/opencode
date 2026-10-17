@@ -797,3 +797,11 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   (değişmedi). Saha: `al.sh` → `./kur.sh` (eski klasörler `--delete` ile gider, kalırsa G64 koruması kurmaz).
 - Düzeltme (Alp, aynı gün): "genel Kubernetes `k8s-`, RKE2'ye özgü `rke2-`; Anthos GKE'leri yöneten orkestratör" → k8s-denetim/gpu/
   guvenlik/yukseltme/kurulum/node-ekle → **rke2-***; `k8s-sorun` (genel kubectl teşhisi, Anthos'ta da geçer) `k8s-` kaldı.
+
+### G70 — vLLM/Qwen önerileri: çıktı sınırı 16384 (Alp), alt ajan yok
+- Doktor özeti: uç sağlıklı (chat 0.12 sn, akış ilk bayt 0.03 sn, tool_call ✓, 100–190 tok/s ekranlarda); bağlam 262144 uçtan;
+  çıktı sınırı uç bildirmiyor → kur.sh 4096'ya düşüyordu (G2). Öneriler: çıktı 16384, alt ajan (task) yeniden açma, büyük model
+  (qwen3-235b) ile denetçi ajan, DevOps'a prefix caching ve /dev/shm sizeLimit.
+- Alp: "16384 olsun, alt ajandan vazgeçtim. kontrol ya da kur.sh'a koyarsan görürsün." → kur.sh `VARSAYILAN_CIKTI=16384` (uç
+  bildirmezse; env `KURUM_MAX_OUTPUT` öncelikli; pencerenin 1/4'ünü aşmaz), kur çıktısı ve kontrol `cikti 16384 (kurum varsayilani …)`.
+  NASIL-CALISTIRILIR tablosu güncellendi. `task` deny kaldı. Denetçi ajan için uç bilgisi beklenmiyor (Alp seçmedi).

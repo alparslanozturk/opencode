@@ -578,9 +578,9 @@ bunu sırayla öğrenmeye çalışır ve **hangi basamağın kazandığını rap
 | 1 | `/v1/models` alanları (`max_output_tokens`, `max_completion_tokens`, `max_output_len`, `max_generated_tokens`, `max_tokens`, `output_limit`, `limit.output`) | `cikti 8192 (uc alani max_output_tokens)` |
 | 2 | **Probe:** tek bir istek, `max_tokens` bilerek aşırı büyük; uç reddedip sınırını hata mesajında söylerse oradan okunur | `cikti 8192 (uc probe)` |
 | 3 | `env` → `KURUM_MAX_OUTPUT=<token>` | `cikti 8192 (env KURUM_MAX_OUTPUT)` |
-| 4 | Hiçbiri → **güvenli varsayılan 4096** | `cikti 4096 (uctan alinamadi → 4096)` |
+| 4 | Hiçbiri → **kurum varsayılanı 16384** (Alp, 2026-10-17; pencerenin 1/4'ünü aşmaz — 16K pencerede 4096) | `cikti 16384 (kurum varsayilani 16384 (uc bildirmiyor))` |
 
-Yani 4096 **sessizce** kalmaz: raporun `ayar` satırı her zaman değerin nereden geldiğini söyler.
+Yani varsayılan **sessizce** kalmaz: raporun `ayar` satırı her zaman değerin nereden geldiğini söyler.
 Probe ucu yormaz — istek `stream: true` gider ve uç isteği kabul ederse akış ilk parçada kesilir,
 uçta uzun üretim başlamaz. Bulunan değer bağlam penceresini aşarsa ona kırpılır.
 

@@ -11,6 +11,10 @@ description: RKE2/Rancher kümesinin ve RHEL node'larının güvenlik sağlığ�
 
 **Kurum kararları (Alp, 2026-09-29 — bulgu değil):** SELinux kapalı · firewalld kapalı · Kubernetes CIS profili yok
 (`profile` yok) · `net.ipv4.ip_forward=1` · işletim sistemine CIS Level 1 Satellite/OpenSCAP ile uygulanıyor · `/tmp` noexec.
+**CIS (Alp, 2026-10-17):** RHEL 10 şablonunda Satellite'tan SCAP ile **CIS Level 1** uygulanıyor (SELinux ve firewall kapsam dışı,
+politikaların çoğu uygulanmış); Kubernetes ve VMware CIS benchmark'ları da önemli ama kurumda **uygulanabilecek olanlar seçilecek**
+(hepsi zorunlu değil). Puan kartında CIS maddesini "uygulanmadı" diye bulgu yazma — kurumun seçtiği profil belli olana kadar
+"CIS: kurum profili [SAHA]" bilgi satırı. RHEL şablonları/SCAP profilleri yakında paylaşılacak.
 Okuma kısıtı yok (kapalı sistem): sır dosyası okunabilir ama **değerini ekrana basma** (anahtar/token içeriği yerine var/yok, sayı).
 
 Erişim kalıbı (`kume-denetim` §0): `K="/var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml"` bir
@@ -40,7 +44,8 @@ Değerlendirme:
 - Şifreleme dosyası yok ya da ilk sağlayıcı `identity` → secrets etcd'de düz metin ❌.
 - Sertifika < 30 gün ❌; 120 gün içinde ⚠️ bilgi (RKE2 yeniden başlatmada kendisi yeniler — `yukseltme-plani` §3).
 - audit.log yok ya da boş ⚠️ (kim ne yaptı izlenemez); `--anonymous-auth=true` ⚠️.
-- `rke2 certificate check` / `rke2 secrets-encrypt status` kilitte henüz salt-okunur tanımlı değil (K1) — yukarıdaki karşılıklar.
+- Doğrudan araç da serbest (saha G67): `/var/lib/rancher/rke2/bin/rke2 certificate check --output table`, `rke2 secrets-encrypt status`,
+  `rke2 etcd-snapshot list` — çıktısı daha net; `rotate`/`save`/`prune` değişikliktir (K1).
 
 ## 3. Yetki ve iş yükü (kubectl)
 
@@ -85,7 +90,8 @@ Değerlendirme:
 - Bekleyen güvenlik errata sayısı > 0 ⚠️ (kritik/önemli ayrımı: `dnf updateinfo list --security` satırlarındaki önem).
   Satellite içerik görünümü (CV) eski tarihteyse "en son" = CV tarihi — `sistem-guncelleme` becerisi.
 - `release --show` bir ara sürüme kilitliyse (ör. 9.4) ve uzatılmış abonelik yoksa o sürüm yama almıyor olabilir ⚠️ (`uyum.py` RHEL satırı).
-- `sshd -T` kilitte değişiklik sayılıyor (K1) → yukarıdaki dosya okuması (etkin değer için `sshd_config.d` sırasına dikkat).
+- Etkin değer için `sshd -T | grep -Ei "^(permitrootlogin|passwordauthentication|maxauthtries|x11forwarding)"` (test kipi, serbest —
+  saha G67); dosya okuması `sshd_config.d` sırasını göstermez.
 - auditd/chronyd aktif değil ⚠️; saat senkron değil ⚠️ (sertifika/etcd için kritik).
 
 ## 6. Puan kartı (ekrana, kısa — telefondan okunur)

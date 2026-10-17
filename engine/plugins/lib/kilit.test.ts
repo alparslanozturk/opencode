@@ -139,3 +139,117 @@ describe("G62: uzakta kabuk döngüsü/koşulu — sözdizimi serbest, gövde ay
   test("döngü gövdesinde değişiklik → K1", () =>
     expect(kilitDenetle("bash", { command: `ssh m1 'for f in a b; do rm -f $f; done'` }, workdir, undefined)?.kilit).toBe("K1"))
 })
+
+describe("G67: okuma yanlış alarmları (beceri taraması) serbest, değiştirenler K1", () => {
+  const okur = [
+    `ssh m1 "/var/lib/rancher/rke2/bin/rke2 certificate check --output table"`,
+    `ssh m1 "rke2 secrets-encrypt status"`,
+    `ssh m1 "rke2 etcd-snapshot list"`,
+    `ssh m1 "rke2 -v | head -1"`,
+    `ssh sat "hammer --version"`,
+    `ssh sat "hammer host list --search 'os = RedHat'"`,
+    `ssh sat "hammer content-view version list --organization Kurum"`,
+    `ssh sat "hammer host list --help"`,
+    `ssh m1 "sshd -T | grep -i permitrootlogin"`,
+    `ssh m1 "sshd -T -C user=root,host=x,addr=1.2.3.4"`,
+    `ssh m1 "pidstat -u 1 3"`,
+    `ssh m1 "fincore /var/log/messages"`,
+    `ssh m1 "dnf check"`,
+    `ssh m1 "dnf update --security --assumeno"`,
+    `ssh m1 "docker system df"`,
+    `ssh m1 "podman volume ls"`,
+    `ssh m1 "subscription-manager repos --list-enabled"`,
+    `ssh m1 "kubectl apply -f x.yaml --dry-run=server"`,
+    `ssh m1 "perf report -i /tmp/perf.data --stdio"`,
+    `ssh m1 "rtla --help"`,
+    `ssh sat "command -v hammer && hammer --version"`,
+    `ssh -G web01 | head -3`,
+  ]
+  for (const c of okur) test(`serbest: ${c}`, () => expect(kilitDenetle("bash", { command: c }, workdir, undefined)).toBeNull())
+  const degistirir = [
+    `ssh m1 "rke2 certificate rotate"`,
+    `ssh m1 "rke2 etcd-snapshot save"`,
+    `ssh m1 "rke2 etcd-snapshot prune --snapshot-retention 2"`,
+    `ssh m1 "rke2 secrets-encrypt rotate-keys"`,
+    `ssh m1 "rke2 token create"`,
+    `ssh sat "hammer content-view publish --name x"`,
+    `ssh sat "hammer host update --name x --lifecycle-environment Prod"`,
+    `ssh sat "hammer repository synchronize --id 3"`,
+    `ssh m1 "sshd"`,
+    `ssh m1 "sshd -D"`,
+    `ssh m1 "dnf update --security"`,
+    `ssh m1 "dnf update --assumeno -y"`,
+    `ssh m1 "docker system prune -f"`,
+    `ssh m1 "podman volume rm x"`,
+    `ssh m1 "subscription-manager repos --enable x"`,
+    `ssh m1 "kubectl apply -f x.yaml"`,
+    `ssh m1 "kubectl apply -f x.yaml --dry-run=none"`,
+    `ssh m1 "perf record -o /tmp/p.data -a"`,
+    `ssh m1 "ethtool -s eth0 speed 100"`,
+    `ssh m1 "./kur.sh --help"`,
+    `ssh m1 "shutdown -h"`,
+    `ssh m1 "command rm -f /tmp/x"`,
+    `ssh web01 'systemctl restart x'`,
+  ]
+  for (const c of degistirir) test(`K1: ${c}`, () => expect(kilitDenetle("bash", { command: c }, workdir, undefined)?.kilit).toBe("K1"))
+})
+
+describe("G67: yetki serbest biçimde de anlaşılır (Alp: 'formatsız verdiğimde anlayabiliyor olması lazım')", () => {
+  const oku = (m: string) => yetkiSatirlariniOku(m)
+  test("eski biçim aynen", () => {
+    const s = oku("CN: CHG0012345\nsunucular: web01, web02")
+    expect(s.tur).toBe("CN")
+    expect(s.cn).toBe("CHG0012345")
+    expect(s.sunucular).toEqual(["web01", "web02"])
+  })
+  test("tek cümle: change numarası + sunucular", () => {
+    const s = oku("CHG0012345 numaralı change ile stlrancherwor07, stlrancherwor08 ve stlrancherwor09 sunucularında çalışacağım")
+    expect(s.tur).toBe("CN")
+    expect(s.cn).toBe("CHG0012345")
+    expect(s.sunucular).toEqual(["stlrancherwor07", "stlrancherwor08", "stlrancherwor09"])
+  })
+  test("'değişiklik numarası' + boşluklu liste, IP", () => {
+    const s = oku("değişiklik numarası 4471230, sunucular 10.14.9.70 10.14.9.108")
+    expect(s.cn).toBe("4471230")
+    expect(s.sunucular).toEqual(["10.14.9.70", "10.14.9.108"])
+  })
+  test("CN satırı + alt alta maddeli liste (rakamsız ad dahil)", () => {
+    const s = oku("Change: CRQ000123456\nŞu sunucular:\n- srvsatellite\n- splsonatype01\n* web01.kurum.local\n\nlütfen önce kontrol et")
+    expect(s.cn).toBe("CRQ000123456")
+    expect(s.sunucular).toEqual(["srvsatellite", "splsonatype01", "web01.kurum.local"])
+  })
+  test("iki change, iki grup sunucu → birleşik yetki", () => {
+    const s = oku("CHG0000001: wor01 wor02 sunucuları\nCHG0000002 için db01 sunucusu")
+    expect(s.cn).toBe("CHG0000001,CHG0000002")
+    expect(s.sunucular).toEqual(["wor01", "wor02", "db01"])
+  })
+  test("hariç/dışında geçen satır EKLENMEZ, uyarı verir", () => {
+    const s = oku("CHG0012345 ile web01 hariç tüm web sunucuları\nsunucular: web02, web03")
+    expect(s.sunucular).toEqual(["web02", "web03"])
+    expect(s.uyari).toContain("hariç")
+  })
+  test("CN beyanı olmayan sıradan soru yetki listesini DEĞİŞTİRMEZ", () => {
+    const s = oku("web05 sunucusunda disk doldu, bakar mısın?")
+    expect(s.tur).toBeUndefined()
+    expect(s.sunucular).toBeUndefined()
+  })
+  test("KRİZ: yapıştırılan maildeki sunucu adları yetki açmaz, yalnız açık liste", () => {
+    const mail = "KRİZ\nKonu: web07 ve web08 sunucularında servis kesintisi yaşanıyor, db03 sunucusu da etkilenmiş olabilir. ".repeat(2)
+    expect(oku(mail).sunucular).toBeUndefined()
+    expect(oku(mail + "\nsunucular: web07").sunucular).toEqual(["web07"])
+  })
+  test("sürüm, dosya adı, CN numarası sunucu sayılmaz", () => {
+    const s = oku("CHG0099999 kapsamında rke2 sunucuları v1.33.13 sürümünden config.yaml ile wor10 node'una")
+    expect(s.sunucular).toEqual(["wor10"])
+  })
+  test("kurulum + serbest liste", () => {
+    const s = oku("yeni kurulum yapacağım, stlrancherwor15 ve stlrancherwor16 makinelerine")
+    expect(s.tur).toBe("KURULUM")
+    expect(s.sunucular).toEqual(["stlrancherwor15", "stlrancherwor16"])
+  })
+  test("uyarı K1 mesajında görünür", () => {
+    const y = yetkiVer("CHG0012345 ile web01 hariç tüm sunucular")
+    y.uyari = yetkiSatirlariniOku("CHG0012345 ile web01 hariç tüm sunucular").uyari
+    expect(kilitDenetle("bash", { command: "ssh web01 'systemctl restart x'" }, workdir, y)?.mesaj).toContain("hariç")
+  })
+})

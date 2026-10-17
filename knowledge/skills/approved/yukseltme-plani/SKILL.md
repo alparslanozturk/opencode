@@ -66,8 +66,7 @@ kubectl get pdb -A | awk 'NR==1 || $5=="0"'                      # ALLOWED DISRU
 kubectl -n cattle-resources-system get backups.resources.cattle.io 2>/dev/null   # Rancher local'de: rancher-backup var mı
 ```
 
-- `rke2 certificate check` / `rke2 etcd-snapshot list` kilitte henüz salt-okunur tanımlı değil (K1'e düşer) — yukarıdaki
-  `openssl`/`ls` karşılıklarını kullan. RKE2 sertifikaları 365 gün geçerli; **120 gün** kala (v1.33.1+rke2r1'den beri; öncesi 90)
+- `rke2 certificate check --output table` ve `rke2 etcd-snapshot list` de serbest (saha G67) — `openssl`/`ls` karşılıkları yedek. RKE2 sertifikaları 365 gün geçerli; **120 gün** kala (v1.33.1+rke2r1'den beri; öncesi 90)
   `CertificateExpirationWarning` event'i üretilir ve **rke2 yeniden başlarken** kendiliğinden yenilenir (RKE2 docs
   security/certificates). Yükseltme zaten servisleri yeniden başlatır → yenileme yükseltmeyle gelir.
 - **Geri dönüşün ön şartı snapshot'tır:** önceki minor'a dönmek için **o minor'da alınmış** etcd snapshot gerekir; yoksa geri

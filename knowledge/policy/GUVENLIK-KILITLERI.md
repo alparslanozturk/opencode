@@ -23,7 +23,35 @@ olarak durur; onay ekranı bunları açamaz. K2/K3/K4 motorun onay sistemindedir
 
 ## K1 — yetki nasıl verilir (sohbete yazılır)
 
-Satır başında, büyük/küçük harf fark etmez; `-`, `**`, tırnak gibi işaretler sorun değil.
+Biçim serbest (Alp, 2026-10-17: "formatsız verdiğimde anlayabiliyor olması lazım — bu bir zeka göstergesi"). Aşağıdaki
+kalıplar örnektir, zorunlu değildir; büyük/küçük harf, `-`, `**`, tırnak, virgül/boşluk/alt alta fark etmez:
+
+```
+CHG0012345 numaralı change ile stlrancherwor07, stlrancherwor08 ve stlrancherwor09 sunucularında çalışacağım
+```
+
+```
+değişiklik numarası 4471230
+şu sunucular:
+- srvsatellite
+- 10.14.9.70
+```
+
+```
+CHG0000001: wor01 wor02 sunucuları
+CHG0000002 için db01 sunucusu          ← birden çok CN; yetki = hepsinin birleşimi
+```
+
+Nasıl okunur (`engine/plugins/lib/kilit.ts` `yetkiSatirlariniOku`, testleri `kilit.test.ts` "G67"):
+- **CN:** satır başında `CN …`, cümle içinde `CHG/CRQ/RFC/CR` + en az 4 rakam, ya da "change / değişiklik (numarası|no) …" + numara.
+- **Sunucular:** `sunucular: …` satırı; ya da CN / sunucu sözcüğü (sunucu, hedef, makine, host, node, server) geçen satırdaki
+  **sunucu biçimli** adlar (IP, harfli FQDN, rakam içeren ad — düz sözcük, sürüm `v1.33.13`, dosya adı, `rke2`/`rhel9` gibi ürün
+  adları alınmaz); bu satırların altındaki alt alta / maddeli liste (burada rakamsız ad da olur: `srvsatellite`).
+- **Güvenlik sınırları:** "hariç / dışında / değil" geçen satırdaki sunucular **eklenmez**, ajan uyarı görür (yanlış hedefe yetki
+  riski). Serbest adlar yalnız **aynı mesajda CN ya da KURULUM beyanı varsa** sayılır — sıradan bir soru ("web05 sunucusunda disk
+  dolu") açık yetkinin listesini değiştirmez. **KRİZ**'de yalnız açık `sunucular:` satırı geçerli (yapıştırılan mail yetki açmaz).
+
+Eski kalıplar aynen geçerli:
 
 ```
 CN: CHG0012345

@@ -1,11 +1,11 @@
 ---
-name: k8s-node-ekle
-description: Mevcut RKE2 kümesine yeni worker ya da sunucu (control-plane) eklerken kullan — rke2-ansible ile --limit'li ekleme, kayıt adresi (9345/6443), token, sürüm eşleşmesi, Antrea imajı, node adı, elle fiziksel GPU worker (H200) ve disk düzeni. "node ekle", "worker ekle", "sunucu ekle", "kümeye ekle", "yeni worker", "gpu worker ekle", "h200 ekle", "join" isteklerinde tetiklenir. Playbook temeli ve kurum kararları: `k8s-kurulum`.
+name: rke2-node-ekle
+description: Mevcut RKE2 kümesine yeni worker ya da sunucu (control-plane) eklerken kullan — rke2-ansible ile --limit'li ekleme, kayıt adresi (9345/6443), token, sürüm eşleşmesi, Antrea imajı, node adı, elle fiziksel GPU worker (H200) ve disk düzeni. "node ekle", "worker ekle", "sunucu ekle", "kümeye ekle", "yeni worker", "gpu worker ekle", "h200 ekle", "join" isteklerinde tetiklenir. Playbook temeli ve kurum kararları: `rke2-kurulum`.
 ---
 
 # Kümeye node ekleme
 
-Playbook düzeni, sürüm seçimi ve kurum kararları **`k8s-kurulum`**'da; yeni node'un RHEL ara sürümünü ve sürüm uyumunu
+Playbook düzeni, sürüm seçimi ve kurum kararları **`rke2-kurulum`**'da; yeni node'un RHEL ara sürümünü ve sürüm uyumunu
 **`surum-uyum`** ile doğrula. Değişiklik kilidi: yeni makine için kullanıcı "kurulum yapacağım" + sunucuları yazar (biçim serbest).
 
 ## Node eklemeden ÖNCE — tuzaklar

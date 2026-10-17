@@ -1,6 +1,6 @@
 ---
-name: k8s-kurulum
-description: Kurumun RKE2 kümelerini rke2-ansible playbook'u (rancherfederal 2.x; kurum fork'u alparslanozturk/rke2-ansible) ile KURARKEN kullan — Rancher sürümüne göre RKE2 sürümü seçme, envanter (host.yml, group_vars/all.yml), air-gap tarball, Antrea manifesti, RHEL 9 CIS tuzakları (/tmp noexec, ip_forward), kurum kararları (SELinux/firewalld kapalı), SUC'u kim yönetir. "rke2 kur", "yeni küme", "rke2-ansible", "playbook", "hangi rke2", "envanter", "air-gap", "tarball", "hepapi" isteklerinde tetiklenir. Node ekleme: `k8s-node-ekle` · uyum/EOL: `surum-uyum` · yükseltme: `k8s-yukseltme`.
+name: rke2-kurulum
+description: Kurumun RKE2 kümelerini rke2-ansible playbook'u (rancherfederal 2.x; kurum fork'u alparslanozturk/rke2-ansible) ile KURARKEN kullan — Rancher sürümüne göre RKE2 sürümü seçme, envanter (host.yml, group_vars/all.yml), air-gap tarball, Antrea manifesti, RHEL 9 CIS tuzakları (/tmp noexec, ip_forward), kurum kararları (SELinux/firewalld kapalı), SUC'u kim yönetir. "rke2 kur", "yeni küme", "rke2-ansible", "playbook", "hangi rke2", "envanter", "air-gap", "tarball", "hepapi" isteklerinde tetiklenir. Node ekleme: `rke2-node-ekle` · uyum/EOL: `surum-uyum` · yükseltme: `rke2-yukseltme`.
 ---
 
 # RKE2 kurulumu — rke2-ansible playbook'u, sürüm seçimi, kurum kararları
@@ -41,7 +41,7 @@ RHEL 9.6–9.8). **Dikkat:** Rancher **v2.15.x**'e geçilirse 1.33 destek dış�
 ## Uyumluluk, destek sonu ve matris verisi → `surum-uyum`
 
 Rancher ↔ RKE2 ↔ RHEL ↔ Antrea uyumu, EOL ve en son yama kararını **`surum-uyum`** becerisindeki `uyum.py` verir (çevrimdışı
-matris tablosu da orada). Kurulum öncesi seçtiğin sürümü onunla doğrula; yükseltme sırası için `k8s-yukseltme`.
+matris tablosu da orada). Kurulum öncesi seçtiğin sürümü onunla doğrula; yükseltme sırası için `rke2-yukseltme`.
 
 ## Kurumda nasıl karar veriliyor (Alp, 2026-09-29)
 
@@ -59,7 +59,7 @@ matris tablosu da orada). Kurulum öncesi seçtiğin sürümü onunla doğrula; 
   küme Rancher'a içe aktarılmış ve sürüm yönetimi açıksa SUC + Plan'ları Rancher kurar (`cattle-system`'da
   `system-upgrade-controller`; `test` kümesinde görüldü, saha G65) → yükseltme **Rancher arayüzünden** (Edit Config →
   Kubernetes Version); elle Plan yazmak "beklenmeyen sonuç" doğurur (Rancher docs register-existing-clusters). Sıra, ön kontrol,
-  EOL ve adım adım yol: **`k8s-yukseltme`** becerisi (`uyum.py`).
+  EOL ve adım adım yol: **`rke2-yukseltme`** becerisi (`uyum.py`).
 - **Kurum kararları (Alp, 2026-09-29):** işletim sistemine CIS Level 1 Satellite/OpenSCAP ile uygulanıyor
   (RHEL 10 dahil); **Kubernetes CIS profili kullanılmıyor** (`profile` yok) · **SELinux kapalı** · **firewalld kapalı**
   (imajlarda zaten) · **`net.ipv4.ip_forward=1`** kalıcı (CIS 0 yazıyor; kurum fork'u `/etc/sysctl.d/99-zz-rke2.conf`
@@ -115,9 +115,9 @@ Aşağısı 2.x kodundan (`roles/rke2/tasks/*.yml`) çıkarıldı.
 - Yan etkiler: firewalld durdurulur (`rke2_ignore_firewalld: false` iken; değişirse restart), NetworkManager
   canal/antrea ayarı, CIS profili varsa sysctl + **reboot**, STIG izinleri.
 
-## Node ekleme → `k8s-node-ekle`
+## Node ekleme → `rke2-node-ekle`
 
-Mevcut kümeye worker/sunucu ekleme (tuzaklar, prosedür, elle fiziksel GPU worker) ayrı beceride: **`k8s-node-ekle`**.
+Mevcut kümeye worker/sunucu ekleme (tuzaklar, prosedür, elle fiziksel GPU worker) ayrı beceride: **`rke2-node-ekle`**.
 
 ## Sürüm/küme bilgisi eksikse
 

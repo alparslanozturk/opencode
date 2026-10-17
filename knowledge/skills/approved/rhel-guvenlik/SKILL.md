@@ -1,6 +1,6 @@
 ---
 name: rhel-guvenlik
-description: RHEL sunucuların (küme node'ları dahil) güvenlik sağlığını yalnız okuyarak denetlerken kullan — bekleyen güvenlik yaması (errata), çalışan↔kurulu çekirdek ve reboot gereksinimi, ara sürüm kilidi ve destek durumu, ssh ayarı, auditd, chrony; CIS Level 1 / OpenSCAP (Satellite) kurum profili. "sunucu güvenliği", "rhel güvenlik", "yama durumu", "güvenlik yaması", "errata", "reboot gerekiyor mu", "çekirdek güncel mi", "cis", "scap", "openscap", "benchmark", "sıkılaştırma", "ssh ayarı" isteklerinde tetiklenir. Yamayı uygulamak için `rhel-guncelleme`; küme tarafı `k8s-guvenlik`. Yalnız okur; düzeltmeyi önerir, uygulamaz.
+description: RHEL sunucuların (küme node'ları dahil) güvenlik sağlığını yalnız okuyarak denetlerken kullan — bekleyen güvenlik yaması (errata), çalışan↔kurulu çekirdek ve reboot gereksinimi, ara sürüm kilidi ve destek durumu, ssh ayarı, auditd, chrony; CIS Level 1 / OpenSCAP (Satellite) kurum profili. "sunucu güvenliği", "rhel güvenlik", "yama durumu", "güvenlik yaması", "errata", "reboot gerekiyor mu", "çekirdek güncel mi", "cis", "scap", "openscap", "benchmark", "sıkılaştırma", "ssh ayarı" isteklerinde tetiklenir. Yamayı uygulamak için `rhel-guncelleme`; küme tarafı `rke2-guvenlik`. Yalnız okur; düzeltmeyi önerir, uygulamaz.
 ---
 
 # RHEL güvenlik sağlığı

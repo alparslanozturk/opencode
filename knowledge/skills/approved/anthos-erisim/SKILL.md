@@ -1,6 +1,6 @@
 ---
 name: anthos-erisim
-description: Anthos (GKE on-prem) kümeleriyle ilgili soru ve incelemelerde kullan — erişim yolu (jumpbox → admin workstation → admin/user cluster kubeconfig) ve kubectl ile salt-okunur teşhis. "anthos", "gke", "admin cluster", "user cluster", "admin workstation", "anthosjb", "jumpbox" isteklerinde tetiklenir. Rancher/RKE2 kümeleri için `k8s-sorun` ve `k8s-denetim`.
+description: Anthos (GKE on-prem) kümeleriyle ilgili soru ve incelemelerde kullan — erişim yolu (jumpbox → admin workstation → admin/user cluster kubeconfig) ve kubectl ile salt-okunur teşhis. "anthos", "gke", "admin cluster", "user cluster", "admin workstation", "anthosjb", "jumpbox" isteklerinde tetiklenir. Rancher/RKE2 kümeleri için `k8s-sorun` ve `rke2-denetim`.
 ---
 
 ## Ortam (Alp, 2026-10-16)

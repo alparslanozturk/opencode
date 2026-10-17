@@ -795,3 +795,5 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   geçmiş korundu; çapraz atıflar, AGENTS.md, CLAUDE.md, README, PROJE-YAPISI, parked atıfları, `script/veri-guncelle.sh` (VERI bloğu →
   surum-uyum) güncellendi. Doğrulama: 20/20 frontmatter adı = klasör; uyum.py yeni yolda çalışıyor; kilit taraması 27 engel / 20 onay
   (değişmedi). Saha: `al.sh` → `./kur.sh` (eski klasörler `--delete` ile gider, kalırsa G64 koruması kurmaz).
+- Düzeltme (Alp, aynı gün): "genel Kubernetes `k8s-`, RKE2'ye özgü `rke2-`; Anthos GKE'leri yöneten orkestratör" → k8s-denetim/gpu/
+  guvenlik/yukseltme/kurulum/node-ekle → **rke2-***; `k8s-sorun` (genel kubectl teşhisi, Anthos'ta da geçer) `k8s-` kaldı.

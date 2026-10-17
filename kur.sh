@@ -28,7 +28,7 @@
 #    ALP_DERLE=1 ikili güncel olsa da derle · ALP_DERLEME_YOK=1 hiç derleme ·
 #    ALP_TUM_BECERILER=1 tüm beceriler · ALP_KALINTI_GEC=1 git'te olmayan paket/beceri kalıntısını yok say ·
 #    ALP_DERLE_EK="--ignore-scripts" bun'a ek bayrak ·
-#    KURUM_MAX_CONTEXT/KURUM_MAX_OUTPUT (env) uç bildirmezse bağlam/çıktı sınırı ·
+#    KURUM_MAX_CONTEXT/KURUM_MAX_OUTPUT (env) uç bildirmezse bağlam/çıktı sınırı (çıktı yoksa 16384) ·
 #    KISAYOL_DIZIN (varsayılan /usr/local/bin, yazılamıyorsa ~/.local/bin) ·
 #    BUN bun ikilisinin yolu · MODELS_DEV_API_JSON models.dev anlık görüntüsü ·
 #    OPENCODE_VERSION/OPENCODE_CHANNEL ürün sürümü/kanalı (varsayılan 1.0.0/main)
@@ -93,6 +93,8 @@ bilgi()   { printf '   %s\n' "$*" >&2; }
 
 PY=""
 if command -v python3 > /dev/null 2>&1; then PY="python3"; fi
+# Uç çıktı sınırı bildirmezse kullanılan değer (Alp, 2026-10-17: "16384 olsun"). env KURUM_MAX_OUTPUT önceliklidir.
+VARSAYILAN_CIKTI=16384
 
 # --- argümanlarla gelen durum (ana() doldurur) ---
 ALT_KOMUT=""
@@ -527,7 +529,7 @@ kisayol_kur() { # <ad>
 #  küçük istekle sorar — `max_tokens` bilerek aşırı büyük gönderilir, uç bunu
 #  reddedip sınırı hata mesajında söylerse sayı oradan okunur. İstek `stream:true`
 #  ve kısa zaman aşımıyla atılır: uç isteği KABUL ederse akış ilk parçada kesilir
-#  (uçta uzun üretim başlatmaz). Sınır okunamazsa boş döner — çağıran 4096'ya düşer.
+#  (uçta uzun üretim başlatmaz). Sınır okunamazsa boş döner — çağıran kurum varsayılanına (16384) düşer.
 #  Bağlam penceresi mesajları (vLLM "maximum context length is N") BİLEREK
 #  eşleşmez: o sayı çıktı sınırı değildir.
 # ---------------------------------------------------------------------------
@@ -850,9 +852,9 @@ kur() {
   # -------------------------------------------------------------------------
   #  Bağlam penceresi + ÇIKTI SINIRI tespiti — uydurma değer yok, kurum uçtan
   #  öğrenilir (best-effort). Sıra (T3):
-  #    1) /v1/models alanları  2) küçük bir probe isteği  3) env  4) 4096
+  #    1) /v1/models alanları  2) küçük bir probe isteği  3) env  4) kurum varsayılanı 16384 (pencere/4'ü aşmaz)
   #  Hangi basamağın kazandığı `kur-durum` künyesine yazılır; kontrol raporu
-  #  "uctan alinamadi → 4096" ayrımını oradan basar (sessizce sabit kalmaz).
+  #  "kurum varsayilani … (uc bildirmiyor)" ayrımını oradan basar (sessizce sabit kalmaz).
   # -------------------------------------------------------------------------
   local TESPIT_EDILEN_PENCERE="" TESPIT_KAYNAK="" MODELS_JSON=""
   local CIKTI_SINIRI="" CIKTI_KAYNAK="" UC_ALANLARI=""
@@ -883,7 +885,7 @@ kur() {
     sari "    İstersen $KOK/env içine KURUM_MAX_CONTEXT=<token> ekleyip yeniden çalıştır."
   fi
 
-  # --- çıktı sınırı: alan yoksa probe, o da yoksa env, o da yoksa 4096 ------
+  # --- çıktı sınırı: alan yoksa probe, o da yoksa env, o da yoksa kurum varsayılanı (16384) ------
   if [ -z "$CIKTI_SINIRI" ]; then
     case "$KURUM_URL" in
       ""|*KURUM_ENDPOINT*) ;;
@@ -911,10 +913,14 @@ kur() {
   if [ -n "$CIKTI_SINIRI" ]; then
     yesil "  çıktı sınırı    : $CIKTI_SINIRI token (kaynak: $CIKTI_KAYNAK)"
   else
-    CIKTI_SINIRI=4096
-    CIKTI_KAYNAK="uctan alinamadi → 4096"
-    sari "  ! çıktı sınırı uçtan alınamadı → güvenli varsayılan 4096 token kullanıldı"
-    sari "    Uç değeri bildirmiyorsa $KOK/env içine KURUM_MAX_OUTPUT=<token> ekleyip yeniden çalıştır."
+    # Kurum varsayılanı (Alp, 2026-10-17): kurum vLLM'i (Qwen3.6, --max-model-len 262144) çıktı sınırı bildirmiyor; eski
+    # 4096 düşünme blokları + uzun raporu kesebiliyordu → 16384. Küçük pencerede pencerenin 1/4'ünü aşmaz (16K → 4096).
+    CIKTI_SINIRI="$VARSAYILAN_CIKTI"
+    if [ -n "$TESPIT_EDILEN_PENCERE" ] && [ $((TESPIT_EDILEN_PENCERE / 4)) -lt "$CIKTI_SINIRI" ]; then
+      CIKTI_SINIRI=$((TESPIT_EDILEN_PENCERE / 4))
+    fi
+    CIKTI_KAYNAK="kurum varsayilani $CIKTI_SINIRI (uc bildirmiyor)"
+    yesil "  çıktı sınırı    : $CIKTI_SINIRI token (kaynak: kurum varsayılanı — uç bildirmiyor; değiştirmek için $KOK/env içine KURUM_MAX_OUTPUT=<token>)"
   fi
 
   # A16: anahtar argv yerine ortamdan (argv `ps`'te herkese görünür; /proc/<pid>/environ yalnız sahibine)
@@ -1994,7 +2000,7 @@ PY
     fi
   fi
   # T3: çıktı sınırı — kurulu değer opencode.json'dan, "nereden geldiği" kurulum
-  # künyesinden (kur-durum) okunur. Künye yoksa/eskimişse sessizce "4096 zaten
+  # künyesinden (kur-durum) okunur. Künye yoksa/eskimişse sessizce "varsayılan zaten
   # böyleydi" demeyiz: kaynak "bilinmiyor" diye basılır.
   CIKTI_UC=""
   if [ -s "$MODELS_GOVDE" ] && [ -n "$PY" ]; then

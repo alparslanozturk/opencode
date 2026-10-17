@@ -2,7 +2,7 @@
 # script/veri-guncelle.sh — sahanın çevrimdışı sürüm/uyum verisini beceriye gömer (T33).
 #
 # Saha internete çıkamaz (yalnız GitHub, o da kesintili) → model sürüm/uyum sorularında TAHMİN etmesin diye
-# veri, `rke2-ansible` becerisinin içine (SKILL.md, VERİ işaretleri arası) gömülür; beceri yüklenince model
+# veri, `surum-uyum` becerisinin içine (SKILL.md, VERİ işaretleri arası) gömülür; beceri yüklenince model
 # tabloyu doğrudan görür (dosya okuma / izin / internet gerekmez).
 #
 # Tek kaynak: kurum rke2-ansible reposu (github.com/alparslanozturk/rke2-ansible):
@@ -15,7 +15,7 @@ set -euo pipefail
 
 KOK="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RKE2="${1:-/root/rke2-ansible}"
-BECERI="$KOK/knowledge/skills/approved/rke2-ansible/SKILL.md"
+BECERI="$KOK/knowledge/skills/approved/surum-uyum/SKILL.md"
 [ -f "$RKE2/araclar/rancher_matris.py" ] || { echo "!! rke2-ansible bulunamadı: $RKE2" >&2; exit 2; }
 [ -f "$RKE2/araclar/matris/antrea-uyum.txt" ] || { echo "!! $RKE2/araclar/matris/antrea-uyum.txt yok" >&2; exit 2; }
 

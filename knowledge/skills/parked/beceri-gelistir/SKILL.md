@@ -87,7 +87,7 @@ bir gerçeği düzeltirken becerinin sırasını da gözden geçir.
 4000 karakter pratik sınır; 4B model 3.4k civarında gövdenin ortasını
 kaçırmaya başlıyor. Aşıyorsa **domaine göre** böl, rastgele kesme:
 
-- `depolama` (teşhis) + `depolama` (operasyon)
+- `rhel-depolama` (teşhis) + `rhel-depolama` (operasyon)
 - `servis-teshis` (veri servisleri) + `web-sunucu` (nginx/apache)
 
 Bölerken her iki becerinin `description`'ına diğerine işaret eden bir cümle

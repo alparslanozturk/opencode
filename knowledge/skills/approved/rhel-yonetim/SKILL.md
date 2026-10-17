@@ -1,6 +1,6 @@
 ---
 name: rhel-yonetim
-description: RHEL sunucularda sistem yönetimi yaparken kullan — servis, log, paket, abonelik, Satellite (hammer), IdM (ipa). "servis", "systemctl", "journalctl", "dnf", "satellite", "hammer", "ipa", "idm", "abonelik", "repo" isteklerinde tetiklenir. Güncelleme ve yama için `sistem-guncelleme`.
+description: RHEL sunucularda sistem yönetimi yaparken kullan — servis, log, paket, abonelik, Satellite (hammer), IdM (ipa). "servis", "systemctl", "journalctl", "dnf", "satellite", "hammer", "ipa", "idm", "abonelik", "repo" isteklerinde tetiklenir. Güncelleme ve yama için `rhel-guncelleme`.
 ---
 
 ## Önce: gerçekten Linux mu
@@ -66,7 +66,7 @@ ssh -G <ad> | head -3          # takma ad neye çözülüyor
 ## Sistem güncelleme
 
 Paket yöneticisi `dnf`; `apt` RHEL ailesinde yoktur. Güncelleme, güvenlik
-yaması ve yeniden başlatma kararı için `sistem-guncelleme` becerisine geç.
+yaması ve yeniden başlatma kararı için `rhel-guncelleme` becerisine geç.
 
 ## Salt-okunur ile yan etkiliyi ayır
 
@@ -94,12 +94,12 @@ df -h ; free -m ; uptime
 
 Tüm sunucular Red Hat Satellite'a kayıtlıdır; paketler (`dnf`) oradan gelir. Kurumda Satellite ile yapılan **tek
 işlem sunucunun kaydıdır** — kurumun abonelik playbook'u çalıştırılır (çalışma dizininde
-`ansible/playbooks/*-subs.yaml`, 2026-10-13'te `04-subs.yaml`; akış `sunucu-teslim` bölüm 0; kendi
+`ansible/playbooks/*-subs.yaml`, 2026-10-13'te `04-subs.yaml`; akış `rhel-teslim` bölüm 0; kendi
 `subscription-manager register` komutunu uydurma). Satellite sunucusunun içi (content view,
 depo senkronu, `hammer`) bizim kapsamımız dışında. Kontrol (salt-okunur):
 
 ```bash
-subscription-manager status          # SCA modunda "Overall Status: Disabled" NORMAL (bkz. sunucu-teslim §2)
+subscription-manager status          # SCA modunda "Overall Status: Disabled" NORMAL (bkz. rhel-teslim §2)
 subscription-manager identity        # hangi Satellite/organizasyon
 dnf repolist                         # depolar geliyor mu
 ```
@@ -143,7 +143,7 @@ sunucuda çalıştırırsan oturumunu kaybedersin.
 
 ## Birden çok sunucu
 
-Tek sunucudan fazlasına dokunacaksan `filo-durum-kontrolu` becerisine geç.
+Tek sunucudan fazlasına dokunacaksan `filo-kontrol` becerisine geç.
 SSH döngüsü kurma, ad-hoc `ansible all -m shell` kullanma.
 
 ## Raporlama

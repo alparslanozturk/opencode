@@ -1,6 +1,6 @@
 ---
 name: nfs-mount
-description: NFS paylaşımı mount ederken ya da asılı NFS mount teşhis ederken kullan. "nfs", "mount", "showmount", "paylaşım", "df takıldı", "nfs yanıt vermiyor", "_netdev", "hard mount" isteklerinde tetiklenir. Yerel disk ve LVM için `depolama`.
+description: NFS paylaşımı mount ederken ya da asılı NFS mount teşhis ederken kullan. "nfs", "mount", "showmount", "paylaşım", "df takıldı", "nfs yanıt vermiyor", "_netdev", "hard mount" isteklerinde tetiklenir. Yerel disk ve LVM için `rhel-depolama`.
 ---
 
 Doğrulandı: AlmaLinux 10.2 — 2026-08-29 (showmount, rpcinfo, nfsstat, findmnt mevcut)

@@ -52,7 +52,7 @@ journalctl -u pulpcore-api -n 100 --no-pager
 df -h /var/lib/pulp /var/lib/pgsql /var
 ```
 
-Doluysa `depolama` becerisine geç — servisleri yeniden başlatmak dolu diskte
+Doluysa `rhel-depolama` becerisine geç — servisleri yeniden başlatmak dolu diskte
 çözmez, biraz sonra tekrar düşer.
 
 Yeniden başlatma (yan etkili, **onay al**, Satellite kesintisi demektir):
@@ -142,7 +142,7 @@ hammer activation-key info --name "<anahtar>" --organization "<org>"
 ```
 
 Anahtar hangi içerik görünümüne ve ortama bağlar, onu gösterir. Yanlış anahtar
-sunucuyu yanlış yama setine bağlar — `sunucu-teslim` becerisinde kayıt adımı
+sunucuyu yanlış yama setine bağlar — `rhel-teslim` becerisinde kayıt adımı
 bunu kullanır.
 
 ## Yapmayacakların

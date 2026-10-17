@@ -19,7 +19,7 @@ uname -a
 ```
 
 `SunOS` görüyorsan diğer becerilerdeki (`rhel-yonetim`, `ag-teshis`,
-`depolama`, `servis-teshis`) komutların çoğu geçersizdir. Buradan devam et.
+`rhel-depolama`, `servis-teshis`) komutların çoğu geçersizdir. Buradan devam et.
 
 Sürüm ve donanım:
 
@@ -92,7 +92,7 @@ değişiklik önerirken bunu açıkça söyle.
 
 ## ZFS — Linux LVM refleksiyle yaklaşma
 
-Disk büyütme, `depolama` becerisindeki LVM/XFS yordamıyla **aynı değildir**.
+Disk büyütme, `rhel-depolama` becerisindeki LVM/XFS yordamıyla **aynı değildir**.
 ZFS'te havuz ve dosya sistemi ayrı kavramlar, `xfs_growfs` karşılığı yok.
 
 Salt-okunur bakış:

@@ -56,10 +56,10 @@ bu beceri şu an fiilen kullanılamaz durumda, MCP entegrasyonu gelene kadar par
   tekrarlıyor → tek bir temel "container-teshis" bölümü + servise özgü ekler.
 - `kod-inceleme` + `guvenlik-incelemesi`: güvenlik bölümü tekrarı.
 
-(`ansible` ↔ `filo-durum-kontrolu` adayı — ikisi de çekirdekte kaldığı için burada değil, ayrıca
+(`ansible` ↔ `filo-kontrol` adayı — ikisi de çekirdekte kaldığı için burada değil, ayrıca
 değerlendirilmeli.)
 
-## Tam liste (26 — `depolama` 2026-09-26'da, `sunucu-teslim` 2026-10-13'te onaylıya taşındı)
+## Tam liste (26 — `rhel-depolama` 2026-09-26'da, `rhel-teslim` 2026-10-13'te onaylıya taşındı)
 
 ```
 ag-teshis, beceri-gelistir, beceri-yaz, belge-yaz, git-azuredevops, guvenlik-ajani,

@@ -158,7 +158,7 @@ ile öğren.
 Yeniden başlatma uzak sunucuda da yan etkilidir — **onay al**, ve kullanıcıya
 o sunucuda o an kimlik doğrulayan başka kullanıcılar olabileceğini hatırlat.
 
-Birden fazla sunucuda aynı sorun varsa `filo-durum-kontrolu` becerisine geç;
+Birden fazla sunucuda aynı sorun varsa `filo-kontrol` becerisine geç;
 tek tek ssh yerine playbook ile topla.
 
 ## Raporlama

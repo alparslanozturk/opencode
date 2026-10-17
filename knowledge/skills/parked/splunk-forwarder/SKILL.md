@@ -80,7 +80,7 @@ du -sh /opt/splunkforwarder/var/lib/splunk 2>/dev/null
 ```
 
 Gönderilemeyen veri diskte birikir. `/opt` dolarsa forwarder durur **ve**
-sunucudaki başka şeyler de etkilenir — `depolama` becerisine geç.
+sunucudaki başka şeyler de etkilenir — `rhel-depolama` becerisine geç.
 
 İzlenen dosyalar ve nerede kaldığı:
 
@@ -135,7 +135,7 @@ Ssh(host="<sunucu>", command="systemctl is-active <splunk-servis>; /opt/splunkfo
 Ssh(host="<sunucu>", command="/opt/splunkforwarder/bin/splunk list forward-server")
 ```
 
-Birden fazla sunucuda aynı sorun varsa `filo-durum-kontrolu` becerisine geç.
+Birden fazla sunucuda aynı sorun varsa `filo-kontrol` becerisine geç.
 
 ## Raporlama
 

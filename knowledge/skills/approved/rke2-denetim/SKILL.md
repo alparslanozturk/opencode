@@ -1,11 +1,11 @@
 ---
-name: k8s-denetim
-description: Rancher'ın yönettiği RKE2 kümesini (test, nonprod, prod) uçtan uca denetlerken kullan — sürüm envanteri ve matris, control plane (etcd, apiserver), node NotReady/Unavailable/donma/kısa takılma, Antrea/OVS, conntrack, sistem pod'ları, node işletim sistemi. "kümeyi incele", "küme denetimi", "kümede neler oluyor", "node unavailable", "notready", "node düşüyor", "donma", "takılma", "rke2 incele", "rancher kümesi", "antrea", "ovs", "etcd", "control plane", "kube-system" isteklerinde tetiklenir. GPU kümesi için ayrıca `k8s-gpu`, güvenlik için `k8s-guvenlik`, yükseltme için `k8s-yukseltme`. Yalnız okur; değişiklik önerir, uygulamaz.
+name: rke2-denetim
+description: Rancher'ın yönettiği RKE2 kümesini (test, nonprod, prod) uçtan uca denetlerken kullan — sürüm envanteri ve matris, control plane (etcd, apiserver), node NotReady/Unavailable/donma/kısa takılma, Antrea/OVS, conntrack, sistem pod'ları, node işletim sistemi. "kümeyi incele", "küme denetimi", "kümede neler oluyor", "node unavailable", "notready", "node düşüyor", "donma", "takılma", "rke2 incele", "rancher kümesi", "antrea", "ovs", "etcd", "control plane", "kube-system" isteklerinde tetiklenir. GPU kümesi için ayrıca `rke2-gpu`, güvenlik için `rke2-guvenlik`, yükseltme için `rke2-yukseltme`. Yalnız okur; değişiklik önerir, uygulamaz.
 ---
 
 # RKE2 küme denetimi (her küme)
 
-GPU kümesinde (`gpu-dtx`, `gpu-prod`) önce bu becerinin §1 sürüm envanteri ve §4 node durumu, sonra **`k8s-gpu`**.
+GPU kümesinde (`gpu-dtx`, `gpu-prod`) önce bu becerinin §1 sürüm envanteri ve §4 node durumu, sonra **`rke2-gpu`**.
 
 Doğrulama: Doktor'un makinesinde küme yok — komutlar sahada ilk kullanımda doğrulanacak; emin olmadığın bayrakta
 `--help`. Kaynak etiketi: **(Alp)** kurum bilgisi · **(saha G…)** saha gözlemi · **(genel)** Kubernetes/RKE2 genel
@@ -61,7 +61,7 @@ kubectl -n kube-system get pods -l app=antrea -o jsonpath='{range .items[*]}{.sp
 - Rancher sürümü: Rancher arayüzü sol alt ya da downstream'de `kubectl -n cattle-system get deploy cattle-cluster-agent
   -o jsonpath='{.spec.template.spec.containers[0].image}'` (genel).
 - **Uyum + destek sonu (EOL) + en son yama kararı betikten:** `python3 /root/ai/opencode/knowledge/skills/approved/surum-uyum/uyum.py
-  kontrol --rancher … --rke2 … --antrea … --rhel …` — çıktıyı olduğu gibi aktar (`k8s-yukseltme`). Güvenlik puan kartı: `k8s-guvenlik`.
+  kontrol --rancher … --rke2 … --antrea … --rhel …` — çıktıyı olduğu gibi aktar (`rke2-yukseltme`). Güvenlik puan kartı: `rke2-guvenlik`.
 - **Uyumluluk yorumu yalnız `surum-uyum` becerisindeki çevrimdışı matristen (`uyum.py`)** (Rancher ↔ RKE2 ↔ RHEL; Antrea notu
   orada). **Antrea ↔ K8s satırı her raporda zorunlu** (Alp, 2026-10-17: "matris çok önemli, supported olmalı"); Antrea RKE2
   ile gelmez, ayrı yükseltilir — K8s yükseltilip Antrea unutulabilir. Bilinen: `test` Antrea v2.3.0 + 1.33 → ❌ (v2.3 →
@@ -206,7 +206,7 @@ journalctl -k --since -7d --no-pager | grep -c "table full"        # 0 → tablo
 ansible <grup> -i <envanter> -m shell -o -a 'uname -r; cat /etc/redhat-release; uptime; free -g | sed -n 2p; sysctl -n net.ipv4.ip_forward; swapon --show | wc -l'
 ```
 
-- Çekirdek ve RHEL minor'ün node'lar arası farkı; `ip_forward=1`, swap kapalı (RKE2 gereği — `k8s-kurulum`).
+- Çekirdek ve RHEL minor'ün node'lar arası farkı; `ip_forward=1`, swap kapalı (RKE2 gereği — `rke2-kurulum`).
 - SELinux ve firewalld kapalı olması **normal** (kurum kararı) — bulgu sayma.
 - Sorunlu node'larla sağlıklı node'ları yan yana koy: fark neyse aday sebep odur (yine "tahmin:").
 
@@ -284,4 +284,4 @@ Bu turda iki node etkilendiyse (ör. biri NotReady→Ready, biri ssh banner time
 
 - Reboot, `systemctl restart rke2-*`, antrea/coredns pod'u silme, `kubectl drain/cordon/delete`, `kubectl exec`
 - Event silme (Rancher'daki "Delete" düğmesi dahil), Rancher'da düzenleme
-- Sürüm yükseltme önerisini matrise bakmadan yapma (`surum-uyum`, `k8s-yukseltme`)
+- Sürüm yükseltme önerisini matrise bakmadan yapma (`surum-uyum`, `rke2-yukseltme`)

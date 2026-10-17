@@ -1,6 +1,6 @@
 ---
 name: surum-uyum
-description: Sürüm uyumu, destek sonu (EOL / bakım sonu) ve en son yama sorusunda kullan — deterministik `uyum.py` (çevrimdışı veri): Rancher ↔ RKE2 ↔ RHEL ↔ Antrea matrisi, SUSE/K8s/RHEL ömür tarihleri, en son yama, yükseltme yolu hesabı. "uyumlu mu", "matris", "destekleniyor mu", "eol", "end of life", "destek sonu", "destek bitiyor", "bakım sonu", "en son yama", "patch", "sürüm geride mi", "kaç gün kaldı", "supported mı" isteklerinde tetiklenir. Yükseltme planı için `k8s-yukseltme`.
+description: Sürüm uyumu, destek sonu (EOL / bakım sonu) ve en son yama sorusunda kullan — deterministik `uyum.py` (çevrimdışı veri): Rancher ↔ RKE2 ↔ RHEL ↔ Antrea matrisi, SUSE/K8s/RHEL ömür tarihleri, en son yama, yükseltme yolu hesabı. "uyumlu mu", "matris", "destekleniyor mu", "eol", "end of life", "destek sonu", "destek bitiyor", "bakım sonu", "en son yama", "patch", "sürüm geride mi", "kaç gün kaldı", "supported mı" isteklerinde tetiklenir. Yükseltme planı için `rke2-yukseltme`.
 ---
 
 # Sürüm uyumu ve destek sonu — `uyum.py`
@@ -20,7 +20,7 @@ python3 /root/ai/opencode/knowledge/skills/approved/surum-uyum/uyum.py veri     
 ```
 
 Çıktıyı **olduğu gibi** aktar (✅/⚠️/❌ + `[kaynak: …]`); satır ekleme, tarihi yeniden hesaplama. Çıkış kodu 1 = en az bir ❌.
-Sürümleri toplama komutları: `k8s-yukseltme` §1. Kapsam şimdilik Rancher/RKE2/Antrea/RHEL; Anthos ve VMware VCF verisi gelince
+Sürümleri toplama komutları: `rke2-yukseltme` §1. Kapsam şimdilik Rancher/RKE2/Antrea/RHEL; Anthos ve VMware VCF verisi gelince
 aynı dosyaya bölüm olarak eklenir.
 
 ## Veriyi güncelleme (internetli makinede, Doktor)
@@ -32,7 +32,7 @@ eski çıktıyla karşılaştır; bölüm başlığındaki indirme tarihini değ
 
 ## Elle uyumluluk kontrolü (betik yoksa — T33, Alp: "uyumlulukları kontrol edebilsin matriksleri")
 
-Girdi: kullanıcı beyanı **ya da** kümeden okuma (`k8s-yukseltme` §1; Antrea için
+Girdi: kullanıcı beyanı **ya da** kümeden okuma (`rke2-yukseltme` §1; Antrea için
 `kubectl -n kube-system get ds antrea-agent -o jsonpath='{.spec.template.spec.containers[0].image}'`).
 Veri: aşağıdaki **Çevrimdışı veri** bölümü (her zaman elinde; internet gerekmez).
 

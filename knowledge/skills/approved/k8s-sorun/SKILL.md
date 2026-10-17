@@ -70,8 +70,8 @@ hazır olmadığı demektir; readiness probe başarısız olabilir.
 - Rancher CLI (`rancher`) kurulumdan kuruluma değişir. Önce `rancher --help`
   çıktısını oku, ezberden komut yazma.
 - Anthos (GKE) kümeleri → `anthos-erisim` becerisi (erişim yolu farklı).
-- Kümeyi bütün olarak incelemek (sürüm matrisi, control plane, node Unavailable, Antrea/OVS, OS) → `k8s-denetim`.
-- GPU kümesi / H200 node / vLLM pod'u / NVIDIA GPU Operator denetimi → `k8s-denetim` becerisi.
+- Kümeyi bütün olarak incelemek (sürüm matrisi, control plane, node Unavailable, Antrea/OVS, OS) → `rke2-denetim`.
+- GPU kümesi / H200 node / vLLM pod'u / NVIDIA GPU Operator denetimi → `rke2-denetim` becerisi.
 - Pod yavaş ama CPU kullanımı düşük görünüyorsa: CPU limit kısıtlaması
   (throttling) ve çalıştırma kuyruğu gecikmesi — `rhel-sorun` becerisi,
   "CPU gecikmesi" bölümü (cgroup `cpu.stat`, `runqlat.bt`, `rtla timerlat`).

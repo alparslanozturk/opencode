@@ -1,6 +1,6 @@
 ---
-name: k8s-gpu
-description: GPU kümesini (gpu-dtx, gpu-prod — H200/B300) denetlerken kullan — NVIDIA GPU Operator, sürücü/CUDA, vLLM pod limitleri ve shm, Run:ai, hostPath /models (RAID10/NVMe), GPU node işletim sistemi, ölçüm. "gpu", "gpu kümesi", "h200", "b300", "nvidia", "gpu operator", "vllm", "runai", "/models", "dcgm", "nvlink", "limitler doğru mu", "gpu-dtx", "gpu-prod" isteklerinde tetiklenir. Temel katmanlar (sürüm, control plane, node, Antrea) için önce `k8s-denetim`. Yalnız okur; değişiklik önerir, uygulamaz.
+name: rke2-gpu
+description: GPU kümesini (gpu-dtx, gpu-prod — H200/B300) denetlerken kullan — NVIDIA GPU Operator, sürücü/CUDA, vLLM pod limitleri ve shm, Run:ai, hostPath /models (RAID10/NVMe), GPU node işletim sistemi, ölçüm. "gpu", "gpu kümesi", "h200", "b300", "nvidia", "gpu operator", "vllm", "runai", "/models", "dcgm", "nvlink", "limitler doğru mu", "gpu-dtx", "gpu-prod" isteklerinde tetiklenir. Temel katmanlar (sürüm, control plane, node, Antrea) için önce `rke2-denetim`. Yalnız okur; değişiklik önerir, uygulamaz.
 ---
 
 # GPU kümesi denetimi
@@ -20,7 +20,7 @@ doğrulanmadı — raporda "öneri" olarak yaz, "kural" olarak değil.
   - `gpu-dtx` node'ları (saha `get nodes -o wide`, 2026-10-15): `sdlgpumaster1-3` (control-plane), `sdlgpuworker1-3`
     (rol etiketi `runai-system`, **GPU etiketi yok** — L40S bunlarda mı `[SAHA]`), `sdlgpuh200w1` (rol `runai-system`,
     `NVIDIA-H200` × 8). H200 node'u o gün **RKE2 v1.32.6 / RHEL 9.4 / containerd 2.0.5**, diğerleri v1.33.13 / 9.6 / 2.2.5
-    — sapmayı her incelemede yeniden oku (`k8s-denetim` §1); 9.4 bilinçli olabilir (Satellite'ta 9.4 CV'si var, Alp).
+    — sapmayı her incelemede yeniden oku (`rke2-denetim` §1); 9.4 bilinçli olabilir (Satellite'ta 9.4 CV'si var, Alp).
   - **Şimdilik yalnız `gpu-dtx` incelenir** (Alp, 2026-10-14). `gpu-prod`'a Alp açıkça istemedikçe komut çalıştırma.
 - Worker'lar (H200 fiziksel ve L40S VM'ler) RKE2 kümesinin worker node'larıdır — **ikisi de denetim kapsamında.** VM
   worker'da ayrıca hipervizör etkisine bak (`rhel-performans` §3 `%steal`) ve GPU'nun VM'e nasıl verildiğini
@@ -31,7 +31,7 @@ doğrulanmadı — raporda "öneri" olarak yaz, "kural" olarak değil.
   580.82.07, CUDA 13.0; `tuned` kurulu değil; THP `always`.
 - `/models`: host'ta NVMe RAID10 (+2 yedek) → LVM → xfs, ~10 TB; **yazılabilir** — modelleri ekip NFS ya da scp ile
   kopyalıyor. Ayrıntı: 16 × 1.7 TB NVMe, 12'si yazılım RAID10 (mdadm), 2'si yedek — `rhel-depolama` A §8; LV düzeni
-  (`k8s-node-ekle` "Elle worker ekleme" planı). **Sahada (2026-10-15):** `/dev/mapper/vg_models-lv_models` → `/models`,
+  (`rke2-node-ekle` "Elle worker ekleme" planı). **Sahada (2026-10-15):** `/dev/mapper/vg_models-lv_models` → `/models`,
   xfs, 13T (900G dolu), seçenek `relatime` (`noatime` değil) — planla fark varsa yaz, değiştirme.
 - **Depolama iki türlü (saha 2026-10-15, gpu-dtx):** `runai-inference` pod'ları **hostPath `/models`** (readOnly);
   `vllm` namespace pod'ları **NFS PVC** (`nfs-sc`, ör. `vllm-qwen3-235b-fp8-storage-claim` 250Gi). Alp: hedef hostPath,
@@ -85,8 +85,8 @@ Sahadaki model uzun oturumda öncekini unutur ve sayı uydurur (saha G20, G22). 
 
 ### Akış
 
-**Temel küme katmanları (sürüm matrisi, control plane, node NotReady, Antrea, OS) `k8s-denetim` becerisinde** — önce onu uygula
-(en azından `k8s-denetim` §1 sürüm envanteri ve §4 node durumu); bu bölüm GPU'ya özgü katmanları ekler.
+**Temel küme katmanları (sürüm matrisi, control plane, node NotReady, Antrea, OS) `rke2-denetim` becerisinde** — önce onu uygula
+(en azından `rke2-denetim` §1 sürüm envanteri ve §4 node durumu); bu bölüm GPU'ya özgü katmanları ekler.
 
 Katman katman git, her katmanda **kanıt topla → değerlendir**. Bir katmanda ❌ varsa sonrakine geçmeden önce kullanıcıya
 söyle (ör. operator bozuksa pod ayarını tartışmak boşa).
@@ -110,7 +110,7 @@ kubectl describe node <gpu-node> | sed -n '/Taints/,/Events/p'   # taint, Alloca
   kubectl get node <gpu-node> -o jsonpath='{.status.capacity}'; echo     # memory Ki cinsinden — GiB'e çevirirken hesabı göster
   ```
 - **İlk özete sürüm sapmasını yaz:** `get nodes -o wide`'daki VERSION / OS-IMAGE / KERNEL-VERSION / CONTAINER-RUNTIME
-  sütunlarında GPU node'u diğerlerinden farklıysa bunu ilk bulgu olarak ver (`k8s-denetim` §1, matris `surum-uyum`).
+  sütunlarında GPU node'u diğerlerinden farklıysa bunu ilk bulgu olarak ver (`rke2-denetim` §1, matris `surum-uyum`).
 
 - **Sürümler küme üzerinden okunur, tahmin edilmez:** RKE2/Kubernetes → `get nodes` `VERSION` sütunu
   (`v1.xx.y+rke2rN` biçimi); Rancher → `kubectl -n cattle-system get deploy cattle-cluster-agent -o
@@ -185,7 +185,7 @@ Her vLLM pod'u için (kanıt = yaml'daki alan):
     `journalctl -k --since -7d | grep -i -e oom -e "memory cgroup" | tail -20`.
 - **hostPath `/models`:** host'ta yazılabilir olması normal (kopyalama oradan yapılıyor). Pod tarafında `readOnly: true`
   önerilebilir (genel; vLLM yalnız okur) — mevcut değeri yaz. `type`, pod'un H200'e sabitlenme yöntemi
-  (`nodeSelector` / `affinity` / `tolerations`) ve namespace PSA istisnası (`k8s-kurulum`).
+  (`nodeSelector` / `affinity` / `tolerations`) ve namespace PSA istisnası (`rke2-kurulum`).
 - **Prob'lar:** model yüklemesi dakikalar sürebilir. `startupProbe` yok ve `livenessProbe` erken başlıyorsa pod yükleme
   sırasında öldürülür → `CrashLoopBackOff`. `initialDelaySeconds`/`failureThreshold`'u gerçek yükleme süresiyle karşılaştır.
 - **Çelişen bayraklar:** aynı args'ta hem `--enable-X` hem `--no-enable-X` (ör. prefix caching, saha G59) → bulgu;
@@ -238,7 +238,7 @@ tuned-adm active
 cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_driver /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>&1
 cpupower frequency-info -p 2>/dev/null
 lscpu | grep -i -e numa -e 'model name' -e '^cpu(s)'
-free -g; swapon --show                       # RKE2 için swap kapalı olmalı (`k8s-kurulum`)
+free -g; swapon --show                       # RKE2 için swap kapalı olmalı (`rke2-kurulum`)
 cat /sys/kernel/mm/transparent_hugepage/enabled
 cat /proc/cmdline                            # iommu, isolcpus, hugepages gibi açılış parametreleri
 grep -i -e kubelet-arg -A15 /etc/rancher/rke2/config.yaml

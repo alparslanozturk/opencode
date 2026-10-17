@@ -1,5 +1,5 @@
 ---
-name: k8s-yukseltme
+name: rke2-yukseltme
 description: Rancher / RKE2 / Antrea (Kubernetes) yükseltmesini planlarken kullan — adım adım yol (minor atlanmaz, Rancher son yama kuralı, Antrea önce), ön kontroller (etcd snapshot, rancher-backup, kaldırılan API, PDB, sertifika), geri dönüş, Rancher'ın sürüm yönetimi (imported küme), Antrea sürüm notları; danışman firmanın (Hepapi) planını veriyle çapraz kontrol. "k8s yükseltme", "rke2 yükseltme", "rancher yükseltme", "upgrade", "upgrade planı", "hangi sürüme", "yol haritası", "antrea yükseltme", "hepapi", "danışman planı", "plan doğru mu" isteklerinde tetiklenir. Destek durumu/EOL sorusu tek başına ise `surum-uyum`. Yalnız okur ve plan yazar; uygulamaz.
 ---
 

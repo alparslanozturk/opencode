@@ -1,5 +1,5 @@
 ---
-name: k8s-guvenlik
+name: rke2-guvenlik
 description: RKE2/Rancher kümesinin güvenlik sağlığını yalnız okuyarak denetleyip puan kartı çıkarırken kullan — sürüm destek durumu (EOL, yama, Antrea matrisi), etcd yedeği, secrets şifreleme, sertifika, audit log, anonim erişim, RBAC (cluster-admin), privileged/hostPath/hostNetwork pod, PSA, açık servis (NodePort/LB), NetworkPolicy, imaj kaynağı, Rancher admin/token/yedek. "küme güvenliği", "k8s güvenlik", "güvenlik sağlığı", "güvenlik kontrolü", "hardening", "cluster-admin kim", "rbac", "secret şifreli mi", "etcd yedeği var mı", "token süresi", "rancher güvenlik", "danışman güvenlik raporu" isteklerinde tetiklenir. Node işletim sistemi tarafı: `rhel-guvenlik`. Yalnız okur; düzeltmeyi önerir, uygulamaz.
 ---
 
@@ -17,12 +17,12 @@ politikaların çoğu uygulanmış); Kubernetes ve VMware CIS benchmark'ları da
 "CIS: kurum profili [SAHA]" bilgi satırı. RHEL şablonları/SCAP profilleri yakında paylaşılacak.
 Okuma kısıtı yok (kapalı sistem): sır dosyası okunabilir ama **değerini ekrana basma** (anahtar/token içeriği yerine var/yok, sayı).
 
-Erişim kalıbı (`k8s-denetim` §0): `K="/var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml"` bir
+Erişim kalıbı (`rke2-denetim` §0): `K="/var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml"` bir
 master'da; aşağıda `kubectl` = bu.
 
 ## 1. Sürüm ve destek durumu (en yüksek ağırlık — EOL = güvenlik yaması yok)
 
-Sürümleri `k8s-yukseltme` §1 ile topla, sonra betik (kafadan hesaplama):
+Sürümleri `rke2-yukseltme` §1 ile topla, sonra betik (kafadan hesaplama):
 ```bash
 python3 /root/ai/opencode/knowledge/skills/approved/surum-uyum/uyum.py kontrol --rancher <r> --rke2 <k> --antrea <a> --rhel <liste>
 ```
@@ -42,7 +42,7 @@ ps -ef | grep -o -- "--anonymous-auth=[a-z]*" | sort | uniq -c           # apise
 Değerlendirme:
 - Snapshot son 24 saatte yoksa ❌; yalnız master diskinde (S3/dış kopya yok) ⚠️ — VM/datastore kaybında yedek de gider.
 - Şifreleme dosyası yok ya da ilk sağlayıcı `identity` → secrets etcd'de düz metin ❌.
-- Sertifika < 30 gün ❌; 120 gün içinde ⚠️ bilgi (RKE2 yeniden başlatmada kendisi yeniler — `k8s-yukseltme` §3).
+- Sertifika < 30 gün ❌; 120 gün içinde ⚠️ bilgi (RKE2 yeniden başlatmada kendisi yeniler — `rke2-yukseltme` §3).
 - audit.log yok ya da boş ⚠️ (kim ne yaptı izlenemez); `--anonymous-auth=true` ⚠️.
 - Doğrudan araç da serbest (saha G67): `/var/lib/rancher/rke2/bin/rke2 certificate check --output table`, `rke2 secrets-encrypt status`,
   `rke2 etcd-snapshot list` — çıktısı daha net; `rotate`/`save`/`prune` değişikliktir (K1).
@@ -60,7 +60,7 @@ kubectl get pods -A -o jsonpath='{..image}' | tr " " "\n" | sort | uniq -c | sor
 Değerlendirme:
 - cluster-admin'e bağlı **kullanıcı/grup/ServiceAccount** listesi — sistem bileşenleri (`system:`, `rke2-`, Rancher'ın `cattle-*`)
   dışındakiler ⚠️, sahibi sorulmalı.
-- Uygulama namespace'inde privileged / hostNetwork / hostPath pod ⚠️ (GPU vLLM `hostPath: /models` bilinen istisna — `k8s-gpu`).
+- Uygulama namespace'inde privileged / hostNetwork / hostPath pod ⚠️ (GPU vLLM `hostPath: /models` bilinen istisna — `rke2-gpu`).
 - NetworkPolicy sayısı 0 → namespace'ler arası trafik serbest ⚠️ (karar Alp'in; bilgi olarak yaz).
 - `docker.io`/genel registry'den çekilen imaj ⚠️ (air-gap kurumunda ayna dışı kaynak).
 
@@ -75,7 +75,7 @@ kubectl get tokens.management.cattle.io --no-headers 2>/dev/null | wc -l
 kubectl -n cattle-resources-system get backups.resources.cattle.io 2>/dev/null; kubectl get crd | grep -c resources.cattle.io
 ```
 Değerlendirme: yalnız `local` kimlik doğrulaması (AD/LDAP yok) ⚠️; Rancher admin sayısı ve kimler; token TTL `0` (süresiz)
-⚠️; `rancher-backup` yok ❌ (Rancher yükseltmesi geri dönüşsüz — `k8s-yukseltme` §3). Ayar adı/alan sürüme göre farklıysa
+⚠️; `rancher-backup` yok ❌ (Rancher yükseltmesi geri dönüşsüz — `rke2-yukseltme` §3). Ayar adı/alan sürüme göre farklıysa
 (boş dönerse) `-o yaml | head -40` ile bak, uydurma.
 
 ## 5. RHEL node'ları → `rhel-guvenlik`
@@ -99,7 +99,7 @@ Kritik sırası: EOL/matris dışı → yedek yok → secrets şifresiz → sür
 ## 7. Danışman güvenlik/yükseltme raporu çapraz kontrolü
 
 Rapordaki her iddiayı bu bölümlerin komutlarıyla sına: "doğrulandı / çelişiyor (bizim çıktı: …) / ölçülemedi". Sürüm ve
-EOL iddiaları için `uyum.py`; yükseltme planı için `k8s-yukseltme` §5.
+EOL iddiaları için `uyum.py`; yükseltme planı için `rke2-yukseltme` §5.
 
 ## Yapmayacakların
 

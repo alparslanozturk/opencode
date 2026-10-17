@@ -920,7 +920,7 @@ kur() {
       CIKTI_SINIRI=$((TESPIT_EDILEN_PENCERE / 4))
     fi
     CIKTI_KAYNAK="kurum varsayilani $CIKTI_SINIRI (uc bildirmiyor)"
-    yesil "  çıktı sınırı    : $CIKTI_SINIRI token (kaynak: kurum varsayılanı — uç bildirmiyor; değiştirmek için $KOK/env içine KURUM_MAX_OUTPUT=<token>)"
+    yesil "  çıktı sınırı    : $CIKTI_SINIRI token (kurum varsayılanı — uç bildirmiyor)"
   fi
 
   # A16: anahtar argv yerine ortamdan (argv `ps`'te herkese görünür; /proc/<pid>/environ yalnız sahibine)

@@ -21,7 +21,7 @@ import { homedir } from "os"
 import { join } from "path"
 import { deriveTarget, truncate } from "./lib/maskele"
 import { kilitDenetle } from "./lib/kilit"
-import type { Yetki } from "./lib/kilit"
+import type { KilitKarari, Yetki } from "./lib/kilit"
 import { STALE_PENDING_MS, beceriCommit, denetimYazici, sha256, yetkiIsle } from "./lib/denetim"
 
 // --- 2.x eklenti bağlamının kullandığımız kadarı (@opencode/plugin promise API) ---
@@ -98,6 +98,9 @@ export function guvenlikKur(ctx: Baglam) {
   const model = (sessionID: string) => modeller.get(sessionID) ?? varsayilan
   const beceriler = new Map<string, { name: string; commit: string | null }>()
   const kararlar = new Map<string, { kilit: string; mesaj: string }>() // sessionID:callID -> kilit kararı
+  // G68: kilidin tanımadığı (belirsiz) uzak komut — engel yok, kullanıcıya SORULUR. "Her zaman izin ver" kuralı da
+  // bunu atlatamaz: evaluate kancası saved kurallardan SONRA çalışır (core permission.ts) ve effect'i yine "ask" yapar.
+  const sorulanlar = new Map<string, KilitKarari>()
   const bekleyen = new Map<string, { tool: string; sessionID: string; timestamp: string; startedAt: number; argsHash: string; target: string }>()
   const yaz = denetimYazici({ projeDizini, beceriler: () => [...beceriler.values()] })
 
@@ -156,23 +159,29 @@ export function guvenlikKur(ctx: Baglam) {
       // K1/K5/K6 (ADR-0004). Code Mode ("execute") iç araçları da bu kancadan geçer.
       const kilit = kilitDenetle(tool, args, calismaDizini, yetki)
       kararlar.delete(`${e.sessionID}:${e.id}`) // aynı kimlik yeniden gelirse eski karar taşınmasın
+      sorulanlar.delete(`${e.sessionID}:${e.id}`)
       if (kilit) {
+        // "sor" yalnız izin soran araçta (shell) mümkün; başka araçta belirsiz karar da engeldir (şüphede kilit)
+        const sor = Boolean(kilit.sor) && IZIN_SORAN.has(e.tool)
         yaz({
           timestamp: new Date().toISOString(),
           sessionID: e.sessionID,
           tool: e.tool,
           argsHash,
-          target: truncate(`${kilit.kilit}${ENFORCE ? "" : " [GOZLEM]"} :: ${target}`),
-          resultStatus: ENFORCE ? "denied" : "asked",
-          policyDecision: "deny",
+          target: truncate(`${kilit.kilit}${sor ? "?" : ""}${ENFORCE ? "" : " [GOZLEM]"} :: ${target}`),
+          resultStatus: ENFORCE && !sor ? "denied" : "asked",
+          policyDecision: sor ? "ask" : "deny",
           latencyMs: 0,
           outputSha256: null,
           model: model(e.sessionID),
           yetki,
         })
         if (ENFORCE) {
-          if (!IZIN_SORAN.has(e.tool)) throw new Error(kilit.mesaj)
-          kararlar.set(`${e.sessionID}:${e.id}`, kilit)
+          if (sor) sorulanlar.set(`${e.sessionID}:${e.id}`, kilit)
+          else {
+            if (!IZIN_SORAN.has(e.tool)) throw new Error(kilit.mesaj)
+            kararlar.set(`${e.sessionID}:${e.id}`, kilit)
+          }
         }
       }
       bekleyen.set(`${e.sessionID}:${e.id}`, {
@@ -188,9 +197,15 @@ export function guvenlikKur(ctx: Baglam) {
     ctx.permission.hook("evaluate", (e) => {
       if (e.source?.type !== "tool") return
       const karar = kararlar.get(`${e.sessionID}:${e.source.id}`)
-      if (!karar) return
-      e.effect = "deny"
-      e.message = karar.mesaj
+      if (karar) {
+        e.effect = "deny"
+        e.message = karar.mesaj
+        return
+      }
+      const soru = sorulanlar.get(`${e.sessionID}:${e.source.id}`)
+      if (!soru) return
+      e.effect = "ask" // kaydedilmiş "her zaman izin ver" kuralı "allow" yapmış olsa bile
+      e.message = soru.mesaj
     }),
 
     ctx.tool.hook("execute.after", async (e) => {
@@ -199,6 +214,8 @@ export function guvenlikKur(ctx: Baglam) {
       bekleyen.delete(anahtar)
       const karar = kararlar.get(anahtar)
       kararlar.delete(anahtar)
+      const soru = sorulanlar.get(anahtar)
+      sorulanlar.delete(anahtar)
       // Emniyet kemeri: kilitli çağrı yine de tamamlandıysa (izin değerlendirmesi atlandı — motor değişmiş olabilir)
       // bunu gizleme: audit'e ihlal yaz, stderr'e bas.
       if (karar && e.status === "completed") {
@@ -230,9 +247,10 @@ export function guvenlikKur(ctx: Baglam) {
         sessionID: e.sessionID,
         tool: e.tool,
         argsHash: cagri?.argsHash ?? sha256(JSON.stringify(e.input ?? {})),
-        target: cagri?.target ?? deriveTarget(arac1x(e.tool, e.input).args),
+        // G68: kullanıcının onayladığı belirsiz komut ayrı işaretlenir ("ONAY K1?") — sık onaylananlar okuma listesine aday
+        target: truncate(`${soru ? `ONAY ${soru.kilit}? :: ` : ""}${cagri?.target ?? deriveTarget(arac1x(e.tool, e.input).args)}`),
         resultStatus: e.status === "completed" ? "ok" : "error",
-        policyDecision: "allow",
+        policyDecision: soru ? "ask" : "allow",
         latencyMs: cagri ? Date.now() - cagri.startedAt : 0,
         outputSha256,
         model: model(e.sessionID),

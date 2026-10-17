@@ -129,6 +129,10 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
   liste ancak kullanıcı `sunucular: …` yazınca geçerli olur. Yetki satırını sen yazamazsın/üretemezsin.
 - `ansible-playbook` değişikliğinde hedefi her zaman `--limit` ile ver; salt-okunur iş yetkisiz serbest.
 - **Asla açılmayanlar:** `rm -rf /`-benzeri, mkfs, diske `dd`, force-push; kendi ayarın/eklentin/audit log.
+- **Tanınmayan komut = onay sorusu (G68):** kilidin tanımadığı uzak komut (kurum aracı, özel betik, `./x`, `python3 x.py`)
+  engellenmez, kullanıcının onay ekranına düşer. Böyle bir komutu çalıştırmadan önce ne yaptığını (okuma mı, değişiklik mi)
+  **tek cümleyle** söyle; kullanıcı reddederse aynı işi başka yazımla deneme. Bilinen değişiklik komutu (systemctl restart,
+  dnf install, rm …) yine CN/KURULUM yetkisi ister; K5/K6 hiç açılmaz.
 - Kilit reddederse atlatmaya çalışma (başka komut, betik, farklı yazım): kullanıcıya neyin neden
   gerektiğini tek cümleyle söyle.
 - **Atlatma yolu ÖNERME.** Kilit reddederse etrafından dolaşma yolu **sunma** (dosyayı `/tmp`'ye kopyalayıp okumak,

@@ -774,3 +774,15 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   GUVENLIK-KILITLERI.md "biçim dayatma"; K1 yönlendirme mesajı "yalnız eksik olanı söyle".
 - CIS (Alp): RHEL 10 şablonunda Satellite SCAP ile CIS Level 1 (SELinux/firewall hariç); K8s ve VMware CIS de önemli, uygulanabilir
   olanlar seçilecek; RHEL şablonları/SCAP profilleri yakında gelecek → `guvenlik-saglik` kurum kararlarına eklendi.
+
+### G68 — Alp onayı: belirsiz komut engellenmesin, kullanıcıya sorulsun ("onay verince çalıştık zaten")
+- Tasarım (Alp onayladı, 2026-10-17): uzak komut üç sınıf — bilinen okuma (sorusuz) · bilinen değişiklik (`BILINEN_ARAC`, yetkisiz
+  engel) · belirsiz (kilidin tanımadığı araç → `KilitKarari.sor` → adaptör `permission.evaluate`'te effect "ask"). Core'da evaluate
+  kancası saved ("her zaman izin ver") kurallardan SONRA çalışır (`packages/core/src/permission.ts:179`) → "always" belirsizi de
+  bilinen değişikliği de açamaz (test). Karışık komut (belirsiz + bilinen değişiklik) → engel. Onaylanan → audit `ONAY K1? :: …`.
+- Beceri komutları (361): 27 engel (gerçek değişiklik), 20 onay (seplpkg, bpftrace, crash, `python3 -c`, kurum betikleri).
+- Eski açıklar kapatıldı: `localectl`, `chronyc`, `awk` düz okuma listesindeydi → `localectl set-locale`, `chronyc makestep`,
+  `awk 'BEGIN{system(…)}'` kilitten geçiyordu; artık okuma yalnız okuma biçimlerinde.
+- Test 274 → 284 (çekirdek 8 + adaptör 2), `tsc --strict` kilit/denetim/guvenlik-v2 temiz. AGENTS: tanınmayan komuttan önce ne
+  yaptığını tek cümleyle söyle, reddedilirse başka yazımla deneme. Not: ana TUI onay ekranı evaluate mesajını göstermiyor (yalnız
+  mini görünüm) — kullanıcı komutun kendisini görüp karar verir; sahada doğrulanacak.

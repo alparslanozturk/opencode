@@ -51,6 +51,17 @@ Nasıl okunur (`engine/plugins/lib/kilit.ts` `yetkiSatirlariniOku`, testleri `ki
   riski). Serbest adlar yalnız **aynı mesajda CN ya da KURULUM beyanı varsa** sayılır — sıradan bir soru ("web05 sunucusunda disk
   dolu") açık yetkinin listesini değiştirmez. **KRİZ**'de yalnız açık `sunucular:` satırı geçerli (yapıştırılan mail yetki açmaz).
 
+### Tanınmayan komut — engel değil, onay (G68, Alp 2026-10-17)
+
+Uzak komut üç sınıftan birine düşer (`engine/plugins/lib/kilit.ts`):
+- **Bilinen okuma** (`saltOkunur`: ls, kubectl get, rke2 certificate check, hammer list …) → sorusuz çalışır.
+- **Bilinen değişiklik** (`BILINEN_ARAC` içinde ama okuma biçiminde değil: systemctl restart, dnf install, rm, chronyc
+  makestep …) → yetki (CN/KURULUM/KRİZ + hedef listede) yoksa **engel**.
+- **Belirsiz** (kilidin hiç tanımadığı araç: kurum aracı, özel betik, `python3 x.py`) → engel yerine **kullanıcıya sorulur**
+  (opencode onay ekranı); onaylarsa çalışır. "Her zaman izin ver" bunu atlatamaz: eklentinin `permission.evaluate` kancası
+  kayıtlı kurallardan sonra çalışır ve effect'i yine "ask" yapar (core `permission.ts`). Aynı komutta bilinen değişiklik de
+  varsa sorulmaz, engellenir. Onaylanan komut audit'e `ONAY K1? :: …` diye yazılır — sık onaylananlar okuma listesine aday.
+
 Eski kalıplar aynen geçerli:
 
 ```

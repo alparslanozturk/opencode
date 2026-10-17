@@ -163,3 +163,31 @@ describe("kilitler 2.x kancalarında", () => {
     await expect(h.once("s1", "shell", komut)).rejects.toThrow("K1")
   })
 })
+
+describe("G68: belirsiz komut adaptörde 'ask' olur; 'her zaman izin ver' atlatamaz", () => {
+  test("belirsiz → effect ask (saved allow olsa bile), onaylanınca audit 'ONAY K1?'", async () => {
+    const s = sahteBaglam()
+    await guvenlikKur(s.ctx)
+    const k = s.kancalar
+    const input = { command: `ssh m1 "seplpkg --platform rhel ls"` }
+    await k["tool.execute.before"]({ tool: "shell", sessionID: "s1", id: "c9", agent: "build", messageID: "m1", input })
+    const olay = { sessionID: "s1", action: "shell", resources: ["x"], source: { type: "tool", messageID: "m1", id: "c9" }, effect: "allow" as string, message: undefined as string | undefined }
+    await k["permission.evaluate"](olay)
+    expect(olay.effect).toBe("ask")
+    expect(olay.message).toContain("tanımıyor")
+    await k["tool.execute.after"]({ tool: "shell", sessionID: "s1", id: "c9", agent: "build", messageID: "m1", input, status: "completed", result: { content: "ok" } })
+    const r = satirlar()
+    expect(r.some((x) => x.policy_decision === "ask" && x.result_status === "asked" && String(x.target).startsWith("K1?"))).toBe(true)
+    expect(r.some((x) => x.result_status === "ok" && String(x.target).startsWith("ONAY K1?"))).toBe(true)
+    expect(r.some((x) => String(x.target).startsWith("IHLAL"))).toBe(false)
+  })
+  test("bilinen değişiklik saved allow ile de deny kalır", async () => {
+    const s = sahteBaglam()
+    await guvenlikKur(s.ctx)
+    const k = s.kancalar
+    await k["tool.execute.before"]({ tool: "shell", sessionID: "s1", id: "c8", agent: "build", messageID: "m1", input: { command: "ssh m1 'systemctl restart x'" } })
+    const olay = { sessionID: "s1", action: "shell", resources: ["x"], source: { type: "tool", messageID: "m1", id: "c8" }, effect: "allow" as string, message: undefined as string | undefined }
+    await k["permission.evaluate"](olay)
+    expect(olay.effect).toBe("deny")
+  })
+})

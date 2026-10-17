@@ -253,3 +253,43 @@ describe("G67: yetki serbest biçimde de anlaşılır (Alp: 'formatsız verdiği
     expect(kilitDenetle("bash", { command: "ssh web01 'systemctl restart x'" }, workdir, y)?.mesaj).toContain("hariç")
   })
 })
+
+describe("G68: kilidin tanımadığı uzak komut engellenmez, kullanıcıya SORULUR", () => {
+  const karar = (c: string, y?: Yetki) => kilitDenetle("bash", { command: c }, workdir, y)
+  test("tanınmayan kurum aracı → sor", () => {
+    const r = karar(`ssh m1 "seplpkg --platform rhel ls"`)
+    expect(r?.kilit).toBe("K1")
+    expect(r?.sor).toBe(true)
+  })
+  test("yerel betik / python betiği uzakta → sor", () => {
+    expect(karar(`ssh m1 "/opt/kurum/bin/durum.sh"`)?.sor).toBe(true)
+    expect(karar(`ssh m1 "python3 /opt/x/rapor.py"`)?.sor).toBe(true)
+  })
+  test("bilinen değiştirici → sorulmaz, engellenir", () => {
+    for (const c of [`ssh m1 "systemctl restart x"`, `ssh m1 "rm -f /etc/x"`, `ssh m1 "dnf -y install x"`, `ssh m1 "kubectl delete pod x"`,
+      `ssh m1 "chronyc makestep"`, `ssh m1 "localectl set-locale LANG=C"`, `ssh m1 "mkfs.xfs /dev/sdb"`])
+      expect(karar(c)?.sor).toBeUndefined()
+  })
+  test("belirsiz + bilinen değişiklik aynı komutta → engel (sorulmaz)", () => {
+    const r = karar(`ssh m1 "durum-araci --x; systemctl restart y"`)
+    expect(r?.kilit).toBe("K1")
+    expect(r?.sor).toBeUndefined()
+  })
+  test("yetki var ve hedef listede → belirsiz de serbest", () => {
+    const y = yetkiVer("CN: CHG0000777\nsunucular: m1")
+    expect(karar(`ssh m1 "durum-araci --x"`, y)).toBeNull()
+  })
+  test("yetki var ama hedef listede yok → sor", () => {
+    const y = yetkiVer("CN: CHG0000777\nsunucular: m1")
+    expect(karar(`ssh m2 "durum-araci --x"`, y)?.sor).toBe(true)
+  })
+  test("K5 yıkıcı ve awk system() sorulmaz", () => {
+    expect(karar("rm -rf /")?.kilit).toBe("K5")
+    expect(karar(`ssh m1 "awk 'BEGIN{system(\\"id\\")}'"`)?.sor).toBeUndefined()
+    expect(karar(`ssh m1 "awk 'BEGIN{system(\\"id\\")}'"`)?.kilit).toBe("K1")
+  })
+  test("okuma biçimleri hâlâ serbest: awk yazdırma, chronyc tracking, localectl status", () => {
+    for (const c of [`ssh m1 "df -h | awk '{print \\$5}'"`, `ssh m1 "chronyc tracking"`, `ssh m1 "localectl status"`])
+      expect(karar(c)).toBeNull()
+  })
+})

@@ -733,3 +733,6 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Aksiyon (yapıldı): `kume-denetim` §1 Antrea↔K8s satırı zorunlu; Antrea/OVS altına "sonuç olabilir" + conntrack genel bilgisi
   (kube-proxy formülü, table full ↔ banner farkı); §5b "Duraklama göstergeleri" (eşzamanlılık, chrony sıçraması, OVS poll
   interval, etcd fdatasync, çekirdek lockup/abort, balloon).
+- Devam (Alp: "Antrea upgrade ne tür değişiklikler yapıyor, sadece bug fix mi?" → "rke2-ansible yeteneğine ekle, yakında update'ler
+  yapacağız"): Doktor resmi `versioning.md` + CHANGELOG-2.3…2.7'den özetledi (yama = bug fix, minor = özellik + varsayılan değişikliği;
+  v2.5 nftables flowtable varsayılan, v2.7 OVS 3.7.1 + gossip şifreleme). Aksiyon (yapıldı): `rke2-ansible` → "Antrea yükseltme notları".

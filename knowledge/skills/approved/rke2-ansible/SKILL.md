@@ -138,7 +138,11 @@ yükseltme yapma — tek değişken kuralı. Her adımdan sonra: `antrea-agent` 
   **Kurum durumu (saha ekran10, 2026-09-30):** Antrea **v2.3.0** + K8s **1.33.13** = ❌ **kural dışı** (v2.3 → en çok
   1.32). 1.33 için en az v2.4; önerilen **v2.7.0** (1.33–1.36, v2.15'e geçişi de karşılar).
 - **Yükseltmeyi system-upgrade-controller (SUC) yapar**, playbook değil → envanterde `rke2_upgrade: false`.
-  SUC sonrası `all.yml`'deki `rke2_install_version` kümenin yeni sürümüne güncellenmeli.
+  SUC sonrası `all.yml`'deki `rke2_install_version` kümenin yeni sürümüne güncellenmeli. **SUC'u kim yönetiyor — önce bak:**
+  küme Rancher'a içe aktarılmış ve sürüm yönetimi açıksa SUC + Plan'ları Rancher kurar (`cattle-system`'da
+  `system-upgrade-controller`; `test` kümesinde görüldü, saha G65) → yükseltme **Rancher arayüzünden** (Edit Config →
+  Kubernetes Version); elle Plan yazmak "beklenmeyen sonuç" doğurur (Rancher docs register-existing-clusters). Sıra, ön kontrol,
+  EOL ve adım adım yol: **`yukseltme-plani`** becerisi (`uyum.py`).
 - **Kurum kararları (Alp, 2026-09-29):** işletim sistemine CIS Level 1 Satellite/OpenSCAP ile uygulanıyor
   (RHEL 10 dahil); **Kubernetes CIS profili kullanılmıyor** (`profile` yok) · **SELinux kapalı** · **firewalld kapalı**
   (imajlarda zaten) · **`net.ipv4.ip_forward=1`** kalıcı (CIS 0 yazıyor; kurum fork'u `/etc/sysctl.d/99-zz-rke2.conf`
@@ -209,7 +213,14 @@ Aşağısı 2.x kodundan (`roles/rke2/tasks/*.yml`) çıkarıldı.
    kümede yeni node'daki `antrea-agent` pod'u imajı **kayıt aynasından** (`files/registries.yaml`) çekebilmeli; yoksa
    node NotReady kalır. Antrea sürümünün k8s 1.33'ü desteklediğini de doğrula (1.32→1.33 sonrası).
 4. `upgrade.yml` agent'ları **drain etmeden** yükseltir (kendi uyarısı var); node ekleme için **kullanma**.
-5. **`node_name` hostvar'ı 2.x'te etkisizdir** (1.x'ten kalma; 2.x yeniden yazımında kaldırıldı — `grep -rn node_name
+5. **Resmi kurallar (RKE2 docs install/ha, security/token; K8s version-skew-policy):** kayıt adresi sabit olmalı (LB / DNS /
+   VIP; **9345** kayıt, **6443** API) ve sunucu sertifikasında `tls-san` olarak bulunmalı; sunucu sayısı **tek** (etcd yeter
+   sayısı, önerilen 3); sunuculardaki kritik bayraklar aynı olmalı, değilse katılım `critical configuration value mismatch`
+   ile düşer; yeni node **kümeden yeni sürümde olamaz** (kubelet apiserver'dan yeni olamaz, en çok 3 minor eski) → kümenin
+   tam sürümü; token için **güvenli biçim** (`K10…`, `/var/lib/rancher/rke2/server/node-token`) — kısa biçimde katılan node
+   sunucu CA'sını doğrulamaz (ortadaki adam riski). Yeni node'un RHEL ara sürümü Rancher'ın RHEL listesinde olmalı:
+   `uyum.py kontrol --rancher <r> --rke2 <k> --rhel <yeni>` (Rancher v2.14+ listesinde 9.2/9.4 yok).
+6. **`node_name` hostvar'ı 2.x'te etkisizdir** (1.x'ten kalma; 2.x yeniden yazımında kaldırıldı — `grep -rn node_name
    roles/` boş döner). Sahadaki `host.yml` (`<ip>: node_name: "stlrancherwor0N"`) bu biçimde. Node adı
    makinenin hostname'inden gelir. `kubectl get nodes` adları hostname ile aynıysa sorun yok; yeni node'lara
    farklı ad gerekiyorsa: `<ip>: {host_rke2_config: {node-name: "stlrancherwor07"}}`. Sahadaki kopyada

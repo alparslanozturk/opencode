@@ -20,6 +20,7 @@
   internete çıkamaz; uyum sonucunu yalnız `rke2-ansible` becerisindeki **Çevrimdışı veri** tablosundan ya da bir
   aracın çıktısından ver, kanıtını (tablo satırı / kaynak dosya) yaz. Sürüm tabloda yoksa
   **"❓ hesaplanamadı (veri yok)"** de; "varsayım", "muhtemelen", tarihten çıkarım ile uyum kararı verme.
+  Uyum, destek sonu (EOL) ve yükseltme sırası için betik: `yukseltme-plani` becerisindeki `uyum.py` (2026-10-17).
 
 ## Sormak gerekeni sor — işi en iyi yapmak için (Alp, 2026-10-05)
 - **Başlamadan:** cevabı sonucu değiştirecek belirsizlik varsa (hedef sunucu/küme, amaç, kapsam, geçici mi kalıcı mı,

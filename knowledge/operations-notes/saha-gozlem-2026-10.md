@@ -786,3 +786,12 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Test 274 → 284 (çekirdek 8 + adaptör 2), `tsc --strict` kilit/denetim/guvenlik-v2 temiz. AGENTS: tanınmayan komuttan önce ne
   yaptığını tek cümleyle söyle, reddedilirse başka yazımla deneme. Not: ana TUI onay ekranı evaluate mesajını göstermiyor (yalnız
   mini görünüm) — kullanıcı komutun kendisini görüp karar verir; sahada doğrulanacak.
+
+### G69 — Beceriler yeniden adlandırıldı ve bölündü: `<platform>-<iş>` (Alp onayı, 2026-10-17)
+- Alp: "Anthos ve VMware VCF de var; yükseltme planı deyince belirsiz. Kategorize, güzel isimli çok beceri mi, karma mı?" →
+  Doktor: çok sayıda küçük beceri (ad+açıklama taban bağlamda, içerik talep üzerine; eski kume-denetim ~15K token) → Alp "beğendim".
+- 16 → 20 beceri: k8s-* (sorun, denetim, gpu, guvenlik, yukseltme, kurulum, node-ekle), anthos-erisim, rhel-* (yonetim, guncelleme,
+  guvenlik, depolama, performans, sorun, teslim), ansible, filo-kontrol, rapor, sep-paket, surum-uyum (uyum.py + veri). git mv ile
+  geçmiş korundu; çapraz atıflar, AGENTS.md, CLAUDE.md, README, PROJE-YAPISI, parked atıfları, `script/veri-guncelle.sh` (VERI bloğu →
+  surum-uyum) güncellendi. Doğrulama: 20/20 frontmatter adı = klasör; uyum.py yeni yolda çalışıyor; kilit taraması 27 engel / 20 onay
+  (değişmedi). Saha: `al.sh` → `./kur.sh` (eski klasörler `--delete` ile gider, kalırsa G64 koruması kurmaz).

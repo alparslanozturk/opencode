@@ -17,10 +17,10 @@
 - Doğrulanmamış bir kuralı dosyaya **yazma** — önce doğrula; doğrulayamıyorsan yazma, boş bırak.
 - Gün farkı, toplam, yüzde **kafadan hesaplanmaz** — `date -d` / `echo $((…))` ile hesapla (saha G65).
 - **Sürüm/uyumluluk (Rancher, RKE2/Kubernetes, Antrea, RHEL) — tahmin YASAK (T33, 2026-09-30):** bu ortam
-  internete çıkamaz; uyum sonucunu yalnız `rke2-ansible` becerisindeki **Çevrimdışı veri** tablosundan ya da bir
+  internete çıkamaz; uyum sonucunu yalnız `surum-uyum` becerisindeki `uyum.py`/**Çevrimdışı veri** tablosundan ya da bir
   aracın çıktısından ver, kanıtını (tablo satırı / kaynak dosya) yaz. Sürüm tabloda yoksa
   **"❓ hesaplanamadı (veri yok)"** de; "varsayım", "muhtemelen", tarihten çıkarım ile uyum kararı verme.
-  Uyum, destek sonu (EOL) ve yükseltme sırası için betik: `yukseltme-plani` becerisindeki `uyum.py` (2026-10-17).
+  Uyum, destek sonu (EOL) ve yükseltme sırası için betik: `surum-uyum` becerisindeki `uyum.py` (2026-10-17).
 
 ## Sormak gerekeni sor — işi en iyi yapmak için (Alp, 2026-10-05)
 - **Başlamadan:** cevabı sonucu değiştirecek belirsizlik varsa (hedef sunucu/küme, amaç, kapsam, geçici mi kalıcı mı,
@@ -105,7 +105,7 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
 - **Kurumda k8s işi (Alp, 2026-10-05):** envanterden RKE2 kümesinin **1. master**'ına ssh ile bağlan, **yalnız
   okuyan** kubectl çalıştır. RKE2'de kubectl PATH'te olmayabilir: `/var/lib/rancher/rke2/bin/kubectl`.
   Örn. `ssh root@<master1> "/var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml get nodes"`.
-  Anthos (GKE): `k8s-anthos` becerisi — erişim jumpbox → admin workstation üzerinden, ajan şimdilik bağlanmaz. Hangi host'un 1. master olduğu belli değilse kullanıcıya sor.
+  Anthos (GKE): `anthos-erisim` becerisi — erişim jumpbox → admin workstation üzerinden, ajan şimdilik bağlanmaz. Hangi host'un 1. master olduğu belli değilse kullanıcıya sor.
 - **Kurum sunucu gerçekleri:** RHEL 7/8/9/10; template'ten kurulur (RHEL 9: CIS uygulanmış ESX template'i,
   RHEL 10: Satellite'ta CIS Level 1 template'i). **SELinux ve firewalld kapalı** (kurum kararı, SELinux grub'dan
   disable) — bunları "açın" diye önerme, sorun teşhisinde sebep sayma. Yeni sunucuda IPv6 kapatılmış olabilir.
@@ -142,7 +142,7 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
 ## Güvenlik ve sınırlar
 - Yıkıcı komut (rm -rf, mkfs, dnf remove, servis durdurma, force push) → **önce sor**.
 - Kurum dışına veri gönderme; dış ağ/telemetri kapalı varsay.
-- Üretim kümesinde çalışmadan önce "hangi küme bağlı" doğrula (`k8s-rancher` becerisi).
+- Üretim kümesinde çalışmadan önce "hangi küme bağlı" doğrula (`k8s-sorun` becerisi).
 - **Sunucu adı → ortam** (Alp teyidi, 2026-09-25): adın ilk 3 harfi `<lokasyon><ortam><alan>` — lokasyon
   `s`=İstanbul, `d`=Ankara (DRC); ortam `p`=production, `d`=development, `t`=test, `x`=prep, `b`=bugfix; alan
   `l`=Local (iç ağ), `d`=DMZ. Ör. `spl…` = İstanbul · production · iç ağ; `std…` = İstanbul · test · DMZ.
@@ -172,8 +172,8 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
   Tek bir hedefli arama dene, sonucu değerlendir, gerekiyorsa bir sonrakini öner.
 
 ## Beceri (skill) disiplini
-- **Değişiklik yapan işe başlamadan önce o konunun becerisini yükle** (disk/mount/fstab → `depolama`, kurulum/teslim →
-  `sunucu-teslim`, GPU → `kume-denetim` …). Kullanıcı beceri adını söylemese de. Kanıt: saha G39 (2026-10-14) —
+- **Değişiklik yapan işe başlamadan önce o konunun becerisini yükle** (disk/mount/fstab → `rhel-depolama`, kurulum/teslim →
+  `rhel-teslim`, GPU → `k8s-denetim` …). Kullanıcı beceri adını söylemese de. Kanıt: saha G39 (2026-10-14) —
   beceri yüklenmeden diske LVM'siz `mkfs` + fstab'a `/dev/sdb` yazıldı; becerideki her kural bunu yasaklıyordu.
 - Beceriler talep üzerine yüklenir; konu kapanınca bırak. Kullanıcı "ansible işlerini bırak" dediyse
   o beceriyi tekrar yükleme.

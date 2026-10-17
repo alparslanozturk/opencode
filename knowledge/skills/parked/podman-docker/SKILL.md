@@ -1,6 +1,6 @@
 ---
 name: podman-docker
-description: Konteynerleri incelerken kullan — podman ya da docker. Hangi konteyner çalışıyor, log, kaynak, port, disk, rootless/rootful ayrımı. "podman", "docker", "konteyner", "container", "compose", "imaj", "kap çöktü", "podman ps" isteklerinde tetiklenir. Kubernetes/Rancher için `k8s-rancher`.
+description: Konteynerleri incelerken kullan — podman ya da docker. Hangi konteyner çalışıyor, log, kaynak, port, disk, rootless/rootful ayrımı. "podman", "docker", "konteyner", "container", "compose", "imaj", "kap çöktü", "podman ps" isteklerinde tetiklenir. Kubernetes/Rancher için `k8s-sorun`.
 ---
 
 Doğrulandı: AlmaLinux 10.2, podman 5.8.2 — 2026-08-29

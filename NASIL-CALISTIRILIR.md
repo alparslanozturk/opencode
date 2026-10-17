@@ -681,7 +681,7 @@ kesmek gerekiyor.
   ulaşılamaz** — bu yüzden Paket A'daki gerçek pencere tespiti kritik: pencere gerçekte örn. 32768 ise
   aynı taban oranı otomatik olarak ~%32'ye düşer.
 
-  **Not (2026-09-15):** çekirdek liste 9 → **10**'a çıktı (`rapor-envanter` eklendi, Excel/PDF çıktı
+  **Not (2026-09-15):** çekirdek liste 9 → **10**'a çıktı (`rapor` eklendi, Excel/PDF çıktı
   talepleri için). Yukarıdaki ölçüm 9 becerilik eski listeyle yapıldı, yeniden ölçülmedi — oran hafifçe
   yükselir, sonuç yönü (**%40 hedefi bu pencerede tutturulamıyor**) değişmez.
 - `engine/AGENTS.md`: "Çalışma akışı", "Çalışma dizini boşsa", "Dosya arama" kuralları — modelin

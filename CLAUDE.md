@@ -14,7 +14,7 @@ Global kural (`~/.claude/CLAUDE.md`) burada da geçerli. Projeye özel ekler:
 - Politika metni: `knowledge/policy/KAYNAK-ZORUNLULUGU.md`. Sahadaki model için karşılığı `engine/AGENTS.md`
   "Kaynak zorunluluğu" bölümü. Beceri/doküman yazarken bu kurala uymayan içerik ekleme.
 - **Sürüm/uyumluluk (Rancher, RKE2/Kubernetes, Antrea, RHEL) tahmin edilmez:** yalnız
-  `knowledge/skills/approved/rke2-ansible/` içindeki çevrimdışı veri tablosundan ya da bir aracın çıktısından.
+  `knowledge/skills/approved/surum-uyum/` içindeki çevrimdışı veri tablosundan ya da bir aracın çıktısından.
   Veri yoksa "hesaplanamadı (veri yok)".
 - Saha bilgisi (sunucu adı, uç, ağ) bilinmiyorsa `[SAHA]` işaretle ve Alp'e sor.
 

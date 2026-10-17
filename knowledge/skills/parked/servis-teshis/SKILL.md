@@ -42,7 +42,7 @@ systemctl is-active <servis>
 journalctl -u <servis> -p err -n 100 --no-pager
 ```
 
-Kubernetes'te çalışıyorsa `k8s-rancher` becerisine geç.
+Kubernetes'te çalışıyorsa `k8s-sorun` becerisine geç.
 
 ## PostgreSQL
 

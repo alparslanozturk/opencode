@@ -71,14 +71,14 @@ Bu tablo `knowledge/policy/THREAT-MODEL.md`'deki maskeli `test-sunucu`/`KUME-A`/
    (AlmaLinux 10.2'de doğrulanmış, 2026-08-29). Çalışma dizini: `/root/ai/work/opencode/envanter/`.
    Ek geliştirme gerekmiyor gibi görünüyor — Faz 0'ın ilk gerçek görevi doğal adayı bu.
 2. **Ansible görevler + baseline.** Beceri zaten var ve onaylı: `knowledge/skills/approved/ansible/`
-   + `knowledge/skills/approved/filo-durum-kontrolu/`. **Ayrı klasör kararı** (Alp: "diğer
+   + `knowledge/skills/approved/filo-kontrol/`. **Ayrı klasör kararı** (Alp: "diğer
    ansiblelerden ayrı bir klasöre koyarız") zaten belgeli bir kalıba (`docs/PROJE-YAPISI.md`
    "Örnek proje iskeleti") uyuyor — kendi proje klasörü (ör. `/root/ai/work/opencode/<proje-adi>/`)
    içinde `ansible/` alt klasörü (`playbooks/`, `roles/`, `inventories/`, `group_vars/`), çıktı için
    `ansible/baseline/` (Alp'in kararı: ya bu ya da düz `baseline/` — ikisi de kabul, `ansible/baseline/`
    seçildi çünkü tüm ansible artefaktları tek klasörde toplanıyor).
 3. **SSH ile uzaktan komut (rke2/rancher teşhisi dahil).** Mevcut pubkey auth üzerinden — beceri
-   hazır: `knowledge/skills/approved/k8s-rancher/`. **Not (önceliklendirme):**
+   hazır: `knowledge/skills/approved/k8s-sorun/`. **Not (önceliklendirme):**
    `knowledge/runbooks/ssh-forced-command-kurulum.md`'de tarif edilen sunucu-taraflı forced-command
    kapısı, **onlarca hedef sunucuya tek tek kurulacak bir iş** — "kurumun BT işlerini yapmaya
    başlamadan önce şart" değil, mevcut kontroller (client-side `permission.bash: ask/deny`, ansible

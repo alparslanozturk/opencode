@@ -79,14 +79,14 @@ Tüm çalışmalar tek çalışma alanında (`~/ai/work/`) durabilir; ayrım **k
 |---|---|---|---|
 | Envanter üretimi | `~/ai/work/envanter/` | `ansible` + `rapor-uret` / `rapor-excel-pdf` | kaynak Excel/CSV → `inventories/*.ini` + `rapor/*.md` |
 | Ansible playbook'ları | `~/ai/work/ansible/<iş>/` | `ansible` | her playbook seti kendi alt klasöründe |
-| Disk genişletme / LVM | `~/ai/work/ansible/disk-genisletme/` (veya tek seferlik oturum) | `depolama`, `disk-ekleme` | `disk-ekleme` varsayılan kurulumda **yok** |
-| Rancher / K8s teşhis | `~/ai/work/rancher-k8s/` | `k8s-rancher` | `KUBECONFIG=/etc/rancher/rke2/rke2.yaml` |
-| Filo kontrolü (SSH) | `~/ai/work/filo/` | `filo-durum-kontrolu` | aşağıya bak → izin kapısı çıkar |
+| Disk genişletme / LVM | `~/ai/work/ansible/disk-genisletme/` (veya tek seferlik oturum) | `rhel-depolama`, `disk-ekleme` | `disk-ekleme` varsayılan kurulumda **yok** |
+| Rancher / K8s teşhis | `~/ai/work/rancher-k8s/` | `k8s-sorun` | `KUBECONFIG=/etc/rancher/rke2/rke2.yaml` |
+| Filo kontrolü (SSH) | `~/ai/work/filo/` | `filo-kontrol` | aşağıya bak → izin kapısı çıkar |
 | Splunk forwarder | `~/ai/work/ansible/splunk-forwarder/` | `splunk-forwarder` | varsayılan kurulumda **yok** |
 | Baseline / ölçüm | `~/ai/work/baseline/` | (yapılacak) | yöntem skill olarak pakete girecek |
 
 **Beceri kurulumu:** varsayılan olarak 10 çekirdek beceri kurulur
-(`ansible k8s-rancher rhel-yonetim filo-durum-kontrolu rapor-uret rapor-excel-pdf hata-ayikla performans sistem-guncelleme depolama`);
+(`ansible k8s-sorun rhel-yonetim filo-kontrol rapor-uret rapor-excel-pdf hata-ayikla performans rhel-guncelleme depolama`);
 park edilmiş bir beceri gerekiyorsa `knowledge/skills/parked/<ad>`'ı `approved/`'a taşıyıp
 `./kur.sh`'ı tekrar çalıştır. Pencere 256K olduğu için bağlam kaygısı yok.
 

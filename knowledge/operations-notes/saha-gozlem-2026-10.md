@@ -851,3 +851,23 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   2 katı ≈ 7-8 gün, başlangıç restart/condition değerleri şimdi; tek seferde tek ajan; kaldırılan modül `lsmod`), Twistlock+Milvus ve
   SEP önerileri. `rke2-denetim` SEP bloğu bu beceriye taşındı; `rhel-sorun` atfı güncellendi. Komutlar kilitten geçiyor
   (SEP profil betiği → onay sorusu, beklenen).
+
+### G73 — Alp "emin misin, delilin ne?" → ajan ters yöne kesinleşti; "kriz var" anlaşılmadı; for döngüsü "hedef belirlenemedi"
+- Görülen (Alp ekranları): Alp: "XDR olduğuna delilin nedir? Sonuçta Antrea dedin, meğer o sebep değil sonuç imiş." Ajan:
+  "EMİN DEĞİLİM" ✅ ama ardından yine kesin: "Reboot zaten sorunu çözdü (14:24 reboot → 15:44 XDR durdurma → 15:50 stabil)",
+  "OVS logu zaten kanıtladı … Bu OVS'in kendi donması — XDR ile bağlantılı değil". Soket kaybı + crash logu yok, OVS donması ile node
+  duraklamasını ayırmaz (ayıran `poll interval` satırı, okunmadı).
+- Ajan wor07-14'te (IP döngüsü) `systemctl disable traps_pmd` denedi → K1 "hedefi belirlenemedi" (`root@$ip`); ajan "tek tek
+  çalıştıracağım". Alp komutu elle çalıştırdı (`systemctl stop … && systemctl disable traps_pmd.service`). Alp: "Kriz var dedim
+  ama dinlemedi … cümlede geçince kabul etmesi lazım, illa bir formatta değil." Ekrandaki K1 metni G67 öncesi (saha kilidi eski).
+- Alp: "Delil olmadan kesin söylemesi uygun değil — 'tahmin ediyorum' ve 'emin değilim' eklemesi çok önemli."
+- Aksiyon (yapıldı): kilit — KRİZ cümle içinde (`krizBeyani`: "kriz var/durumu/yaşıyoruz", "krizdeyiz", "acil kriz", cümle sonu,
+  "KRİZ <sunucu>"; olumsuz/soru/ad öbeği değil; CN varsa CN), kısa kriz cümlesindeki ve altındaki listedeki adlar (mail yapıştırılan
+  mesajda yalnız açık liste); aralık açma `wor07-14`, `10.0.0.127-134` (`aralikAc`, her yetki türü); düz listeli `for` döngüsü her
+  öğe için ayrı denetlenir (`$ip` → öğe; `$(…)`/değişken liste belirsiz kalır). Test 286 → 315, `tsc --strict` temiz.
+  AGENTS: kök neden cümlesi yalnız doğrudan kanıtla, yoksa "tahmin ediyorum … emin değilim, çünkü … / şu kesinleştirir";
+  itirazda ters yöne kesinleşme yok; yetki dili serbest; hedefi yetkideki adla yaz. `rke2-edr` §3-§4: zaman çizelgesi (reboot →
+  ajan), tek değişkenli deneme, ters iddia için de kanıt. GUVENLIK-KILITLERI KRİZ maddesi.
+- Açık (Alp kararı): KRİZ'de mail/toplantı notu (≥120 karakter) şartı duruyor — kısa "kriz var, wor14'te …" mesajı tek başına
+  yetki açmaz, K1 "kriz notu yapıştırılmadı" der. Kalsın mı? Ayrıca yetkide `wor07` yazılıp komutta `stlrancherwor07`/IP
+  kullanılırsa eşleşmez (bilerek bulanık eşleme yok).

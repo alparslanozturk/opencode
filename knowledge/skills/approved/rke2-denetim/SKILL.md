@@ -1,6 +1,6 @@
 ---
 name: rke2-denetim
-description: Rancher'ın yönettiği RKE2 kümesini (test, nonprod, prod) uçtan uca denetlerken kullan — sürüm envanteri ve matris, control plane (etcd, apiserver), node NotReady/Unavailable/donma/kısa takılma, Antrea/OVS, conntrack, sistem pod'ları, node işletim sistemi. "kümeyi incele", "küme denetimi", "kümede neler oluyor", "node unavailable", "notready", "node düşüyor", "donma", "takılma", "rke2 incele", "rancher kümesi", "antrea", "ovs", "etcd", "control plane", "kube-system" isteklerinde tetiklenir. GPU kümesi için ayrıca `rke2-gpu`, güvenlik için `rke2-guvenlik`, yükseltme için `rke2-yukseltme`. Yalnız okur; değişiklik önerir, uygulamaz.
+description: Rancher'ın yönettiği RKE2 kümesini (test, nonprod, prod) uçtan uca denetlerken kullan — sürüm envanteri ve matris, control plane (etcd, apiserver), node NotReady/Unavailable/donma/kısa takılma, Antrea/OVS, conntrack, sistem pod'ları, node işletim sistemi. "kümeyi incele", "küme denetimi", "kümede neler oluyor", "node unavailable", "notready", "node düşüyor", "donma", "takılma", "rke2 incele", "rancher kümesi", "antrea", "ovs", "antrea-ovs restart", "liveness", "ovs soketi", "tmpmounts", "nfs mi", "sep", "antivirüs", "etcd", "control plane", "kube-system" isteklerinde tetiklenir. GPU kümesi için ayrıca `rke2-gpu`, güvenlik için `rke2-guvenlik`, yükseltme için `rke2-yukseltme`. Yalnız okur; değişiklik önerir, uygulamaz.
 ---
 
 # RKE2 küme denetimi (her küme)
@@ -187,6 +187,88 @@ lsmod | grep -e openvswitch -e br_netfilter -e overlay              # node'da (s
 - Neden-sonuç yönünü (OVS mi containerd'yi, containerd mi OVS'yi kilitledi) kanıt olmadan yazma.
 - Node bir süre durursa (§5b) ovsdb transaction timeout, antrea liveness hatası ve memberlist `connection refused` **sonuç**
   olarak da görülür; aynı dakikada master'da da takılma varsa Antrea'yı kök neden yazma (Antrea master'da sshd'yi dondurmaz).
+
+**Tek node'da tekrarlayan `antrea-ovs` yeniden başlaması (saha G71 — wor14: 10-12, 10-15, 10-19 05:30):**
+
+Mekanizma (genel — Antrea v2.3.0 upstream manifesti; kümedekini oku, chart farklı olabilir): `antrea-ovs` liveness =
+`timeout 10 container_liveness_probe ovs`, `periodSeconds: 10`, `failureThreshold: 5` → OVS **~50 sn** cevap vermezse
+kubelet konteyneri öldürür, soketler (`/var/run/antrea/openvswitch/*.sock`, host yolu) yeniden açılana kadar yoktur —
+"OVS soketi kayboldu" çoğu zaman budur. Asıl soru: **OVS neden ~1 dk cevap vermedi** — OVS mi takıldı, node mu durdu?
+
+```bash
+kubectl -n kube-system get ds -l app=antrea -o jsonpath='{range .items[*].spec.template.spec.containers[*]}{.name}{" "}{.livenessProbe}{"\n"}{end}'
+kubectl -n kube-system get pod <antrea-agent-pod> -o jsonpath='{range .status.containerStatuses[*]}{.name}{" restart="}{.restartCount}{" "}{.lastState.terminated.reason}{" exit="}{.lastState.terminated.exitCode}{" bitis="}{.lastState.terminated.finishedAt}{"\n"}{end}'
+kubectl -n kube-system logs <antrea-agent-pod> -c antrea-ovs --previous --tail=60     # öldürülmeden önceki son satırlar
+```
+
+- `exit=137` → kubelet öldürdü (liveness); başka kod → OVS kendisi çıktı. Event'ler varsayılan ~1 saat tutulur, eski olay
+  event'te yoktur — kanıt **node'daki dosyalarda**, konteyner yeniden başlasa da kalır (genel, manifest `hostPath`):
+
+```bash
+ls -la --time-style=+%F_%T /var/log/antrea/ /var/log/antrea/openvswitch/                      # node'da (ssh)
+# örnek pencere: wor14 olayı 05:30 (yerel) → OVS logu UTC (…Z) yazar, Türkiye UTC+3 → 02:30Z; kendi saatini çevir
+grep -h -e "Unreasonably long" -e "blocked" -e "timeout" -e "Dropped" -e "exit" /var/log/antrea/openvswitch/ovs-vswitchd.log* | grep "2026-10-19T02:[1-4]" | tail -30
+grep -h "2026-10-19T02:[1-4]" /var/log/antrea/openvswitch/ovsdb-server.log* | tail -20
+journalctl --since "2026-10-19 05:15" --until "2026-10-19 05:45" -p warning --no-pager | tail -40
+journalctl -k --since "2026-10-19 05:15" --until "2026-10-19 05:45" --no-pager | tail -30
+sar -u -q -r -d -s 05:15:00 -e 05:45:00 -f /var/log/sa/sa19 | tail -50                       # o gün: saYY = ayın günü
+```
+
+Ayırt et (her satır "tahmin:" ile başlar, kanıt gelince kesinleşir):
+
+| Kanıt | Ne gösterir |
+|---|---|
+| `Unreasonably long NNNNms poll interval (… user, … system)` — duvar saati büyük, user+system küçük | ovs-vswitchd **çalıştırılmadı/bekledi** (CPU açlığı, G/Ç, VM duraklaması) — OVS'nin hatası değil |
+| Aynı dakikada `chronyd` sıçraması, `%steal`, başka node'larda da takılma | hipervizör/datastore (§5b) |
+| `hung task` / `blocked for more than` — çağrı yığınında `fanotify`/`fsnotify` ya da `sisap`/`sisevt` | dosya açma, **erişimde tarama yapan güvenlik ajanının** kararını bekliyor (SEP aşağıda) |
+| Aynı yığında `nfs_`/`rpc_` | NFS — ama node'da NFS bağlaması yoksa bu yol kapalı (aşağıda) |
+| `sar` o pencerede `%iowait`/`await` yüksek, PSI `io` | disk/datastore |
+| Hiçbiri yok, yalnız OVS satırları | OVS'nin kendisi — Antrea sürüm/matris (§1), `antrea-agent` logu |
+
+**Eleme — NFS** (Alp, 2026-10-20: "NFS bağlanabiliyor 14 nolu worker"): "sunucuya erişiliyor" NFS'i elemek için yetmez,
+soru **node'da asılı bir NFS bağlaması var mı**. Okuma komutları (kilitten geçer — bağlama denemesi yapma, o değişiklik):
+
+```bash
+findmnt -t nfs,nfs4 || echo "NFS baglamasi yok"; grep -c " nfs" /proc/mounts
+journalctl -k --since -7d --no-pager | grep -i -e "nfs: server" -e "not responding" | tail
+showmount -e <nfs-sunucu>; rpcinfo -s <nfs-sunucu> | head; timeout 3 bash -c '</dev/tcp/<nfs-sunucu>/2049' && echo "2049 acik"
+kubectl get pods -A -o wide --field-selector spec.nodeName=<node> | grep -v -e kube-system -e cattle-   # node'da PVC'li iş yükü var mı
+```
+
+Node'da NFS bağlaması ve "not responding" yoksa NFS o node'un donmasının sebebi olamaz → "kök neden NFS değil" yazılabilir.
+
+**Eleme — SEP (Symantec) erişimde tarama** (kurum sunucularında kurulu: `sisamdagent`, `sisap`/`sisevt` modülleri — saha G44;
+kurum kaynak sınırı CPU %400, MemoryHigh 2G, Max 3G — G44, kaynağı `08-sep-sinirlama` `[SAHA]`). Genel (Broadcom KB
+237314): Auto-Protect erişilen/değişen her dosyayı tarar, yoğun disk kullanan sunucuda yüksek CPU/bellek yapar; çözüm sık
+erişilen yollar için istisna. tahmin: tarayıcı cgroup sınırına takılırsa dosya açan her süreç (containerd, ovs-vswitchd) onu
+bekler → node "durmuş" görünür. Kanıt (okuma):
+
+```bash
+systemctl status sisamdagent --no-pager | head -12; ps -o pid,pcpu,rss,etime,cmd -C sisamddaemon
+systemctl show sisamdagent -p ControlGroup -p MemoryHigh -p MemoryMax -p CPUQuotaPerSecUSec
+cat /sys/fs/cgroup/system.slice/sisamdagent.service/memory.events /sys/fs/cgroup/system.slice/sisamdagent.service/cpu.stat
+lsmod | grep -e sisap -e sisevt; ls -la --time-style=+%F_%T /var/log/sdcsslog/ /var/log/sdcsslog/amdlog/ 2>&1 | tail -20
+```
+
+- `memory.events` → `high`/`max` sayacı artıyorsa bellek sınırına çarpıyor; `cpu.stat` → `nr_throttled`/`throttled_usec`.
+  ControlGroup yolu farklıysa `systemctl show`'daki yolu kullan.
+- Karşılaştır (ansible ad-hoc, tek izin): sağlam node (wor07) ↔ sorunlu (wor03, wor08, wor14) — SEP aynı mı, throttle sayaçları,
+  `antrea-ovs` restart sayısı. SEP her yerde aynıysa tek başına sebep değildir; yük farkıyla birlikte değerlendir.
+- Öneri (değişiklik — SEP yöneticisi yapar): Auto-Protect profili (KB 237314: `sisipsconfig.sh -approfile`), konteyner
+  yollarına istisna (`/var/lib/rancher`, `/var/lib/kubelet`, `/run/containerd`, `/var/run/antrea`, `/var/log/antrea`),
+  IDS konteyner izleme (KB 240470: `LocalAgent.ini` → `Enable Container Monitor=0`, 14.3 RU1+). Test kümesinde önce.
+
+**`tmpmounts` birikimi** (`/var/lib/rancher/rke2/agent/containerd/tmpmounts/containerd-mount*`): containerd imaj açarken
+geçici bağlama yapar; bağlama çözülemezse (`device or resource busy` — başka bir süreç bağlamayı tutuyor; genel, containerd
+#10239'da sebep tüm `/`'u bağlayan izleme ajanıydı) dizin kalır. Belirti olarak oku, sebep yazma:
+
+```bash
+ls -la --time-style=+%F_%T /var/lib/rancher/rke2/agent/containerd/tmpmounts/ | tail -40      # oluşma saatleri → olay saatleriyle eşleşiyor mu
+findmnt | grep -c tmpmounts                                                                   # hâlâ bağlı olan (0 → yalnız boş dizin)
+grep -i -e "failed to unmount" -e tmpmounts /var/lib/rancher/rke2/agent/containerd/containerd.log | tail -20
+```
+
+Boş dizinler tek başına zarar vermez (tahmin); saatleri OVS olaylarıyla aynıysa ortak sebebin (takılma anı) izidir.
 
 **conntrack (genel bilgi):** kube-proxy açılışta `nf_conntrack_max`'ı `max(32768 × çekirdek, 131072)` yapar (varsayılan
 `--conntrack-max-per-core`) → node'lar arası farklı değer çoğu zaman **vCPU farkıdır**, yanlış ayar değil (`nproc` ile

@@ -98,7 +98,7 @@ journalctl -k -b --no-pager | grep -nE \
 | `Call Trace:` | Çekirdek bir yığın izi bastı | Üstündeki 5-10 satır asıl mesajdır; izde **ilk bizim/üçüncü taraf modül** adı (ör. `[vendor_mod]`) şüphelidir |
 | `BUG:` / `Oops` / `general protection fault` | Çekirdek kodu hata yaptı | Modül adı + `Tainted:` satırı |
 | `soft lockup` / `hard LOCKUP` / `rcu ... stall` | Bir CPU uzun süre bırakmadı | Sanal makinede önce hipervizör (`%steal`) — `rhel-performans` |
-| `blocked for more than N seconds` | Süreç D state'te takıldı (hung task) | Neredeyse hep disk/NFS/SAN; `rhel-depolama`, `nfs-mount` |
+| `blocked for more than N seconds` | Süreç D state'te takıldı (hung task) | Neredeyse hep disk/NFS/SAN; `rhel-depolama`. Yığında `fanotify`/`fsnotify` ya da `sisap`/`sisevt` → dosya açma erişimde tarayan güvenlik ajanını (SEP) bekliyor; `rke2-denetim` §4 "Eleme — SEP" |
 | `Out of memory: Killed process` | OOM killer süreç öldürdü | Hangi süreç, `total-vm`/`anon-rss` — `rhel-performans` §4 |
 | `I/O error, dev sdX` / FS `error`/`Corruption` | Disk/SAN/dosya sistemi hatası | `rhel-depolama`; multipath varsa `multipath -ll` |
 | `Hardware Error` / `mce:` | Donanım (bellek/CPU) hatası | Donanım ekibine; yazılım tarafında çözüm arama |

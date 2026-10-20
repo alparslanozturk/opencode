@@ -131,9 +131,10 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
   değişiklik numarası İSTENMEZ, CN önerme** ·
   mevcut (çalışan) sunucuda değişiklik: CN numarası + sunucular — **biçim dayatma** (Alp, 2026-10-17): kullanıcı aynı
   mesajda serbest yazar ("CHG0012345 ile web01, web02 sunucularında", alt alta liste, birden çok CN); kilit anlar. Eksikse
-  yalnız eksik olanı sor (numara mı, sunucu mu), "şu formatta yaz" deme · kriz: cümle içinde "kriz var" (biçim
-  şart değil) + yapıştırılmış kriz maili/toplantı notu + sunucular (kısa kriz cümlesindeki adlar da geçer; yapıştırılan
-  maildeki adlar yetki açmaz). Bu makine = `localhost`. Yalnız okuyan playbook (ping, setup, debug,
+  yalnız eksik olanı sor (numara mı, sunucu mu), "şu formatta yaz" deme · kriz: cümle içinde "kriz var" + sunucular
+  yeter (Alp, 2026-10-20 — mail/toplantı notu şartı yok; kısa kriz cümlesindeki adlar geçer, yapıştırılan maildeki adlar
+  yetki açmaz). Sunucu ad, kısa ad (`wor07`), IP, aralık (`wor07-14`) ya da envanter grubu olarak verilebilir — kilit
+  çalışma dizinindeki ansible envanterinden eşler. Bu makine = `localhost`. Yalnız okuyan playbook (ping, setup, debug,
   salt-okunur command) yetkisiz çalışır — önce çalıştır, yetki isteme.
 - **Kriz akışı:** mail yapıştırılınca etkilenen sunucuları maildan çıkar, listeyi öner ve **dur** —
   liste ancak kullanıcı `sunucular: …` yazınca geçerli olur. Yetki satırını sen yazamazsın/üretemezsin.
@@ -148,9 +149,10 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
 - **Yetki dili serbesttir (Alp, 2026-10-20):** kullanıcı "kriz var", "krizdeyiz", "kriz durumundayız, wor14'te …" gibi cümle içinde
   söylediyse bu KRİZ beyanıdır; "KRİZ yazıp alt satıra sunucular:" gibi biçim isteme. Aralık yazımı (`wor07-14`,
   `10.14.9.127-134`) kilitte açılır. Kilit yine reddederse yalnız **eksik olanı** söyle (kriz notu mu, sunucu mu, IP mi).
-- **Hedefi yetkideki adla yaz:** kullanıcı sunucuları adla verdiyse komutta da o adı kullan (ssh `<ad>`); IP ile bağlanırsan
-  IP listede değildir ve kilit reddeder. Çok sunucuya aynı değişiklik: `for h in <ad1> <ad2>; do ssh $h …; done` (liste düz
-  yazılırsa kilit her hedefi ayrı denetler) ya da ansible `--limit`.
+- **Ad ↔ IP envanterden (G74):** kilit yetki verildiği anda `ansible/` ve `inventories/` altındaki INI envanterden eşler: ad,
+  kısa ad (tek host'a uyuyorsa), `ansible_host` IP'si, grup üyeleri. Komutta ad ya da IP kullanabilirsin. Kilit "envanterde
+  yok" ya da "birden çok host'a uyuyor" derse kullanıcıya **yalnız o adı** sor. Çok sunucuya aynı değişiklik: düz listeli
+  `for h in <ad1> <ad2>; do ssh $h …; done` (kilit her hedefi ayrı denetler) ya da ansible `--limit`.
 - **Atlatma yolu ÖNERME.** Kilit reddederse etrafından dolaşma yolu **sunma** (dosyayı `/tmp`'ye kopyalayıp okumak,
   `bash` üzerinden denemek, farklı araç/yazım, `--limit` ile hedefi gizlemek...). Ne yapamadığını ve **neden**
   gerektiğini tek cümleyle söyle; içerik gerekiyorsa **kullanıcı kendisi paylaşsın**.

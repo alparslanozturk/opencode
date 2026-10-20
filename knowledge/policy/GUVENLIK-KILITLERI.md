@@ -49,7 +49,8 @@ Nasıl okunur (`engine/plugins/lib/kilit.ts` `yetkiSatirlariniOku`, testleri `ki
   adları alınmaz); bu satırların altındaki alt alta / maddeli liste (burada rakamsız ad da olur: `srvsatellite`).
 - **Güvenlik sınırları:** "hariç / dışında / değil" geçen satırdaki sunucular **eklenmez**, ajan uyarı görür (yanlış hedefe yetki
   riski). Serbest adlar yalnız **aynı mesajda CN ya da KURULUM beyanı varsa** sayılır — sıradan bir soru ("web05 sunucusunda disk
-  dolu") açık yetkinin listesini değiştirmez. **KRİZ**'de yalnız açık `sunucular:` satırı geçerli (yapıştırılan mail yetki açmaz).
+  dolu") açık yetkinin listesini değiştirmez. **KRİZ**'de kısa kriz cümlesindeki adlar ve açık `sunucular:` satırı geçerli;
+  mail yapıştırılan mesajda yalnız açık liste (yapıştırılan mail yetki açmaz — G73).
 
 ### Tanınmayan komut — engel değil, onay (G68, Alp 2026-10-17)
 
@@ -75,9 +76,7 @@ sunucular: yeni01, yeni02
 ```
 
 ```
-KRİZ
-<kriz maili ya da toplantı notu buraya yapıştırılır>
-sunucular: db01
+kriz var, db01 ve wor07-08'de ödeme servisi durdu
 ```
 
 - **CN**: numara + sunucu listesi ikisi de şart.
@@ -86,7 +85,8 @@ sunucular: db01
   önermez (T28 — Alp, 2026-09-30: "yeni kurulumda değişiklik numarasına ihtiyaç yok"). Beyan **harf duyarsız ve doğal
   cümlede** de tanınır (T30): `kurulum yapacağım`, `Kurulum`, `bu makinelere kurulum yapacağım`. Ekli biçimler
   (`kurulumu`, `kurulumda`) ve olumsuz cümle (`kurulum yapmayacağım`) beyan sayılmaz. Sunucu listesi yine şart.
-- **KRİZ**: mail/toplantı notu (en az birkaç satır) + sunucu listesi. Mail ayrı mesajla da yapıştırılabilir.
+- **KRİZ**: kriz beyanı + sunucu listesi yeter (G74, Alp 2026-10-20: "kriz cümlesi yeterli olsun" — eskiden mail/toplantı
+  notu şarttı; yapıştırılırsa audit'e kaydedilir, şart değil).
   Beyan **cümle içinde** de tanınır (G73, Alp 2026-10-20): "kriz var", "krizdeyiz", "kriz durumundayız", "acil kriz",
   "KRİZ wor14 düştü"; "kriz yok/değil/bitti", "kriz mi?", "kriz raporunu incele" beyan değildir. Aynı mesajda CN varsa CN
   geçerlidir. Kısa kriz cümlesindeki sunucu adları ("kriz var, wor14 ve wor07'de …") ve altındaki alt alta liste geçer;
@@ -97,7 +97,12 @@ sunucular: db01
 - **Bu makine** için listeye `localhost` yaz (örn. bu makinede `systemctl restart`, `/etc` düzenleme).
 - Liste her `sunucular:` satırında **yenilenir** (eklenmez). `YETKİ KAPAT` yetkiyi kaldırır.
   Yetki oturuma bağlıdır ve 12 saat sonra düşer; opencode kapanınca biter.
-- Kısa ad eşleşir: listede `web01` varsa `web01.kurum.local` da geçer. IP ile bağlanılıyorsa IP'yi de yaz.
+- Kısa ad eşleşir: listede `web01` varsa `web01.kurum.local` da geçer.
+- **Envanter eşlemesi (G74):** yetki verildiği anda çalışma dizinindeki `ansible/`, `inventories/` altındaki INI envanter(ler)
+  okunur (`OPS_AGENT_ENVANTER=yol1:yol2` ile değiştirilebilir); listedeki her öğe ad, kısa ad (envanterde adı onunla biten
+  **tek** host varsa — `wor07` → `stlrancherwor07`), `ansible_host` IP'si ve grup adı (üyeleri, `:children` dahil) olarak
+  genişletilir. Genişletme yetki anında dondurulur: sonradan envanter dosyası değişse (ajan yazabilir) verilmiş yetki
+  genişlemez. Bulunamayan / birden çok host'a uyan ad yetki özetinde ve K1 mesajında "Envanter: …" notuyla söylenir.
 
 **Değişiklik sayılanlar:** `--check`'siz `ansible-playbook` (hedef `--limit` ile verilmek zorunda),
 `ansible -m <yazan modül>`, `ssh <sunucu> '<salt-okunur olmayan komut>'`, `scp/rsync` ile sunucuya

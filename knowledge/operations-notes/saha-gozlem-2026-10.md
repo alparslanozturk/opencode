@@ -871,3 +871,14 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Açık (Alp kararı): KRİZ'de mail/toplantı notu (≥120 karakter) şartı duruyor — kısa "kriz var, wor14'te …" mesajı tek başına
   yetki açmaz, K1 "kriz notu yapıştırılmadı" der. Kalsın mı? Ayrıca yetkide `wor07` yazılıp komutta `stlrancherwor07`/IP
   kullanılırsa eşleşmez (bilerek bulanık eşleme yok).
+
+### G74 — Alp kararı: kriz cümlesi yeterli; ad ↔ IP envanterden anlaşılsın
+- Alp (2026-10-20): "kriz cümlesi yeterli olsun, envanter eşleştirmesini de yap — IP ya da isim verdiğinde envanterden
+  anlayabilmesi önemli." (G73 açık soruları.)
+- Yapılan: KRİZ'de mail/toplantı notu şartı kalktı (`yetkiAktif`; `krizMetni` yalnız kayıt). Yeni `lib/envanter.ts`: çalışma
+  dizinindeki `ansible/`, `inventories/` altındaki INI envanterler (`OPS_AGENT_ENVANTER` ile değiştirilebilir) — host, kısa ad,
+  `ansible_host`, gruplar + `:children`, aralık deseni `x[1:5]`. Yetki **verildiği anda** liste genişletilir (`Yetki.esler`):
+  ad ↔ IP ↔ grup üyeleri; kısa ad yalnız tek host'a uyuyorsa (`wor07` iki kümede varsa genişletilmez, "birden çok" notu). Sonradan
+  envanter dosyası değişse (ajan çalışma dizinine yazabilir) verilmiş yetki genişlemez (test). K1 mesajı ve yetki özeti
+  "Envanter: envanterde yok … / birden çok host'a uyuyor …" notunu taşır. Test 315 → 321, `tsc --strict` temiz.
+- AGENTS: kriz cümlesi + sunucu yeter; ad/IP/aralık/grup envanterden; kilit eksik derse yalnız o adı sor. GUVENLIK-KILITLERI güncel.

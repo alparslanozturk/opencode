@@ -12,6 +12,7 @@ import { dirname, join } from "path"
 import { SCOPE_BURST_WINDOW_MS, SCOPE_TOOLS, SCOPE_WIDE_DIR_THRESHOLD, deriveTarget, isInside, resolveTargetDir, truncate } from "./lib/maskele"
 import { KRIZ_METNI_MIN, YETKI_OMRU_MS, kilitDenetle, yetkiAktif, yetkiOzeti, yetkiSatirlariniOku } from "./lib/kilit"
 import type { Yetki } from "./lib/kilit"
+import { envanterEsle } from "./lib/denetim"
 
 const AUDIT_LOG_PATH = process.env.OPS_AGENT_AUDIT_LOG ?? "/var/log/ops-agent/audit.jsonl"
 const ZERO_HASH = "0".repeat(64)
@@ -304,7 +305,10 @@ export const AuditLogPlugin: Plugin = async ({ directory, project, worktree }) =
         y.cn = s.cn
       }
       if (y.tur === "KRIZ" && s.govde >= KRIZ_METNI_MIN) y.krizMetni = true
-      if (s.sunucular) y.sunucular = s.sunucular
+      if (s.sunucular) {
+        y.sunucular = s.sunucular
+        envanterEsle(y, calismaDizini)
+      }
       y.zaman = now
       yetkiler.set(input.sessionID, y)
       writeYetkiRecord(

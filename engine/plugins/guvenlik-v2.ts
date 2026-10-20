@@ -146,7 +146,7 @@ export function guvenlikKur(ctx: Baglam) {
     ctx.session.hook("prompt", async (e) => {
       const k = await kok(e.sessionID)
       if (k !== e.sessionID) return // alt ajan oturumu: metni model yazdı, yetki sayılmaz
-      const ozet = yetkiIsle(yetkiler, k, e.prompt.text ?? "")
+      const ozet = yetkiIsle(yetkiler, k, e.prompt.text ?? "", Date.now(), calismaDizini)
       if (ozet) yetkiKaydi(e.sessionID, ozet, yetkiler.get(k))
     }),
 

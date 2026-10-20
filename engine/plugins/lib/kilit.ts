@@ -524,6 +524,11 @@ export function yolCoz(p: string, b: Baglam): string {
   return isAbsolute(x) ? resolve(x) : resolve(b.cwd, x)
 }
 
+// Uzakta yönlendirme hedefi olarak dosya OLMAYANLAR: bit kovası, standart akışlar ve bash'in /dev/tcp|udp soket yolları
+// (saha G71: `echo >/dev/tcp/nfs/2049` ve `exec 3<>/dev/tcp/…` port testi uzakta "dosyaya yazma" sayılıyordu).
+export const zararsizHedef = (y: string) =>
+  ["/dev/null", "/dev/stdout", "/dev/stderr", "/dev/tty"].includes(y) || /^\/dev\/(fd|tcp|udp)\//.test(y)
+
 export function serbestYazmaAlani(abs: string, b: Baglam): boolean {
   return (
     isInside(b.workdir, abs) ||
@@ -573,7 +578,7 @@ export const BILINEN_ARAC = new Set([
   "firewall-cmd", "iptables", "ip6tables", "nft", "sysctl", "mount", "swapon", "dmesg", "crontab", "sed", "find",
   "subscription-manager", "realm", "ipa", "kubectl", "oc", "helm", "docker", "podman", "nvidia-smi", "mdadm", "nvme",
   "cpupower", "crictl", "vmware-toolbox-cmd", "etcdctl", "ctr", "containerd", "tuned-adm", "authselect", "rke2",
-  "hammer", "sshd", "perf", "command", "chronyc", "localectl", "awk", "gawk",
+  "hammer", "sshd", "perf", "command", "chronyc", "localectl", "awk", "gawk", "showmount", "rpcinfo", "nfsstat",
   // bilinen değiştiriciler
   "rm", "mv", "cp", "ln", "chmod", "chown", "chgrp", "mkdir", "rmdir", "touch", "tee", "dd", "truncate", "install",
   "shred", "unlink", "rsync", "scp", "tar", "unzip", "gzip", "gunzip", "xz", "bzip2", "zip", "patch",
@@ -608,6 +613,7 @@ export const SALT_OKUNUR = new Set([
   "systemd-analyze", "needs-restarting", "top", "vmstat", "iostat", "mpstat", "sar", "nproc", "arch",
   "locale", "ntpq", "nc", "curl", "wget", "openssl", "ansible", "cd", "xfs_info",
   "pidstat", "fincore", "sadf", "iotop", "slabtop", "numastat", "lsns", "lslocks", "lsipc",
+  "mountpoint", "nfsiostat", "mountstats", // NFS/bağlama teşhisi (G71)
   // kabuk sözdizimi (saha G62): döngü/koşul kapanışları ve `read` kendi başına bir şey değiştirmez; gövdedeki
   // komutlar ayrı segment olarak ayrıca incelenir
   "done", "fi", "esac", "read", "{", "}",
@@ -694,6 +700,16 @@ export function sshdOkur(a: string[]): boolean {
   return test
 }
 
+// mount: bağlama noktası/aygıt (konumsal argüman) yok ve yalnız listeleme bayrakları var
+function mountListeler(a: string[]): boolean {
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i]
+    if (x === "-t" || x === "--types") i++
+    else if (!(x === "-l" || x === "--show-labels" || x.startsWith("--types=") || /^-t\S+$/.test(x))) return false
+  }
+  return true
+}
+
 export function saltOkunur(argv: string[]): boolean {
   const p = taban(argv[0] ?? "")
   const a = argv.slice(1)
@@ -738,7 +754,16 @@ export function saltOkunur(argv: string[]): boolean {
     case "sysctl":
       return !has("-w", "--write", "-p", "--load", "--system") && !a.some((x) => x.includes("="))
     case "mount":
-      return a.filter(secenekDegil).length === 0
+      // yalnız listeleme: `mount`, `mount -l`, `mount -t nfs4` (tür süzgeci). `mount -a` fstab'ı bağlar (eskiden açıktı).
+      return mountListeler(a)
+    case "showmount":
+      return true // NFS sunucusunun export/istemci listesini sorar (G71)
+    case "rpcinfo":
+      return !has("-d", "--delete") // -d: portmap kaydını siler; -p/-s/-t/-u/-T okur
+    case "nfsstat":
+      return !a.some((x) => /^-[a-zA-Z]*z|^--zero|^--reset/.test(x)) // -z sayaçları sıfırlar
+    case "exportfs":
+      return a.length === 0 || a.every((x) => x === "-v" || x === "-s") // -a/-r/-u/-o export'u değiştirir
     case "swapon":
       return a.length === 0 || has("--show", "-s", "--summary")
     case "dmesg":
@@ -1004,7 +1029,7 @@ export function tekKomut(k: Komut, b: Baglam): Bulgu[] {
     if (BLOK_AYGIT_RE.test(y)) out.push(sert(`diske doğrudan yazma (> ${y})`))
   }
   if (argv.length === 0) {
-    if (b.uzak && k.yazilan.some((y) => !["/dev/null", "/dev/stderr", "/dev/stdout"].includes(y)))
+    if (b.uzak && k.yazilan.some((y) => !zararsizHedef(y)))
       out.push(degisiklik("dosyaya yazma", [b.uzak]))
     else if (!b.uzak) {
       const r = yerelDegisiklik(["true"], k.yazilan, b)
@@ -1162,7 +1187,7 @@ export function tekKomut(k: Komut, b: Baglam): Bulgu[] {
       const tanimsiz = !BILINEN_ARAC.has(p) && !p.startsWith("mkfs")
       out.push(degisiklik(tanimsiz ? `${p} (uzakta — kilit bu komutu tanımıyor)` : `${p} (uzakta)`, [b.uzak], tanimsiz))
     }
-    else if (k.yazilan.some((y) => !["/dev/null", "/dev/stderr", "/dev/stdout"].includes(y)))
+    else if (k.yazilan.some((y) => !zararsizHedef(y)))
       out.push(degisiklik(`${p} > dosya (uzakta)`, [b.uzak]))
     return out
   }

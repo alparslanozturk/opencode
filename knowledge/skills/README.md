@@ -24,7 +24,7 @@ GPU bölümü test kümesinde boşa yükleniyordu) ve Qwen dolu bağlamda bozulu
 platformda bir iş**; ortak veri/araç tek yerde (`surum-uyum/uyum.py`), diğerleri ona yönlendirir.
 
 - **k8s-** (her Kubernetes — Anthos/GKE dahil): `k8s-sorun`
-- **rke2-** (Rancher'ın yönettiği RKE2): `rke2-denetim` · `rke2-gpu` · `rke2-guvenlik` · `rke2-yukseltme` · `rke2-kurulum` · `rke2-node-ekle`
+- **rke2-** (Rancher'ın yönettiği RKE2): `rke2-denetim` · `rke2-gpu` · `rke2-guvenlik` · `rke2-yukseltme` · `rke2-kurulum` · `rke2-node-ekle` · `rke2-edr`
   (Alp, 2026-10-17: genel olan `k8s-`, RKE2'ye özgü olan `rke2-`, GKE'leri yöneten Anthos `anthos-`)
 - **anthos-**: `anthos-erisim` (ileride `anthos-yukseltme`)
 - **vcf-** (VMware VCF): veri gelince `vcf-denetim` · `vcf-yukseltme`

@@ -1,6 +1,6 @@
 ---
 name: rke2-denetim
-description: Rancher'ın yönettiği RKE2 kümesini (test, nonprod, prod) uçtan uca denetlerken kullan — sürüm envanteri ve matris, control plane (etcd, apiserver), node NotReady/Unavailable/donma/kısa takılma, Antrea/OVS, conntrack, sistem pod'ları, node işletim sistemi. "kümeyi incele", "küme denetimi", "kümede neler oluyor", "node unavailable", "notready", "node düşüyor", "donma", "takılma", "rke2 incele", "rancher kümesi", "antrea", "ovs", "antrea-ovs restart", "liveness", "ovs soketi", "tmpmounts", "nfs mi", "sep", "antivirüs", "etcd", "control plane", "kube-system" isteklerinde tetiklenir. GPU kümesi için ayrıca `rke2-gpu`, güvenlik için `rke2-guvenlik`, yükseltme için `rke2-yukseltme`. Yalnız okur; değişiklik önerir, uygulamaz.
+description: Rancher'ın yönettiği RKE2 kümesini (test, nonprod, prod) uçtan uca denetlerken kullan — sürüm envanteri ve matris, control plane (etcd, apiserver), node NotReady/Unavailable/donma/kısa takılma, Antrea/OVS, conntrack, sistem pod'ları, node işletim sistemi. "kümeyi incele", "küme denetimi", "kümede neler oluyor", "node unavailable", "notready", "node düşüyor", "donma", "takılma", "rke2 incele", "rancher kümesi", "antrea", "ovs", "antrea-ovs restart", "liveness", "ovs soketi", "tmpmounts", "nfs mi", "etcd", "control plane", "kube-system" isteklerinde tetiklenir. GPU kümesi için ayrıca `rke2-gpu`, EDR/AV ajanları (SEP, XDR, Twistlock) için `rke2-edr`, güvenlik için `rke2-guvenlik`, yükseltme için `rke2-yukseltme`. Yalnız okur; değişiklik önerir, uygulamaz.
 ---
 
 # RKE2 küme denetimi (her küme)
@@ -220,7 +220,7 @@ Ayırt et (her satır "tahmin:" ile başlar, kanıt gelince kesinleşir):
 |---|---|
 | `Unreasonably long NNNNms poll interval (… user, … system)` — duvar saati büyük, user+system küçük | ovs-vswitchd **çalıştırılmadı/bekledi** (CPU açlığı, G/Ç, VM duraklaması) — OVS'nin hatası değil |
 | Aynı dakikada `chronyd` sıçraması, `%steal`, başka node'larda da takılma | hipervizör/datastore (§5b) |
-| `hung task` / `blocked for more than` — çağrı yığınında `fanotify`/`fsnotify` ya da `sisap`/`sisevt` | dosya açma, **erişimde tarama yapan güvenlik ajanının** kararını bekliyor (SEP aşağıda) |
+| `hung task` / `blocked for more than` — çağrı yığınında `fanotify`/`fsnotify` ya da `sisap`/`sisevt` | dosya açma, **erişimde tarama yapan güvenlik ajanının** kararını bekliyor (`rke2-edr`) |
 | Aynı yığında `nfs_`/`rpc_` | NFS — ama node'da NFS bağlaması yoksa bu yol kapalı (aşağıda) |
 | `sar` o pencerede `%iowait`/`await` yüksek, PSI `io` | disk/datastore |
 | Hiçbiri yok, yalnız OVS satırları | OVS'nin kendisi — Antrea sürüm/matris (§1), `antrea-agent` logu |
@@ -237,26 +237,9 @@ kubectl get pods -A -o wide --field-selector spec.nodeName=<node> | grep -v -e k
 
 Node'da NFS bağlaması ve "not responding" yoksa NFS o node'un donmasının sebebi olamaz → "kök neden NFS değil" yazılabilir.
 
-**Eleme — SEP (Symantec) erişimde tarama** (kurum sunucularında kurulu: `sisamdagent`, `sisap`/`sisevt` modülleri — saha G44;
-kurum kaynak sınırı CPU %400, MemoryHigh 2G, Max 3G — G44, kaynağı `08-sep-sinirlama` `[SAHA]`). Genel (Broadcom KB
-237314): Auto-Protect erişilen/değişen her dosyayı tarar, yoğun disk kullanan sunucuda yüksek CPU/bellek yapar; çözüm sık
-erişilen yollar için istisna. tahmin: tarayıcı cgroup sınırına takılırsa dosya açan her süreç (containerd, ovs-vswitchd) onu
-bekler → node "durmuş" görünür. Kanıt (okuma):
-
-```bash
-systemctl status sisamdagent --no-pager | head -12; ps -o pid,pcpu,rss,etime,cmd -C sisamddaemon
-systemctl show sisamdagent -p ControlGroup -p MemoryHigh -p MemoryMax -p CPUQuotaPerSecUSec
-cat /sys/fs/cgroup/system.slice/sisamdagent.service/memory.events /sys/fs/cgroup/system.slice/sisamdagent.service/cpu.stat
-lsmod | grep -e sisap -e sisevt; ls -la --time-style=+%F_%T /var/log/sdcsslog/ /var/log/sdcsslog/amdlog/ 2>&1 | tail -20
-```
-
-- `memory.events` → `high`/`max` sayacı artıyorsa bellek sınırına çarpıyor; `cpu.stat` → `nr_throttled`/`throttled_usec`.
-  ControlGroup yolu farklıysa `systemctl show`'daki yolu kullan.
-- Karşılaştır (ansible ad-hoc, tek izin): sağlam node (wor07) ↔ sorunlu (wor03, wor08, wor14) — SEP aynı mı, throttle sayaçları,
-  `antrea-ovs` restart sayısı. SEP her yerde aynıysa tek başına sebep değildir; yük farkıyla birlikte değerlendir.
-- Öneri (değişiklik — SEP yöneticisi yapar): Auto-Protect profili (KB 237314: `sisipsconfig.sh -approfile`), konteyner
-  yollarına istisna (`/var/lib/rancher`, `/var/lib/kubelet`, `/run/containerd`, `/var/run/antrea`, `/var/log/antrea`),
-  IDS konteyner izleme (KB 240470: `LocalAgent.ini` → `Enable Container Monitor=0`, 14.3 RU1+). Test kümesinde önce.
+**Eleme — güvenlik ajanları (SEP, Cortex XDR, Twistlock):** envanter, kanıt sırası (yığın izi → ajan logu → kaynak → karşılaştırma
+→ kapat-gözle) ve "kapatınca düzeldi" doğrulaması **`rke2-edr`** becerisinde (saha G72: wor14'te XDR kaldırılınca node toparlandı;
+gözlem sürüyor). Ajanı kök neden yazmadan önce o beceriyi yükle.
 
 **`tmpmounts` birikimi** (`/var/lib/rancher/rke2/agent/containerd/tmpmounts/containerd-mount*`): containerd imaj açarken
 geçici bağlama yapar; bağlama çözülemezse (`device or resource busy` — başka bir süreç bağlamayı tutuyor; genel, containerd

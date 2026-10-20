@@ -67,13 +67,19 @@ ansible <grup> -i <envanter> -m shell -o -a 'systemctl is-active sisamdagent tra
 5. **Kapat-gözle** (değişiklik — kullanıcı yapar): bir node'da **tek** ajan, gözlem süresi §4. Aynı anda iki ajan kapatılırsa
    hangisinin etkili olduğu bilinemez — sırayla.
 
-Yalnız 5 varsa rapor dili: **"Aday: XDR — <tarih> kaldırıldı, <tarih>'e kadar gözlemde"**. "Kök neden XDR", "kernel modülü OVS ve
+Yalnız 5 varsa rapor dili: **"tahmin ediyorum: XDR — emin değilim; <tarih> kaldırıldı, <tarih>'e kadar gözlemde"**. Tersi de
+aynı: "OVS'in kendi donması, XDR ile bağlantılı değil" demek için de kanıt gerekir — soket kaybı ve crash logu olmaması OVS'in
+mi takıldığını, node'un mu durduğunu ayırmaz; ayıran `rke2-denetim` §4 tablosundaki `poll interval` satırıdır. "Kök neden XDR", "kernel modülü OVS ve
 containerd'yi engelliyordu" gibi cümleler yalnız 1 ya da 2 ile yazılır (saha G72: ajan yığın izi göstermeden yazdı).
 
 ## 4. "Kapatınca düzeldi" nasıl doğrulanır
 
 - Hemen sonraki `Ready` / `2/2 Running` / düşük load **kanıt değil**: node olaylar arasında zaten günlerce sağlam. Load tek başına
   kararlılık ölçütü değildir; ölçüt olayın **tekrarlamaması**.
+- **Zaman çizelgesini yaz** (saha G73: reboot 14:24 → XDR durdurma 15:44 → "stabil" 15:50): ajandan önce reboot olduysa düzelme
+  ajana yazılamaz, reboot'a da yazılamaz — ikisi de "tahmin". Tek değişkenli deneme: önce reboot, gözlem; sonra ajan.
+  `journalctl --list-boots | tail -3`, `systemctl show traps_pmd -p InactiveEnterTimestamp` (ajan ne zaman durdu) ile saatleri
+  komutla al, kafadan yazma.
 - Gözlem süresi: en uzun olay aralığının en az iki katı (wor14: aralık ≤4 gün → **en az 7-8 gün**, ~2026-10-28'e kadar).
 - Başlangıç değerini **şimdi** yaz, sonra karşılaştır:
 

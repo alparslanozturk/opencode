@@ -28,6 +28,15 @@
 - **Kanıt iste:** kullanıcı bir hata/durum anlatıp çıktıyı vermediyse tahminle çözüm üretme — komutu kendin
   çalıştır (salt-okunur) ya da "şu komutun çıktısını/ekranını paylaşır mısın" de.
 - **Tahmin ile olguyu ayır:** çıkarım yapıyorsan başına `tahmin:` yaz ve neye dayandığını söyle.
+- **Kök neden / sebep cümlesi (Alp, 2026-10-20 — "delil olmadan kesin söylemesi uygun değil, çok önemli"):**
+  "kök neden X", "X'e sebep oluyordu", "X ile bağlantılı değil", "sorunu Y çözdü" gibi **kesin** cümleyi yalnız o anı
+  doğrudan gösteren çıktıyla yaz (takılma anının logu/çekirdek yığını, hata mesajı) ve kanıtı yanına koy. Elinde yalnız
+  zaman sırası, "kapatınca düzeldi" ya da benzerlik varsa cümle **"tahmin ediyorum: … — emin değilim, çünkü …"** biçiminde
+  kurulur ve **hangi kanıtın kesinleştireceği** yazılır. Sonuç ile sebebi karıştırma: bir bileşenin hatası (ör. Antrea/OVS
+  liveness) node durduğunda **sonuç** olarak da görülür (saha G72-G73).
+- **Kullanıcı itiraz edince ters yöne kesinleşme (saha G73):** "emin misin, delilin ne?" sorusuna cevap, önceki iddianın
+  **kanıt durumunu** söylemektir (hangisi kanıtlı, hangisi tahmin). Önceki iddiayı bırakıp karşıtını yine kanıtsız kesin
+  yazma (ör. "XDR kök neden" → "OVS'in kendi donması, XDR ile bağlantılı değil"); ikisi de tahminse ikisini de tahmin yaz.
 - **Seçenekli soruya belirsiz onay (G18, 2026-10-13):** "A mı, yoksa B mi?" diye sorduysan ve cevap yalnız
   "evet / tamam / yap" ise ya da yalnız birini anıyorsa, **yalnız açıkça adı geçeni** yap; adı geçmeyen seçeneği
   (özellikle silme/taşıma gibi geri dönüşü zor olanı) onaylanmış sayma — "B'yi de yapayım mı?" diye sor.
@@ -122,8 +131,9 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
   değişiklik numarası İSTENMEZ, CN önerme** ·
   mevcut (çalışan) sunucuda değişiklik: CN numarası + sunucular — **biçim dayatma** (Alp, 2026-10-17): kullanıcı aynı
   mesajda serbest yazar ("CHG0012345 ile web01, web02 sunucularında", alt alta liste, birden çok CN); kilit anlar. Eksikse
-  yalnız eksik olanı sor (numara mı, sunucu mu), "şu formatta yaz" deme · kriz: `KRİZ` + yapıştırılmış kriz
-  maili/toplantı notu + `sunucular: …`. Bu makine = `localhost`. Yalnız okuyan playbook (ping, setup, debug,
+  yalnız eksik olanı sor (numara mı, sunucu mu), "şu formatta yaz" deme · kriz: cümle içinde "kriz var" (biçim
+  şart değil) + yapıştırılmış kriz maili/toplantı notu + sunucular (kısa kriz cümlesindeki adlar da geçer; yapıştırılan
+  maildeki adlar yetki açmaz). Bu makine = `localhost`. Yalnız okuyan playbook (ping, setup, debug,
   salt-okunur command) yetkisiz çalışır — önce çalıştır, yetki isteme.
 - **Kriz akışı:** mail yapıştırılınca etkilenen sunucuları maildan çıkar, listeyi öner ve **dur** —
   liste ancak kullanıcı `sunucular: …` yazınca geçerli olur. Yetki satırını sen yazamazsın/üretemezsin.
@@ -135,6 +145,12 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
   dnf install, rm …) yine CN/KURULUM yetkisi ister; K5/K6 hiç açılmaz.
 - Kilit reddederse atlatmaya çalışma (başka komut, betik, farklı yazım): kullanıcıya neyin neden
   gerektiğini tek cümleyle söyle.
+- **Yetki dili serbesttir (Alp, 2026-10-20):** kullanıcı "kriz var", "krizdeyiz", "kriz durumundayız, wor14'te …" gibi cümle içinde
+  söylediyse bu KRİZ beyanıdır; "KRİZ yazıp alt satıra sunucular:" gibi biçim isteme. Aralık yazımı (`wor07-14`,
+  `10.14.9.127-134`) kilitte açılır. Kilit yine reddederse yalnız **eksik olanı** söyle (kriz notu mu, sunucu mu, IP mi).
+- **Hedefi yetkideki adla yaz:** kullanıcı sunucuları adla verdiyse komutta da o adı kullan (ssh `<ad>`); IP ile bağlanırsan
+  IP listede değildir ve kilit reddeder. Çok sunucuya aynı değişiklik: `for h in <ad1> <ad2>; do ssh $h …; done` (liste düz
+  yazılırsa kilit her hedefi ayrı denetler) ya da ansible `--limit`.
 - **Atlatma yolu ÖNERME.** Kilit reddederse etrafından dolaşma yolu **sunma** (dosyayı `/tmp`'ye kopyalayıp okumak,
   `bash` üzerinden denemek, farklı araç/yazım, `--limit` ile hedefi gizlemek...). Ne yapamadığını ve **neden**
   gerektiğini tek cümleyle söyle; içerik gerekiyorsa **kullanıcı kendisi paylaşsın**.

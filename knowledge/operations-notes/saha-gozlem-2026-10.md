@@ -833,3 +833,21 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   ayırt etme tablosu, NFS ve SEP eleme, tmpmounts; 20 komut kilitten geçti); `rhel-sorun` hung task satırı (fanotify/sisap →
   SEP; ölü `nfs-mount` atfı kaldırıldı); `k8s-sorun` namespace tahmin etme (nfs-provisioner ve fluent-bit `kube-system`'de
   arandı, iki boş tur).
+
+### G72 — wor14: Alp Cortex XDR'ı kaldırdı → node toparlandı; ajan "kök neden XDR" dedi (kanıt yalnız kapat-gözle)
+- Görülen (Alp ekranı, `gpu-test kümesi kontrolü özeti`): önce/sonra tablosu — Node NotReady↔Ready salınımı → Ready; SSH zaman
+  aşımı → çalışıyor; antrea-agent liveness fail `connection refused` → 2/2 Running; `traps_pmd` (XDR) 308 MB RAM, %3 CPU → inactive.
+  Ajan: "Kök neden: Palo Alto Cortex XDR (TRAPS) kilitlenmeye sebep oluyordu … kernel modülü yüklüyken OVS ve containerd'yi
+  engelliyordu … kapatınca load 0.00, node anında stabil". Kalan: Twistlock defender (`/usr/local/bin/defender`) 163 MB.
+- Alp (2026-10-20): "XDR'ı kaldırdım. SEP de belki disable edeceğim. Twist'ler kalacak, kaldıramam. Üzerinde Milvus — ağır yük."
+- ⚠️ "Kök neden" ve "OVS ve containerd'yi engelliyordu" için ekranda yığın izi ya da ajan logu yok → kanıt yalnız kapat-gözle; wor14
+  zaten olaylar arasında 1-4 gün sağlam (10-12, 10-15, 10-19, 10-20) → hemen sonraki Ready/load 0.00 kararlılık kanıtı değil.
+  308 MB / %3 CPU "kilitlenme sebebi" olacak bir kaynak tüketimi değil (mekanizma varsa çekirdek kancasıdır, kaynak değil).
+- Üretici bilgisi (Doktor, internet): Cortex XDR Kubernetes host'larında yalnız konsoldan üretilen YAML ile **DaemonSet** kurulumunu
+  destekliyor (Install the Cortex XDR Agent for Kubernetes Hosts); çekirdek kipi `traps.ko`, 5.0+ çekirdekte eBPF kullanıcı kipi var;
+  loglar `/var/log/traps/`. Kurumdaki systemd `traps_pmd` kurulumu bu tanıma uymuyor olabilir → güvenlik ekibine soru.
+- Aksiyon (yapıldı): yeni beceri **`rke2-edr`** (21. beceri) — kurumdaki 3 ajanın envanteri, kanıt sırası (yığın izi → ajan logu →
+  kaynak → karşılaştırma → kapat-gözle; yalnız sonuncusu varsa "aday, gözlemde"), "kapatınca düzeldi" doğrulaması (en uzun aralığın
+  2 katı ≈ 7-8 gün, başlangıç restart/condition değerleri şimdi; tek seferde tek ajan; kaldırılan modül `lsmod`), Twistlock+Milvus ve
+  SEP önerileri. `rke2-denetim` SEP bloğu bu beceriye taşındı; `rhel-sorun` atfı güncellendi. Komutlar kilitten geçiyor
+  (SEP profil betiği → onay sorusu, beklenen).

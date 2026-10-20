@@ -59,6 +59,22 @@ const CN_KIMLIK = /(?:^|[^A-Z0-9])((?:CHG|CRQ|RFC|CR)[-_]?\d{4,})(?![A-Z0-9])/g
 const CN_CUMLE = /(?:^|[^A-Z0-9])(?:CN|CHANGE|DE[GĞ]I[SŞ]IKLIK)(?:\s+(?:NO|NR|ID|NUMBER|NUMARA[A-ZÇĞÖŞÜ]*|KAYD[A-ZÇĞÖŞÜ]*|KAYIT))*\s*[:#=]?\s*([A-Z]{0,4}[-_]?\d{4,})(?![A-Z0-9])/g
 const SUNUCU_SOZ = /(?:^|[^a-zçğıöşü])(?:sunucu|hedef|makine|host|node|server)/i
 const OLUMSUZ = /(?:^|[^A-Z])(?:HARI[CÇ]|DI[SŞ]INDA|EXCEPT|OLMADAN|DE[GĞ]IL)(?![A-Z])/
+// KRİZ beyanı (Alp, 2026-10-20: "kriz var deyince ya da değişik bir cümlede geçince kabul etmesi lazım"): satır başında
+// "KRİZ" ya da cümle içinde beyan biçimi — "kriz var", "kriz durumu(ndayız)", "krizdeyiz", "kriz yaşıyoruz", "acil kriz",
+// cümle sonu "bu bir kriz." Sözün yalnız geçmesi beyan değil: "kriz raporunu incele", "kriz yok/değil/bitti", "kriz mi?".
+const KRIZ_OLUMSUZ = /^\s*(?:YOK|DE[GĞ]IL|BITTI|KAPANDI|SONA|ATLATILDI|M[IUİÜ](?![A-ZÇĞÖŞÜ]))/
+const KRIZ_BEYAN_SONRA = /^(?:\s*(?:[.,!:;)\-–—]|$)|\s+(?:VAR|DURUM|ILAN|MOD|AN[IİI](?![A-Z])|ANINDA|YA[SŞ]|[CÇ]IKTI|OLDU|BA[SŞ]LADI|S[UÜ]R[UÜ]YOR|HAL[IİI]NDE|ACIL))/
+function krizBeyani(b: string): boolean {
+  if (/(?:^|[^A-Z0-9ÇĞÖŞÜ])KRIZDEY[IİU]?[MZ](?![A-ZÇĞÖŞÜ])/.test(b)) return true
+  for (const m of b.matchAll(/(?:^|[^A-Z0-9ÇĞÖŞÜ])KRIZ(?![A-Z0-9ÇĞÖŞÜ'’])/g)) {
+    const sonra = b.slice((m.index ?? 0) + m[0].length)
+    if (KRIZ_OLUMSUZ.test(sonra)) continue
+    // satır başında "KRİZ" + sunucu adı ("KRİZ wor14 düştü") da beyan; "kriz yönetimi dokümanı" değil
+    const basta = b.slice(0, (m.index ?? 0) + m[0].length).trim() === "KRIZ" && sunucuBicimli(temizTok(sonra.trim().split(/\s+/)[0] ?? ""))
+    if (basta || KRIZ_BEYAN_SONRA.test(sonra) || /ACIL\s+KRIZ$/.test(b.slice(0, (m.index ?? 0) + m[0].length))) return true
+  }
+  return false
+}
 const DOLGU = new Set(["ve", "ile", "and", "veya", "ya", "da", "de", "ayrıca", "ayrica", "+", "&"])
 // Rakam içeren ürün/teknoloji adları sunucu adı değildir (cümlede "rke2 sunucuları", "rhel9 makineleri" geçer).
 const URUN_ADI = /^(?:rke2|k3s|k8s|rhel\d*|el\d+|centos\d*|alma\d*|rocky\d*|h[12]\d\d|b[12]\d\d|a100|l40s?|ipv[46]|x86(?:_64)?|amd64|arm64|aarch64|s3|tls1\d*|sha\d+|md5|utf-?8|vcf\d*|esxi?\d*|vsphere\d*|nsx\d*|anthos\d*|gke\d*|p2v|v2v|2fa|mfa\d*|cis\d*|scap\d*|fips\d*|ha\d*)$/
@@ -67,6 +83,7 @@ const temizTok = (t: string) => t.replace(/^[\s"'`*•(\[<-]+/, "").replace(/['�
 // Cümle içinden alınacak ad: IP, harfli FQDN ya da rakam içeren ad (stlrancherwor07, web01) — düz sözcük alınmaz.
 function sunucuBicimli(ham: string): boolean {
   const t = ham.toLowerCase()
+  if (/^\d{1,3}(?:\.\d{1,3}){3}-\d{1,3}$/.test(t)) return true // IP aralığı: 10.0.0.127-134
   if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(t)) return true
   if (/^v?\d+(?:\.\d+)+$/.test(t) || DOSYA_UZANTI.test(t) || /^(?:chg|crq|rfc|cr|cn)[-_]?\d+$/.test(t) || URUN_ADI.test(t)) return false
   if (/^[a-z0-9][a-z0-9-]*(?:\.[a-z0-9-]+)+$/.test(t)) return /[a-z]/.test(t)
@@ -79,11 +96,27 @@ function listeSatiri(satir: string): string[] | null {
   return toks.every((t) => /^[a-z0-9][a-z0-9._*-]*$/i.test(t) && !DOSYA_UZANTI.test(t.toLowerCase()) && !/^v?\d+(\.\d+)*$/.test(t)) ? toks : null
 }
 
+// Aralık yazımı (Alp serbest yazar): "wor07-14" → wor07 … wor14, "10.0.0.127-134" → son okteti aralık. Sıfır dolgusu ilk
+// sayının genişliğiyle; en çok 64 ad; artmayan ya da biçimi tutmayan aralık olduğu gibi kalır.
+export function aralikAc(t: string): string[] {
+  const ip = /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.)(\d{1,3})-(\d{1,3})$/.exec(t)
+  const ad = /^([a-z][a-z0-9]*?[a-z-])(\d+)-(?:\1)?(\d+)$/i.exec(t)
+  const m = ip ?? ad
+  if (!m) return [t]
+  const [bas, son] = [Number(m[2]), Number(m[3])]
+  if (!(son > bas) || son - bas > 63 || (ip && son > 255)) return [t]
+  const gen = ip ? 0 : m[2].length
+  return Array.from({ length: son - bas + 1 }, (_, i) => m[1] + String(bas + i).padStart(gen, "0"))
+}
+
 export function yetkiSatirlariniOku(text: string): YetkiSatiri {
   const out: YetkiSatiri = { govde: 0 }
   const cnler: string[] = []
   const serbest: string[] = [] // cümle içinden / alt alta listeden — KRİZ değilse eklenir
   const acik: string[] = [] // "sunucular: …" satırları
+  let krizVar = false
+  const krizSerbest: string[] = [] // KRİZ beyan satırındaki ve altındaki listedeki adlar (mail satırlarındaki değil)
+  let devamKriz = false
   let devam: "acik" | "serbest" | null = null // önceki satır sunucu başlığı / CN satırıydı → alt alta liste olabilir
   const uyar = (m: string) => (out.uyari = out.uyari ? `${out.uyari} · ${m}` : m)
   for (const hamSatir of text.split("\n")) {
@@ -116,8 +149,9 @@ export function yetkiSatirlariniOku(text: string): YetkiSatiri {
       out.tur = "KURULUM"
       anahtar = true
     }
-    if (/^KRIZ\b/.test(b)) {
-      out.tur = "KRIZ"
+    const krizSatiri = krizBeyani(b)
+    if (krizSatiri) {
+      krizVar = true
       anahtar = true
     }
     const olumsuz = OLUMSUZ.test(b)
@@ -137,32 +171,47 @@ export function yetkiSatirlariniOku(text: string): YetkiSatiri {
       continue
     }
     const sunucuSatiri = SUNUCU_SOZ.test(satir)
-    if (sunucuSatiri || cnSatiri) {
+    if (sunucuSatiri || cnSatiri || krizSatiri) {
       if (olumsuz && sunucuSatiri) {
         olumsuzUyar()
         devam = null
       } else {
-        serbest.push(...satir.split(/[\s,;]+/).map(temizTok).filter(sunucuBicimli))
+        const adlar = satir.split(/[\s,;]+/).map(temizTok).filter(sunucuBicimli)
+        if (sunucuSatiri || cnSatiri) serbest.push(...adlar)
+        if (krizSatiri) krizSerbest.push(...adlar)
         devam = "serbest"
       }
-      if (!anahtar) out.govde += satir.trim().length
+      devamKriz = krizSatiri
+      // KRİZ cümlesi ("kriz var, …") içerik sayılır — tek başına "KRİZ" başlığı sayılmaz
+      if (!anahtar || (krizSatiri && b.trim() !== "KRIZ")) out.govde += satir.trim().length
       continue
     }
     if (devam) {
       const toks = listeSatiri(satir)
       if (toks) {
         ;(devam === "acik" ? acik : serbest).push(...toks)
+        if (devamKriz) krizSerbest.push(...toks)
         continue
       }
       devam = null
+      devamKriz = false
     }
     if (!anahtar) out.govde += satir.trim().length
   }
   if (cnler.length) out.cn = [...new Set(cnler)].join(",")
-  // Serbest adlar yalnız AYNI mesajda CN/KURULUM beyanı varsa sayılır: yoksa sıradan bir soru ("web05 sunucusunda disk
-  // dolu") açık yetkinin listesini sessizce değiştirirdi. KRİZ'de de sayılmaz (yapıştırılan mail yetki açmaz).
-  const hepsi = out.tur === "CN" || out.tur === "KURULUM" ? [...acik, ...serbest] : acik
-  const n = [...new Set(hepsi.map(normHost).filter((h) => h.length > 0))].slice(0, 200)
+  // KRİZ, aynı mesajda CN ya da KURULUM beyanı yoksa geçerlidir (CN daha güçlü yetki; mesajda "kriz" geçmesi onu ezmez).
+  if (krizVar && !out.tur) out.tur = "KRIZ"
+  // Serbest adlar yalnız AYNI mesajda CN/KURULUM/KRİZ beyanı varsa sayılır: yoksa sıradan bir soru ("web05 sunucusunda disk
+  // dolu") açık yetkinin listesini sessizce değiştirirdi. KRİZ'de yalnız kriz cümlesindeki (ve altındaki listedeki) adlar ve
+  // yalnız mesajda yapıştırılmış metin YOKSA (kullanıcının kısa cümlesi: "kriz var, wor14 ve wor07'de …"); mail/toplantı
+  // notu yapıştırılan mesajda yalnız açık "sunucular:" satırı (yapıştırılan metin yetki açmaz).
+  const hepsi =
+    out.tur === "CN" || out.tur === "KURULUM"
+      ? [...acik, ...serbest]
+      : out.tur === "KRIZ" && out.govde < KRIZ_METNI_MIN
+        ? [...acik, ...krizSerbest]
+        : acik
+  const n = [...new Set(hepsi.flatMap(aralikAc).map(normHost).filter((h) => h.length > 0))].slice(0, 200)
   if (n.length) out.sunucular = n
   return out
 }
@@ -1017,7 +1066,26 @@ export function komutIncele(metin: string, b: Baglam): Bulgu[] {
   const bulgular: Bulgu[] = []
   if (/:\s*\(\s*\)\s*\{[^}]*:\s*\|\s*:/.test(metin)) bulgular.push(sert("fork bombası"))
   const ic: string[] = []
-  for (const k of ayristir(metin, ic)) bulgular.push(...tekKomut(k, b))
+  // G73: `for ip in 10.0.0.1 10.0.0.2; do ssh root@$ip "…"; done` — liste düz yazılmışsa ($, `, joker yok) gövde her öğe
+  // için AYRI incelenir (hedef = öğe); yoksa `$ip` "?" (hedef belirsiz) kalır. while/until/select döngüleri genişletilmez.
+  const donguler: { ad: string; ogeler: string[] }[] = []
+  for (const k of ayristir(metin, ic)) {
+    const a = k.argv
+    if (["for", "while", "until", "select"].includes(a[0] ?? "")) {
+      const ogeler = a[0] === "for" && a[2] === "in" && /^[A-Za-z_]\w*$/.test(a[1] ?? "") ? a.slice(3).filter((x) => x !== "do") : []
+      donguler.push({ ad: a[1] ?? "", ogeler: ogeler.length <= 200 && ogeler.every((x) => !/[$`*?(){}\[\]]/.test(x)) ? ogeler : [] })
+    } else if (a[0] === "done") donguler.pop()
+    let surumler: Komut[] = [k]
+    for (const d of donguler) {
+      if (!d.ogeler.length) continue
+      const re = new RegExp(`\\$(?:\\{${d.ad}\\}|${d.ad}(?![A-Za-z0-9_]))`, "g")
+      if (!surumler.some((x) => [...x.argv, ...x.yazilan].some((t) => t.match(re)))) continue
+      surumler = surumler.flatMap((x) =>
+        d.ogeler.map((o) => ({ argv: x.argv.map((t) => t.replace(re, o)), yazilan: x.yazilan.map((t) => t.replace(re, o)) })),
+      )
+    }
+    for (const x of surumler) bulgular.push(...tekKomut(x, b))
+  }
   for (const x of ic) bulgular.push(...komutIncele(x, { ...b, derinlik: b.derinlik + 1 }))
   return bulgular
 }
@@ -1436,8 +1504,8 @@ export const YETKI_NASIL =
   'GEREKMEZ: kullanıcı "kurulum yapacağım" (harf fark etmez) + "sunucular: <ad>, <ad>" (ya da --limit grubunun adı) ' +
   'yazar — yeni kurulumda CN ' +
   'önerme. Mevcut (çalışan) sunucuda değişiklik: CN numarası + sunucular — BİÇİM DAYATMA: kullanıcı aynı mesajda ' +
-  'serbest yazabilir ("CHG0012345 ile web01, web02 sunucularında", alt alta liste, birden çok CN). Kriz: "KRİZ" + kriz ' +
-  'maili/toplantı notu + "sunucular: …" (yalnız açık liste). Bu makine için listeye localhost yazılır. Salt-okunur işlerle ' +
+  'serbest yazabilir ("CHG0012345 ile web01, web02 sunucularında", alt alta liste, birden çok CN, wor07-14 aralığı). Kriz: ' +
+  'cümle içinde de olur ("kriz var, wor14 ve wor07\'de …") + kriz maili/toplantı notu (ayrı mesajla da). Bu makine için listeye localhost yazılır. Salt-okunur işlerle ' +
   "devam edebilirsin; kullanıcıya yalnız EKSİK olanı (numara mı, sunucu mu) tek cümleyle söyle."
 
 export function kilitDenetle(

@@ -44,6 +44,15 @@ Model otomatik seçili gelir (`kurum / Qwen3.6-35B-A3B-FP8`). Beceriler otomatik
 > Eski `alp-*`, `oc-teshis.sh`, `oc-dogrula.sh`, `01-derle.sh`/`02-kur.sh`/`03-kontrol.sh` adları
 > **tarihsel/kullanılmıyor**; sahada rsync'ten kalmış bir kopya görürsen yok say — `./kur.sh` kullan.
 
+## Kısayollar (MobaXterm'de denendi — Alp, 2026-10-20)
+
+Kaynak: `packages/tui/src/config/keybind.ts` (lider tuşu `ctrl+x`) ve `packages/tui/src/app.tsx`.
+
+- **Çıkış:** `ctrl+c` / `ctrl+d` **yalnız istem kutusu boşken** çıkar (`app.tsx` — yazı varsa önce sil). Her durumda: `/q`
+  (ya da `/exit`, `/quit`) + Enter, veya `ctrl+x` sonra `q`.
+- **Oturum sekmesini kapat:** `ctrl+x` sonra `w` · **yeni oturum:** `ctrl+x` sonra `n`.
+- **Oturum sil:** `ctrl+x` sonra `l` (oturum listesi) → oturumu seç → `ctrl+d`. Komut paleti `ctrl+p` → "Switch session" de olur.
+
 ## Bir şey çalışmıyorsa: `./kur.sh kontrol`
 TUI `Failed to send prompt` / `Unexpected server error` dediyse **tek satır**:
 ```bash

@@ -882,3 +882,12 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   envanter dosyası değişse (ajan çalışma dizinine yazabilir) verilmiş yetki genişlemez (test). K1 mesajı ve yetki özeti
   "Envanter: envanterde yok … / birden çok host'a uyuyor …" notunu taşır. Test 315 → 321, `tsc --strict` temiz.
 - AGENTS: kriz cümlesi + sunucu yeter; ad/IP/aralık/grup envanterden; kilit eksik derse yalnız o adı sor. GUVENLIK-KILITLERI güncel.
+
+### G75 — G74 sahada kuruldu; çıkış kısayolu karışıklığı
+- Görülen (Alp ekranı, 16:23): `./kur.sh` → beceri 21 kuruldu (approved 21 + parked 26), `kilit ✓ K1-K7 kilitli mod`, plugin 2,
+  HEAD `4ae9b3d98d`. `surum !` ikili `ca51d1a093` (2026-10-15 derleme, "çalışma ağacı kirliydi") — G64'teki bilinen durum,
+  `packages/` o commit'ten beri değişmedi; kilitler/beceriler ikiliye değil eklenti/ayar dosyalarına bağlı. `log !` 13:22:09Z ERROR
+  (mesaj kırpık — `./kur.sh kontrol --ayrintili` bekleniyor).
+- Alp: MobaXterm'de `ctrl+d` ile çıkamadı; oturumları `ctrl+p` → session switch → `ctrl+d` ile sildi, `/q` (quit) ile çıktı.
+- Kaynak (kod): `app.exit` = `ctrl+c,ctrl+d,<leader>q` ama yalnız istem kutusu boşken etkin (`packages/tui/src/app.tsx`,
+  `promptRef … text === ""`); `session.delete` = `ctrl+d` (listede). Aksiyon: ALP-README "Kısayollar" bölümü.

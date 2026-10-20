@@ -15,6 +15,9 @@ Kaynak etiketi: **(Alp)** kurum bilgisi · **(saha G…)** saha gözlemi · **(�
   `/usr/local/bin/defender`). Kurum SEP kaynak sınırı: CPU %400, MemoryHigh 2G, Max 3G (saha G44, kaynak `08-sep-sinirlama` `[SAHA]`).
 - 2026-10-20 wor14: önce ssh zaman aşımı + `antrea-agent` liveness `connection refused`; Alp **XDR'ı kaldırdı** → Ready, antrea
   2/2 Running (ajan raporu). SEP belki kapatılacak; **Twistlock kalacak** (kaldırılamaz). wor14'te ağır iş yükü: Milvus.
+- **2026-10-20 akşam (Alp):** XDR (`traps_pmd`) wor07-14'te `disable`; SEP de kapatılıyor (Alp kararı — iki ajan birlikte, tüm
+  grupta). Bundan sonraki olayda ilk soru: ajanlar gerçekten kapalı mı (`systemctl is-active`, `lsmod`) — kapalıysa sebep
+  ajanların dışında aranır (hipervizör §5b, OVS/Antrea `rke2-denetim` §4).
 - wor14'ün önceki olayları: 10-12, 10-15, 10-19 05:30, 10-20 (saha G7-G11, G48, G71) — aralık 1-4 gün.
 
 ## 1. Envanter (okuma)

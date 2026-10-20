@@ -8,6 +8,7 @@ import { execFileSync } from "child_process"
 import { hostname, userInfo } from "os"
 import { dirname, join } from "path"
 import { KRIZ_METNI_MIN, YETKI_OMRU_MS, yetkiAktif, yetkiOzeti, yetkiSatirlariniOku } from "./kilit"
+import { envanterOku, yetkiGenislet } from "./envanter"
 import type { Yetki } from "./kilit"
 
 export const ZERO_HASH = "0".repeat(64)
@@ -138,7 +139,29 @@ export function denetimYazici(sabit: { projeDizini: string | undefined; becerile
 // Kullanıcı mesajından yetkiyi günceller (K1 — ADR-0004). Yalnız insanın yazdığı metin verilmeli:
 // alt ajan oturumunun ilk mesajını model yazar, oradan yetki OKUNMAZ (çağıran taraf ayırır).
 // Dönüş: audit'e yazılacak özet; yetki satırı yoksa null.
-export function yetkiIsle(yetkiler: Map<string, Yetki>, sessionID: string, metin: string, now = Date.now()): string | null {
+// G74: yetki listesini verildiği anda envanterle genişlet (ad ↔ kısa ad ↔ IP ↔ grup). Envanter yoksa liste olduğu gibi.
+export function envanterEsle(y: Yetki, workdir?: string): void {
+  y.esler = undefined
+  y.envanterNotu = undefined
+  if (!workdir) return
+  const env = envanterOku(workdir)
+  if (!env.hostlar.size) return
+  const g = yetkiGenislet(y.sunucular, env)
+  y.esler = g.esler
+  const not = [
+    g.bulunamayan.length ? `envanterde yok: ${g.bulunamayan.join(", ")}` : "",
+    g.belirsiz.length ? `birden çok host'a uyuyor (tam adı yaz): ${g.belirsiz.join("; ")}` : "",
+  ].filter(Boolean)
+  if (not.length) y.envanterNotu = not.join(" · ")
+}
+
+export function yetkiIsle(
+  yetkiler: Map<string, Yetki>,
+  sessionID: string,
+  metin: string,
+  now = Date.now(),
+  workdir?: string,
+): string | null {
   const s = yetkiSatirlariniOku(metin)
   let y = yetkiler.get(sessionID)
   if (s.kapat) {
@@ -161,11 +184,14 @@ export function yetkiIsle(yetkiler: Map<string, Yetki>, sessionID: string, metin
     y.cn = s.cn
   }
   if (y.tur === "KRIZ" && s.govde >= KRIZ_METNI_MIN) y.krizMetni = true
-  if (s.sunucular) y.sunucular = s.sunucular
+  if (s.sunucular) {
+    y.sunucular = s.sunucular
+    envanterEsle(y, workdir)
+  }
   y.uyari = s.uyari
   y.zaman = now
   yetkiler.set(sessionID, y)
   return yetkiAktif(y, now)
-    ? `yetki: ${yetkiOzeti(y)}${y.uyari ? ` (not: ${y.uyari})` : ""}`
+    ? `yetki: ${yetkiOzeti(y)}${y.esler && y.esler.length > y.sunucular.length ? ` (envanterle ${y.esler.length} ad/IP)` : ""}${y.uyari ? ` (not: ${y.uyari})` : ""}${y.envanterNotu ? ` (envanter: ${y.envanterNotu})` : ""}`
     : `yetki eksik: tur=${y.tur ?? "-"} cn=${y.cn ?? "-"} kriz_metni=${y.krizMetni} sunucu=${y.sunucular.length}`
 }

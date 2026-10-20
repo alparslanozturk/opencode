@@ -495,11 +495,12 @@ describe("K1 degisiklik kilidi", () => {
     })
   })
 
-  test("KRIZ: mail/toplanti notu yapistirilmadan acilmaz; yapistirilinca acilir", async () => {
+  test("KRIZ: kriz cümlesi + sunucu yeter (G74 — mail/toplantı notu şartı kalktı); listede olmayan yine K1", async () => {
     const hooks = await freshPlugin()
-    await kullanici(hooks, "s-kriz", "KRİZ\nsunucular: db01")
-    await expect(bash(hooks, "s-kriz", "ssh db01 'systemctl restart odeme'")).rejects.toThrow(/kriz maili/)
-    await kullanici(hooks, "s-kriz", KRIZ_MAILI) // mail ayrı mesajla
+    await kullanici(hooks, "s-kriz", "kriz var, db01 sunucusunda ödeme servisi durdu")
+    await bash(hooks, "s-kriz", "ssh db01 'systemctl restart odeme'")
+    await expect(bash(hooks, "s-kriz", "ssh db02 'systemctl restart odeme'")).rejects.toThrow(/db02/)
+    await kullanici(hooks, "s-kriz", KRIZ_MAILI) // sonradan yapıştırılan mail listeyi değiştirmez
     await bash(hooks, "s-kriz", "ssh db01 'systemctl restart odeme'")
   })
 

@@ -32,6 +32,10 @@ export interface Yetki {
   sunucular: string[]
   zaman: number
   uyari?: string
+  // G74: yetki verildiği anda envanterden genişletilmiş liste (ad, kısa ad, ansible_host IP'si, grup üyeleri). Denetim
+  // bununla yapılır; sonradan envanter dosyası değişse de verilmiş yetki genişlemez.
+  esler?: string[]
+  envanterNotu?: string
 }
 export const YETKI_OMRU_MS = 12 * 60 * 60 * 1000
 // Kriz mesajında yetki satırları dışında en az bu kadar metin (yapıştırılmış mail/toplantı notu) olmalı.
@@ -230,7 +234,7 @@ export function yetkiAktif(y: Yetki | undefined, now: number): y is Yetki & { tu
   if (!y || !y.tur || y.sunucular.length === 0) return false
   if (now - y.zaman > YETKI_OMRU_MS) return false
   if (y.tur === "CN") return Boolean(y.cn)
-  if (y.tur === "KRIZ") return y.krizMetni
+  // G74 (Alp, 2026-10-20: "kriz cümlesi yeterli olsun"): KRİZ için mail/toplantı notu şartı kalktı; krizMetni yalnız kayıt.
   return true
 }
 
@@ -1505,7 +1509,8 @@ export const YETKI_NASIL =
   'yazar — yeni kurulumda CN ' +
   'önerme. Mevcut (çalışan) sunucuda değişiklik: CN numarası + sunucular — BİÇİM DAYATMA: kullanıcı aynı mesajda ' +
   'serbest yazabilir ("CHG0012345 ile web01, web02 sunucularında", alt alta liste, birden çok CN, wor07-14 aralığı). Kriz: ' +
-  'cümle içinde de olur ("kriz var, wor14 ve wor07\'de …") + kriz maili/toplantı notu (ayrı mesajla da). Bu makine için listeye localhost yazılır. Salt-okunur işlerle ' +
+  'cümle içinde de olur, kriz cümlesi yeter ("kriz var, wor14 ve wor07\'de …"). Ad, kısa ad, IP ya da grup adı envanterden ' +
+  'eşlenir. Bu makine için listeye localhost yazılır. Salt-okunur işlerle ' +
   "devam edebilirsin; kullanıcıya yalnız EKSİK olanı (numara mı, sunucu mu) tek cümleyle söyle."
 
 export function kilitDenetle(
@@ -1592,20 +1597,18 @@ export function kilitDenetle(
         ? `${yetki.tur} verildi ama sunucu listesi yok`
         : yetki.tur === "CN" && !yetki.cn
           ? "CN numarası yok"
-          : yetki.tur === "KRIZ" && !yetki.krizMetni
-            ? "KRİZ için kriz maili/toplantı notu yapıştırılmadı"
-            : "yetkinin süresi doldu (12 saat)"
+          : "yetkinin süresi doldu (12 saat)"
     return {
       kilit: "K1",
       mesaj: `[güvenlik kilidi K1] Bu komut değişiklik yapıyor (${nedenler}) → hedef: ${hedefler.join(", ")}. Çalıştırılmadı: ${eksik}.${yetki?.uyari ? ` Not: ${yetki.uyari}.` : ""} ${YETKI_NASIL}`,
     }
   }
-  const disarida = hedefler.filter((h) => !hostListede(h, yetki.sunucular))
+  const disarida = hedefler.filter((h) => !hostListede(h, yetki.esler ?? yetki.sunucular))
   if (disarida.length && hepsiBelirsiz) return sorKarari(`hedef yetki listesinde yok: ${disarida.join(", ")}`)
   if (disarida.length)
     return {
       kilit: "K1",
-      mesaj: `[güvenlik kilidi K1] Hedef yetki listesinde yok: ${disarida.join(", ")} (geçerli yetki — ${yetkiOzeti(yetki)}).${yetki.uyari ? ` Not: ${yetki.uyari}.` : ""} Komut: ${nedenler}. Kullanıcı listeyi "sunucular: …" satırıyla güncellemeli (IP ile bağlanıyorsan IP de listede olmalı).`,
+      mesaj: `[güvenlik kilidi K1] Hedef yetki listesinde yok: ${disarida.join(", ")} (geçerli yetki — ${yetkiOzeti(yetki)}).${yetki.uyari ? ` Not: ${yetki.uyari}.` : ""} Komut: ${nedenler}. Kullanıcı listeyi güncellemeli (serbest yazabilir; envanterdeki ad, kısa ad, IP ve grup adı eşleşir).${yetki.envanterNotu ? ` Envanter: ${yetki.envanterNotu}.` : ""}`,
     }
   return null
 }

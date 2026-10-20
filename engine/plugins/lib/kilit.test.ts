@@ -388,3 +388,64 @@ describe("G73: aralık yazımı açılır (wor07-14, 10.0.0.127-134)", () => {
     expect(yetkiSatirlariniOku("CHG0012345\nsunucular: 10.0.0.127-128").sunucular).toEqual(["10.0.0.127", "10.0.0.128"])
   })
 })
+
+describe("G74: envanter eşlemesi — ad, kısa ad, IP, grup (yetki verildiği anda)", () => {
+  const { mkdtempSync, mkdirSync, writeFileSync } = require("fs") as typeof import("fs")
+  const { tmpdir } = require("os") as typeof import("os")
+  const { join } = require("path") as typeof import("path")
+  const { yetkiIsle } = require("./denetim") as typeof import("./denetim")
+  const dizin = mkdtempSync(join(tmpdir(), "envanter-"))
+  mkdirSync(join(dizin, "ansible", "inventories"), { recursive: true })
+  writeFileSync(join(dizin, "ansible", "inventories", "hosts-rke2.ini"), [
+    "[rke-nonprod-test-workers]",
+    "stlrancherwor07 ansible_host=10.0.9.127",
+    "stlrancherwor08 ansible_host=10.0.9.128   # yorum",
+    "stlrancherwor14 ansible_host=10.0.9.134",
+    "[gpu-workers]",
+    "sdlgpuh200w[1:2]",
+    "gpuwor07 ansible_host=10.0.8.7",
+    "[rke-nonprod-test:children]",
+    "rke-nonprod-test-workers",
+    "[rke-nonprod-test:vars]",
+    "ansible_user=root",
+  ].join("\n"))
+  const ver = (metin: string) => {
+    const m = new Map<string, Yetki>()
+    yetkiIsle(m, "s", metin, Date.now(), dizin)
+    return m.get("s")!
+  }
+  const karar = (c: string, y: Yetki) => kilitDenetle("bash", { command: c }, dizin, y)
+  test("adla yetki → IP ile komut geçer", () => {
+    const y = ver("kriz var, stlrancherwor07 ve stlrancherwor14'te xdr kapatılacak")
+    expect(karar(`ssh root@10.0.9.127 "systemctl disable traps_pmd"`, y)).toBeNull()
+    expect(karar(`ssh root@10.0.9.134 "systemctl disable traps_pmd"`, y)).toBeNull()
+    expect(karar(`ssh root@10.0.9.128 "systemctl disable traps_pmd"`, y)?.mesaj).toContain("10.0.9.128")
+  })
+  test("IP ile yetki → adla komut geçer", () => {
+    const y = ver("CHG0012345 ile 10.0.9.128 sunucusunda")
+    expect(karar(`ssh stlrancherwor08 "systemctl restart x"`, y)).toBeNull()
+  })
+  test("kısa ad + aralık: wor07-08 → stlrancherwor07/08 (gpuwor07 değil — tek eşleşme şartı)", () => {
+    const y = ver("kriz var, wor13-14 ve wor08 makinelerinde")
+    expect(karar(`ssh 10.0.9.134 "systemctl restart x"`, y)).toBeNull()
+    expect(karar(`ssh stlrancherwor08 "systemctl restart x"`, y)).toBeNull()
+    expect(y.envanterNotu).toContain("wor13")
+    const y2 = ver("kriz var, wor07 sunucusunda")
+    expect(y2.envanterNotu).toContain("birden çok")
+    expect(karar(`ssh 10.0.9.127 "systemctl restart x"`, y2)?.kilit).toBe("K1")
+  })
+  test("grup adı → üyeler (children dahil); for döngüsüyle IP'ler", () => {
+    const y = ver("CHG0012345 sunucular: rke-nonprod-test")
+    expect(karar(`for ip in 10.0.9.127 10.0.9.128 10.0.9.134; do ssh root@$ip "systemctl disable traps_pmd"; done`, y)).toBeNull()
+    expect(karar(`ssh 10.0.8.7 "systemctl restart x"`, y)?.kilit).toBe("K1")
+  })
+  test("ansible aralık deseni açılır", () => {
+    const y = ver("CHG0012345 sunucular: gpu-workers")
+    expect(karar(`ssh sdlgpuh200w2 "systemctl restart x"`, y)).toBeNull()
+  })
+  test("yetkiden SONRA envanter değişirse verilmiş yetki genişlemez", () => {
+    const y = ver("CHG0012345 sunucular: stlrancherwor07")
+    writeFileSync(join(dizin, "ansible", "inventories", "ek.ini"), "stlrancherwor07 ansible_host=10.0.9.99\n")
+    expect(karar(`ssh 10.0.9.99 "systemctl restart x"`, y)?.kilit).toBe("K1")
+  })
+})

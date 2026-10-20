@@ -293,3 +293,33 @@ describe("G68: kilidin tanımadığı uzak komut engellenmez, kullanıcıya SORU
       expect(karar(c)).toBeNull()
   })
 })
+
+describe("G71: NFS/port teşhisi uzakta okuma — /dev/tcp soket yolu dosya değil", () => {
+  const karar = (c: string) => kilitDenetle("bash", { command: c }, workdir, undefined)
+  test("bash /dev/tcp port testi ve NFS sorguları serbest", () => {
+    for (const c of [
+      `ssh m1 "timeout 3 bash -c 'echo >/dev/tcp/nfs01/2049' && echo open || echo closed"`,
+      `ssh m1 "timeout 3 bash -c 'exec 3<>/dev/tcp/nfs01/2049 && echo open && exec 3>&-'"`,
+      `ssh m1 "echo x > /dev/udp/10.0.0.1/514"`,
+      `ssh m1 "showmount -e nfs01; rpcinfo -p nfs01; rpcinfo -s nfs01"`,
+      `ssh m1 "mount; mount -l; mount -t nfs,nfs4; findmnt -t nfs,nfs4; nfsstat -m; mountpoint /data; exportfs -v"`,
+    ])
+      expect(karar(c)).toBeNull()
+  })
+  test("gerçek bağlama/değişiklik hâlâ K1", () => {
+    for (const c of [
+      `ssh m1 "mount -t nfs nfs01:/x /mnt"`,
+      `ssh m1 "mount -a"`,
+      `ssh m1 "mount -o remount,rw /"`,
+      `ssh m1 "rpcinfo -d 100003 3"`,
+      `ssh m1 "nfsstat -z"`,
+      `ssh m1 "exportfs -ra"`,
+      `ssh m1 "echo x > /etc/hosts"`,
+      `ssh m1 "exec 3<>/var/tmp/x"`,
+    ]) {
+      const r = karar(c)
+      expect(r?.kilit).toBe("K1")
+      expect(r?.sor).toBeUndefined()
+    }
+  })
+})

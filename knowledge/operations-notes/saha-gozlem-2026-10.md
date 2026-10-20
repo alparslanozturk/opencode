@@ -891,3 +891,14 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Alp: MobaXterm'de `ctrl+d` ile çıkamadı; oturumları `ctrl+p` → session switch → `ctrl+d` ile sildi, `/q` (quit) ile çıktı.
 - Kaynak (kod): `app.exit` = `ctrl+c,ctrl+d,<leader>q` ama yalnız istem kutusu boşken etkin (`packages/tui/src/app.tsx`,
   `promptRef … text === ""`); `session.delete` = `ctrl+d` (listede). Aksiyon: ALP-README "Kısayollar" bölümü.
+
+### G76 — kriz cümlesi + envanter sahada çalıştı; `log !` hata metni görünmüyordu
+- Görülen (Alp, 2026-10-20 16:28+): "Kilit mekanizması düzgün çalıştı. Kriz var dedim ve çalıştırdım." Ajan wor07-14'te
+  `traps_pmd` → disabled (8 node; wor14 önceden). Alp: envanter/dosya hazırlamada kilide gerek yok (zaten yalnız çalışma
+  dizinindeki dosyalar; düzenleme kilitsiz — `serbestYazmaAlani`; G74 yalnız yetkiyi verildiği anda dondurur, düzenlemeyi kısıtlamaz).
+- ⚠️ Tabloda yalnız `disable` (açılışta başlamaz); `stop` görünmüyor → hizmet reboot'a kadar çalışıyor olabilir (`is-active` ile
+  okunmalı). Hepsi aynı anda kapatıldı → `rke2-edr` §3.5 karşılaştırma (ajanlı/ajansız node) artık yok; gözlem tüm grup için.
+- `./kur.sh kontrol --ayrintili` → `log ! son hata: timestamp=… level=ERROR run=af62c057 message="…` — ayrıntılı kipte de 70
+  karakterde kesiliyordu; önek (timestamp/level/run) yer kapladığı için mesaj hiç görünmüyordu.
+- Aksiyon (yapıldı): kur.sh `log_ozet` — logfmt'tan `HH:MMZ message (error)`; ayrıntılı kipte log dosyası yolu + ham satır (600
+  karakter). Doktor sunucusunda denendi: `13:02Z failed (Error: Expected a string starting with "ses" …`.

@@ -1140,13 +1140,28 @@ PY
 #  "daha hizli: ..." kararı + iki ucun bağlam penceresi. Uç başına tam döküm
 #  (3 satır) --ayrintili/-a ile açılır. Boşsa rapor tek uçlu haliyle basılır.
 # ===========================================================================
-son_log_hatasi() {
+son_log_dosyasi() {
   [ -d "$LOG_DIZIN" ] || return 0
+  find "$LOG_DIZIN" -maxdepth 1 -type f -name '*.log' -printf '%T@ %p\n' 2>/dev/null \
+    | sort -rn | head -1 | cut -d' ' -f2-
+}
+son_log_hatasi() {
   local dosya
-  dosya="$(find "$LOG_DIZIN" -maxdepth 1 -type f -name '*.log' -printf '%T@ %p\n' 2>/dev/null \
-    | sort -rn | head -1 | cut -d' ' -f2-)"
+  dosya="$(son_log_dosyasi)"
   [ -n "$dosya" ] || return 0
   grep -hE 'err_[0-9A-Za-z]{6,}|ERROR|FATAL' "$dosya" 2>/dev/null | tail -1
+}
+# log_ozet <satır> — logfmt satırından okunur özet: "13:27Z <message> (<error/err>)"; alan yoksa satırın kendisi.
+# Saha G76: "timestamp=… level=ERROR run=… message=" önekiyle 70 karakter dolduğu için hata metni hiç görünmüyordu.
+log_ozet() {
+  local satir="$1" saat mesaj hata
+  saat="$(printf '%s' "$satir" | sed -n 's/.*timestamp=[0-9-]*T\([0-9]*:[0-9]*\).*/\1Z/p')"
+  mesaj="$(printf '%s' "$satir" | sed -n 's/.*message="\(\([^"\\]\|\\.\)*\)".*/\1/p')"
+  [ -n "$mesaj" ] || mesaj="$(printf '%s' "$satir" | sed -n 's/.*message=\([^ ]*\).*/\1/p')"
+  hata="$(printf '%s' "$satir" | sed -n 's/.* err\(or\)\{0,1\}="\(\([^"\\]\|\\.\)*\)".*/\2/p')"
+  [ -n "$hata" ] || hata="$(printf '%s' "$satir" | sed -n 's/.* err\(or\)\{0,1\}=\([^ "]*\).*/\2/p')"
+  if [ -z "$mesaj" ] && [ -z "$hata" ]; then printf '%s' "$satir"; return; fi
+  printf '%s%s%s' "${saat:+$saat }" "${mesaj:-?}" "${hata:+ ($hata)}"
 }
 
 # json_al <mod> <dosya> — python3 varsa JSON'dan alan çeker, yoksa boş döner.
@@ -2042,7 +2057,9 @@ PY
   # --- 9) log --------------------------------------------------------------
   SON_LOG="$(son_log_hatasi)"
   if [ -n "$SON_LOG" ]; then
-    satir "log" uyar "son hata: $(kis "$SON_LOG" 70)"
+    satir "log" uyar "son hata: $(kis "$(log_ozet "$SON_LOG")" 70)"
+    ayr "dosya: $(son_log_dosyasi)"
+    ayr "satir: $(kis "$SON_LOG" 600)"
   else
     satir "log" ok "son log dosyasinda err_/ERROR satiri yok ($LOG_DIZIN)"
   fi
@@ -2109,7 +2126,7 @@ PY
   fi
   if [ "$SOHBET_OK" -eq 1 ] && [ "$AKIS_OK" -eq 1 ]; then
     if [ -n "$SON_LOG" ]; then
-      bitir 0 "yok — uc saglikli, sorun opencode tarafinda; log: $(kis "$SON_LOG" 45)"
+      bitir 0 "yok — uc saglikli, sorun opencode tarafinda; log: $(kis "$(log_ozet "$SON_LOG")" 45)"
     fi
     bitir 0 "yok — uc saglikli, sorun opencode tarafinda.${EK} (log: temiz; opencode --log-level DEBUG)"
   fi

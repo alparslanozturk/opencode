@@ -2,7 +2,7 @@
 // yükleyicisi ya da audit dosyası yok; yalnız girdi → karar. 2.x adaptörü de aynı sözleşmeyi kullanacak.
 // Davranışın geniş testi ../audit-log.test.ts'te (1.x adaptörü üzerinden).
 import { describe, expect, test } from "bun:test"
-import { kilitDenetle, yetkiAktif, yetkiSatirlariniOku, type Yetki } from "./kilit"
+import { aralikAc, kilitDenetle, yetkiAktif, yetkiSatirlariniOku, type Yetki } from "./kilit"
 
 const workdir = "/tmp/kilit-cekirdek-proje"
 const yetkiVer = (metin: string): Yetki => {
@@ -321,5 +321,70 @@ describe("G71: NFS/port teşhisi uzakta okuma — /dev/tcp soket yolu dosya değ
       expect(r?.kilit).toBe("K1")
       expect(r?.sor).toBeUndefined()
     }
+  })
+})
+
+describe("G73: KRİZ cümle içinde anlaşılır (Alp: 'kriz var deyince … kabul etmesi lazım, illa bir formatta değil')", () => {
+  const oku = yetkiSatirlariniOku
+  const beyan = ["kriz var", "Kriz var, hemen bakmamız lazım", "şu an KRİZ VAR", "krizdeyiz", "kriz durumundayız",
+    "prod'da kriz yaşıyoruz", "acil kriz", "bu bir kriz.", "KRİZ", "kriz: wor14 düşüyor", "Kriz başladı"]
+  for (const m of beyan) test(`beyan: "${m}"`, () => expect(oku(m).tur).toBe("KRIZ"))
+  const degil = ["kriz yok", "kriz değil bu", "kriz bitti", "kriz mi var?", "geçen haftaki kriz raporunu incele",
+    "krizi anlat", "kriz yönetimi dokümanı nerede", "krizin sebebi ne"]
+  for (const m of degil) test(`beyan DEĞİL: "${m}"`, () => expect(oku(m).tur).toBeUndefined())
+  test("CN aynı mesajdaysa CN geçerli (kriz sözü CN'yi ezmez)", () => {
+    expect(oku("kriz var, CHG0012345 ile web01 sunucusunda").tur).toBe("CN")
+  })
+  test("kısa kriz cümlesindeki sunucular alınır", () => {
+    const s = oku("kriz var, stlrancherwor07 ve stlrancherwor14'te xdr kapatılacak")
+    expect(s.tur).toBe("KRIZ")
+    expect(s.sunucular).toEqual(["stlrancherwor07", "stlrancherwor14"])
+  })
+  test("kriz cümlesinin altındaki alt alta liste alınır", () => {
+    expect(oku("kriz var, şu makinelerde:\nwor07\nwor14").sunucular).toEqual(["wor07", "wor14"])
+  })
+  test("mail yapıştırılan mesajda serbest adlar alınmaz, kriz metni sayılır", () => {
+    const mail = "kriz var\nKonu: web07 ve web08 sunucularında ödeme servisi kesintisi yaşanıyor; db03 sunucusu da etkilenmiş olabilir, toplantıda kararlaştırıldı."
+    const s = oku(mail)
+    expect(s.tur).toBe("KRIZ")
+    expect(s.sunucular).toBeUndefined()
+    expect(s.govde).toBeGreaterThanOrEqual(120)
+  })
+})
+
+describe("G73: düz listeli for döngüsünde hedefler tek tek denetlenir", () => {
+  const karar = (c: string, y?: Yetki) => kilitDenetle("bash", { command: c }, workdir, y)
+  const dongu = `for ip in 10.0.0.7 10.0.0.8; do echo "=== $ip ==="; timeout 10 ssh -o ConnectTimeout=5 root@$ip "systemctl disable traps_pmd.service 2>&1; systemctl is-enabled traps_pmd.service"; done`
+  test("yetki yok → K1, hedefler adıyla (belirsiz değil)", () => {
+    const r = karar(dongu)
+    expect(r?.kilit).toBe("K1")
+    expect(r?.mesaj).toContain("10.0.0.7")
+    expect(r?.mesaj).toContain("10.0.0.8")
+    expect(r?.mesaj).not.toContain("hedefi belirlenemedi")
+  })
+  test("yetki listesi döngüdeki tüm hedefleri kapsıyorsa geçer, biri eksikse yalnız o söylenir", () => {
+    expect(karar(dongu, yetkiVer("CN: CHG0000777\nsunucular: 10.0.0.7, 10.0.0.8"))).toBeNull()
+    const r = karar(dongu, yetkiVer("CN: CHG0000777\nsunucular: 10.0.0.7"))
+    expect(r?.mesaj).toContain("listesinde yok: 10.0.0.8")
+  })
+  test("okuma döngüsü serbest; liste değişken/komut ikamesiyse hedef belirsiz kalır", () => {
+    expect(karar(`for h in m1 m2; do ssh $h "uptime"; done`)).toBeNull()
+    expect(karar(`for h in $(cat liste); do ssh $h "systemctl restart x"; done`)?.mesaj).toContain("hedefi belirlenemedi")
+    expect(karar(`for h in $HOSTS; do ssh $h "systemctl restart x"; done`)?.mesaj).toContain("hedefi belirlenemedi")
+  })
+})
+
+describe("G73: aralık yazımı açılır (wor07-14, 10.0.0.127-134)", () => {
+  test("ad ve IP aralığı", () => {
+    expect(aralikAc("wor07-14")).toEqual(["wor07", "wor08", "wor09", "wor10", "wor11", "wor12", "wor13", "wor14"])
+    expect(aralikAc("stlrancherwor07-stlrancherwor09")).toEqual(["stlrancherwor07", "stlrancherwor08", "stlrancherwor09"])
+    expect(aralikAc("10.0.0.127-129")).toEqual(["10.0.0.127", "10.0.0.128", "10.0.0.129"])
+  })
+  test("aralık olmayanlar olduğu gibi", () => {
+    for (const t of ["web-01", "wor14-10", "wor01-99999", "rke2-1", "10.0.0.1-300"]) expect(aralikAc(t)).toEqual([t])
+  })
+  test("kriz cümlesinde aralık", () => {
+    expect(yetkiSatirlariniOku("kriz var, wor07-09 arası xdr kapatılacak").sunucular).toEqual(["wor07", "wor08", "wor09"])
+    expect(yetkiSatirlariniOku("CHG0012345\nsunucular: 10.0.0.127-128").sunucular).toEqual(["10.0.0.127", "10.0.0.128"])
   })
 })

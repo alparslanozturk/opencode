@@ -654,7 +654,10 @@ describe("K1/K5 atlatma denemeleri", () => {
   test("for dongusu icindeki ssh denetlenir", async () => {
     const hooks = await freshPlugin()
     await kullanici(hooks, "s-for", "CN: CHG0000008\nsunucular: web01, web02")
-    await expect(bash(hooks, "s-for", "for h in web01 web02; do ssh $h 'systemctl restart x'; done")).rejects.toThrow(/belirlenemedi/)
+    // G73: düz liste genişletilir — hedeflerin hepsi yetki listesindeyse geçer, biri dışarıdaysa o hedef reddedilir
+    await bash(hooks, "s-for", "for h in web01 web02; do ssh $h 'systemctl restart x'; done")
+    await expect(bash(hooks, "s-for", "for h in web01 web03; do ssh $h 'systemctl restart x'; done")).rejects.toThrow(/web03/)
+    await expect(bash(hooks, "s-for", "for h in $(cat l); do ssh $h 'systemctl restart x'; done")).rejects.toThrow(/belirlenemedi/)
     await bash(hooks, "s-for", "for h in web01 web02; do ssh $h uptime; done")
   })
   test("sshpass / ssh-copy-id / git -C push --force", async () => {

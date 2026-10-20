@@ -18,6 +18,9 @@ sor; tahmin etme.
 
 Namespace de aynı şekilde: `-n <ad>` vermezsen `default` kullanılır ve
 aradığın şey orada olmayabilir. Bilmiyorsan `-A` ile tüm namespace'lere bak.
+Bileşenin namespace'ini **tahmin etme** (`kube-system` varsayma): önce bul — `kubectl get ds,deploy,sts -A | grep -i <ad>`.
+`No resources found` / `NotFound` alınca aynı namespace'te başka etiketle tekrar deneme, `-A` ile ara (saha G71:
+nfs-subdir-external-provisioner ve fluent-bit `kube-system`'de aranıp iki tur boşa gitti).
 
 ## Salt-okunur teşhis
 

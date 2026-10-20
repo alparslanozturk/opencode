@@ -805,3 +805,31 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Alp: "16384 olsun, alt ajandan vazgeçtim. kontrol ya da kur.sh'a koyarsan görürsün." → kur.sh `VARSAYILAN_CIKTI=16384` (uç
   bildirmezse; env `KURUM_MAX_OUTPUT` öncelikli; pencerenin 1/4'ünü aşmaz), kur çıktısı ve kontrol `cikti 16384 (kurum varsayilani …)`.
   NASIL-CALISTIRILIR tablosu güncellendi. `task` deny kaldı. Denetçi ajan için uç bilgisi beklenmiyor (Alp seçmedi).
+
+## 2026-10-20
+
+### G71 — wor14 incelemesi: NFS/port testleri K1'e takıldı; "OVS soketi kayboldu" kök nedeni açık
+- Görülen (Alp ekranları, 15:28-15:29): ajan wor14'te NFS'i elemek için okuma testleri denedi. K1 yanlış alarm (3): uzakta
+  `timeout 3 bash -c 'echo >/dev/tcp/<nfs>/2049'` → "echo > dosya", `exec 3<>/dev/tcp/<nfs>/2049` → "dosyaya yazma",
+  `showmount -e <nfs>` → değişiklik. Doğru alarm: ilk komutun sonunda gerçek `mount`/`umount` denemesi vardı (Doktor repo
+  kilidinde yeniden üretti: `mkdir; mount; umount (uzakta)`). Ekrandaki K1 mesajı G67 öncesi metin → sahada kurulu kilit eski (al.sh + kur.sh gerekir; G68 sonrası showmount engel değil "onay" sorusu olurdu).
+- Kök (kilit.ts): yerelde `/dev/tcp` serbestti (`serbestYazmaAlani`), uzak dalında yalnız `/dev/null|stdout|stderr` vardı.
+  `showmount`/`rpcinfo`/`nfsstat` tanınmıyordu; `mount -t nfs` (listeleme) değişiklik sayılıyordu; **`mount -a` okuma
+  sayılıyordu** (açık — fstab'daki her şeyi bağlar).
+- Aksiyon (yapıldı): `zararsizHedef` (null/std akışlar/tty, `/dev/fd|tcp|udp/*`) iki uzak dalda; okuma: `showmount`,
+  `rpcinfo` (−d hariç), `nfsstat` (−z hariç), `exportfs` (yalnız −v/−s), `mountpoint`, `nfsiostat`, `mountstats`; `mount` yalnız
+  `-l`/`-t <tür>` ile okuma (`mount -a`, `-o remount` artık K1). Test 284 → 286, `tsc --strict` kilit/denetim temiz.
+- Ajanın sonucu (özet ekranı): NFS ✅ erişilebilir, wor14'te NFS bağlaması yok → "kök neden NFS değil" (kanıtlı ✅); SEP
+  `sisamddaemon` %17.4 CPU / 1.3 GB; "19 Oct 05:30 OVS soketi kayboldu, crash logu yok (hung task)"; tmpmounts 38 dizin
+  (12 Ekim'den). ⚠️ "hung task" için ekranda kanıt yok; "SEP–OVS çakışması olası" kanıtsız mekanizma (dizin tarama, bellek
+  baskısı) — ayırt edici kanıt toplanmadı. wor14 aynı kalıbın 3. kaydı (10-12 OVS transaction timeout, 10-15 antrea-ovs liveness).
+- Doktor değerlendirmesi (genel, Antrea v2.3.0 upstream manifesti): `antrea-ovs` liveness 10 sn × 5 → OVS ~50 sn cevapsızsa
+  kubelet öldürür, soket yeniden açılana kadar yok — "soket kayboldu" büyük ihtimalle bu (tahmin; `lastState` exit 137 ile
+  doğrulanır). Asıl soru OVS'nin neden ~1 dk cevap vermediği; kanıt node'da kalıcı: `/var/log/antrea/openvswitch/*.log`
+  (UTC), `sar`, journal. SEP: Broadcom KB 237314 (Auto-Protect her erişilen dosyayı tarar → yoğun sunucuda yüksek CPU/bellek,
+  çözüm istisna), KB 240470 (IDS konteyner izleme kapatma). tmpmounts: containerd #10239 (`device or resource busy` — mount'u
+  tutan başka süreç).
+- Aksiyon (yapıldı): `rke2-denetim` §4 → "Tek node'da tekrarlayan antrea-ovs yeniden başlaması" (mekanizma, kanıt komutları,
+  ayırt etme tablosu, NFS ve SEP eleme, tmpmounts; 20 komut kilitten geçti); `rhel-sorun` hung task satırı (fanotify/sisap →
+  SEP; ölü `nfs-mount` atfı kaldırıldı); `k8s-sorun` namespace tahmin etme (nfs-provisioner ve fluent-bit `kube-system`'de
+  arandı, iki boş tur).

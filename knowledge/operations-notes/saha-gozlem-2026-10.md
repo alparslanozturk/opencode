@@ -1095,3 +1095,5 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Aksiyon (yapıldı): `ansible` §8 hazır playbook kontrol listesi (genel: hosts all/limit, play ignore_errors, yıkıcı adım sırası, yorumdaki
   ön koşul, tekrar çalıştırılabilirlik, sabit sürüm, düz parola/NOPASSWD); `rhel-yonetim` IdM kuralı (yerel kullanıcı önerme);
   `rhel-teslim` §0 seti dışındaki kurum playbook'ları.
+- Düzeltme (Alp, aynı gün): ekip playbook'ları kaliteli değil, becerilere referans olmasın → `rhel-teslim`'deki Splunk/SEP satırı
+  kaldırıldı. Kalan: IdM kurum notu (`rhel-yonetim`) ve genel kontrol listesi (`ansible` §8).

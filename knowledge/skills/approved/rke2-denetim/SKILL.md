@@ -271,6 +271,21 @@ grep -i -e "failed to unmount" -e tmpmounts /var/lib/rancher/rke2/agent/containe
 
 Boş dizinler tek başına zarar vermez (tahmin); saatleri OVS olaylarıyla aynıysa ortak sebebin (takılma anı) izidir.
 
+**"Sorun yükte olabilir mi?" — boyut/yük sorusu (saha G92):** anlık `load average`/`free` (özellikle reboot'tan saatler sonra) olay
+anındaki yükü **göstermez** → "yükten kaynaklı sorun YOK" yazılmaz; en fazla "şu an düşük — olay anı ölçülmedi". Kanıt sırası (okuma):
+
+```bash
+kubectl describe node <node> | sed -n '/Allocated resources/,/Events/p'        # requests/limits toplamı vs allocatable (aşırı taahhüt)
+kubectl get pods -A -o wide --field-selector spec.nodeName=<node> | grep -v -e kube-system -e cattle-   # hangi iş yükü (ör. milvus) hangi boyuttaki node'da
+sar -q -r -u -s <olaydan 15 dk önce> -e <olay> -f /var/log/sa/saDD | tail -40   # olay penceresinde yük, bellek, %iowait/%steal (node'da)
+journalctl -k -b -1 --no-pager | grep -i -e "out of memory" -e oom -e "invoked oom-killer" | tail      # OOM önceki açılışta
+kubectl get events -A --field-selector reason=Evicted -o wide | tail; cat /proc/pressure/memory        # tahliye, bellek baskısı
+```
+
+Karşılaştır: sorunlu node'ların **boyutu** (vCPU/RAM) ile sağlamlarınki — sorunlu kümede hem büyük hem küçük node varsa boyut tek
+başına sebep değildir (tablo-sonuç çelişkisi, §6). Küçük node'a büyük `limits`'li iş yükü düşüp olay anında bellek/CPU tükeniyorsa
+kanıtı `sar`/OOM/eviction satırıdır; yoksa "olabilir".
+
 **conntrack (genel bilgi):** kube-proxy açılışta `nf_conntrack_max`'ı `max(32768 × çekirdek, 131072)` yapar (varsayılan
 `--conntrack-max-per-core`) → node'lar arası farklı değer çoğu zaman **vCPU farkıdır**, yanlış ayar değil (`nproc` ile
 doğrula: 786432 = 24×32768, 393216 = 12×32768). Elle sysctl ile yükseltilen değeri kube-proxy yeniden başlarken kendi

@@ -502,3 +502,13 @@ describe("G82: secret'tan sertifika okuma (base64 -d) uzakta okuma", () => {
     expect(k(`ssh m1 "base64 -d /tmp/a > /etc/x"`)?.kilit).toBe("K1")
   })
 })
+
+describe("G92: döngü değişkeni komut ikamesinin içinde — result=$(ssh root@x.$ip …)", () => {
+  const karar = (c: string, y?: Yetki) => kilitDenetle("bash", { command: c }, workdir, y)
+  test("okuma serbest, değişiklik hedefleri adıyla", () => {
+    expect(karar(`for ip in 70 108; do r=$(ssh root@10.0.9.$ip "uptime; nproc"); echo "$ip $r"; done`)).toBeNull()
+    const r = karar(`for ip in 70 108; do r=$(ssh root@10.0.9.$ip "systemctl restart x"); done`)
+    expect(r?.mesaj).toContain("10.0.9.108")
+    expect(r?.mesaj).not.toContain("belirlenemedi")
+  })
+})

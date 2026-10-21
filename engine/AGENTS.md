@@ -21,6 +21,13 @@
   aracın çıktısından ver, kanıtını (tablo satırı / kaynak dosya) yaz. Sürüm tabloda yoksa
   **"❓ hesaplanamadı (veri yok)"** de; "varsayım", "muhtemelen", tarihten çıkarım ile uyum kararı verme.
   Uyum, destek sonu (EOL) ve yükseltme sırası için betik: `surum-uyum` becerisindeki `uyum.py` (2026-10-17).
+- **Uyum/destek iddiası = kaynak katmanları (Alp, 2026-10-21 — "upstream projelerini incele ama ürün üreticinin matrisleri varsa
+  onları da incele, kaynakları not et"; saha G77):** uyum satırında **hangi kaynağın ne dediğini ayrı ayrı** yaz — ürün üreticisinin
+  destek matrisi (SUSE, Broadcom/VMware, NVIDIA, Red Hat), üreticinin kendi paketlediği ikili, upstream proje politikası, bilinen
+  kayıt (CHANGELOG/issue). Upstream politikası çoğu zaman **asgari garantidir**: aralık dışı = "garanti dışı — uyumsuz **olabilir**",
+  "desteklenmiyor/kural dışı" değil. ❌ yalnız kaynakta açık uyumsuzluk / kanıtlı hata / EOL / üreticinin destek listesi dışı.
+  Kaynağı olmayan uyum cümlesi yazılmaz. **Uyum durumu bir arızanın sebebi olarak yazılmaz** (G77: node donmaları "Antrea matris
+  dışı" diye Antrea'ya bağlandı, sonra sonuç olduğu anlaşıldı) — sebep olayın kendi kanıtıyla.
 
 ## Sormak gerekeni sor — işi en iyi yapmak için (Alp, 2026-10-05)
 - **Başlamadan:** cevabı sonucu değiştirecek belirsizlik varsa (hedef sunucu/küme, amaç, kapsam, geçici mi kalıcı mı,

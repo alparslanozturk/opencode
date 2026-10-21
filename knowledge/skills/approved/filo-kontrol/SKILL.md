@@ -59,6 +59,19 @@ Varsayılan aynı anda **5 sunucu**. Yüzlerce sunuculu bir filoda bu çok
 yavaştır. `-f 20` makul bir başlangıç; kontrol düğümünün kaynağına ve ağa
 göre artır. Çok yükseltmek kontrol düğümünü boğar.
 
+## 3b. Zaman aşımı — takılan node tüm komutu düşürmesin (saha G77)
+
+Ajanın komut aracı ~60 sn sonra komutu keser (`Command exceeded timeout of 60000 ms`). Bir node takılıysa (ssh banner timeout,
+D-state) ansible ad-hoc o node'u bekler ve **diğer node'ların çıktısı da kaybolur** (G77: wor12/wor13 erişilemezken tüm tur boşa
+gitti). Her ad-hoc'ta ikisini de ver:
+
+```bash
+ansible <grup> -i <envanter> -m shell -o -f 20 -T 10 --task-timeout 30 -a '<okuma komutu>'
+```
+
+`-T 10` bağlantı (ve banner) zaman aşımı, `--task-timeout 30` görev başına üst sınır (ansible-core `ansible --help`). Takılan node
+`UNREACHABLE` / timeout satırıyla görünür, gerisi gelir; o node'u listeyle yaz ("ansible takıldı" değil).
+
 ## 4. Filo envanteri çıkarmak
 
 Hangi sunucu hangi sürümde:

@@ -112,6 +112,13 @@ kubectl describe node <gpu-node> | sed -n '/Taints/,/Events/p'   # taint, Alloca
 - **İlk özete sürüm sapmasını yaz:** `get nodes -o wide`'daki VERSION / OS-IMAGE / KERNEL-VERSION / CONTAINER-RUNTIME
   sütunlarında GPU node'u diğerlerinden farklıysa bunu ilk bulgu olarak ver (`rke2-denetim` §1, matris `surum-uyum`).
 
+- **Üretici matrisi — NVIDIA GPU Operator "Platform Support"** (sürüme özel sayfa:
+  `docs.nvidia.com/datacenter/cloud-native/gpu-operator/<sürüm>/platform-support.html`; operator sürümünü kümeden oku). **v25.3.4**
+  (indirme 2026-10-21, `uyum.py --gpu-operator`): RKE2 **1.29–1.33** ve Kubernetes 1.29–1.33 · RHEL **9.2, 9.4, 9.5, 9.6** ve 8.8, 8.10 ·
+  GPU listesinde **HGX H200 / DGX H200 / H200, H200 NVL** · varsayılan (önerilen) sürücü **580.82.07** (desteklenenler: 580.82.07,
+  580.65.06, 575.57.08, 570.172.08, 570.158.01, 570.148.08, 550.163.01, 535.261.03, 535.247.01); bilinen sorun: 570.124.06/570.133.20/
+  570.148.08/570.158.01 sürücülerinde MIG + tam GPU karışık node'da pod Pending (NVIDIA/gpu-operator#1361). Listede olmayan
+  (ör. RHEL 9.8, K8s 1.34) → "NVIDIA doğrulama listesinde yok — destek kapsamı dışı olabilir", çalışmaz demek değil.
 - **Sürümler küme üzerinden okunur, tahmin edilmez:** RKE2/Kubernetes → `get nodes` `VERSION` sütunu
   (`v1.xx.y+rke2rN` biçimi); Rancher → `kubectl -n cattle-system get deploy cattle-cluster-agent -o
   jsonpath='{.spec.template.spec.containers[0].image}'` (ajan imaj etiketi, genel). Nonprod Rancher ekranı (2026-10-15):
@@ -225,9 +232,25 @@ journalctl -k --since -7d | grep -i -e xid -e nvrm | tail -30
   yaz, ama tek başına "GPU arızalı" deme (tahmin) — NVIDIA/sunucu üreticisi destek kaydı önerisi.
 - **Anlık güç/saat yorumlama:** tek okumadaki yüksek güç o anda iş yapan GPU demektir, "anormal" değildir —
   `nvidia-smi dmon -s pucm -c 10` ile zaman içinde bak (§6).
-- **XID:** her XID bir sürücü/donanım olayıdır; kodu, tarihi, sayısı ve satırdaki `pid=…, name=…`'yi raporla. Xid 31 =
-  GPU bellek sayfa hatası (MMU fault) — NVIDIA belgesine göre çoğunlukla uygulama kaynaklı (genel); süreç adını
-  (`VLLM::EngineCor…`) ve GPU'yu pod'la eşle. Diğer kodların anlamını uydurma.
+- **XID:** her XID bir sürücü/donanım olayıdır; kodu, tarihi, sayısı ve satırdaki `pid=…, name=…`'yi raporla. Diğer kodların
+  anlamını uydurma — kaynak: NVIDIA *XID Catalog* (`docs.nvidia.com/deploy/xid-errors/analyzing-xid-catalog.html`).
+- **Xid 31 (MMU fault) — NVIDIA'nın kendi akışı** (XID Catalog, `WORKFLOW_XID_31`, indirme 2026-10-21): "Typically these are
+  application-level bugs, but can also be driver bugs or hardware bugs." Ayırt etme: **aynı GPU'da (PCI-ID) tekrar eden** MMU
+  fault → `RUN_DCGMEUD` (olası donanım; geçerse field diag) · **farklı GPU'larda** tekrar → uygulama/CUDA (`CHECK_APP`) · tek
+  seferlik → uygulama. Önerilen uygulama araçları: Compute Sanitizer memcheck, `CUDA_DEVICE_WAITS_ON_EXCEPTION=1` + cuda-gdb.
+  **Tuzak (saha G77, gpu-dtx GPU1 = `29:00`):** "hep aynı GPU" kalıbı, o GPU'ya **hep aynı iş yükü** düşüyorsa uygulama hatasını da
+  aynı biçimde gösterir. Yazmadan önce her Xid satırındaki pid'i o saatteki pod/modelle eşle (pid kısa ömürlü — Xid zamanındaki
+  `journalctl` satırıyla vLLM pod'unun yeniden başlama zamanını karşılaştır: `kubectl get pod <p> -o jsonpath='{.status.containerStatuses[0].lastState.terminated}'`).
+  - Hepsi aynı model/pod ve o pod hep GPU1'de → "uygulama mı donanım mı **ayırt edilemedi** — aynı model başka GPU'da çalışırsa
+    belli olur" (tahmin). Farklı modeller GPU1'de aynı hatayı veriyorsa → donanım olasılığı güçlenir (yine tahmin).
+  - Kanıt sırası: ECC/row remap (`nvidia-smi -q -d ECC,ROW_REMAPPER`, `retired pages`) → aynı dönemde başka Xid (48/63/64/79/94/95)
+    → DCGM tanı (`dcgmi diag -r 3` — **GPU'yu meşgul eder, iş yükünü etkiler**: değişiklik sayılır, bakım penceresi + kullanıcı onayı).
+  - "Donanım sorunu ihtimalini güçlendirir" gibi bir cümle yalnız yukarıdaki ayırt etme yapıldıysa; yoksa "olabilir" + eksik kanıt.
+- **Ortam değişkeni / argüman bulguları (saha G77):** `NCCL_P2P_DISABLE=1` NVSwitch'li node'da P2P (NVLink) taşımasını kapatır
+  (NCCL belgesi: "disables the peer to peer (P2P) transport") — performans etkisini **ölçmeden** "kayıp var" yazma; neden konduğunu
+  sor (bilinen bir hatayı aşmak için konmuş olabilir). Çelişen argümanda (`--no-enable-prefix-caching` + `--enable-prefix-caching`)
+  hangisinin geçerli olduğunu pod logundaki vLLM açılış satırından oku (`non-default args` / `enable_prefix_caching=`), argparse
+  kuralından çıkarım yapma.
 - **ECC uncorrected > 0**, sürekli düşük saat, `power.limit` beklenenden düşük → bulgu.
 - **PCIe:** boşta `gen.current` güç tasarrufuyla düşer (genel) — karşılaştırmayı **yük altında** yap.
 

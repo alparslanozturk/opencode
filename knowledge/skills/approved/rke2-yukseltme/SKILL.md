@@ -110,26 +110,27 @@ CHANGELOG'unu tam metin oku (`github.com/antrea-io/antrea/blob/main/CHANGELOG/CH
 
 **Kurallar (`docs/versioning.md`):**
 - **Yama** (v2.3.0 → v2.3.2): yalnız önemli hata/güvenlik düzeltmesi, özellik yok. **Minor** (v2.3 → v2.4): yeni özellik +
-  varsayılan değişikliği. Matris uyumu minor yükseltme ister — "sadece bug fix" değildir.
+  varsayılan değişikliği. Garanti/matris kapsamına girmek minor yükseltme ister — "sadece bug fix" değildir.
 - Tek seferde en çok **4 minor** atla. Sıra: **önce Controller, sonra Agent** (agent controller'dan yeni olamaz, en çok 4 minor eski).
 - ⚠️ Agent yeniden başlarken o node'un veri yolu etkilenir: yeni bağlantı kurulamaz, mevcutlar kopabilir → node node, sırayla.
 - Eski API sürümleri en az GA 12 ay / Beta 9 ay desteklenir.
 
 **v2.3.0'dan ileriye ne değişir:**
 - **v2.3.2** (yama, 2025-10-14): NetworkPolicy öncelik taşması, FlexibleIPAM agent çökmesi, ACNP+NodePort (noEncap) düzeltmeleri.
-- **v2.4** (son v2.4.5, 1.30–1.33): küçük — packet-in sınırı 5000, rotalar `ip route add` ile, host gateway komşuları periyodik
+- **v2.4** (son v2.4.5, garanti 1.30–1.33; VMware VKr 1.34.x'te paketli): küçük — packet-in sınırı 5000, rotalar `ip route add` ile, host gateway komşuları periyodik
   eşitleme, BGP confederation; v2.4.4: Antrea'ya özel sysctl'leri uygulayan **init container**; v2.4.5: FQDN cache çökme düzeltmesi.
-- **v2.5** (son v2.5.3, 1.31–1.34): ⚠️ **nftables flowtable host ağı hızlandırması varsayılan açık** (geri düşüşlü — veri yolu
+- **v2.5** (son v2.5.3, garanti 1.32–1.34; VKr 1.35.x'te paketli): ⚠️ **nftables flowtable host ağı hızlandırması varsayılan açık** (geri düşüşlü — veri yolu
   değişikliği); `AntreaProxy`/`NodePortLocal` feature gate'leri manifestten kalktı; WireGuard yalnız Encap; Egress VLAN'da
   benzersiz MAC varsayılan; OVS bundle/flow yeniden deneme düzeltmeleri; agent panic düzeltmeleri.
-- **v2.6** (son v2.6.3, 1.32–1.35): L7FlowExporter kaldırıldı; `TopologyAwareHints`/`ServiceTrafficDistribution` hep açık;
+- **v2.6** (son v2.6.3, garanti 1.33–1.35; VKr 1.36.x'te paketli): L7FlowExporter kaldırıldı; `TopologyAwareHints`/`ServiceTrafficDistribution` hep açık;
   host-local IPAM GC'nin kullanımdaki Pod IP'sini bırakması ve agent panic düzeltmeleri.
-- **v2.7.0** (2026-08-15, 1.33–1.36): **OVS 3.7.1**; ⚠️ **agent gossip trafiği varsayılan kimlik doğrulamalı + şifreli** —
+- **v2.7.0** (2026-08-15, garanti 1.34–1.36): **OVS 3.7.1**; ⚠️ **agent gossip trafiği varsayılan kimlik doğrulamalı + şifreli** —
   rolling update sırasında Egress/ServiceExternalIP kısa süre bozulabilir, upgrade guide'a uy; multi-cluster token ClusterID'ye bağlı.
 - Hiçbir notta node takılması / `OVS transaction timeout` belirtisine doğrudan uyan düzeltme yok → yükseltmeyi donma çözümü
   diye sunma (saha G65).
 
-**Kurum için yol (öneri, karar Alp'in):** (1) v2.3.0 → **v2.4.5** (tek minor, 1.33 destekli, en az değişiklik). (2) K8s 1.34'e
+**Kurum için yol (öneri, karar Alp'in):** Garanti aralıkları resmi kuraldan yeniden hesaplandı (G77, `surum-uyum`): eski tablo
+"son 4 K8s" kestirmesiydi (ör. v2.7'ye 1.33'ü yanlışlıkla katıyordu). (1) v2.3.0 → **v2.4.5** (tek minor, 1.33 garanti aralığında, en az değişiklik). (2) K8s 1.34'e
 geçerken ayrı adım: ≥ v2.5 (1.35 → ≥ v2.6; v2.15 Rancher için v2.7 uygun). (3) Açık bir teşhis sürerken (ör. node donması)
 yükseltme yapma — tek değişken kuralı. Her adımdan sonra: `antrea-agent` DaemonSet DESIRED = node sayısı, restart artmıyor,
 `antctl get featuregates`/controller logu temiz.

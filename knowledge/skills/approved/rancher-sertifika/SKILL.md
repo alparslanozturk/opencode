@@ -54,6 +54,24 @@ echo | openssl s_client -connect <rancher-hostname>:443 -servername <rancher-hos
 `notAfter` yeni tarih → tamam. Eski tarih → birkaç dakika sonra tekrar (§5). Geri alma: `kubectl apply -f old/tls-rancher-ingress-yedek-<tarih>.yaml`.
 Aynı CA'da `helm upgrade`, `tls-ca`, `rollout restart`, ajan/Fleet adımı **yok** — önerme.
 
+**Zincir dosyasını yeniden kur (saha G87):** kurumda secret'a verilen dosya `chain.pem` olabilir (eskisi: sunucu sertifikası + CA).
+Yenilemede eski `chain.pem` de `old/`'a gider, yenisi **yeni** `tls.crt`'den kurulur — docs: sunucu sertifikası + ara(lar); kök
+gerekmez (eskisinde kök varsa aynı yapıyı korumak çoğu durumda zararsızdır — genel):
+
+```bash
+head -1 <ara>.cer <kok>.cer                                    # "-----BEGIN CERTIFICATE" = PEM, değilse DER
+openssl x509 -in tls.crt -noout -issuer; openssl x509 -in <ara>.cer -noout -subject   # DER ise: -inform der ekle; issuer = ara subject
+cat tls.crt <ara>.cer > chain.pem                               # ara DER ise: { cat tls.crt; openssl x509 -inform der -in <ara>.cer; } > chain.pem
+grep -c "BEGIN CERTIFICATE" chain.pem; grep -c -- "-----END CERTIFICATE----------BEGIN" chain.pem   # 2 ve 0 (satır sonu eksikse yapışır)
+openssl crl2pkcs7 -nocrl -certfile chain.pem | openssl pkcs7 -print_certs -noout | grep -e subject -e issuer   # sıra: yaprak, ara
+openssl verify -CAfile <kok-pem> -untrusted chain.pem tls.crt                     # "tls.crt: OK"
+```
+
+Sonra §0 uygulama satırında `--cert=chain.pem`. `tls-ca`/`cacerts.pem`'e dokunma: kök aynı kaldıkça ajanların CA özeti değişmez
+(docs: ajan adımı CA değişince). Eski yaprağın issuer'ı (`old/tls.crt`) yeninkinden farklıysa (ör. eskisi doğrudan kök, yenisi ara)
+bunu kullanıcıya söyle — `cacerts.pem` ara + kök içeriyorsa sorun yok, yalnız kök içeriyorsa sunucu aracıyı gönderdikçe doğrulama
+yine geçer (genel); emin değilsen uygulamadan önce sor.
+
 **Bu akışta yapılan hatalar (saha G86) — yapma:**
 - `--cert=chain.pem` vermek: `chain.pem`/`cacerts.pem` **eski** kurulumdan kalan dosyalardır; `chain.pem`'deki sunucu sertifikası
   ESKİSİDİR. `--cert` yalnız **yeni `tls.crt`** (yaprak + ara). (kubectl anahtar–sertifika uyuşmazlığında genelde hata verir — genel;

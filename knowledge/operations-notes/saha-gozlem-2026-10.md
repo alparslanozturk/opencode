@@ -953,3 +953,15 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   sorun nedir?" → ajan wor12/wor13'te `journalctl -b -p warning -u rke2-agent`, `journalctl -k -b | grep`, containerd logu okudu ✅.
 - Aksiyon (yapıldı): `rke2-edr` "Yapmayacakların" — açılışı değiştiren öneri (kara liste, dracut, grub) yalnız kanıt + geri alma ile;
   kullanıcı adayı kapattıysa öneri üretme, sıradaki katmana geç.
+
+### G80 — Ajan kendi karşılaştırma tablosuyla çelişen "Kök Neden" yazdı (SISEVT + NFS)
+- Görülen (Alp ekranı, 2026-10-21): "Kanıt 5 — Diğer node'lar ile karşılaştırma": wor08/10/11/12/13/14 hepsi RHEL 9.8, 19 gün,
+  **SISEVT/SISAP hepsinde ✓**; NFS wor08 ✗, wor10 (1), wor11 (1), wor12 (2), wor13 (3), wor14 1; Antrea restart 0/0/0/14/8/7; ssh
+  wor12/13 reboot sonrası, wor14 timeout. Sonuç: "Kök Neden: SISEVT çekirdek modülü NFSv4 I/O engelliyor → containerd kubelet ile
+  iletişim kuramıyor → … döngü" + `modprobe -r` + kara liste. Alp aynı oturumda "SEP ve XDR'ı unut" demişti.
+- ⚠️ Çelişki: modül sağlam wor08/10/11'de de yüklü → tek başına sebep olamaz; "NFS hard mount + yüksek I/O belirleyici" — I/O
+  ölçülmedi, NFS sayısı (2/3/1 ↔ 1/1) kanıt değil. Ekranda yığın izi (hung task) ya da `nfs: server not responding` saati görünmüyor
+  (Kanıt 1-4 ekran dışında — bilinmiyor). Not: önceki oturumda ajan "wor14'te NFS bağlaması yok" demişti, tabloda 1.
+- Aksiyon (yapıldı): `rke2-denetim` §4 "NFS bağlaması VARSA" (bağlama seçenekleri, önceki açılışta not responding saati, hung task
+  yığınında nfs_/rpc_/sisevt, nfsiostat, NFS'li pod) ve §6 "karşılaştırma tablonla sonucun çelişmesin" (sağlam node'da da olan faktör
+  tek başına sebep değil; kanıt yoksa başlık "Aday sebepler (kanıt durumu)"). Komutlar kilitten geçiyor.

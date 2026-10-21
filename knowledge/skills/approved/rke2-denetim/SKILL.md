@@ -239,6 +239,22 @@ kubectl get pods -A -o wide --field-selector spec.nodeName=<node> | grep -v -e k
 
 Node'da NFS bağlaması ve "not responding" yoksa NFS o node'un donmasının sebebi olamaz → "kök neden NFS değil" yazılabilir.
 
+**NFS bağlaması VARSA — sebep mi, kanıt (saha G80):** sayı (1/2/3 bağlama) ve "yüksek I/O" kanıt değildir. Sırayla oku:
+
+```bash
+findmnt -t nfs,nfs4 -o TARGET,SOURCE,FSTYPE,OPTIONS                       # hard/soft, timeo, retrans, vers
+journalctl -k -b -1 --no-pager | grep -i -e "nfs: server" -e "not responding" -e "server .* OK" | tail -20   # önceki açılış (donan)
+journalctl -k -b -1 --no-pager | grep -A25 "blocked for more than" | grep -e "blocked for" -e "nfs_" -e "rpc_" -e "sisevt" -e "sisap" -e fanotify -e fsnotify | head -40
+nfsiostat 5 2 2>/dev/null | head -40                                       # şimdiki gecikme (RTT/exe ms)
+kubectl get pods -A -o wide --field-selector spec.nodeName=<node> | grep -v -e kube-system -e cattle-   # NFS PVC'li iş yükü hangisi
+```
+
+- `not responding` saatleri NotReady/ssh timeout saatleriyle örtüşüyor + takılan sürecin yığınında `nfs_`/`rpc_` → NFS **kanıtlı**.
+- Yığında `sisevt`/`sisap`/`fanotify` **ve** `nfs_` birlikte → güvenlik ajanı + NFS etkileşimi kanıtlı (`rke2-edr`). Yığın yoksa
+  "SISEVT NFS I/O'sunu engelliyor" bir **mekanizma tahminidir** — kök neden diye yazılmaz.
+- `hard` bağlamada sunucu cevap vermezse dosyaya dokunan süreç (kubelet'in volume istatistiği, containerd) süresiz bekler (genel,
+  `man 5 nfs` "hard") → node NotReady görünebilir; bu bir **olasılık**, saat örtüşmesi ve yığınla kesinleşir.
+
 **Eleme — güvenlik ajanları (SEP, Cortex XDR, Twistlock):** envanter, kanıt sırası (yığın izi → ajan logu → kaynak → karşılaştırma
 → kapat-gözle) ve "kapatınca düzeldi" doğrulaması **`rke2-edr`** becerisinde (saha G72: wor14'te XDR kaldırılınca node toparlandı;
 gözlem sürüyor). Ajanı kök neden yazmadan önce o beceriyi yükle.
@@ -346,6 +362,11 @@ Açık kalanlar: [SAHA] …
 Yazmadan önce tutarlılık (saha G65): DaemonSet sayısı ilgili node sayısına eşit mi (antrea-agent = tüm node, ingress =
 worker); eşit değilse farkı yaz, ✅ koyma. Aynı olay iki yerde farklı zamanla geçmesin ("84g önce" ↔ "4 gün önce").
 Bu turda iki node etkilendiyse (ör. biri NotReady→Ready, biri ssh banner timeout) ayrı satır değil **tek kalıp** olarak yaz.
+
+**Karşılaştırma tablonla sonucun çelişmesin (saha G80):** bir aday faktör (modül, ajan, sürüm, RHEL) **sağlam node'larda da**
+varsa tek başına sebep değildir — "X tüm node'larda var" yazıp sonra "kök neden X" deme. En fazla "X + Y birlikte **olabilir**
+(tahmin) — ayıran kanıt: …" yaz. Başlık "Kök neden" yalnız olayın kendi kanıtı (yığın izi, log saati) varsa; yoksa başlık
+"**Aday sebepler (kanıt durumu)**" ve her satırda kanıtlı / tahmin + eksik kanıt.
 
 ### Yapmayacakların
 

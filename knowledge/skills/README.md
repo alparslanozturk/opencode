@@ -14,7 +14,32 @@ gerektiğinde `skill` aracıyla içeriği çeker → bağlam şişmez.
 Dosya biçimi her üç dizinde aynı: `<ad>/SKILL.md`, frontmatter'da `name` + `description`.
 
 **Kural (2026-09-28):** `approved/`'daki her beceri `./kur.sh` ile sahaya kurulur — ayrı bir liste yok,
-sayı hedefi yok (eski "6-10" hedefi kaldırıldı; şu an **20**). Kullanılmayan beceri silinmez, `parked/`'a taşınır.
+sayı hedefi yok (eski "6-10" hedefi kaldırıldı; şu an **23**). Kullanılmayan beceri silinmez, `parked/`'a taşınır.
+
+## Deterministik betik ilkesi (Alp, 2026-10-21 — saha G94: "yapay zekânın ortamda çözebilmesi için yetenek geliştir")
+
+Sahadaki model (offline, 35B-A3B) kural metnini her zaman uygulamıyor; en ağır hatalar **ham çıktıyı kafadan birleştirmekten**
+çıktı (G21/G22 uydurma kapasite raporu, G38 OS diski "boş", G65 kalan gün, G94 base64). Bu yüzden tekrar eden ağır işler
+betiktir; model ham veriyi betiğe **borular**, betiğin bastığı satırı **aynen** aktarır.
+
+| Betik | Beceri | Soru |
+|---|---|---|
+| `kume-bul.py` | `kume-bul` | sunucu/IP hangi kümede · Rancher hangi kümeleri yönetiyor · ingress · sertifika CN |
+| `filo-tablo.py` | `filo-kontrol` | çok sunucuda aynı komut → durum/sapma/tablo |
+| `sar-ozet.py` | `rhel-performans` | geçmiş kapasite (CPU/bellek/yük, gün tablosu, CSV) |
+| `disk-durum.py` | `rhel-depolama` | hangi disk OS / kullanımda / boş |
+| `sertifika-kontrol.py` | `rancher-sertifika` | sertifika dosyaları, kalan gün, anahtar, zincir, eski yaprak; RKE2 tls `--ozet` |
+| `k8s-ozet.py` | `k8s-sorun` | küme durumu: NotReady, restart sebebi, DaemonSet, olaylar |
+| `uyum.py` | `surum-uyum` | sürüm uyumu, EOL, yükseltme yolu |
+
+Betik yazarken:
+- **Yalnız okur.** Uzak komut betiğin **içinde değil**, borunun başında (`ssh … "<okuma>" | python3 betik.py -` ya da
+  `ansible … -t <dizin>` → `betik.py <dizin>`) — güvenlik kilidi ve onay ekranı uzak komutu görür. Uzak komut betiğin başındaki
+  yorumda **sabit** yazılır; SKILL.md onu birebir verir.
+- Sütun **adıyla** okur (sıra sürüme göre değişir); sayı/gün/süre betikte hesaplanır; bulamadığı alana `?` basar, uydurmaz.
+- Erişilemeyen/çıktısız hedef için "değer YAZMA" satırı basar; çelişki/şüpheyi (aynı değerler, hostname ≠ hedef) kendisi uyarır.
+- Sır basmaz (özel anahtar, token — `***`). Python **3.6** uyumlu (RHEL 8 platform-python; `vermin -t=3.6-` ile denetlenir).
+- Kurum verisi içermez; örnek veriler genel adlıdır. Regresyon: `script/beceri-betik-test.sh`.
 
 ## Adlandırma: `<platform>-<iş>` (Alp onayı, 2026-10-17)
 

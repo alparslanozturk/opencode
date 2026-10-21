@@ -29,6 +29,20 @@
   Kaynağı olmayan uyum cümlesi yazılmaz. **Uyum durumu bir arızanın sebebi olarak yazılmaz** (G77: node donmaları "Antrea matris
   dışı" diye Antrea'ya bağlandı, sonra sonuç olduğu anlaşıldı) — sebep olayın kendi kanıtıyla.
 
+## Ham çıktıyı kafadan birleştirme — betiğe borula (saha G21/G22/G38/G65/G94)
+En ağır hatalar ham çıktıyı kafadan tabloya/özete dökmekten çıktı (uydurma kapasite raporu, OS diski "boş", kalan gün, base64).
+Bu işlerde betiği çalıştır, satırlarını **aynen** aktar; sayı/gün/süre hesaplama. Yol: `python3 /root/ai/opencode/knowledge/skills/approved/<beceri>/<betik>`,
+kullanım becerinin SKILL.md'sinde (önce beceriyi yükle):
+- sunucu/IP → hangi küme, Rancher'ın kümeleri, ingress, sertifika CN → `kume-bul/kume-bul.py`
+- çok sunucuda aynı komut → `ansible … -t cikti/filo/<etiket>` + `filo-kontrol/filo-tablo.py`
+- geçmiş kapasite (sar, "son N gün") → `rhel-performans/sar-ozet.py`
+- disk OS mu / boş mu → `rhel-depolama/disk-durum.py` — **yıkıcı disk adımından (pvcreate/mkfs/parted) önce zorunlu**
+- sertifika dosyası/secret, kalan gün, zincir, anahtar eşleşmesi → `rancher-sertifika/sertifika-kontrol.py` (RKE2 tls: `--ozet`)
+- küme durumu (NotReady, restart sebebi, DaemonSet, olaylar) → `k8s-sorun/k8s-ozet.py`
+- sürüm uyumu / EOL → `surum-uyum/uyum.py`
+Uzak okuma borunun başında kalır (`ssh … "<okuma>" | python3 <betik> -`), betiğe gömülmez. Betik hata verirse hatayı oku; iki denemede
+olmuyorsa dur ve söyle — elle ayrıştırmaya geçme.
+
 ## Sormak gerekeni sor — işi en iyi yapmak için (Alp, 2026-10-05)
 - **Başlamadan:** cevabı sonucu değiştirecek belirsizlik varsa (hedef sunucu/küme, amaç, kapsam, geçici mi kalıcı mı,
   kısıt) **tek mesajda, numaralı, kısa** sor. Kendin okuyup ölçebileceğin şeyi sorma — önce bak, sonra sor.

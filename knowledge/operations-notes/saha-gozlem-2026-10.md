@@ -1120,3 +1120,17 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Açık: kurum envanterinde splkubelocal2'nin küme grubunda IP ile geçip geçmediği bilinmiyor (betik sahada ilk koşuda gösterecek);
   "tüm kümelerin master'ları" listesi `hosts-rke2.ini` dışında bir dosyadaysa (ya da yalnız eski bir oturumda yapıştırıldıysa) betik
   onu görmez — çalışma dizinindeki `ansible/inventories/` altına konmalı.
+
+### G95 — Alp: "sertifikayı Kubernetes'ten alıp okuyamıyorsa ne biçim yetenek"; envanter + k8s birlikte, Rancher'ın kümeleri
+- Alp (2026-10-21, G94'ün devamı): sertifika okunamıyorsa başka yoldan (ingress vb.) küme/platform bulunabilmeli; "envantere bir şey
+  sorduğumda kimliği çıkmalı"; hem envanter hem Kubernetes yeteneği gelişmeli ("ayrı yetenek mi bilemiyorum"); "burada Rancher çalışıyor,
+  ardında hangi RKE2 kümeleri var — bulabilmeli".
+- Karar (Doktor): ayrı beceri yok — `kume-bul` tek giriş, iki ayak. `kume-bul.py k8s`: master'dan borulanan kubectl JSON'unu (art arda
+  belgeler) çözer — node'lar (IP/rol/sürüm/OS), ingress host'ları, Rancher kurulu mu (server-url) / yöneten Rancher (CATTLE_SERVER),
+  Secret sertifikası (base64 + openssl betikte; `tls.key` okunmaz), `clusters/nodes.management.cattle.io` → Rancher'ın tüm kümeleri ve
+  node'ları. `--kaydet`: haritayı `ansible/inventories/rancher-<adres>.ini`'ye yazar (küme başına grup, `:vars` rancher_url/küme adı/id/
+  sürüm, kaynak+tarih başlığı; yalnız kendi ürettiği dosyanın üzerine yazar) → sonraki sorular §1'den bağlanmadan. ssh betiğe gömülmedi
+  (borunun başında; kilit/onay görür). Sahte JSON + gerçek test sertifikasıyla denendi; tek satır komutlar kilitDenetle → null.
+  Yönlendirme: AGENTS, `ansible` §3, `k8s-sorun` Rancher, `rancher-sertifika` doğrulama.
+- Açık: Rancher v3 alan adları (`status.provider`, `status.nodeName`, `spec.controlPlane`, `internalNodeStatus`, `apiEndpoint`) genel
+  bilgiden — kurum Rancher'ında ilk koşuda doğrulanacak (eksik alan `?` basılır).

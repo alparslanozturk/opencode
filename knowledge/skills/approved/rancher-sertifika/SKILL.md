@@ -76,6 +76,8 @@ yine geçer (genel); emin değilsen uygulamadan önce sor.
 yeni `tls.key` → `apply` "configured" (last-applied uyarısı zararsız — secret ilk kurulumda `--save-config`'siz yaratılmış). Doğrulama:
 `{.data.tls.crt}` → "Could not find certificate from <stdin>"; çalışan biçim `{.data.tls\.crt}` ya da
 `kubectl … -o json | jq -r '.data."tls.crt"' | base64 -d | openssl x509 -noout -subject -dates -ext subjectAltName`.
+Yalnız **okumak** (CN/SAN/tarih, zincirde kaç sertifika) için en kısa yol: `kubectl -n cattle-system get secret tls-rancher-ingress -o json |
+python3 /root/ai/opencode/knowledge/skills/approved/kume-bul/kume-bul.py k8s` (G94 — base64'ü model çözmez).
 Rancher `rollout restart` yapıldı, pod'lar sorunsuz döndü — aynı CA'da **gerekli değil** (docs), yapıldıysa zararsız.
 **Yük dengeleyici (VIP):** Rancher adı bir VIP'e çözülüyor (`host <rancher-hostname>`); kurum yeni sertifika sonrası ağ ekibine VIP'li
 mail atıyor (Alp). LB'de TLS sonlandırma (SSL offload) varsa sertifika LB'ye de yüklenmeli; geçiş (passthrough) ise yalnız secret yeter —

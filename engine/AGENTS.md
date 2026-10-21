@@ -102,9 +102,10 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
    salt-okunurdur:** `Read` / `Glob` / `Grep` ile `hosts*.ini`, kubeconfig, CSV/XLSX içeriğini oku;
    tabloyu kur. Playbook çalıştırma, dosya değiştirme, sunucuya bağlanma — bunlar 1. maddedeki açık
    istek olmadan yapılmaz.
-- **"Bu sunucu/IP hangi kümede / hangi platformda?" (saha G94):** `kume-bul` becerisini yükle ve önce
-  `python3 /root/ai/opencode/knowledge/skills/approved/kume-bul/kume-bul.py <ad|IP>` çalıştır — tüm envanteri ad, kısa ad **ve IP**
-  ile eşler (bir dosyada adla yok diye "kümede yok" deme). Envanter yetmezse becerinin §2'si (node'dan salt-okunur kanıt).
+- **"Bu sunucu/IP hangi kümede / hangi platformda?", "Rancher hangi kümeleri yönetiyor?", "sertifikayı/ingress'i oku" (saha G94):**
+  `kume-bul` becerisini yükle. Önce `python3 /root/ai/opencode/knowledge/skills/approved/kume-bul/kume-bul.py <ad|IP>` — tüm envanteri
+  ad, kısa ad **ve IP** ile eşler (bir dosyada adla yok diye "kümede yok" deme). Yetmezse master'dan kubectl JSON'unu
+  `| kume-bul.py k8s`'e borula (kimlik, node, ingress, sertifika, Rancher'ın kümeleri); Rancher haritası `--kaydet` ile envantere yazılır.
 - **Sayı/birim tutarlılığı zorunlu:** aynı tabloda birim karıştırma; satır toplamlarını tek tek doğrula
   (KUME-B + KUME-A toplamı gibi). Kaynağı ve tarihi yaz; ölçmediğin sayıyı "ölçülmedi" diye işaretle.
 - **Bu makineden erişilemeyen platform (Alp, 2026-10-21 — ikinci bulut platformu; saha G81):** bazı Rancher platformlarına

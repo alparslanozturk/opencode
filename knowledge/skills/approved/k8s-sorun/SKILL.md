@@ -73,6 +73,8 @@ hazır olmadığı demektir; readiness probe başarısız olabilir.
 - Rancher CLI (`rancher`) kurulumdan kuruluma değişir. Önce `rancher --help`
   çıktısını oku, ezberden komut yazma.
 - Anthos (GKE) kümeleri → `anthos-erisim` becerisi (erişim yolu farklı).
+- Node/IP hangi kümede, bu Rancher hangi kümeleri yönetiyor, kümenin ingress adları, Rancher sertifikasının CN/SAN'ı →
+  `kume-bul` becerisi (`kubectl … -o json | kume-bul.py k8s`; base64/sertifikayı betik çözer).
 - Kümeyi bütün olarak incelemek (sürüm matrisi, control plane, node Unavailable, Antrea/OVS, OS) → `rke2-denetim`.
 - GPU kümesi / H200 node / vLLM pod'u / NVIDIA GPU Operator denetimi → `rke2-denetim` becerisi.
 - Pod yavaş ama CPU kullanımı düşük görünüyorsa: CPU limit kısıtlaması

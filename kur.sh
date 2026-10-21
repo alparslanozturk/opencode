@@ -941,6 +941,23 @@ ins = d.setdefault("instructions", [])
 if "~/.config/opencode/saha-sabitleri.md" not in ins:
     ins.append("~/.config/opencode/saha-sabitleri.md")
 
+# Saha G91 (2026-10-21): uç o an /models'a cevap vermezse ctx boş kalıyor, dosya engine şablonundan (context 16384)
+# yeniden yazılıyordu → 262K pencere 16K'ya düştü (TUI "60K (366%)"), compaction özet üretemedi, araç çağrıları boş geldi.
+# Mesajın söylediği gibi MEVCUT kurulu değer korunur (yoksa şablon).
+if not ctx and os.path.exists(dst):
+    try:
+        eski = json.load(open(dst, encoding="utf-8"))
+        em = (eski.get("provider", {}).get("kurum", {}).get("models") or {})
+        eski_ctx = ((next(iter(em.values()), {}) or {}).get("limit") or {}).get("context")
+        if isinstance(eski_ctx, int) and eski_ctx > 0:
+            ctx = str(eski_ctx)
+            print(f"  bağlam penceresi: {eski_ctx} token (kaynak: mevcut kurulu ayar — uç yanıt vermedi)", file=sys.stderr)
+    except Exception:
+        pass
+etkin_ctx = int(ctx) if ctx else ((p["models"][m].get("limit") or {}).get("context") or 0)
+if out and etkin_ctx and int(out) > etkin_ctx // 4:
+    out = str(max(512, etkin_ctx // 4))  # çıktı pencerenin 1/4'ünü aşmaz (16K pencerede 16K çıktı = hiç girdi yeri yok)
+
 if out:
     p["models"][m].setdefault("limit", {})["output"] = int(out)
 

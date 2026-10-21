@@ -72,6 +72,9 @@ ansible-inventory --host web01       # o hostun değişkenleri
 ansible <grup> --list-hosts          # kimi kapsıyor
 ```
 
+Bir sunucunun/IP'nin **hangi kümede/platformda** olduğu, Rancher'ın yönettiği kümelerin envantere alınması →
+`kume-bul` becerisi (`kume-bul.py <ad|IP>`; tüm envanter dosyalarını ad + IP ile eşler).
+
 **Bozuk INI hata vermez, sessizce boş envanter üretir.** Kapatılmayan köşeli
 parantez yeterli; ölçülen sonuç:
 

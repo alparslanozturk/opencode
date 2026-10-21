@@ -55,3 +55,6 @@ tsconfig.tsbuildinfo
 # Acilan agac (node-vX.Y.Z/) ve `-headers` adi (dizin ya da bag) git'e GIRMEZ.
 /node-v*-headers
 /node-v[0-9]*/
+# Python bayt kodu (beceri betiklerini denerken oluşur)
+__pycache__/
+*.pyc

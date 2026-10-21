@@ -1033,3 +1033,13 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   old'a kopyalayıp zinciri nasıl kuracağımı ajana sorduracağım."
 - Aksiyon (yapıldı): `rancher-sertifika` §0 "Zincir dosyasını yeniden kur" — PEM/DER, issuer = ara subject, yapışık END/BEGIN kontrolü,
   pkcs7 ile sıra, verify; tls-ca'ya dokunma ve eski/yeni issuer farkını söyleme.
+
+### G88 — Bulut Rancher sertifikası yenilendi ✅; ajanın "Claude Code için özet"i uydurma satırlar içeriyor
+- Görülen (Alp ekranları, 2026-10-21 13:27–13:3x): `chain.pem` (yaprak + SUBCA + ROOT, 3) + yeni `tls.key` → `secret/tls-rancher-ingress
+  configured`; `rollout restart deploy rancher` → yeni pod'lar 1/1 Running, eskiler Terminating (ajan yine restart önerdi, Alp uyguladı).
+  Doğrulama `{.data.tls.crt}` → "Could not find certificate from <stdin>" (nokta kaçışı); `jq -r '.data."tls.crt"'` ile: CN=rancher-nonprod.<bulut>,
+  notBefore 2026-10-05, notAfter 2028-10-04, SAN ad + `*.` joker. `host` → ad bir VIP'e çözülüyor; Alp ağ ekibine VIP'li mail attı.
+- ⚠️ Alp ajandan "Claude Code'a vermek için kısa özet" istedi; özette kanıtsız satırlar: "Cron tab'dan otomatik sertifika sonu takibi var",
+  "NFS erişim sorunu: lokal sıkıştırma → NFS mount → LB'ye yükleme", LB ürünü "vCentrix NScaler", "Rancher restart" kritik adım.
+- Aksiyon (yapıldı): `rancher-sertifika` §0 "Sahada doğrulanan" (3'lü zincir çalıştı, jq doğrulama, restart gereksiz ama zararsız,
+  VIP/LB SSL offload sorusu `[SAHA]` + ayırt etme) ve "yapma" listesine uydurma özet.

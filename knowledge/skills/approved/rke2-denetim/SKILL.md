@@ -71,6 +71,10 @@ kubectl -n kube-system get pods -l app=antrea -o jsonpath='{range .items[*]}{.sp
 
 ### 2. Control plane
 
+**Önce genel özet** (node/pod/restart/DaemonSet/olay — hepsi tek çağrı, betik birleştirir): `k8s-sorun` → "Durum özeti"
+(`… get nodes,pods,events,ds,leases -A -o json | python3 /root/ai/opencode/knowledge/skills/approved/k8s-sorun/k8s-ozet.py -`).
+Bu bölümdeki ve §3-§4'teki komutlar o özetin işaret ettiği **tek** master/node/pod'a inmek içindir.
+
 ```bash
 kubectl get --raw='/readyz?verbose' | grep -v ' ok$' | head        # boşsa hepsi ok; etcd dahil
 kubectl -n kube-system get pods -o wide | grep -e etcd -e kube-apiserver -e kube-controller -e kube-scheduler -e cloud-controller

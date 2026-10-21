@@ -1,6 +1,6 @@
 ---
 name: k8s-sorun
-description: Kubernetes ve Rancher üzerinde sorun ararken kullan — pod, deployment, node, namespace, log, event. "kubernetes", "k8s", "rancher", "pod", "kubectl", "deployment", "node", "namespace" isteklerinde tetiklenir. Küme dışı tek makinedeki konteynerler için `podman-docker`.
+description: Kubernetes ve Rancher üzerinde sorun ararken kullan — pod, deployment, node, namespace, log, event; küme durum özeti deterministik `k8s-ozet.py` ile (NotReady node + süre + lease, sürüm sapması, altyapı/uygulama pod'ları, restart son çıkış sebebi OOM/exit kodu, DaemonSet, olaylar). "kubernetes", "k8s", "rancher", "pod", "kubectl", "deployment", "node", "namespace", "kümede neler oluyor", "notready", "restart", "crashloop", "oom", "durum özeti" isteklerinde tetiklenir. Küme dışı tek makinedeki konteynerler için `podman-docker`.
 ---
 
 ## Önce hangi kümedesin
@@ -21,6 +21,23 @@ aradığın şey orada olmayabilir. Bilmiyorsan `-A` ile tüm namespace'lere bak
 Bileşenin namespace'ini **tahmin etme** (`kube-system` varsayma): önce bul — `kubectl get ds,deploy,sts -A | grep -i <ad>`.
 `No resources found` / `NotFound` alınca aynı namespace'te başka etiketle tekrar deneme, `-A` ile ara (saha G71:
 nfs-subdir-external-provisioner ve fluent-bit `kube-system`'de aranıp iki tur boşa gitti).
+
+## Durum özeti — önce `k8s-ozet.py` (kümenin genel hali sorulunca)
+
+"Kümede neler oluyor", "node'lar nasıl", "neden NotReady", "restart'lar ne" sorusunda ham çıktıyı **sen birleştirme** — tek çağrı +
+betik (saha G7/G8/G12/G59/G65: kaynaksız "container runtime down", NotReady node'a yüzde, exit 2'yi "OOM" sanmak, DaemonSet ↔ node
+sayısı çelişkisi, tam yaml dökümü):
+
+```bash
+ssh root@<master> "/var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml get nodes,pods,events,ds,leases -A -o json" | python3 /root/ai/opencode/knowledge/skills/approved/k8s-sorun/k8s-ozet.py -
+```
+
+(kubectl yerelde çalışıyorsa `kubectl get … -o json | python3 …/k8s-ozet.py -`.) Basar: Ready olmayan node'lar (koşul reason/mesajı,
+**ne kadar süredir**, lease son yenileme, taint), baskı koşulları, **sürüm sapması** (kubelet · OS · çekirdek · runtime grupları);
+çalışmayan pod'lar **altyapı / uygulama** ayrı (`--altyapi ns1,ns2` ile ekle), Ready olmayan node'daki pod `(NR)`; en çok yeniden
+başlayan konteynerler ve **son çıkış sebebi** (OOMKilled · exit 137 liveness/OOM · exit 143 · exit N = uygulama hatası, OOM değil);
+DaemonSet istenen/hazır/güncel; uyarı olayları gruplu (sebep × sayı × son zaman); node olay zaman çizelgesi. Süreler betikte hesaplı.
+Raporda bu satırları **aynen** kullan; ayrıntı için aşağıdaki komutlarla **tek nesneye** in (`describe`, `logs --previous`).
 
 ## Salt-okunur teşhis
 

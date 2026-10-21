@@ -190,6 +190,9 @@ free -h
 
 SELinux ve firewalld şablondan kapalı gelir — `getenforce` / `firewall-cmd` teslim kontrolü değildir.
 
+Sunucu bir **RKE2 kümesine node** olacaksa (Alp, 2026-10-21): teslimde sor — firewall/BT-Network erişim izni ve **BT-Storage NFS
+izni** (NFSv3, paylaşımlar IP tabanlı kısıtlı → yeni IP paylaşım listesine eklenmeli) alındı mı? Ayrıntı: `rke2-node-ekle` tuzak 7.
+
 ## 5. Teslim raporu
 
 Teslim ettiğin birime şunları yaz:

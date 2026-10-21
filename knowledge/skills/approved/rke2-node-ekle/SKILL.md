@@ -1,6 +1,6 @@
 ---
 name: rke2-node-ekle
-description: Mevcut RKE2 kümesine yeni worker ya da sunucu (control-plane) eklerken kullan — rke2-ansible ile --limit'li ekleme, kayıt adresi (9345/6443), token, sürüm eşleşmesi, Antrea imajı, node adı, elle fiziksel GPU worker (H200) ve disk düzeni. "node ekle", "worker ekle", "sunucu ekle", "kümeye ekle", "yeni worker", "gpu worker ekle", "h200 ekle", "join" isteklerinde tetiklenir. Playbook temeli ve kurum kararları: `rke2-kurulum`.
+description: Mevcut RKE2 kümesine yeni worker ya da sunucu (control-plane) eklerken kullan — firewall ve storage (NFSv3 IP izni) hatırlatması, rke2-ansible ile --limit'li ekleme, kayıt adresi (9345/6443), token, sürüm eşleşmesi, Antrea imajı, node adı, elle fiziksel GPU worker (H200) ve disk düzeni. "node ekle", "worker ekle", "sunucu ekle", "kümeye ekle", "yeni worker", "gpu worker ekle", "h200 ekle", "join", "nfs izni", "firewall izni", "storage izni" isteklerinde tetiklenir. Playbook temeli ve kurum kararları: `rke2-kurulum`.
 ---
 
 # Kümeye node ekleme
@@ -35,6 +35,20 @@ Playbook düzeni, sürüm seçimi ve kurum kararları **`rke2-kurulum`**'da; yen
    makinenin hostname'inden gelir. `kubectl get nodes` adları hostname ile aynıysa sorun yok; yeni node'lara
    farklı ad gerekiyorsa: `<ip>: {host_rke2_config: {node-name: "stlrancherwor07"}}`. Sahadaki kopyada
    `grep -rn node_name roles/` sonuç veriyorsa sürüm farklıdır — önce onu oku.
+
+7. **Ekipler arası erişim izinleri — HER node eklemede hatırlat (Alp, 2026-10-21):** kümedeki node'lar NFS paylaşımlarına
+   ve diğer sistemlere izinli. Yeni node'un **IP'leri** için kullanıcıya iki soruyu kurulumdan önce sor (ajan yapamaz, ekip işi):
+   - **Firewall / BT-Network:** mevcut node'ların erişimleri (NFS sunucusu, kayıt aynası, Rancher, DNS/NTP …) yeni IP'ler için de
+     açıldı mı? Genelde firewall izni gerekir.
+   - **BT-Storage (NFS):** kurumda NFSv4 değil, NFSv3 kullanılıyor → paylaşımlarda **host tabanlı (IP) kısıtlama** var; yeni node
+     IP'leri her NFS paylaşımının izin listesine eklenmezse o node'a düşen pod'ların bağlaması `access denied` / takılma verir. Storage
+     ekibine yeni IP'ler bildirilip paylaşıma eklenmeli.
+   Okuma ile yardımcı ol (yeni node'da, kurulum öncesi/sonrası): mevcut bir worker'daki NFS bağlamalarını listele (hangi
+   paylaşımlar gerekecek) — `findmnt -t nfs,nfs4 -o SOURCE,TARGET,OPTIONS`; kümedeki NFS PV'leri — `kubectl get pv -o
+   custom-columns=AD:.metadata.name,NFS:.spec.nfs.server,YOL:.spec.nfs.path,SC:.spec.storageClassName | grep -v '<none>'`;
+   yeni node'dan erişim — `showmount -e <nfs-sunucu>`, `rpcinfo -s <nfs-sunucu>`, `timeout 3 bash -c '</dev/tcp/<nfs-sunucu>/2049'`.
+   `showmount` listede yeni IP'yi görmüyorsa ya da 2049 kapalıysa izin eksiktir. Bağlama **denemesi** (`mount -t nfs`) değişiklik —
+   yapma. Rapor/teslim satırına "Firewall izni: ✓/❓ · Storage NFS izni: ✓/❓" yaz.
 
 ## Prosedür: mevcut kümeye N yeni worker ekleme
 

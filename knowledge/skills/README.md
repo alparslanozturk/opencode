@@ -32,6 +32,7 @@ betiktir; model ham veriyi betiğe **borular**, betiğin bastığı satırı **a
 | `k8s-ozet.py` | `k8s-sorun` | küme durumu: NotReady, restart sebebi, DaemonSet, olaylar |
 | `gpu-dagilim.py` | `rke2-gpu` | GPU dağılımı: pod başına GPU/Run:ai kesir, vLLM parametreleri, shm, NCCL |
 | `olay-penceresi.py` | `rhel-sorun` | olay saati → yerel/UTC pencere + hazır journalctl/sar/UTC grep komutları |
+| `tablo-cevir.py` | `rapor` | betik CSV'si → HTML/XLSX (değerler elle yazılmaz) |
 | `uyum.py` | `surum-uyum` | sürüm uyumu, EOL, yükseltme yolu |
 
 Betik yazarken:

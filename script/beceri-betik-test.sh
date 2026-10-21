@@ -116,6 +116,14 @@ icerir "beklenip çıktısı gelmeyen" ft1.txt "e1                           ÇI
 python3 "$B/filo-kontrol/filo-tablo.py" tree --kv > ft2.txt 2>&1
 icerir "kv tablosunda sapan hücre işaretli" ft2.txt "8*"
 
+python3 "$B/filo-kontrol/filo-tablo.py" tree --kv --grup g -i filo.ini --csv filo.csv > ft3.txt 2>&1
+icerir "--csv: çıktısız sunucu da satır" filo.csv "e1;ÇIKTI YOK"
+icerir "--csv: sapan alan sütunu" filo.csv "a3;ok;;8;Normal;cpu"
+python3 "$B/rapor/tablo-cevir.py" filo.csv --html filo.html --kaynak test > tc1.txt 2>&1
+icerir "tablo-cevir HTML vurgu (ERİŞİLEMEZ/rc≠0/ZAMAN AŞIMI/sapan)" tc1.txt "7 satır · 5 vurgulu"
+python3 "$B/rapor/tablo-cevir.py" filo.csv --html filo.html > tc2.txt 2>&1
+icerir "üzerine yazmaz" tc2.txt "zaten var"
+
 # --------------------------------------------------------------------------- sar-ozet
 baslik "sar-ozet.py (G21, G22)"
 sadf() { # <host> <cpu-idle> <mem%> <ldavg5>

@@ -42,6 +42,7 @@ kullanım becerinin SKILL.md'sinde (önce beceriyi yükle):
 - GPU dağılımı (pod başına GPU/Run:ai kesir, vLLM parametreleri, shm, NCCL) → `rke2-gpu/gpu-dagilim.py`
 - olay saati → log penceresi (yerel↔UTC, saDD, hazır journalctl/sar komutları) → `rhel-sorun/olay-penceresi.py`
 - sürüm uyumu / EOL → `surum-uyum/uyum.py`
+- rapor dosyası (CSV → HTML/XLSX) → betiğin `--csv` çıktısı + `rapor/tablo-cevir.py` — değerleri koda elle yazma
 Uzak okuma borunun başında kalır (`ssh … "<okuma>" | python3 <betik> -`), betiğe gömülmez. Betik hata verirse hatayı oku; iki denemede
 olmuyorsa dur ve söyle — elle ayrıştırmaya geçme.
 

@@ -80,7 +80,6 @@ Master'da (ssh, okuma):
 
 ```bash
 systemctl is-active rke2-server; journalctl -u rke2-server --since -3h --no-pager | grep -i -e error -e "took too long" -e leader -e "slow" | tail -30
-for f in /var/lib/rancher/rke2/server/tls/*.crt; do printf '%s ' "$f"; openssl x509 -enddate -noout -in "$f"; done | sort -t= -k2 | head
 df -h /var/lib/rancher; cat /proc/pressure/io
 ```
 
@@ -89,8 +88,9 @@ df -h /var/lib/rancher; cat /proc/pressure/io
 - Sertifika (RKE2 docs security/certificates): istemci/sunucu sertifikaları 365 gün geçerli; **120 gün** kala (v1.33.1+rke2r1'den
   beri, öncesi 90) `CertificateExpirationWarning` event'i çıkar ve sertifika **rke2 bir sonraki yeniden başlatmada kendiliğinden
   yenilenir**. Yani uyarı event'i = "bu master uzun süredir yeniden başlamadı", elle rotasyon gerekmez; yükseltme ya da planlı
-  restart yeniler (yenileme değişikliktir — öneri). Bulgu eşiği: 30 günden az kaldıysa. **Kalan günü kafadan hesaplama**, komutla:
-  `echo $(( ($(date -d "2027-01-09" +%s) - $(date +%s)) / 86400 ))` (saha G65: event'teki 120 gün eşiği "120 gün sonra" diye
+  restart yeniler (yenileme değişikliktir — öneri). Bulgu eşiği: 30 günden az kaldıysa. **Kalan günü kafadan hesaplama** — betik hesaplar ve kalan güne göre sıralar:
+  `ssh root@<master> 'cd /var/lib/rancher/rke2/server/tls && for f in *.crt */*.crt; do [ -f "$f" ] && { echo "#DOSYA $f"; base64 -w0 "$f"; echo; }; done' | python3 /root/ai/opencode/knowledge/skills/approved/rancher-sertifika/sertifika-kontrol.py - --ozet`
+  (eski `… | sort -t= -k2` ay adına göre alfabetik sıralıyordu, en yakın bitişi göstermez). Tek tarih için: `echo $(( ($(date -d "2027-01-09" +%s) - $(date +%s)) / 86400 ))` (saha G65: event'teki 120 gün eşiği "120 gün sonra" diye
   yazıldı; gerçek kalan 84 gündü).
 
 **Control plane kararı (saha G62/G65 — iki kez yanlış "✅" yazıldı):**

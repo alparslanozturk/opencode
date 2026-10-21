@@ -30,7 +30,7 @@ platformda bir iş**; ortak veri/araç tek yerde (`surum-uyum/uyum.py`), diğerl
 - **anthos-**: `anthos-erisim` (ileride `anthos-yukseltme`)
 - **vcf-** (VMware VCF): veri gelince `vcf-denetim` · `vcf-yukseltme`
 - **rhel-**: `rhel-yonetim` · `rhel-guncelleme` · `rhel-guvenlik` (CIS/SCAP) · `rhel-depolama` · `rhel-performans` · `rhel-sorun` · `rhel-teslim`
-- **genel**: `ansible` · `filo-kontrol` · `rapor` · `sep-paket`
+- **genel**: `ansible` · `filo-kontrol` · `kume-bul` (ad/IP → küme/platform, `kume-bul.py`) · `rapor` · `sep-paket`
 - **ortak**: `surum-uyum` (uyum.py + çevrimdışı matris/EOL verisi — tüm platformlar)
 
 Eski → yeni (2026-10-17): kume-denetim → rke2-denetim + rke2-gpu · rke2-ansible → rke2-kurulum + rke2-node-ekle (+ matris →

@@ -1082,3 +1082,16 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   yeniden üretilemedi. Ajan ardından `/tmp/rke-saglik.sh` betiği yazmaya geçti (atlatma — AGENTS yasak), Alp kesti.
 - Aksiyon (yapıldı): kilit — düz listeli döngü değişkeni komut ikamesi içinde de öğe öğe açılır (test 327); `rke2-denetim` §4
   "Sorun yükte olabilir mi?" kanıt sırası (Allocated resources, iş yükü yerleşimi, olay penceresi sar, OOM, eviction/PSI).
+
+### G93 — Kurum playbook'ları (Splunk UF, SEP güncelleme, yerel kullanıcı) incelendi; kullanıcı yönetimi IdM
+- Alp (2026-10-21): "sorunlarla pek ilgilenmene gerek yok; özel istersem. Genel çalışma yöntemini, genel kuralları, kurum bilgilerini
+  incele, yetenekleri geliştir." Arkadaşın SEP / Splunk / XDR ansible betikleri var; üç ekran gönderdi. "Yerel kullanıcı eklemiyoruz,
+  eklesek de sonra siliyoruz — Red Hat IdM, AD entegre."
+- Görülen: `splunk/splunk-install.yml` — `hosts: all`, play düzeyi `ignore_errors: yes`, kurulum betiğini /tmp'ye kopyalayan görev
+  yorumda ama `KURULUM YAP` `/tmp/install-splunkUF_systemctl.sh`'ı çalıştırıyor, tgz 9.4.14 kopyalanıyor. `sep/96-sep-update.yaml` —
+  `hosts: all`, block içinde **önce eski Symantec kaldırılıyor**, sonra LinuxInstaller indirilip doğrulanıyor (indirme bozulursa sunucu
+  SEP'siz kalır), sürüm kontrolü yok (her koşuda kaldır-kur), RedHat 7-10. `addlocaluser.yaml` — yerel kullanıcı + varsayılan parola +
+  `NOPASSWD: ALL` sudo (kurum uygulamasına aykırı).
+- Aksiyon (yapıldı): `ansible` §8 hazır playbook kontrol listesi (genel: hosts all/limit, play ignore_errors, yıkıcı adım sırası, yorumdaki
+  ön koşul, tekrar çalıştırılabilirlik, sabit sürüm, düz parola/NOPASSWD); `rhel-yonetim` IdM kuralı (yerel kullanıcı önerme);
+  `rhel-teslim` §0 seti dışındaki kurum playbook'ları.

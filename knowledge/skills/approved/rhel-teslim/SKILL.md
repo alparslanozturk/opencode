@@ -190,6 +190,19 @@ free -h
 
 SELinux ve firewalld şablondan kapalı gelir — `getenforce` / `firewall-cmd` teslim kontrolü değildir.
 
+**Birden çok sunucu (ya da teslim raporu) → tek komut + `filo-tablo.py --kv`** (değerleri sunucular arasında kopyalama riskini
+kaldırır — saha G22/G36; `filo-kontrol` §5):
+
+```bash
+ansible <ad1,ad2,|grup> -i <envanter> -m shell -f 20 -T 10 --task-timeout 30 -t cikti/filo/teslim -a 'echo fqdn=$(hostname -f); echo ip=$(hostname -I | cut -d" " -f1); echo surum=$(cat /etc/redhat-release 2>/dev/null); echo cekirdek=$(uname -r); needs-restarting -r >/dev/null 2>&1; r=$?; [ $r -eq 1 ] && echo reboot_gerekli=EVET; [ $r -eq 0 ] && echo reboot_gerekli=hayir; [ $r -gt 1 ] && echo reboot_gerekli=bilinmiyor-rc$r; echo satellite_org=$(subscription-manager identity 2>/dev/null | sed -n "s/^org name: //p"); echo repo_sayisi=$(dnf repolist --enabled -q 2>/dev/null | tail -n +2 | wc -l); echo saat_senkron=$(timedatectl show -p NTPSynchronized --value 2>/dev/null); echo basarisiz_servis=$(systemctl --failed --no-legend 2>/dev/null | wc -l); echo kok_doluluk=$(df --output=pcent / | tail -1 | tr -d " "); echo data=$(findmnt -n -o SOURCE /data 2>/dev/null || echo yok); echo sep=$(systemctl is-active sisamdagent 2>/dev/null)'
+python3 /root/ai/opencode/knowledge/skills/approved/filo-kontrol/filo-tablo.py cikti/filo/teslim --kv
+```
+
+`*` işaretli hücre = diğerlerinden farklı (sapma); `reboot_gerekli EVET` → teslimden önce yeniden başlatma (kararı kullanıcı verir);
+`basarisiz_servis` > 0 → `systemctl --failed`; `data yok` → disk adımı yapılmamış ya da gerekmiyor (talebe bak); `sep` = SEP ajanı
+(`sisamdagent`, G44) `active` değilse kurulum adımına bak. Ölçüldü: AlmaLinux 10.2, ansible-core 2.16 (2026-10-21; burada
+subscription-manager yok → `satellite_org` boş). Teslim raporu (§5) bu tablodan yazılır.
+
 Sunucu bir **RKE2 kümesine node** olacaksa (Alp, 2026-10-21): teslimde sor — firewall/BT-Network erişim izni ve **BT-Storage NFS
 izni** (NFSv3, paylaşımlar IP tabanlı kısıtlı → yeni IP paylaşım listesine eklenmeli) alındı mı? Ayrıntı: `rke2-node-ekle` tuzak 7.
 
@@ -204,7 +217,7 @@ Teslim ettiğin birime şunları yaz:
 - Ek ağ erişimi gerekiyorsa FW ekibine talep açmaları gerektiğini belirt
 - Bilinen eksik ya da beklemede olan bir şey varsa açıkça
 
-Rapor `rapor` becerisiyle CSV ya da HTML olarak da üretilebilir.
+Değerleri §4'teki `filo-tablo.py --kv` tablosundan **aynen** al (elle yazma). Rapor `rapor` becerisiyle CSV ya da HTML olarak da üretilebilir.
 
 ## Yapmayacakların
 

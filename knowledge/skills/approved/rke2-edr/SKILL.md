@@ -23,6 +23,17 @@ Kaynak etiketi: **(Alp)** kurum bilgisi · **(saha G…)** saha gözlemi · **(�
   gerçekten kapalı mı oku. **Kapalıysa** bu olay XDR adayını zayıflatır (§4: tekrar = aday elenir).
 - wor14'ün önceki olayları: 10-12, 10-15, 10-19 05:30, 10-20 (saha G7-G11, G48, G71) — aralık 1-4 gün.
 
+**Ajanlar gerçekten kapalı mı — node başına tek tablo** (G76: XDR yalnız `disable` edilmişti, `stop` görünmedi; "kapalı" sanıldı):
+
+```bash
+ansible <grup|wor07,wor08,> -i <envanter> -m shell -f 20 -T 10 --task-timeout 30 -t cikti/filo/edr -a 'echo sep_servis=$(systemctl is-active sisamdagent 2>/dev/null); echo sep_acilista=$(systemctl is-enabled sisamdagent 2>/dev/null); echo sep_modul=$(lsmod | awk "/^sis/{printf \"%s,\", \$1}"); echo xdr_servis=$(systemctl is-active traps_pmd 2>/dev/null); echo xdr_acilista=$(systemctl is-enabled traps_pmd 2>/dev/null); echo xdr_modul=$(lsmod | awk "/^traps/{printf \"%s,\", \$1}"); echo twistlock=$(pgrep -f /usr/local/bin/defender >/dev/null && echo calisiyor || echo yok); echo acik_gun=$(awk "{print int(\$1/86400)}" /proc/uptime)'
+python3 /root/ai/opencode/knowledge/skills/approved/filo-kontrol/filo-tablo.py cikti/filo/edr --kv
+```
+
+`*_servis` = şu an çalışıyor mu (`active`), `*_acilista` = açılışta başlar mı (`enabled`/`disabled`/`not-found`), `*_modul` = yüklü
+çekirdek modülleri (servis durdurulsa da modül kalabilir — "kapalı" demek için ikisi de boş/`inactive` olmalı), `acik_gun` = son
+açılıştan beri gün (reboot sonrası modül gelmiş mi). Ölçüldü (ajansız makinede): `inactive · not-found · (boş)`. Kilitten geçiyor.
+
 ## 1. Envanter (okuma)
 
 Tek node (ssh):

@@ -1,6 +1,6 @@
 ---
 name: rhel-sorun
-description: Bir hata, çöken iş ya da beklenmeyen davranış araştırırken kullan — önce genel kanıt disiplini, çekirdek kaynaklıysa log → canlı gözlem (bpftrace/perf) → döküm (kdump). "hata", "çalışmıyor", "bug", "neden böyle", "debug", "troubleshooting", "sorun giderme", "kernel", "çekirdek", "dmesg", "call trace", "panic", "oops", "lockup", "donma", "hung task", "kdump", "vmcore", "crash", "bpftrace", "ebpf", "perf", "gecikme", "latency", "throttling", "runqlat", "timerlat" isteklerinde tetiklenir. Genel yavaşlık için `rhel-performans`.
+description: Bir hata, çöken iş ya da beklenmeyen davranış araştırırken kullan — önce genel kanıt disiplini, çekirdek kaynaklıysa log → canlı gözlem (bpftrace/perf) → döküm (kdump); olay penceresi (yerel↔UTC, saDD, hazır journalctl/sar/UTC grep komutları) deterministik `olay-penceresi.py` ile. "hata", "çalışmıyor", "bug", "neden böyle", "debug", "troubleshooting", "olay saati", "o saatte ne oldu", "utc", "saat farkı", "pencere", "sorun giderme", "kernel", "çekirdek", "dmesg", "call trace", "panic", "oops", "lockup", "donma", "hung task", "kdump", "vmcore", "crash", "bpftrace", "ebpf", "perf", "gecikme", "latency", "throttling", "runqlat", "timerlat" isteklerinde tetiklenir. Genel yavaşlık için `rhel-performans`.
 ---
 
 Bu beceri iki bölüm: **A. Genel disiplin** (her hata için) ve **B. Çekirdek teşhisi** (kernel kaynaklı belirti varsa).
@@ -74,6 +74,19 @@ tekrar yürümeyi önler.
 **KGDB, JTAG, QEMU kullanma.** Bunlar çekirdek geliştiricisi araçları: KGDB
 breakpoint'te **bütün çekirdeği durdurur** ve seri konsol ister — çalışan bir
 sunucuda bu kesinti demektir. Bizim işimiz çekirdek yazmak değil, teşhis.
+
+### 0. Olay penceresi — saati sen çevirme (saha G62-G65)
+
+Belirli bir olayın (node düştü, servis takıldı) loguna bakarken pencereyi ve komutları betik üretir — yerel ↔ UTC, `saDD` günü,
+gece yarısını aşan pencere (iki `sa` dosyası), UTC yazan loglar için dakika deseni:
+
+```bash
+python3 /root/ai/opencode/knowledge/skills/approved/rhel-sorun/olay-penceresi.py "2026-10-19 05:30" --tz +0300 --dk 15     # yerel saat (journal/sar/messages)
+python3 /root/ai/opencode/knowledge/skills/approved/rhel-sorun/olay-penceresi.py 2026-10-19T02:30:00Z --tz +0300          # UTC damgası (k8s event, OVS/antrea logu, k8s-ozet)
+```
+
+Çıktıdaki komutları node'da (ssh) **aynen** çalıştır; "olaydan bu yana" süresi de betikte hesaplı. `--tz` = sunucunun saat dilimi
+(`timedatectl | grep "Time zone"`); bilmiyorsan önce oku. 28 günden eski olayda sar/journal silinmiş olabilir — betik uyarır.
 
 ### 1. Log: çekirdek ne demiş
 

@@ -1050,3 +1050,12 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   sertifikası var (G88 `[SAHA]` sorusu bulut için cevaplandı).
 - Aksiyon (yapıldı): `rancher-sertifika` §0 VIP maddesi — bulutta son adım ağ ekibi (CN + ortak klasör), şifresiz anahtarın kurulumdan
   sonra silinmesi hatırlatması.
+
+### G90 — Node eklemede firewall + storage (NFSv3 IP izni) hatırlatması (Alp kuralı)
+- Alp (2026-10-21): kümeye node eklenince NFS paylaşımları için firewall ve storage ekibinden izin alınmış olmalı; genelde firewall izni;
+  NFSv4 kullanılmadığı (NFSv3) için paylaşımlarda host tabanlı kısıtlama var → yeni sunucuların IP'leri BT-Storage'a bildirilip
+  paylaşıma eklenmeli. "Yeni node eklerken bunu hatırlatmayı unutma."
+- Bağlantı: test kümesinde 2026-10 başında eklenen wor07-14'ün NFS davranışı (G80: NFS bağlama sayıları farklı) — izinlerin eksik
+  olup olmadığı sorulmadı (tahmin, doğrulanmadı).
+- Aksiyon (yapıldı): `rke2-node-ekle` tuzak 7 (iki soru + okuma komutları: findmnt, NFS PV listesi, showmount/rpcinfo/2049; bağlama
+  denemesi yok; teslim satırı), tetikleyiciler; `rhel-teslim` §4 hatırlatma. Komutlar kilitten geçiyor.

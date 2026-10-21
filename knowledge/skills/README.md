@@ -30,6 +30,7 @@ betiktir; model ham veriyi betiğe **borular**, betiğin bastığı satırı **a
 | `disk-durum.py` | `rhel-depolama` | hangi disk OS / kullanımda / boş |
 | `sertifika-kontrol.py` | `rancher-sertifika` | sertifika dosyaları, kalan gün, anahtar, zincir, eski yaprak; RKE2 tls `--ozet` |
 | `k8s-ozet.py` | `k8s-sorun` | küme durumu: NotReady, restart sebebi, DaemonSet, olaylar |
+| `gpu-dagilim.py` | `rke2-gpu` | GPU dağılımı: pod başına GPU/Run:ai kesir, vLLM parametreleri, shm, NCCL |
 | `olay-penceresi.py` | `rhel-sorun` | olay saati → yerel/UTC pencere + hazır journalctl/sar/UTC grep komutları |
 | `uyum.py` | `surum-uyum` | sürüm uyumu, EOL, yükseltme yolu |
 

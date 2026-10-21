@@ -1059,3 +1059,14 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   olup olmadığı sorulmadı (tahmin, doğrulanmadı).
 - Aksiyon (yapıldı): `rke2-node-ekle` tuzak 7 (iki soru + okuma komutları: findmnt, NFS PV listesi, showmount/rpcinfo/2049; bağlama
   denemesi yok; teslim satırı), tetikleyiciler; `rhel-teslim` §4 hatırlatma. Komutlar kilitten geçiyor.
+
+### G91 — Bağlam penceresi 262K → 16K'ya düştü: tablo kayboldu, "Compaction produced no summary", boş araç çağrısı
+- Görülen (Alp ekranları, 2026-10-21): TUI sayaç "21.1K (8%)", "51.4K (20%)" → sonraki kurulumlardan sonra "60.0K (366%)",
+  "17.4K (106%)" (pencere ≈16384); `Compaction · 35.9K in · 257 out` → "Compaction produced no summary"; `Invalid arguments for tool
+  "shell": command: Missing key — Arguments provided: {}`; Alp: "özet tablo verilmemeye başladı".
+- Kök (kur.sh): uç o an `/models`'a cevap vermezse ctx boş → config `engine/opencode.json` şablonundan yeniden yazılıyor (context 16384,
+  compaction ayarı yok) ve çıktı 16384 = pencerenin tamamı. Mesaj "mevcut opencode.json değeri korunuyor" diyordu ama korumuyordu.
+  Tablo kaybı / boş araç çağrısı: tahmin — 16K pencerede girdi için yer kalmayınca sistem talimatı ve geçmiş kırpılıyor, çıktı kesiliyor.
+- Aksiyon (yapıldı): kur.sh uç sessizse mevcut kurulu pencereyi korur (stderr'de kaynağı yazar); çıktı her durumda pencerenin 1/4'ünü
+  aşmaz (ilk kurulumda 16K → 4096). Denendi: uç sessiz + kurulu 262144 → 262144/16384 korunur; ilk kurulum → 16384/4096.
+  `./kur.sh kontrol` zaten "uc ile kurulu baglam farkli" uyarısı veriyor.

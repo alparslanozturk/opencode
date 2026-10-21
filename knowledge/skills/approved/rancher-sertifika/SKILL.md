@@ -72,6 +72,16 @@ Sonra §0 uygulama satırında `--cert=chain.pem`. `tls-ca`/`cacerts.pem`'e doku
 bunu kullanıcıya söyle — `cacerts.pem` ara + kök içeriyorsa sorun yok, yalnız kök içeriyorsa sunucu aracıyı gönderdikçe doğrulama
 yine geçer (genel); emin değilsen uygulamadan önce sor.
 
+**Sahada doğrulanan (G88, bulut platformu, 2026-10-21):** `chain.pem` = yeni yaprak + SUBCA + ROOT (3 sertifika, `.cer`'ler PEM'di) +
+yeni `tls.key` → `apply` "configured" (last-applied uyarısı zararsız — secret ilk kurulumda `--save-config`'siz yaratılmış). Doğrulama:
+`{.data.tls.crt}` → "Could not find certificate from <stdin>"; çalışan biçim `{.data.tls\.crt}` ya da
+`kubectl … -o json | jq -r '.data."tls.crt"' | base64 -d | openssl x509 -noout -subject -dates -ext subjectAltName`.
+Rancher `rollout restart` yapıldı, pod'lar sorunsuz döndü — aynı CA'da **gerekli değil** (docs), yapıldıysa zararsız.
+**Yük dengeleyici (VIP):** Rancher adı bir VIP'e çözülüyor (`host <rancher-hostname>`); kurum yeni sertifika sonrası ağ ekibine VIP'li
+mail atıyor (Alp). LB'de TLS sonlandırma (SSL offload) varsa sertifika LB'ye de yüklenmeli; geçiş (passthrough) ise yalnız secret yeter —
+hangisi `[SAHA]`, ağ ekibine sor. Ayırt etme: LB üzerinden `openssl s_client -connect <hostname>:443` ile doğrudan bir master
+ingress'ine (`-connect <master-ip>:443 -servername <hostname>`) aynı `notAfter`'ı veriyorsa sunulan sertifika ingress'inkidir.
+
 **Bu akışta yapılan hatalar (saha G86) — yapma:**
 - `--cert=chain.pem` vermek: `chain.pem`/`cacerts.pem` **eski** kurulumdan kalan dosyalardır; `chain.pem`'deki sunucu sertifikası
   ESKİSİDİR. `--cert` yalnız **yeni `tls.crt`** (yaprak + ara). (kubectl anahtar–sertifika uyuşmazlığında genelde hata verir — genel;
@@ -80,6 +90,8 @@ yine geçer (genel); emin değilsen uygulamadan önce sor.
 - Aynı CA'da `kubectl rollout restart deploy rancher` önermek — docs yalnız `tls-ca` değişince ister; ingress secret'ı kendisi alır.
 - jsonpath'te noktayı kaçırmamak: `{.data.tls.crt}` boş döner, doğrusu `{.data.tls\.crt}`.
 - Okumadığın değeri yazmak ("2028'e kadar geçerli") — `openssl x509 -dates` çıktısından al.
+- İş sonu özetine oturumda görülmeyen şey eklemek (G88: "cron ile otomatik sertifika takibi var", "NFS → LB'ye yükleme", LB ürün adı
+  uyduruldu; restart "kritik adım" diye yazıldı). Özet yalnız bu oturumdaki komut çıktıları + kullanıcının söyledikleri; bilinmeyen `[SAHA]`.
 
 ## 1. İlk karar — yeni sertifika aynı CA'dan mı? (her şey buna bağlı)
 

@@ -151,6 +151,7 @@ export function envanterEsle(y: Yetki, workdir?: string): void {
   const not = [
     g.bulunamayan.length ? `envanterde yok: ${g.bulunamayan.join(", ")}` : "",
     g.belirsiz.length ? `birden çok host'a uyuyor (tam adı yaz): ${g.belirsiz.join("; ")}` : "",
+    g.cozulen.length ? `aralık: ${g.cozulen.join("; ")}` : "",
   ].filter(Boolean)
   if (not.length) y.envanterNotu = not.join(" · ")
 }

@@ -103,6 +103,9 @@ kriz var, db01 ve wor07-08'de ödeme servisi durdu
   **tek** host varsa — `wor07` → `stlrancherwor07`), `ansible_host` IP'si ve grup adı (üyeleri, `:children` dahil) olarak
   genişletilir. Genişletme yetki anında dondurulur: sonradan envanter dosyası değişse (ajan yazabilir) verilmiş yetki
   genişlemez. Bulunamayan / birden çok host'a uyan ad yetki özetinde ve K1 mesajında "Envanter: …" notuyla söylenir.
+  Yalın numara aralığı (`07-14`, G78): aralıktaki her numarayı eksiksiz karşılayan **tek** ad öneki varsa (stlrancherwor07…14)
+  o host'lar; iki önek tutarsa (wor01-02 ve mas01-02) ya da hiç tutmazsa hiçbir host açılmaz, notta söylenir. Kriz beyanında
+  yazım hatası ("kiriz var", "kriiz var") beyan sözcüğüyle birlikte tanınır.
 
 **Değişiklik sayılanlar:** `--check`'siz `ansible-playbook` (hedef `--limit` ile verilmek zorunda),
 `ansible -m <yazan modül>`, `ssh <sunucu> '<salt-okunur olmayan komut>'`, `scp/rsync` ile sunucuya

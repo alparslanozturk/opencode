@@ -120,6 +120,7 @@ export interface Genisleme {
   esler: string[] // yetki listesi + envanterdeki tüm eş adlar/IP'ler
   bulunamayan: string[] // envanterde karşılığı olmayan (yine de listede kalır)
   belirsiz: string[] // kısa ad birden çok host'a uyuyor — genişletilmedi
+  cozulen: string[] // "07-14 → stlrancherwor07…stlrancherwor14" (yetki özetinde görünsün)
 }
 
 // Yetki listesindeki her öğe için: grup adı → üye host'lar; envanter adı / kısa adı / IP'si → o host'un tüm eş adları;
@@ -128,10 +129,27 @@ export function yetkiGenislet(liste: string[], env: Envanter): Genisleme {
   const esler = new Set(liste)
   const bulunamayan: string[] = []
   const belirsiz: string[] = []
-  if (!env.hostlar.size) return { esler: [...esler], bulunamayan, belirsiz }
+  const cozulen: string[] = []
+  if (!env.hostlar.size) return { esler: [...esler], bulunamayan, belirsiz, cozulen }
   const ekle = (h: string) => env.hostlar.get(h)?.forEach((e) => esler.add(e))
   for (const l of liste) {
     if (l === "localhost") continue
+    // Yalın numara aralığı "07-14": aralıktaki HER numarayı (yazıldığı genişlikte) karşılayan TEK ad öneki varsa o host'lar.
+    const ar = /^(\d{2,3})-(\d{2,3})$/.exec(l)
+    if (ar) {
+      const [a, z, gen] = [Number(ar[1]), Number(ar[2]), ar[1].length]
+      const nolar = z > a && z - a <= 63 ? Array.from({ length: z - a + 1 }, (_, i) => String(a + i).padStart(gen, "0")) : []
+      const kisalar = [...env.hostlar.keys()].map((h) => [h, h.split(".")[0]] as const)
+      const onekler = new Set(kisalar.filter(([, k]) => k.endsWith(nolar[0] ?? "\0")).map(([, k]) => k.slice(0, -nolar[0].length))
+        .filter((o) => /[a-z]$/.test(o)))
+      const tutan = [...onekler].filter((o) => nolar.every((n) => kisalar.some(([, k]) => k === o + n)))
+      if (nolar.length && tutan.length === 1) {
+        kisalar.filter(([, k]) => nolar.some((n) => k === tutan[0] + n)).forEach(([h]) => ekle(h))
+        cozulen.push(`${l} → ${tutan[0]}${nolar[0]}…${tutan[0]}${nolar[nolar.length - 1]}`)
+      } else if (tutan.length > 1) belirsiz.push(`${l} (${tutan.slice(0, 4).map((o) => o + nolar[0] + "…").join(", ")})`)
+      else bulunamayan.push(l)
+      continue
+    }
     if (env.gruplar.has(l) || env.altGruplar.has(l)) {
       grupHostlari(env, l).forEach(ekle)
       continue
@@ -148,5 +166,5 @@ export function yetkiGenislet(liste: string[], env: Envanter): Genisleme {
     else if (sonek.length > 1) belirsiz.push(`${l} (${sonek.slice(0, 4).join(", ")}${sonek.length > 4 ? " …" : ""})`)
     else bulunamayan.push(l)
   }
-  return { esler: [...esler], bulunamayan, belirsiz }
+  return { esler: [...esler], bulunamayan, belirsiz, cozulen }
 }

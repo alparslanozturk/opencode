@@ -68,7 +68,10 @@ const OLUMSUZ = /(?:^|[^A-Z])(?:HARI[CÇ]|DI[SŞ]INDA|EXCEPT|OLMADAN|DE[GĞ]IL)(
 // cümle sonu "bu bir kriz." Sözün yalnız geçmesi beyan değil: "kriz raporunu incele", "kriz yok/değil/bitti", "kriz mi?".
 const KRIZ_OLUMSUZ = /^\s*(?:YOK|DE[GĞ]IL|BITTI|KAPANDI|SONA|ATLATILDI|M[IUİÜ](?![A-ZÇĞÖŞÜ]))/
 const KRIZ_BEYAN_SONRA = /^(?:\s*(?:[.,!:;)\-–—]|$)|\s+(?:VAR|DURUM|ILAN|MOD|AN[IİI](?![A-Z])|ANINDA|YA[SŞ]|[CÇ]IKTI|OLDU|BA[SŞ]LADI|S[UÜ]R[UÜ]YOR|HAL[IİI]NDE|ACIL))/
-function krizBeyani(b: string): boolean {
+// Yazım hatası toleransı (saha G78: Alp "kiriz var" yazdı, tanınmadı): KIRIZ / KRİİZ → KRIZ.
+function krizBeyani(ham: string): boolean {
+  // yazım hatalı biçim ("kiriz", "kriiz") yalnız beyan sözcüğüyle birlikte sayılır — "bardakları kırız" (kırarız) beyan değil
+  const b = ham.replace(/(^|[^A-Z0-9ÇĞÖŞÜ])(?:KIRI+Z|KRII+Z)(?=\s+(?:VAR|DURUM|ILAN|MOD|YA[SŞ]|BA[SŞ]LADI|OLDU|[CÇ]IKTI|S[UÜ]R[UÜ]YOR|HAL[IİI]NDE)|DEY)/g, "$1KRIZ")
   if (/(?:^|[^A-Z0-9ÇĞÖŞÜ])KRIZDEY[IİU]?[MZ](?![A-ZÇĞÖŞÜ])/.test(b)) return true
   for (const m of b.matchAll(/(?:^|[^A-Z0-9ÇĞÖŞÜ])KRIZ(?![A-Z0-9ÇĞÖŞÜ'’])/g)) {
     const sonra = b.slice((m.index ?? 0) + m[0].length)
@@ -88,6 +91,9 @@ const temizTok = (t: string) => t.replace(/^[\s"'`*•(\[<-]+/, "").replace(/['�
 function sunucuBicimli(ham: string): boolean {
   const t = ham.toLowerCase()
   if (/^\d{1,3}(?:\.\d{1,3}){3}-\d{1,3}$/.test(t)) return true // IP aralığı: 10.0.0.127-134
+  // Yalın numara aralığı "07-14" (Alp: "07-14 arasında çalıştır", G78): yalnız envanterde TEK bir ad önekiyle (stlrancherwor07…14)
+  // eksiksiz karşılanırsa yetkiye dönüşür (envanter.ts); karşılanmazsa listede kalır, hiçbir host'u açmaz.
+  if (/^\d{2,3}-\d{2,3}$/.test(t)) return true
   if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(t)) return true
   if (/^v?\d+(?:\.\d+)+$/.test(t) || DOSYA_UZANTI.test(t) || /^(?:chg|crq|rfc|cr|cn)[-_]?\d+$/.test(t) || URUN_ADI.test(t)) return false
   if (/^[a-z0-9][a-z0-9-]*(?:\.[a-z0-9-]+)+$/.test(t)) return /[a-z]/.test(t)
@@ -1608,7 +1614,7 @@ export function kilitDenetle(
   if (disarida.length)
     return {
       kilit: "K1",
-      mesaj: `[güvenlik kilidi K1] Hedef yetki listesinde yok: ${disarida.join(", ")} (geçerli yetki — ${yetkiOzeti(yetki)}).${yetki.uyari ? ` Not: ${yetki.uyari}.` : ""} Komut: ${nedenler}. Kullanıcı listeyi güncellemeli (serbest yazabilir; envanterdeki ad, kısa ad, IP ve grup adı eşleşir).${yetki.envanterNotu ? ` Envanter: ${yetki.envanterNotu}.` : ""}`,
+      mesaj: `[güvenlik kilidi K1] Hedef yetki listesinde yok: ${disarida.join(", ")} (geçerli yetki — ${yetkiOzeti(yetki)}).${yetki.uyari ? ` Not: ${yetki.uyari}.` : ""} Komut: ${nedenler}. Kullanıcı listeyi güncellemeli (serbest yazabilir; envanterdeki ad, kısa ad, IP, grup adı ve "07-14" aralığı eşleşir).${yetki.envanterNotu ? ` Envanter: ${yetki.envanterNotu}.` : ""} (Ajan için: kilit YALNIZ kullanıcının mesajını okur — komuta "kriz" yazmak ya da başka yazımla denemek yetki vermez; geçerli listeyi kullanıcıya aynen göster, eksik olanı sor. "Kilit çalışmıyor" deme.)`,
     }
   return null
 }

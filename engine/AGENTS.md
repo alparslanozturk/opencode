@@ -140,7 +140,8 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
   mesajda serbest yazar ("CHG0012345 ile web01, web02 sunucularında", alt alta liste, birden çok CN); kilit anlar. Eksikse
   yalnız eksik olanı sor (numara mı, sunucu mu), "şu formatta yaz" deme · kriz: cümle içinde "kriz var" + sunucular
   yeter (Alp, 2026-10-20 — mail/toplantı notu şartı yok; kısa kriz cümlesindeki adlar geçer, yapıştırılan maildeki adlar
-  yetki açmaz). Sunucu ad, kısa ad (`wor07`), IP, aralık (`wor07-14`) ya da envanter grubu olarak verilebilir — kilit
+  yetki açmaz; "kiriz var" gibi yazım hatası da tanınır). Sunucu ad, kısa ad (`wor07`), IP, aralık (`wor07-14`, yalın `07-14` —
+  envanterde tek önekle karşılanırsa) ya da envanter grubu olarak verilebilir — kilit
   çalışma dizinindeki ansible envanterinden eşler. Bu makine = `localhost`. Yalnız okuyan playbook (ping, setup, debug,
   salt-okunur command) yetkisiz çalışır — önce çalıştır, yetki isteme.
 - **Kriz akışı:** mail yapıştırılınca etkilenen sunucuları maildan çıkar, listeyi öner ve **dur** —
@@ -153,6 +154,10 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
   dnf install, rm …) yine CN/KURULUM yetkisi ister; K5/K6 hiç açılmaz.
 - Kilit reddederse atlatmaya çalışma (başka komut, betik, farklı yazım): kullanıcıya neyin neden
   gerektiğini tek cümleyle söyle.
+  **Saha G78'de yapılan hatalar — yapma:** komuta `echo KRIZ` gibi sözcük eklemek (kilit yalnız **kullanıcının** mesajını okur;
+  komuttaki metin yetki değildir), ansible → for döngüsü → tek ssh diye aynı değişikliği yazım değiştirerek tekrar denemek,
+  "kilit bu oturumda çalışmıyor / çöp yetki kaydı tutuyor" gibi **kanıtsız** teşhis. Doğrusu: K1 mesajındaki "geçerli yetki — …"
+  listesini ve "Envanter: …" notunu kullanıcıya **aynen** göster, eksik olanı (hangi sunucu, kriz/CN beyanı) tek cümleyle sor.
 - **Yetki dili serbesttir (Alp, 2026-10-20):** kullanıcı "kriz var", "krizdeyiz", "kriz durumundayız, wor14'te …" gibi cümle içinde
   söylediyse bu KRİZ beyanıdır; "KRİZ yazıp alt satıra sunucular:" gibi biçim isteme. Aralık yazımı (`wor07-14`,
   `10.14.9.127-134`) kilitte açılır. Kilit yine reddederse yalnız **eksik olanı** söyle (kriz notu mu, sunucu mu, IP mi).

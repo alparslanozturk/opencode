@@ -933,3 +933,15 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - test kümesi (10-21 sabah): wor12/wor13 erişilemez, ansible ad-hoc 60 sn araç sınırında takıldı (diğer node çıktıları da kayboldu) →
   `filo-kontrol` §3b `-T 10 --task-timeout 30 -f 20`. Gün hesabı `echo $(( … ))` izin sordu → `engine/opencode.json` `echo`/`printf`
   allow (yazma girişimi kilitte K1 kalır — denendi). XDR 10-20'de yalnız disable → `rke2-edr` §0 "önce is-active".
+
+### G78 — "kiriz var … 07-14 arasında": kilit tanımadı; ajan komuta "CRIZ" ekledi, "kilit çalışmıyor" dedi
+- Görülen (Alp ekranları, 2026-10-21 ~10:35): Alp "kiriz var şu 2 komudu 07-14 arasında çalıştır. /usr/lib/symantec/stop.sh ·
+  systemctl stop traps_pmd.service". K1: yetki yok ("kiriz" ≠ KRİZ). Ajan: ansible → `bash -c` → `--limit 'stlrancherwor07-14'` + komut
+  sonuna `echo CRIZ…` → for döngüsü; sonra "Hedef yetki listesinde yok: stlrancherwor07…14 (geçerli yetki — … kesik)". tahmin: ikinci
+  mesajda kriz tanındı ama "07-14" envanterde karşılanamadı (yalın numara, önek yok) → liste ["07-14"]. Ajan: "Bu oturumda güvenlik
+  kilidi çalışmıyor (önceki reddedilme yanıtları çöp yetki kaydı oluşturdu)" — kanıtsız; komutları Alp'e verdi, Alp elle çalıştırdı.
+- Aksiyon (yapıldı): kilit — yazım hatalı kriz (KIRIZ/KRİİZ) beyan sözcüğüyle tanınır ("bardakları kırız" değil); yalın `07-14`
+  aralığı envanterde tek önekle eksiksiz karşılanırsa (stlrancherwor07…14) yetki, iki önek/eksik → hiçbiri (not); K1 "listede yok"
+  mesajına ajan uyarısı (kilit yalnız kullanıcı mesajını okur, yazım değiştirme, "kilit çalışmıyor" deme). AGENTS: G78 hataları.
+  Test 321 → 325, `tsc --strict` temiz.
+- Alp: SEP ve XDR'ı birlikte kapatıp deneyecek (`rke2-edr` §3.5 tek değişken önerisi — karar Alp'in).

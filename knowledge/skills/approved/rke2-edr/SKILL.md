@@ -116,3 +116,8 @@ kubectl get events -A --field-selector involvedObject.name=<node> -o custom-colu
 - Ajan hizmetini durdurma, kaldırma, modül boşaltma (`rmmod`), istisna ekleme, `LocalAgent.ini`/`AntiMalware.ini` düzenleme —
   hepsi değişiklik; kullanıcıya öner.
 - Ajanın kendi tanı aracını (profil, tarama) sormadan çalıştırma.
+- **Açılışı değiştiren öneri** (`/etc/modprobe.d/` kara liste, `dracut --force`, grub/çekirdek parametresi) yalnız modülün sebep
+  olduğu §3.1-3.2 kanıtıyla ve **geri alma adımıyla** önerilir; yanlış initramfs node'u açılmaz bırakabilir (genel). Ajanı kaldırmak
+  güvenlik ekibinin kararıdır. Saha G79: kanıt yokken kara liste + `dracut --force` önerildi.
+- Kullanıcı bir adayı kapattıysa ("SEP ve XDR'ı unut, ben kapattım") o aday için öneri üretme; sıradaki katmana geç (`rke2-denetim`
+  §4-§5b: node logu, hipervizör, OVS) ve kapalılığı yalnız bir kez komutla doğrula (`systemctl is-active`, `lsmod`).

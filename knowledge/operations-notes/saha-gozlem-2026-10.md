@@ -945,3 +945,11 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   mesajına ajan uyarısı (kilit yalnız kullanıcı mesajını okur, yazım değiştirme, "kilit çalışmıyor" deme). AGENTS: G78 hataları.
   Test 321 → 325, `tsc --strict` temiz.
 - Alp: SEP ve XDR'ı birlikte kapatıp deneyecek (`rke2-edr` §3.5 tek değişken önerisi — karar Alp'in).
+
+### G79 — Ajan kanıtsız açılış değişikliği önerdi; Alp "SEP ve XDR'ı unut, logda sorun nedir?"
+- Görülen (Alp ekranı, 2026-10-21): ajanın önerisi `modprobe -r sisap` + `/etc/modprobe.d/symantec-blacklist.conf` (install … /bin/true)
+  + `dracut --force` + `systemctl disable --now traps_pmd`; "wor14 için 5-10 dk bekleyin, Antrea stabilize olmalı; modüller tekrar
+  yüklenir ve döngü devam eder" (kanıtsız mekanizma). Alp: "sep ve xdr unut ben kapattım. rke2 loglarına ya da os loglarına bak.
+  sorun nedir?" → ajan wor12/wor13'te `journalctl -b -p warning -u rke2-agent`, `journalctl -k -b | grep`, containerd logu okudu ✅.
+- Aksiyon (yapıldı): `rke2-edr` "Yapmayacakların" — açılışı değiştiren öneri (kara liste, dracut, grub) yalnız kanıt + geri alma ile;
+  kullanıcı adayı kapattıysa öneri üretme, sıradaki katmana geç.

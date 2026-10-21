@@ -1,6 +1,6 @@
 ---
 name: rhel-performans
-description: Sunucu yavaşlığı, yüksek yük, CPU/bellek/disk darboğazı, page cache/kirli sayfa/Direct I/O izleme ve log analizinde kullan. "yavaş", "yük yüksek", "load average", "cpu", "bellek", "swap", "iowait", "page cache", "dirty", "writeback", "o_direct", "performans", "kapasite", "geriye dönük", "son 7 gün", "sar", "trend", "log", "hata arıyorum" isteklerinde tetiklenir.
+description: Sunucu yavaşlığı, yüksek yük, CPU/bellek/disk darboğazı, page cache/kirli sayfa/Direct I/O izleme ve log analizinde kullan — geçmiş kapasite raporu deterministik `sar-ozet.py` ile (sadf sütun adlarıyla, sunucu başına ort/p95/en yüksek, gün tablosu, CSV). "yavaş", "yük yüksek", "load average", "cpu", "bellek", "swap", "iowait", "page cache", "dirty", "writeback", "o_direct", "performans", "kapasite", "geriye dönük", "son 7 gün", "sar", "trend", "kapasite raporu", "son 30 gün", "aylık kullanım", "log", "hata arıyorum" isteklerinde tetiklenir.
 ---
 
 Darboğazı bulmadan çözüm önerme. Sıra: yük → hangi kaynak → hangi süreç.
@@ -142,47 +142,35 @@ done 2>/dev/null | head -20
 açık tutan süreci gösterir. Veritabanları bilerek kullanır; beklenmeyen bir
 süreç görürsen raporla, değiştirme.
 
-## 6. Geçmişe bakmak — sar (kapasite planlama, "son N gün", "geriye dönük")
+## 6. Geçmişe bakmak — sar (kapasite planlama, "son N gün", "geriye dönük") → `sar-ozet.py`
 
-Kurallar (G21-G22, 2026-10-13 — bu kuralları çiğneyen oturum 5 deneme yaptı ve uydurma rapor üretti):
-
-- **Veri dosyası `saDD`'dir** (ikili, `sar -f` okur). `sarDD` metin raporudur — **grep/awk/python ile
-  ayrıştırma**; bölümler karışır (CPU, ağ, disk aynı saat damgasıyla), çıkan sayı anlamsız olur.
-- **Hazır günlük ortalama:** `sar ... -f saDD` çıktısının `Average:` satırı. Script yazmaya gerek yok;
-  dosya başına saniyeler sürer ("dosya çok büyük, 10-15 dk" doğru değil).
-- `DD` **ayın günüdür**: bugün 13'üyse `sa01`-`sa12` bu ay, `sa14`-`sa31` geçen ay. En yeni veri en büyük
-  numara değildir — tarihi `sar` çıktısının ilk satırından oku.
-- **Saklama süresi:** RHEL'de varsayılan 28 gün (`/etc/sysconfig/sysstat` → `HISTORY`). Kullanıcı 2-3 ay
-  isterse önce `ls /var/log/sa` + `HISTORY` ile kaç gün olduğunu söyle; olmayan dönemi raporlama
-  (daha uzun geçmiş: vCenter performans grafikleri / izleme sistemi — `[SAHA]`).
-- **Çok sunucu:** `ssh` döngüsü kurma, tek `ansible ... -m shell` (bkz. `filo-kontrol`). Komutta
-  hedef sunucu yoksa yerel makineyi (srvsatellite) okursun — çıktının hangi host'tan geldiği satırda görünmeli.
-- **İki denemede çöp çıktı** (yüzde > 100, %0 bellek, milyonluk load) → dur, ham `Average:` satırını göster,
-  kullanıcıya sor. Yeni ayrıştırma yöntemi deneme.
-
-Tek sunucu, tek gün (önce bununla sütunları doğrula):
+**Kural (G21-G22):** sar verisini **sen ayrıştırma, sen ortalama alma, sen tabloya dökme.** G21'de `sarDD` metni awk/python ile
+ayrıştırıldı (CPU %243599121, load 3823620335846), G22'de 7 günlük tablo çoğaltılıp sunucular arasında kopyalandı ve yönetime gidecek
+uydurma bir kapasite raporu çıktı. Sabit uzak komut + betik:
 
 ```bash
-systemctl is-enabled sysstat-collect.timer     # toplama açık mı
-grep HISTORY /etc/sysconfig/sysstat; ls /var/log/sa/
-LC_ALL=C sar -u -f /var/log/sa/sa12 | tail -2    # CPU: 100 - %idle (son sütun)
-LC_ALL=C sar -r -f /var/log/sa/sa12 | tail -2    # bellek: %memused (Average'dan sonra 4. değer)
-LC_ALL=C sar -q -f /var/log/sa/sa12 | tail -2    # yük: ldavg-1/5/15
-sar -b -f /var/log/sa/sa12 | tail -2             # G/Ç
+ansible <grup|ip1,ip2,> -i <envanter> -m shell -f 20 -T 10 --task-timeout 60 -t cikti/sar/<etiket> -a 'echo "#NPROC $(nproc)"; echo "#TZ $(date +%z)"; echo "#HISTORY $(grep -h ^HISTORY /etc/sysconfig/sysstat)"; for f in /var/log/sa/sa[0-9][0-9]; do for o in -u -r -q; do LC_ALL=C sadf -d $f -- $o; done; done'
+python3 /root/ai/opencode/knowledge/skills/approved/rhel-performans/sar-ozet.py cikti/sar/<etiket> [--gun] [--csv]
 ```
 
-Çok sunucu, tüm günler — her host için gün başına tek satır (2026-10-13 doğrulandı, sysstat Average sütunları):
+Tek sunucu: `ssh root@<h> '<aynı tırnak içi komut>' | python3 …/sar-ozet.py - --ad <h> --gun`. (Ölçüldü: sysstat 12.7, 30 günlük
+arşiv, 3 hedef ~10 sn; tree dosyası host başına ~2 MB — bağlama girmez.)
 
-```bash
-ansible <grup|ip1,ip2,> -m shell -a 'for f in /var/log/sa/sa[0-9][0-9]; do c=$(LC_ALL=C sar -u -f $f | grep ^Average | tail -1 | awk "{printf \"%.1f\", 100-\$NF}"); m=$(LC_ALL=C sar -r -f $f | grep ^Average | tail -1 | awk "{print \$5}"); l=$(LC_ALL=C sar -q -f $f | grep ^Average | tail -1 | awk "{print \$5}"); echo "$(basename $f) cpu%=$c mem%=$m load5=$l"; done'
-```
+Betik ne yapar, ne basar:
+- `sadf -d` **sütun adlarıyla** okur (`%idle`, `%memused`, `%commit`, `ldavg-5`) — sysstat sürümü (RHEL 7/8/9/10) sütun sırasını
+  değiştirse de doğru alan;
+- tarih **ölçümün kendi damgasından**, sunucunun saat dilimine çevrilmiş (`saDD` numarası ayın günüdür, tarih değildir);
+- sunucu başına: dönem (ilk → son gün, gün ve ölçüm sayısı, `HISTORY`), CPU % (100−%idle), iowait, %memused, %commit, ldavg-5 —
+  her biri **ort · p95 · en yüksek (zamanıyla)**, yük/CPU oranı; `--gun` gün başına tablo, `--csv` gün başına CSV (`rapor` becerisine);
+- **uyarılar**: verideki hostname ≠ hedef adı (G21'de komutta host yoktu → yerel makine okundu), iki sunucunun günlük değerleri
+  birebir aynı (G22), CPU 0-100 dışı (bozuk veri), ERİŞİLEMEZ / VERİ YOK sunucular ("bu sunucu için sayı YAZMA").
 
-Raporda: host başına satır, gün aralığı (gerçek tarih), ortalama + en yüksek gün. Değerleri bu çıktıdan
-aynen al; iki host'un sayıları birebir aynıysa ya da bir desen tekrar ediyorsa yanlış kaynak okuyorsun — dur.
-Load average 0-çekirdek sayısının birkaç katı aralığındadır; binlerce/milyonlarca ise yanlış sütundur.
+Raporda betiğin satırlarını **aynen** kullan; dönem = betiğin yazdığı ilk → son gün. Kullanıcı 2-3 ay istediyse ve betik 28-30 gün
+diyorsa olmayan dönemi raporlama, söyle (`HISTORY`; daha uzun geçmiş: vCenter performans grafikleri / izleme sistemi — `[SAHA]`).
+"VERİ YOK" → toplama kapalı (`systemctl is-enabled sysstat-collect.timer`); şimdiden açtır (değişiklik — yetki), bir sonraki olayda hazır.
 
-Toplama kapalıysa geçmiş veri **yoktur**; o zaman şimdiden açtır ve bir
-sonraki olayda hazır ol.
+Betik yoksa ya da hata verirse (yedek yol, tek gün): `LC_ALL=C sar -u -f /var/log/sa/saDD | tail -2` → `Average:` satırı;
+`sarDD` (metin) dosyasını asla ayrıştırma. İki denemede çöp çıktı → dur, ham `Average:` satırını göster, sor.
 
 ## 7. Log okuma
 

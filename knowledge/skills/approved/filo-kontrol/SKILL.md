@@ -1,6 +1,6 @@
 ---
 name: filo-kontrol
-description: Aynı kontrolü birden çok sunucuda çalıştırıp sorunluları ayıklarken kullan. "tüm sunucularda", "filoda", "hepsinde kontrol et", "kaç sunucuda", "toplu", "hangi sunucularda" isteklerinde tetiklenir. Envanter ve playbook ayrıntıları için `ansible`.
+description: Aynı kontrolü birden çok sunucuda çalıştırıp sorunluları ayıklarken kullan — ansible ad-hoc + `--tree` + deterministik `filo-tablo.py` (sunucu başına durum, sapmalar, çıktı grupları, anahtar=değer tablosu; çıktısı gelmeyen sunucular). "tüm sunucularda", "filoda", "hepsinde kontrol et", "kaç sunucuda", "toplu", "hangi sunucularda", "tablo", "karşılaştır", "hepsinde aynı mı" isteklerinde tetiklenir. Envanter ve playbook ayrıntıları için `ansible`.
 ---
 
 Doğrulandı: ansible-core 2.16.16, AlmaLinux 10.2 — 2026-08-29
@@ -86,33 +86,49 @@ ansible all -m setup -a "filter=ansible_kernel"
 `ansible_distribution: "AlmaLinux"` ve `ansible_distribution_file_path`
 bulunuyor.
 
-## 5. Makine okunur çıktı — rapor üretmek için
+## 5. Sonucu tabloya dök — `filo-tablo.py` (kafadan tablo YOK — saha G22)
+
+Çok sunuculu çıktıyı **sen tabloya dökme**: G22'de değerler sunucular arasında kopyalandı, G8'de erişilemeyen node'lara
+yüzde yazıldı, G77'de zaman aşımında kaybolan node'lar hiç anılmadı. `--tree` ile her sunucunun JSON'unu yaz, betik özetlesin:
 
 ```bash
-ansible <grup> -m command -a "hostname" --tree /tmp/sonuc
-ls /tmp/sonuc          # her sunucu için bir JSON dosyası
+ansible <grup> -i <envanter> -m shell -f 20 -T 10 --task-timeout 30 -a '<okuma komutu>' -t cikti/filo/<etiket>
+python3 /root/ai/opencode/knowledge/skills/approved/filo-kontrol/filo-tablo.py cikti/filo/<etiket> --grup <grup> -i <envanter>
 ```
 
-Ölçüldü: her dosya `rc`, `stdout`, `stderr`, `delta` alanlarını içeren tam
-bir JSON. CSV ya da HTML rapora çevirmek için `rapor` becerisine geç;
-`stdout` alanını ayrıştır, `rc != 0` olanları ayır.
+Betik basar (ölçüldü, ansible-core 2.16):
+- **Durum** sayımı: `ok · rc≠0 · ERİŞİLEMEZ · ZAMAN AŞIMI`;
+- **Sapmalar**: her sorunlu sunucu ve mesajı; `--grup` verilince beklenip **hiç çıktısı gelmeyen** sunucular (`ÇIKTI YOK`) —
+  bu sunucular için değer yazma, durumlarını yaz;
+- **Çıktı grupları**: birebir aynı çıktıyı veren sunucular tek satırda ("[31 sunucu] …") — sapanı bulmanın en hızlı yolu;
+- `--kv`: komut `anahtar=değer` satırları basıyorsa sütunlu tablo, çoğunluktan farklı hücre `*` ile.
+
+`--kv` için komutu öyle kur — her değer kendi satırında, sayı olarak:
+
+```bash
+-a 'echo cpu=$(nproc); echo bellek_gb=$(free -g | awk "/^Mem:/{print \$2}"); echo cekirdek=$(uname -r); echo ntp=$(chronyc tracking | awk -F": " "/Leap status/{print \$2}")'
+```
+
+Raporda tabloyu **aynen** aktar; birim/başlık ekleyebilirsin, değer değiştiremezsin. CSV/HTML/Excel gerekiyorsa `rapor`
+becerisi (girdi yine bu betiğin tablosu). Dizin çalışma dizininde (`cikti/filo/…`) — `/tmp`'ye yazma, dış dizin izni açar.
 
 ## 6. Sonucu ayıkla — asıl iş bu
 
-Filo kontrolünün değeri "hepsini listelemek" değil, **sapanı bulmaktır**.
+Filo kontrolünün değeri "hepsini listelemek" değil, **sapanı bulmaktır** — betiğin "Sapmalar" ve "Çıktı grupları"
+bölümleri tam bunu verir. Cevap biçimi:
 
 ```
 34 sunucu tarandı, 3 sapma
 
-  db07   unreachable        -> ssh anahtarı ya da isim çözümleme
-  web12  rc=127             -> "chronyc: command not found", chrony kurulu değil
-  app03  Stratum 16         -> saat kaynağıyla senkron değil
+  db07   ERİŞİLEMEZ   -> ssh anahtarı ya da isim çözümleme
+  web12  rc=127       -> "chronyc: command not found", chrony kurulu değil
+  app03  Stratum 16   -> saat kaynağıyla senkron değil
 
 diğer 31: Stratum 2-3, senkron
 ```
 
-`unreachable` ile `failed`/`rc!=0` farkı teşhisin yönünü belirler: birincisi
-sunucuya ulaşılamadı (ağ, ssh, DNS), ikincisi ulaşıldı ama komut düştü.
+`ERİŞİLEMEZ` ile `rc≠0` farkı teşhisin yönünü belirler: birincisi sunucuya ulaşılamadı (ağ, ssh, DNS), ikincisi ulaşıldı
+ama komut düştü. `ZAMAN AŞIMI` = bağlandı ama komut `--task-timeout` içinde bitmedi (takılı node — `rke2-denetim` §4).
 
 ## Sınır
 

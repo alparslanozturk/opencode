@@ -992,3 +992,10 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   deploy + Fleet Force Update), §2 dosya hazırlama (PKCS#8/PKCS#1/şifreli anahtar, DER .cer, zincir sırası tls.crt = yaprak+ara,
   cacerts.pem = ara+kök, CRLF), §3 doğrulama (SAN, pubkey eşleşmesi, verify), §4 yedek + `apply`, §5 s_client/cacerts doğrulama,
   "Not secure" ayrımı, §6 geri alma. Okuma komutları kilitten geçiyor; `base64` okuma listesine eklendi (test 326).
+
+### G83 — Alp'in sertifika yolu: PFX → (araçla) şifresiz anahtar + sertifika metni → vi ile sunucuya
+- Görülen (Alp ekranları, 2026-10-21): bulut local master'ında `/root/rancher/certs`: `cacerts.pem chain.pem <BULUT>ROOTCA.cer
+  <BULUT>SUBCA01_….cer tls.crt tls.key` (eski) + `vi` ile oluşturulan `tls-2026.crt`, `tls-2026.key`. Alp: "sertifikalar PFX geliyor;
+  bir araçla şifresiz private key ve sertifikayı metin olarak alıp sunucuya koyuyorum, sonra komutlarla yükleyeceğim."
+- Aksiyon (yapıldı): `rancher-sertifika` §2 — PFX'i sunucuda `openssl pkcs12` ile ayırma (+ `-legacy`), yapıştırılan dosya kontrolü
+  (BEGIN/END sayısı, CR, `openssl x509 -noout`), eski `tls.crt`'teki sertifika sayısını örnek alma.

@@ -1,6 +1,6 @@
 ---
 name: rancher-sertifika
-description: Rancher sunucusunun (ingress / web arayüzü) TLS sertifikasını yenilerken ya da değiştirirken kullan — `tls-rancher-ingress` ve `tls-ca` secret'ları, privateCA, "aynı CA mı yeni CA mı" kararı, dosya hazırlama (PKCS#8 anahtar, .cer DER/PEM, zincir sırası, Windows CRLF), doğrulama, yedek ve geri alma, CA değiştiyse Rancher pod'ları + ajanların CATTLE_CA_CHECKSUM'u + Fleet force update. "rancher sertifika", "sertifika yenile", "yeni sertifika geldi", "tls-rancher-ingress", "tls-ca", "cacerts", "privateCA", "ingress sertifikası", "not secure", "x509", "certificate signed by unknown authority" isteklerinde tetiklenir. RKE2'nin kendi iç sertifikaları (etcd, apiserver — 120 gün kala kendiliğinden yenilenir) bu beceri değil: `rke2-denetim`, `rke2-guvenlik`.
+description: Rancher sunucusunun (ingress / web arayüzü) TLS sertifikasını yenilerken ya da değiştirirken kullan — kurumun aynı-CA yenileme akışı (old/ dizini, aynı dosya adları, apply), `tls-rancher-ingress` ve `tls-ca` secret'ları, privateCA, "aynı CA mı yeni CA mı" kararı, dosya hazırlama (PKCS#8 anahtar, .cer DER/PEM, zincir sırası, Windows CRLF), doğrulama, yedek ve geri alma, CA değiştiyse Rancher pod'ları + ajanların CATTLE_CA_CHECKSUM'u + Fleet force update. "rancher sertifika", "sertifika yenile", "yeni sertifika geldi", "tls-rancher-ingress", "tls-ca", "cacerts", "privateCA", "ingress sertifikası", "not secure", "x509", "certificate signed by unknown authority" isteklerinde tetiklenir. RKE2'nin kendi iç sertifikaları (etcd, apiserver — 120 gün kala kendiliğinden yenilenir) bu beceri değil: `rke2-denetim`, `rke2-guvenlik`.
 ---
 
 # Rancher sunucu sertifikası — yenileme / değiştirme
@@ -16,6 +16,43 @@ erişim yok** (AGENTS "erişilemeyen platform") → orada komutları **kullanıc
 ve sırayı ver, çıktıyı yorumla.
 
 Değişiklik adımları (§4, §5) CN/KRİZ yetkisi ister; bu beceri önce **okur ve karar verir**.
+
+## 0. Kurumun yenileme akışı — aynı CA (Alp, 2026-10-21, saha G84) — en sık senaryo
+
+Alp'in yolu: PFX → (araçla) şifresiz anahtar + sertifika metni → local kümenin bir master'ında sertifika dizinine (`cacerts.pem`,
+`chain.pem`, kök/ara `.cer` dosyalarının yanı) → **eski `tls.crt`/`tls.key` `old/` dizinine**, yenileri **aynı adlarla** (`tls.crt`,
+`tls.key`) → komutlar. Bulut platformunda komutları **kullanıcı** çalıştırır; sen aşağıdaki listeyi **dosya adlarını onun `ls`
+çıktısından alarak** ver, her adımın çıktısını iste, yorumla. `cacerts.pem`/`chain.pem`/`.cer` dosyalarına dokunulmaz (aynı CA).
+
+```bash
+export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
+# 1) eski düzeni örnek al — eski tls.crt kaç sertifikaydı (2 = yaprak + ara)?
+grep -c "BEGIN CERTIFICATE" old/tls.crt; grep -c "BEGIN CERTIFICATE" tls.crt
+# 2) yapıştırma kontrolü: BEGIN = END, CR = 0 (değilse: sed -i 's/\r$//' tls.crt tls.key)
+for f in tls.crt tls.key; do echo "$f BEGIN=$(grep -c BEGIN $f) END=$(grep -c END $f) CR=$(grep -c $'\r' $f) ilk=$(head -1 $f | cut -c1-32)"; done
+# 3) yeni sertifika: ad (SAN), tarih, issuer — şu an kullanılanla AYNI issuer mı?
+openssl x509 -in tls.crt -noout -subject -issuer -dates -ext subjectAltName
+kubectl -n cattle-system get secret tls-rancher-ingress -o jsonpath='{.data.tls\.crt}' | base64 -d | openssl x509 -noout -issuer -enddate
+# 4) anahtar bu sertifikanın mı — iki satır AYNI olmalı
+openssl x509 -in tls.crt -noout -pubkey | sha256sum; openssl pkey -in tls.key -pubout | sha256sum
+# 5) zincir — chain.pem ara+kök içeriyorsa "tls.crt: OK"
+openssl verify -CAfile chain.pem tls.crt
+```
+
+- 1) yeni dosya 1 sertifika, eskisi 2 ise ara sertifikayı ekle: `.cer` PEM ise (`head -1` → `-----BEGIN CERTIFICATE`)
+  `cat <ara>.cer >> tls.crt`; DER ise `openssl x509 -inform der -in <ara>.cer >> tls.crt`. Sonra 1)'i tekrar oku.
+- 3) issuer **farklıysa dur** — bu akış değil, §1 "farklı CA" (tls-ca, Rancher restart, ajan, Fleet).
+- Hepsi ✓ ise uygula — notlardaki ilk kurulum komutu `kubectl create secret tls tls-rancher-ingress …` **AlreadyExists** verir;
+  yenilemede `apply` yolu:
+
+```bash
+kubectl -n cattle-system get secret tls-rancher-ingress -o yaml > old/tls-rancher-ingress-yedek-$(date +%F).yaml && chmod 600 old/*.yaml
+kubectl -n cattle-system create secret tls tls-rancher-ingress --cert=tls.crt --key=tls.key --dry-run=client --save-config -o yaml | kubectl apply -f -
+echo | openssl s_client -connect <rancher-hostname>:443 -servername <rancher-hostname> 2>/dev/null | openssl x509 -noout -subject -issuer -dates
+```
+
+`notAfter` yeni tarih → tamam. Eski tarih → birkaç dakika sonra tekrar (§5). Geri alma: `kubectl apply -f old/tls-rancher-ingress-yedek-<tarih>.yaml`.
+Aynı CA'da `helm upgrade`, `tls-ca`, `rollout restart`, ajan/Fleet adımı **yok** — önerme.
 
 ## 1. İlk karar — yeni sertifika aynı CA'dan mı? (her şey buna bağlı)
 

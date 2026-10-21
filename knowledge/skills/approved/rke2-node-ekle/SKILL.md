@@ -103,7 +103,7 @@ paketini elle `/var/lib/rancher/rke2/agent/images/`'a kopyala (install.sh yalnı
 GPU sürücü/GPU Operator ayrı kurulum; SUC planlarının nodeSelector'ı GPU sunucusunu da kapsayabilir.
 **Fiziksel GPU sunucusu disk düzeni (işletim sistemi katmanı, RKE2 ayarı değil — RKE2 kurulmadan önce):** RAID10 NVMe (Alp, 2026-10-08: 16 × 1.7 TB NVMe — 12'si RAID10, 2'si spare; RAID **yazılım (mdadm)**, RHEL 9 — Alp aynı gün; kalan 2 diskin işi `[SAHA]`. Sağlık kontrolü: `rhel-depolama` A §8. 12 diskli RAID10 ≈ 10.2 TB eder, aşağıdaki LV planı ~14 TB — `vgs vg_gpu` ile gerçek boyutu doğrula, boyutları ona göre ver) → LVM `vg_gpu` (plan; sahadaki h200w1'de gerçek ad `vg_models/lv_models`, `relatime` — 2026-10-15): `lv_rke2` 2T →
 `/var/lib/rancher/rke2`, `lv_kubelet` 2T → `/var/lib/kubelet`, `lv_models` kalan (~10T) → `/models` (xfs, `noatime`,
-noexec YOK). Cihaz adını varsayma (`lsblk -f`, `wipefs -n` ile boş olduğunu gör — bkz. `rhel-depolama` becerisi). Kilit:
+noexec YOK). Cihaz adını varsayma — boş olduğunu `rhel-depolama` B §1 `disk-durum.py` ile gör (`wipefs` kilitte K5). Kilit:
 `/etc/systemd/system/rke2-agent.service.d/diskler.conf` → `RequiresMountsFor=/var/lib/rancher/rke2 /var/lib/kubelet`
 (disk bağlanmazsa agent başlamaz, kök diski doldurmaz). Sonra NVIDIA GPU Operator; vLLM pod'ları `hostPath: /models`
 ile çalışır → namespace PSA istisnasında olmalı, pod GPU sunucusuna `nodeSelector` ile sabitlenmeli.

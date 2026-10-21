@@ -50,6 +50,14 @@ head -c 40 <sertifika.cer>; echo            # "-----BEGIN CERTIFICATE" yoksa DER
 openssl pkcs12 -in <dosya.pfx> -info -nokeys | head      # .pfx ise içindeki sertifikalar (parola kullanıcıda)
 ```
 
+- **PFX geldiyse doğrudan sunucuda ayır** (kopyala-yapıştır hatası olmaz — genel, `openssl pkcs12` man; parola kullanıcıda; OpenSSL 3
+  eski şifreli PFX'te `unsupported` derse `-legacy` ekle):
+  `openssl pkcs12 -in <dosya.pfx> -nocerts -nodes -out tls.key` · `openssl pkcs12 -in <dosya.pfx> -clcerts -nokeys -out leaf.pem` ·
+  `openssl pkcs12 -in <dosya.pfx> -cacerts -nokeys -out ara-kok.pem` (çıktıdaki `Bag Attributes` satırları zararsız; PEM blokları geçerli).
+- **Metin yapıştırarak (vi) oluşturulduysa** (Alp'in yolu, G83) önce bak: her dosyada `BEGIN`/`END` sayısı eşit, `\r` yok, satır
+  kırılmamış — `grep -c BEGIN <f>; grep -c END <f>; grep -c $'\r' <f>`; `openssl x509 -in <f> -noout` hata vermiyorsa sertifika sağlam.
+- **Önceki yenilemeyi örnek al:** eski `tls.crt` kaç sertifika içeriyordu (`grep -c "BEGIN CERTIFICATE" tls.crt`) — kurumun zincir
+  alışkanlığı budur; yenisini aynı biçimde kur.
 - **`tls.crt` = yaprak + ara sertifika(lar)**, bu sırayla; kök eklenmez (docs: "server certificate followed by any intermediate
   certificate(s)"). `cat leaf.pem subca.pem > tls.crt`.
 - **`cacerts.pem` = ara + kök**, bu sırayla (docs: "signed by an intermediate CA … must contain both the intermediate and root CA

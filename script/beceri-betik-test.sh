@@ -256,6 +256,35 @@ icerir "NotReady + süre" ko1.txt "❌ ornekwor02 · Ready=Unknown · 42dk süre
 icerir "lease tazeliği" ko1.txt "lease son yenileme: 41dk önce"
 icerir "sürüm sapması" ko1.txt "SÜRÜM SAPMASI"
 
+# --------------------------------------------------------------------------- gpu-dagilim
+baslik "gpu-dagilim.py (G51, G52, G59)"
+python3 - > gpu.json << 'E2'
+import json
+node = {"kind": "Node", "metadata": {"name": "ornekgpu1", "labels": {"nvidia.com/gpu.present": "true", "nvidia.com/gpu.product": "NVIDIA-H200"}},
+        "status": {"capacity": {"nvidia.com/gpu": "8"}, "allocatable": {"nvidia.com/gpu": "8"}}}
+def pod(ns, ad, limit, args, ann=None, shm=None):
+    lim = {"memory": "32Gi"}
+    if limit:
+        lim["nvidia.com/gpu"] = str(limit)
+    ed = {"medium": "Memory"}
+    if shm:
+        ed["sizeLimit"] = shm
+    return {"kind": "Pod", "metadata": {"namespace": ns, "name": ad, "annotations": ann or {}},
+            "spec": {"nodeName": "ornekgpu1", "containers": [{"name": "v", "args": args, "resources": {"limits": lim},
+                     "volumeMounts": [{"name": "s", "mountPath": "/dev/shm"}]}], "volumes": [{"name": "s", "emptyDir": ed}]},
+            "status": {"phase": "Running", "containerStatuses": [{"restartCount": 0}]}}
+print(json.dumps({"kind": "List", "items": [node,
+    pod("vllm", "buyuk", 2, ["--tensor-parallel-size", "2", "--enable-prefix-caching", "--no-enable-prefix-caching"]),
+    pod("vllm", "uyumsuz", 4, ["--tensor-parallel-size=2"], shm="20Gi"),
+    pod("runai-inference", "kesirli", None, ["--max-model-len", "32768"], ann={"runai-allocated-gpus": "0.35"})]}))
+E2
+python3 "$B/rke2-gpu/gpu-dagilim.py" - < gpu.json > gd1.txt 2>&1
+icerir "çelişen bayrak" gd1.txt "çelişen bayrak: --enable-prefix-caching/--no-enable-prefix-caching"
+icerir "tp×pp ≠ GPU limiti" gd1.txt "tp×pp=2 ≠ GPU limiti 4"
+icerir "çok GPU'lu pod shm" gd1.txt "çok GPU'lu pod'da shm sizeLimit yok"
+icerir "Run:ai kesir pod adıyla" gd1.txt "runai-allocated-gpus=0.35"
+icerir "node toplamı (2+4+0.35)" gd1.txt "ayrılan 6.35"
+
 # --------------------------------------------------------------------------- olay-penceresi
 baslik "olay-penceresi.py (G62-G65)"
 python3 "$B/rhel-sorun/olay-penceresi.py" "2026-10-19 05:30" --tz +0300 > op1.txt 2>&1

@@ -39,6 +39,7 @@ kullanım becerinin SKILL.md'sinde (önce beceriyi yükle):
 - disk OS mu / boş mu → `rhel-depolama/disk-durum.py` — **yıkıcı disk adımından (pvcreate/mkfs/parted) önce zorunlu**
 - sertifika dosyası/secret, kalan gün, zincir, anahtar eşleşmesi → `rancher-sertifika/sertifika-kontrol.py` (RKE2 tls: `--ozet`)
 - küme durumu (NotReady, restart sebebi, DaemonSet, olaylar) → `k8s-sorun/k8s-ozet.py`
+- GPU dağılımı (pod başına GPU/Run:ai kesir, vLLM parametreleri, shm, NCCL) → `rke2-gpu/gpu-dagilim.py`
 - olay saati → log penceresi (yerel↔UTC, saDD, hazır journalctl/sar komutları) → `rhel-sorun/olay-penceresi.py`
 - sürüm uyumu / EOL → `surum-uyum/uyum.py`
 Uzak okuma borunun başında kalır (`ssh … "<okuma>" | python3 <betik> -`), betiğe gömülmez. Betik hata verirse hatayı oku; iki denemede

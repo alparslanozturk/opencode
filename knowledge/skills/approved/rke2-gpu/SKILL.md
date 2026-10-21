@@ -1,6 +1,6 @@
 ---
 name: rke2-gpu
-description: GPU kümesini (gpu-dtx, gpu-prod — H200/B300) denetlerken kullan — NVIDIA GPU Operator, sürücü/CUDA, vLLM pod limitleri ve shm, Run:ai, hostPath /models (RAID10/NVMe), GPU node işletim sistemi, ölçüm. "gpu", "gpu kümesi", "h200", "b300", "nvidia", "gpu operator", "vllm", "runai", "/models", "dcgm", "nvlink", "limitler doğru mu", "gpu-dtx", "gpu-prod" isteklerinde tetiklenir. Temel katmanlar (sürüm, control plane, node, Antrea) için önce `rke2-denetim`. Yalnız okur; değişiklik önerir, uygulamaz.
+description: GPU kümesini (gpu-dtx, gpu-prod — H200/B300) denetlerken kullan — GPU dağılımı deterministik `gpu-dagilim.py` ile (pod başına GPU/Run:ai kesir/vLLM parametreleri/shm/NCCL); NVIDIA GPU Operator, sürücü/CUDA, vLLM pod limitleri ve shm, Run:ai, hostPath /models (RAID10/NVMe), GPU node işletim sistemi, ölçüm. "gpu", "gpu kümesi", "h200", "b300", "nvidia", "gpu operator", "vllm", "runai", "/models", "dcgm", "nvlink", "limitler doğru mu", "gpu-dtx", "gpu-prod" isteklerinde tetiklenir. Temel katmanlar (sürüm, control plane, node, Antrea) için önce `rke2-denetim`. Yalnız okur; değişiklik önerir, uygulamaz.
 ---
 
 # GPU kümesi denetimi
@@ -157,7 +157,20 @@ Sürüm (operator, sürücü, CUDA) **tahmin edilmez** — pod imaj etiketinden 
 
 ### 3. Pod'lar (vLLM)
 
-GPU isteyen pod'ları bul:
+**Önce dağılım tablosu — `gpu-dagilim.py`** (saha G51/G52/G59: `grep -A` ile pod alanları karıştı, aynı pod'lar bir raporda
+"0.35 GPU" diğerinde "1 GPU" yazıldı, çelişen bayrak ve shm elle arandı):
+
+```bash
+ssh root@<master> "/var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml get nodes,pods -A -o json" | python3 /root/ai/opencode/knowledge/skills/approved/rke2-gpu/gpu-dagilim.py -
+```
+
+Basar: GPU node'u başına ürün/kapasite/ayrılabilir, Running iş pod'larına ayrılan toplam (Run:ai rezervasyonu ayrı); GPU kullanan
+**her pod tek blokta**: GPU limiti, Run:ai annotation'ları (`runai-allocated-gpus`, `…-gpu-memory`), scheduler, bellek limiti,
+`/dev/shm` sizeLimit, vLLM parametreleri (tp, pp, max-model-len, gpu-memory-utilization, max-num-seqs), `NCCL_*`/`CUDA_VISIBLE_*`,
+restart + son çıkış; ⚠ tp×pp ≠ GPU limiti, çelişen `--x/--no-x`, çok GPU'lu pod'da shm sınırsız. Değerleri **pod adıyla** aynen aktar.
+Ayrıntı için aşağıdaki komutlarla tek pod'a in.
+
+GPU isteyen pod'ları bul (elle):
 
 ```bash
 kubectl get pods -A -o custom-columns='NS:.metadata.namespace,POD:.metadata.name,NODE:.spec.nodeName,GPU:.spec.containers[*].resources.limits.nvidia\.com/gpu,QOS:.status.qosClass' | awk 'NR==1 || $4!="<none>"'

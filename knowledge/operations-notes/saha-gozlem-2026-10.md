@@ -999,3 +999,11 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   bir araçla şifresiz private key ve sertifikayı metin olarak alıp sunucuya koyuyorum, sonra komutlarla yükleyeceğim."
 - Aksiyon (yapıldı): `rancher-sertifika` §2 — PFX'i sunucuda `openssl pkcs12` ile ayırma (+ `-legacy`), yapıştırılan dosya kontrolü
   (BEGIN/END sayısı, CR, `openssl x509 -noout`), eski `tls.crt`'teki sertifika sayısını örnek alma.
+
+### G84 — Alp'in kurum akışı: eski tls.* → old/, yeniler aynı adla, sonra komutlar
+- Görülen (Alp ekranı, 2026-10-21): `mkdir old; mv tls.* old/; mv tls-2026.crt tls.crt; mv tls-2026.key tls.key` (bulut local master,
+  sertifika dizini; `cacerts.pem chain.pem <kök>.cer <ara>.cer` yerinde). Alp: "en iyisi, en doğrusu böyle — yeteneği geliştir".
+- Yapılan: `rancher-sertifika` §0 "Kurumun yenileme akışı — aynı CA": eski tls.crt'deki sertifika sayısını örnek alma, yapıştırma
+  kontrolü, SAN/tarih/issuer (şu anki secret'la karşılaştırma), anahtar eşleşmesi, `verify -CAfile chain.pem`, ara sertifika ekleme,
+  issuer farklıysa dur; yedek `old/`'a + `apply` (ilk kurulum `create` AlreadyExists verir) + s_client doğrulama + geri alma.
+  Okuma komutları kilitten geçiyor, `apply` K1 (beklenen; bu platformda kullanıcı çalıştırır).

@@ -449,3 +449,48 @@ describe("G74: envanter eşlemesi — ad, kısa ad, IP, grup (yetki verildiği a
     expect(karar(`ssh 10.0.9.99 "systemctl restart x"`, y)?.kilit).toBe("K1")
   })
 })
+
+describe("G78: 'kiriz' yazım hatası ve yalın '07-14' aralığı (Alp: 'kiriz var şu 2 komudu 07-14 arasında çalıştır')", () => {
+  const { mkdtempSync, mkdirSync, writeFileSync } = require("fs") as typeof import("fs")
+  const { tmpdir } = require("os") as typeof import("os")
+  const { join } = require("path") as typeof import("path")
+  const { yetkiIsle } = require("./denetim") as typeof import("./denetim")
+  test("kiriz / krıız / kirizdeyiz beyan; 'kırız' gibi başka sözcük değil", () => {
+    for (const m of ["kiriz var şu 2 komudu 07-14 arasında çalıştır", "KİRİZ VAR", "kirizdeyiz", "kriiz var"])
+      expect(yetkiSatirlariniOku(m).tur).toBe("KRIZ")
+    for (const m of ["bardakları kırız", "kiriz yok", "kiriz."]) expect(yetkiSatirlariniOku(m).tur).toBeUndefined()
+  })
+  const dizin = mkdtempSync(join(tmpdir(), "envanter-g78-"))
+  mkdirSync(join(dizin, "ansible", "inventories"), { recursive: true })
+  writeFileSync(join(dizin, "ansible", "inventories", "hosts-rke2.ini"), [
+    "[test]", ...Array.from({ length: 14 }, (_, i) => `stlrancherwor${String(i + 1).padStart(2, "0")} ansible_host=10.0.9.${121 + i}`),
+    "stlranchermas01", "stlranchermas02", "[gpu]", "sdlgpuworker1", "sdlgpuworker2",
+  ].join("\n"))
+  const ver = (metin: string) => {
+    const m = new Map<string, Yetki>()
+    yetkiIsle(m, "s", metin, Date.now(), dizin)
+    return m.get("s")!
+  }
+  const karar = (c: string, y: Yetki) => kilitDenetle("bash", { command: c }, dizin, y)
+  test("'07-14' → tek önek stlrancherwor07…14; adla ve IP ile geçer, 06 ve mas01 geçmez", () => {
+    const y = ver("kiriz var şu 2 komudu 07-14 arasında çalıştır. /usr/lib/symantec/stop.sh\nsystemctl stop traps_pmd.service")
+    expect(y.tur).toBe("KRIZ")
+    expect(y.envanterNotu).toContain("stlrancherwor07…stlrancherwor14")
+    expect(karar(`ssh stlrancherwor07 "systemctl stop traps_pmd.service"`, y)).toBeNull()
+    expect(karar(`ssh root@10.0.9.134 "systemctl stop traps_pmd.service"`, y)).toBeNull()
+    expect(karar(`ssh stlrancherwor06 "systemctl stop traps_pmd.service"`, y)?.kilit).toBe("K1")
+    expect(karar(`ssh stlranchermas01 "systemctl stop traps_pmd.service"`, y)?.kilit).toBe("K1")
+  })
+  test("aralığı eksiksiz karşılayan önek yoksa hiçbir host açılmaz", () => {
+    const y = ver("kriz var 01-02 arasında")
+    // stlrancherwor01-02 ve stlranchermas01-02 ikisi de tutar → belirsiz, genişletilmez
+    expect(y.envanterNotu).toContain("birden çok")
+    expect(karar(`ssh stlrancherwor01 "systemctl stop x"`, y)?.kilit).toBe("K1")
+    const y2 = ver("kriz var 13-16 arasında")
+    expect(y2.envanterNotu).toContain("envanterde yok")
+  })
+  test("K1 mesajı ajana atlatma denemesini yasaklar", () => {
+    const y = ver("kriz var 07-08 arasında")
+    expect(karar(`ssh stlrancherwor09 "systemctl stop x"`, y)?.mesaj).toContain("kilit YALNIZ kullanıcının mesajını okur")
+  })
+})

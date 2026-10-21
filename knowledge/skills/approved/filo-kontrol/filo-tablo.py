@@ -9,6 +9,9 @@
 #   filo-tablo.py <tree-dizini> [--grup <g> [-i <envanter>]] [--kv] [--satir N]
 #   --kv     : komut "anahtar=değer" satırları basıyorsa sütunlu tablo; çoğunluktan farklı hücre "*" ile işaretlenir
 #   --satir N: grup başına gösterilecek çıktı satırı (varsayılan 6)
+#   --csv <dosya>: tabloyu CSV'ye yaz (utf-8-sig, ';' — Türkçe Excel); erişilemeyen/çıktısız sunucular da satır olarak, sapan
+#                  alanlar ayrı sütunda. HTML/XLSX için: rapor becerisi `tablo-cevir.py` (değerler elle yazılmaz)
+import csv
 import json
 import os
 import re
@@ -63,11 +66,25 @@ def beklenen(grup, envanter):
     return hostlar
 
 
+def csv_yaz(yol, baslik, satirlar):
+    if os.path.exists(yol):
+        print("\n--csv: %s zaten var — üzerine yazılmadı (kullanıcıya sor, ada tarih ekle)" % yol)
+        return
+    d = os.path.dirname(yol)
+    if d and not os.path.isdir(d):
+        os.makedirs(d)
+    with open(yol, "w", newline="", encoding="utf-8-sig") as f:
+        w = csv.writer(f, delimiter=";")
+        w.writerow(baslik)
+        w.writerows(satirlar)
+    print("\n--csv: yazıldı %s (%d satır + başlık)" % (os.path.abspath(yol), len(satirlar)))
+
+
 def main(argv):
     if not argv or argv[0] in ("-h", "--help"):
         print(open(__file__, encoding="utf-8").read().split("import json")[0])
         return 0 if argv else 2
-    dizin, grup, envanter, kv, satir = argv[0], None, None, False, 6
+    dizin, grup, envanter, kv, satir, csv_yol = argv[0], None, None, False, 6, None
     i = 1
     while i < len(argv):
         a = argv[i]
@@ -79,6 +96,8 @@ def main(argv):
             kv, i = True, i + 1
         elif a == "--satir":
             satir, i = int(argv[i + 1]), i + 2
+        elif a == "--csv":
+            csv_yol, i = argv[i + 1], i + 2
         else:
             print("bilinmeyen seçenek: %s" % a)
             return 2
@@ -128,6 +147,13 @@ def main(argv):
             print("\n== Tablo (anahtar=değer; '*' = çoğunluktan farklı, '-' = sunucu bu anahtarı basmadı)")
             gen = {a: max(len(a), max(len(str(tablo[h].get(a, "-"))) + 1 for h in tablo)) for a in anahtarlar}
             print("  %-28s %s" % ("sunucu", " ".join(a.ljust(gen[a]) for a in anahtarlar)))
+            if csv_yol:
+                satirlar_csv = []
+                for h in sorted(set(list(veri) + eksik)):
+                    k, m = durumlar.get(h, ("ÇIKTI YOK", "tree'de dosya yok"))
+                    sapan = [a for a in anahtarlar if h in tablo and cogunluk[a] is not None and tablo[h].get(a) != cogunluk[a]]
+                    satirlar_csv.append([h, k, m[:200]] + [tablo.get(h, {}).get(a, "") for a in anahtarlar] + [" ".join(sapan)])
+                csv_yaz(csv_yol, ["sunucu", "durum", "mesaj"] + anahtarlar + ["sapan_alanlar"], satirlar_csv)
             for h in sorted(tablo):
                 hucre = []
                 for a in anahtarlar:
@@ -137,6 +163,13 @@ def main(argv):
                 print("  %-28s %s" % (h, " ".join(hucre)))
             return 0 if not (sapma or eksik) else 1
 
+    if csv_yol and not kv:
+        satirlar_csv = []
+        for h in sorted(set(list(veri) + eksik)):
+            k, m = durumlar.get(h, ("ÇIKTI YOK", "tree'de dosya yok"))
+            ilk = (tamam.get(h) or "").strip().splitlines()
+            satirlar_csv.append([h, k, m[:200], ilk[0][:200] if ilk else ""])
+        csv_yaz(csv_yol, ["sunucu", "durum", "mesaj", "cikti_ilk_satir"], satirlar_csv)
     if tamam:
         gruplar = {}
         for h, out in tamam.items():

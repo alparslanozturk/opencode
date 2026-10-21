@@ -12,7 +12,8 @@
 # kullanım:
 #   sar-ozet.py <ansible-tree-dizini> [--gun] [--csv]      (çok sunucu: ansible ... -t <dizin>)
 #   ssh root@<h> '<uzak komut>' | sar-ozet.py - [--ad <h>] [--gun] [--csv]
-#   --gun : gün başına tablo · --csv : gün başına CSV (rapor becerisine girdi)
+#   --gun : gün başına tablo · --csv : gün başına CSV'yi ekrana · --csv-dosya <yol> : aynı CSV'yi dosyaya (utf-8-sig, ';')
+#   HTML/XLSX için: rapor becerisi `tablo-cevir.py <csv>` (değerler elle yazılmaz)
 import datetime
 import json
 import os
@@ -149,7 +150,8 @@ def main(argv):
     if not argv or argv[0] in ("-h", "--help"):
         print(open(__file__, encoding="utf-8").read().split("import datetime")[0])
         return 0 if argv else 2
-    kaynak, ad, gun, csv_iste = argv[0], "-", "--gun" in argv, "--csv" in argv
+    kaynak, ad, gun, csv_iste = argv[0], "-", "--gun" in argv, ("--csv" in argv or "--csv-dosya" in argv)
+    csv_dosya = argv[argv.index("--csv-dosya") + 1] if "--csv-dosya" in argv else None
     if "--ad" in argv:
         ad = argv[argv.index("--ad") + 1]
     print("Kapasite özeti — sysstat `sadf -d` (sütunlar ADA göre), kaynak: %s" % ("stdin" if kaynak == "-" else kaynak))
@@ -182,9 +184,19 @@ def main(argv):
     for hs in imzalar.values():
         if len(hs) > 1:
             print("\n⚠ %s günlük değerleri birebir aynı — aynı kaynağı okuyor olabilirsin (G22); hedefleri doğrula." % ", ".join(hs))
-    if csv is not None:
-        print("\nsunucu;gun;olcum;cpu_ort;cpu_max;mem_ort;mem_max;yuk5_ort;yuk5_max")
+    baslik = "sunucu;gun;olcum;cpu_ort;cpu_max;mem_ort;mem_max;yuk5_ort;yuk5_max"
+    if csv is not None and not csv_dosya:
+        print("\n" + baslik)
         print("\n".join(csv))
+    if csv_dosya:
+        if os.path.exists(csv_dosya):
+            print("\n--csv-dosya: %s zaten var — üzerine yazılmadı (kullanıcıya sor, ada tarih ekle)" % csv_dosya)
+        else:
+            if os.path.dirname(csv_dosya) and not os.path.isdir(os.path.dirname(csv_dosya)):
+                os.makedirs(os.path.dirname(csv_dosya))
+            with open(csv_dosya, "w", encoding="utf-8-sig") as f:
+                f.write(baslik + "\n" + "\n".join(csv or []) + "\n")
+            print("\n--csv-dosya: yazıldı %s (%d gün satırı + başlık)" % (os.path.abspath(csv_dosya), len(csv or [])))
     return 0
 
 

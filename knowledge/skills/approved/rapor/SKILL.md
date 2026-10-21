@@ -1,9 +1,27 @@
 ---
 name: rapor
-description: Toplanan veriyi rapora/dosyaya dökerken kullan — biçim seçimi, CSV ve HTML (bağımlılıksız), Excel (xlsx) ve PDF (bağımlılık kontrolü, çevrimdışı kurulum, Türkçe font), sayı/birim tutarlılığı. "rapor", "envanter raporu", "csv çıkar", "tabloya dök", "dosyaya yaz", "html rapor", "excel", "xlsx", "pdf üret", "pdf dosyası", "openpyxl", "rapor pdf olsun" isteklerinde tetiklenir.
+description: Toplanan veriyi rapora/dosyaya dökerken kullan — betik CSV'sinden değerlere dokunmadan HTML/XLSX: deterministik `tablo-cevir.py`; biçim seçimi, CSV ve HTML (bağımlılıksız), Excel (xlsx) ve PDF (bağımlılık kontrolü, çevrimdışı kurulum, Türkçe font), sayı/birim tutarlılığı. "rapor", "envanter raporu", "csv çıkar", "tabloya dök", "dosyaya yaz", "html rapor", "excel", "xlsx", "pdf üret", "pdf dosyası", "openpyxl", "rapor pdf olsun" isteklerinde tetiklenir.
 ---
 
 Bu beceri iki bölüm: **A. Biçim, CSV, HTML** ve **B. Excel ve PDF**.
+
+## 0. Değerleri elle yazma — betik CSV'si → `tablo-cevir.py` (saha G22, M-1)
+
+Rapordaki sayılar komut çıktısından geliyorsa onları Python koduna/HTML'e **elle yazma** (G22: değerler sunucular arasında kopyalandı,
+yönetime gidecek kapasite raporu uydurma çıktı). Yol: CSV'yi deterministik betik üretir, çevirici değerlere dokunmadan biçimler:
+
+```bash
+python3 /root/ai/opencode/knowledge/skills/approved/filo-kontrol/filo-tablo.py cikti/filo/<etiket> --kv --csv rapor/<ad>_<tarih>.csv
+python3 /root/ai/opencode/knowledge/skills/approved/rhel-performans/sar-ozet.py cikti/sar/<etiket> --csv-dosya rapor/kapasite_<tarih>.csv
+python3 /root/ai/opencode/knowledge/skills/approved/rapor/tablo-cevir.py rapor/<ad>_<tarih>.csv --html rapor/<ad>_<tarih>.html --baslik "<başlık>" --kaynak "<komut/betik>"
+python3 /root/ai/opencode/knowledge/skills/approved/rapor/tablo-cevir.py rapor/<ad>_<tarih>.csv --xlsx rapor/<ad>_<tarih>.xlsx --baslik "<başlık>" --kaynak "<komut/betik>"
+```
+
+`tablo-cevir.py`: CSV'yi (`;` ya da `,`) okur; HTML yazdırılabilir (sorunlu satırlar kırmızı, `@media print` dahil), XLSX'te sayılar
+sayı, başlık sabit, süzme açık, ayrı "Kaynak" sayfası (openpyxl yoksa söyler, HTML öner). Vurgu: `durum` ≠ ok ya da `sapan_alanlar`
+dolu satırlar; ya da `--vurgu <sütun>=<regex>`. Başlığa üretim zamanı + `--kaynak` + satır sayısı yazılır. Var olan dosyanın üzerine
+yazmaz. Ölçüldü (2026-10-21): filo CSV → HTML 3 vurgulu satır; kapasite CSV → XLSX, `cpu_ort` hücresi float, openpyxl 3.1.5.
+Aşağıdaki elle Python örnekleri yalnız betiği olmayan küçük, kullanıcının verdiği tablolar içindir.
 
 ## A. Biçim, CSV, HTML
 

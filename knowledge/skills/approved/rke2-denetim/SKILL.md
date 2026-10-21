@@ -212,7 +212,9 @@ kubectl -n kube-system logs <antrea-agent-pod> -c antrea-ovs --previous --tail=6
 
 ```bash
 ls -la --time-style=+%F_%T /var/log/antrea/ /var/log/antrea/openvswitch/                      # node'da (ssh)
-# örnek pencere: wor14 olayı 05:30 (yerel) → OVS logu UTC (…Z) yazar, Türkiye UTC+3 → 02:30Z; kendi saatini çevir
+# pencereyi ve aşağıdaki komutların tarihli hallerini SEN çevirme — betik üretir (yerel↔UTC, saDD, gece yarısı):
+# python3 /root/ai/opencode/knowledge/skills/approved/rhel-sorun/olay-penceresi.py "2026-10-19 05:30" --tz +0300   (k8s/OVS UTC damgası da verilebilir: 2026-10-19T02:30:00Z)
+# örnek (wor14 olayı 05:30 yerel = 02:30Z):
 grep -h -e "Unreasonably long" -e "blocked" -e "timeout" -e "Dropped" -e "exit" /var/log/antrea/openvswitch/ovs-vswitchd.log* | grep "2026-10-19T02:[1-4]" | tail -30
 grep -h "2026-10-19T02:[1-4]" /var/log/antrea/openvswitch/ovsdb-server.log* | tail -20
 journalctl --since "2026-10-19 05:15" --until "2026-10-19 05:45" -p warning --no-pager | tail -40

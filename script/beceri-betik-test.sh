@@ -256,6 +256,18 @@ icerir "NotReady + süre" ko1.txt "❌ ornekwor02 · Ready=Unknown · 42dk süre
 icerir "lease tazeliği" ko1.txt "lease son yenileme: 41dk önce"
 icerir "sürüm sapması" ko1.txt "SÜRÜM SAPMASI"
 
+# --------------------------------------------------------------------------- olay-penceresi
+baslik "olay-penceresi.py (G62-G65)"
+python3 "$B/rhel-sorun/olay-penceresi.py" "2026-10-19 05:30" --tz +0300 > op1.txt 2>&1
+icerir "yerel → UTC çevrimi" op1.txt "UTC   : 2026-10-19 02:15:00 → 2026-10-19 02:45:00"
+icerir "saDD = ayın günü" op1.txt "-f /var/log/sa/sa19"
+icerir "UTC dakika deseni" op1.txt "2026-10-19T02:(15|16|"
+python3 "$B/rhel-sorun/olay-penceresi.py" "2026-10-20 23:55" --tz +0300 --dk 10 > op2.txt 2>&1
+icerir "gece yarısı: iki sa dosyası (1)" op2.txt "-s 23:45:00 -e 23:59:59 -f /var/log/sa/sa20"
+icerir "gece yarısı: iki sa dosyası (2)" op2.txt "-s 00:00:00 -e 00:05:00 -f /var/log/sa/sa21"
+python3 "$B/rhel-sorun/olay-penceresi.py" 2026-10-19T02:30:00Z --tz +0300 > op3.txt 2>&1
+icerir "UTC girdi → yerel" op3.txt "yerel : 2026-10-19 05:15:00"
+
 # --------------------------------------------------------------------------- kilit
 baslik "Becerilerdeki sabit okuma komutları güvenlik kilidinden geçiyor (G67/G68)"
 if command -v bun > /dev/null; then

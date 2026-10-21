@@ -1070,3 +1070,15 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Aksiyon (yapıldı): kur.sh uç sessizse mevcut kurulu pencereyi korur (stderr'de kaynağı yazar); çıktı her durumda pencerenin 1/4'ünü
   aşmaz (ilk kurulumda 16K → 4096). Denendi: uç sessiz + kurulu 262144 → 262144/16384 korunur; ilk kurulum → 16384/4096.
   `./kur.sh kontrol` zaten "uc ile kurulu baglam farkli" uyarısı veriyor.
+
+### G92 — Pencere düzeldi (30.9K = %12), tablo geri geldi ✅; "yükten kaynaklı sorun YOK" kanıtsız; `$(ssh … $ip)` K1
+- Görülen (Alp ekranları, 2026-10-21 15:39): yeni kurulum sonrası sayaç "30.9K (12%)" → 262K pencere geri (G91 düzeltmesi ✓), sağlık
+  tablosu geldi. Alp: "sorun yükte olabilir mi? 01-06 arası 24 vCPU/48 GB, diğerleri yarısı". Ajan tablosu: wor01-06 24/47, wor07-13 12/23,
+  load 0.04–1.26, wor12/13 5 saat uptime → "Sonuç: Yükten kaynaklı sorun YOK". ⚠️ Anlık load (reboot sonrası) olay anını göstermez;
+  sorunlu node'lar iki boyutta da var (wor03 büyük, wor08/12-14 küçük) → boyut tek başına ne sebep ne elenmiş; Allocated resources,
+  olay penceresi sar, OOM/eviction bakılmadı. SEP: masterlarda tam ajan, worker'larda yalnız modül (agent kapalı) — ajanın tespiti.
+- K1: `for ip in …; do result=$(ssh … root@<ağ>.$ip "…awk '{print …}'…"); …` → "hedefi belirlenemedi (print …)". Kök: döngü değişkeni
+  `$(…)` içinde açılmıyordu (iç komut döngü bağlamı olmadan inceleniyordu); `print`'in komut sanılması ekrandaki kısmi komutla
+  yeniden üretilemedi. Ajan ardından `/tmp/rke-saglik.sh` betiği yazmaya geçti (atlatma — AGENTS yasak), Alp kesti.
+- Aksiyon (yapıldı): kilit — düz listeli döngü değişkeni komut ikamesi içinde de öğe öğe açılır (test 327); `rke2-denetim` §4
+  "Sorun yükte olabilir mi?" kanıt sırası (Allocated resources, iş yükü yerleşimi, olay penceresi sar, OOM, eviction/PSI).

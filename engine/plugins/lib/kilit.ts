@@ -1080,11 +1080,14 @@ export function komutIncele(metin: string, b: Baglam): Bulgu[] {
   // G73: `for ip in 10.0.0.1 10.0.0.2; do ssh root@$ip "…"; done` — liste düz yazılmışsa ($, `, joker yok) gövde her öğe
   // için AYRI incelenir (hedef = öğe); yoksa `$ip` "?" (hedef belirsiz) kalır. while/until/select döngüleri genişletilmez.
   const donguler: { ad: string; ogeler: string[] }[] = []
+  const tumDonguler: { ad: string; ogeler: string[] }[] = [] // $(…) içleri için (saha G92: result=$(ssh root@x.$ip …))
   for (const k of ayristir(metin, ic)) {
     const a = k.argv
     if (["for", "while", "until", "select"].includes(a[0] ?? "")) {
       const ogeler = a[0] === "for" && a[2] === "in" && /^[A-Za-z_]\w*$/.test(a[1] ?? "") ? a.slice(3).filter((x) => x !== "do") : []
-      donguler.push({ ad: a[1] ?? "", ogeler: ogeler.length <= 200 && ogeler.every((x) => !/[$`*?(){}\[\]]/.test(x)) ? ogeler : [] })
+      const d = { ad: a[1] ?? "", ogeler: ogeler.length <= 200 && ogeler.every((x) => !/[$`*?(){}\[\]]/.test(x)) ? ogeler : [] }
+      donguler.push(d)
+      if (d.ogeler.length) tumDonguler.push(d)
     } else if (a[0] === "done") donguler.pop()
     let surumler: Komut[] = [k]
     for (const d of donguler) {
@@ -1097,7 +1100,16 @@ export function komutIncele(metin: string, b: Baglam): Bulgu[] {
     }
     for (const x of surumler) bulgular.push(...tekKomut(x, b))
   }
-  for (const x of ic) bulgular.push(...komutIncele(x, { ...b, derinlik: b.derinlik + 1 }))
+  for (const x of ic) {
+    // döngü değişkeni komut ikamesinin içinde geçiyorsa her öğe için ayrı incele (düz liste); yoksa olduğu gibi
+    let surumler = [x]
+    for (const d of tumDonguler) {
+      const re = new RegExp(`\\$(?:\\{${d.ad}\\}|${d.ad}(?![A-Za-z0-9_]))`, "g")
+      if (surumler.some((y) => re.test(y))) surumler = surumler.flatMap((y) => d.ogeler.map((o) => y.replace(re, o)))
+      re.lastIndex = 0
+    }
+    for (const y of surumler.slice(0, 400)) bulgular.push(...komutIncele(y, { ...b, derinlik: b.derinlik + 1 }))
+  }
   return bulgular
 }
 

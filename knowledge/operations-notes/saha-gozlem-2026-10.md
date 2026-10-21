@@ -1025,3 +1025,11 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - ❌ chain.pem eski kurulumun dosyası — içindeki sunucu sertifikası eski; yeni tls.crt kullanılmadı. Yedek, anahtar eşleşmesi, issuer
   karşılaştırması yok. Aynı CA'da restart gereksiz (docs). §0 akışı izlenmedi — tahmin: oturum beceriden önce açıldı / beceri yüklenmedi.
 - Aksiyon (yapıldı): `rancher-sertifika` §0 sonuna "Bu akışta yapılan hatalar — yapma" listesi.
+
+### G87 — Zincir dosyası da eski kalmış: chain.pem yeniden kurulacak
+- Görülen (Alp ekranı): ajan özet karşılaştırdı — chain.pem (eski, old/ ile aynı) ≠ tls.crt = tls.key (yeni, eşleşiyor) ✓; plan:
+  `cat tls.crt <ara>.cer <kok>.cer > new-chain.pem` + modulus md5 + `--cert=new-chain.pem`; ".cer gerçekten SUBCA mı" diye çıktı istedi ✓.
+  Restart önerisi düştü ✓. Eksik: .cer PEM mi DER mi (DER'i cat etmek zinciri bozar), yedek. Alp: "zincir eski kaldı, chain.pem'i de
+  old'a kopyalayıp zinciri nasıl kuracağımı ajana sorduracağım."
+- Aksiyon (yapıldı): `rancher-sertifika` §0 "Zincir dosyasını yeniden kur" — PEM/DER, issuer = ara subject, yapışık END/BEGIN kontrolü,
+  pkcs7 ile sıra, verify; tls-ca'ya dokunma ve eski/yeni issuer farkını söyleme.

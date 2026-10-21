@@ -6,7 +6,8 @@
 # tabloyu doğrudan görür (dosya okuma / izin / internet gerekmez).
 #
 # Tek kaynak: kurum rke2-ansible reposu (github.com/alparslanozturk/rke2-ansible):
-#   araclar/matris/rancher-v2-*.txt  (SUSE Rancher destek matrisi)   araclar/matris/antrea-uyum.txt
+#   araclar/matris/rancher-v2-*.txt  (SUSE Rancher destek matrisi). Antrea AYRI: script/antrea-veri.py (G77 —
+#   rke2-ansible antrea-uyum.txt "son 4 K8s" kestirmesiydi, resmi kural değil; artık kullanılmaz).
 # Kullanım (internetli makinede, rke2-ansible güncelken):
 #   script/veri-guncelle.sh [rke2-ansible-dizini]   (varsayılan /root/rke2-ansible)
 #   → SKILL.md güncellenir → commit/push → sahada al.sh → ./kur.sh
@@ -17,7 +18,6 @@ KOK="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RKE2="${1:-/root/rke2-ansible}"
 BECERI="$KOK/knowledge/skills/approved/surum-uyum/SKILL.md"
 [ -f "$RKE2/araclar/rancher_matris.py" ] || { echo "!! rke2-ansible bulunamadı: $RKE2" >&2; exit 2; }
-[ -f "$RKE2/araclar/matris/antrea-uyum.txt" ] || { echo "!! $RKE2/araclar/matris/antrea-uyum.txt yok" >&2; exit 2; }
 
 python3 - "$RKE2" "$BECERI" <<'PY'
 import datetime, re, subprocess, sys
@@ -52,14 +52,6 @@ def son_yama(hat):
 
 yama = [f"{'v' + h}: {son_yama(h)}" for h in sorted(hatlar, key=sayi)]
 
-antrea, uretim_a = [], ""
-for no, l in enumerate((rke2 / "araclar/matris/antrea-uyum.txt").read_text(encoding="utf-8").splitlines(), 1):
-    if l.startswith("# Üretim:"):
-        uretim_a = l[2:].split(" · ")[0]
-    if l.strip() and not l.startswith("#"):
-        a, y, t, alt, ust = l.split()
-        antrea.append(f"| {a} | {y} | {t} | {alt} – {ust} | `antrea-uyum.txt:{no}` |")
-
 bugun = datetime.date.today().isoformat()
 blok = f"""<!-- VERI:BASLA — script/veri-guncelle.sh üretir, ELLE DÜZENLEME -->
 ## Çevrimdışı veri (üretim {bugun}; kaynak: kurum rke2-ansible `araclar/matris/`)
@@ -75,11 +67,6 @@ yoksa "bu veride yok — hesaplanamadı" de; rke2-ansible varsa aracı çalışt
 
 RKE2 hatlarının en son kararlı yaması (üretim anında, github.com/rancher/rke2): {' · '.join(yama)}
 
-**Antrea → desteklenen Kubernetes** (kural: her Antrea sürümü çıktığı gün desteklenen son 4 K8s sürümü; {uretim_a or 'üretim tarihi yok'}):
-
-| Antrea | En son yama | Çıkış | Kubernetes | Kaynak (`araclar/matris/`) |
-|---|---|---|---|---|
-{chr(10).join(antrea)}
 <!-- VERI:BITIS -->"""
 
 metin = beceri.read_text(encoding="utf-8")
@@ -88,7 +75,7 @@ if "<!-- VERI:BASLA" not in metin:
 yeni = re.sub(r"<!-- VERI:BASLA.*?<!-- VERI:BITIS -->", lambda _: blok, metin, flags=re.S)
 if yeni != metin:
     beceri.write_text(yeni, encoding="utf-8")
-    print(f"güncellendi: {beceri.relative_to(beceri.parents[4])} — Rancher {len(satirlar)} sürüm, Antrea {len(antrea)} satır")
+    print(f"güncellendi: {beceri.relative_to(beceri.parents[4])} — Rancher {len(satirlar)} sürüm (Antrea: script/antrea-veri.py)")
 else:
     print("değişiklik yok (veri güncel)")
 PY

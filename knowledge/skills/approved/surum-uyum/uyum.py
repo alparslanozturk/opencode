@@ -23,6 +23,7 @@ ANTREA_ATLAMA = 4  # Antrea docs/versioning.md: tek seferde en çok 4 minor
 
 def veri_oku(yol=VERI):
     bolum, d, kaynak = None, {}, {}
+    hamlar = {}  # '|' ayrılmış bölümler için satırın kendisi ([antrea-kayit])
     try:
         f = open(yol, encoding="utf-8")
     except OSError as e:
@@ -35,7 +36,7 @@ def veri_oku(yol=VERI):
             m = re.fullmatch(r"\[([a-z0-9-]+)\]", s)
             if m:
                 bolum = m.group(1)
-                d[bolum], kaynak[bolum] = [], []
+                d[bolum], kaynak[bolum], hamlar[bolum] = [], [], []
                 continue
             if s.startswith("#"):
                 if bolum:
@@ -43,6 +44,8 @@ def veri_oku(yol=VERI):
                 continue
             if bolum:
                 d[bolum].append(s.split())
+                hamlar[bolum].append(s)
+    d["_ham"] = hamlar
     return d, kaynak
 
 
@@ -85,6 +88,14 @@ class Veri:
         self.k_omur = {r[0]: dict(ga=tarih(r[1]), eom=tarih(r[2]), eol=tarih(r[3])) for r in d["rke2-omur"]}
         self.u_omur = {r[0]: tarih(r[1]) for r in d["k8s-omur"]}
         self.antrea = {r[0]: dict(yama=r[1], cikis=tarih(r[2]), alt=r[3], ust=r[4]) for r in d["antrea"]}
+        # G77: üretici kanıtları — VMware VCN destek matrisi, VMware VKr'nin paketlediği ikililer, ikiliye özgü kayıtlar
+        self.a_vmware = [dict(vcn=r[0], upstream=r[1], tarih=r[2], k8s=r[3].split(","), rancher=r[4], kod=r[5])
+                         for r in d.get("antrea-vmware", [])]
+        self.a_vkr = {r[0]: dict(antrea=r[1].split(","), vkr=r[2].split(",")) for r in d.get("antrea-vkr", [])}
+        self.a_kayit = [[x.strip() for x in l.split("|")] for l in d.get("_ham", {}).get("antrea-kayit", [])]
+        self.rke2_cni = [r[0] for r in d.get("rke2-cni", [])]
+        self.gpu_op = {r[0]: dict(alt=r[1], ust=r[2], rhel=r[3].split(","), varsayilan=r[4], suruculer=r[5].split(","))
+                       for r in d.get("gpu-operator", [])}
         self.rhel = {r[0]: dict(son=r[1], tam=tarih(r[2]), bakim=tarih(r[3])) for r in d["rhel-omur"]}
 
     def matris_satiri(self, rancher):
@@ -100,9 +111,23 @@ class Veri:
         k = alt[-1] if alt else aday[0]
         return k, self.matris[k], True
 
-    def antrea_destekler(self, mn, k8s):
+    def antrea_garanti(self, mn, k8s):
         a = self.antrea.get(mn)
         return bool(a) and hat_t(a["alt"]) <= hat_t(k8s) <= hat_t(a["ust"])
+
+    def antrea_vkr(self, mn, k8s):
+        """VMware VKr bu K8s hattında bu Antrea minor'ını paketliyor mu → paketlenen sürümler."""
+        return [x for x in self.a_vkr.get(k8s, {}).get("antrea", []) if hat(x) == mn]
+
+    def antrea_destekler(self, mn, k8s):
+        """Yükseltme yolu için: upstream garantisi YA DA üreticinin (VMware VKr) aynı ikiliyi paketlemesi."""
+        return self.antrea_garanti(mn, k8s) or bool(self.antrea_vkr(mn, k8s))
+
+    def antrea_dayanak(self, mn, k8s):
+        if self.antrea_garanti(mn, k8s):
+            return "upstream garanti"
+        v = self.antrea_vkr(mn, k8s)
+        return f"VMware VKr {k8s} paketliyor ({', '.join(v)})" if v else "kaynak yok"
 
 
 class Rapor:
@@ -175,23 +200,17 @@ def kontrol(v, a, bugun):
                 rp.ekle("✅" if ok else "❌", f"Rancher {a.rancher} ↔ local (upstream) RKE2 {k8s}: aralık v{alt}…v{ust}{not_}", satir["kaynak"])
             else:
                 ok = k8s in satir["down"]
-                rp.ekle("✅" if ok else "❌", f"Rancher {a.rancher} ↔ downstream RKE2 {k8s}: hatlar {', '.join(satir['down'])}{not_}", satir["kaynak"])
+                rp.ekle("✅" if ok else "❌", f"Rancher {a.rancher} ↔ downstream RKE2 {k8s}: hatlar {', '.join(satir['down'])}"
+                        + ("" if ok else " — SUSE destek listesinde yok (destek kapsamı dışı)") + not_, satir["kaynak"])
             for r in a.rhel:
                 ok = r in satir["rhel"]
-                rp.ekle("✅" if ok else "❌", f"RHEL {r} ↔ Rancher {a.rancher} (RKE2 için desteklenen RHEL): {'listede' if ok else 'LİSTEDE YOK'}{not_}", satir["kaynak"])
+                rp.ekle("✅" if ok else "❌", f"RHEL {r} ↔ Rancher {a.rancher} (RKE2 için desteklenen RHEL): {'listede' if ok else 'SUSE destek listesinde YOK (destek kapsamı dışı — çalışmaz demek değil)'}{not_}", satir["kaynak"])
 
     if a.antrea and a.rke2:
-        mn = hat(a.antrea)
-        an = v.antrea.get(mn)
-        if not an:
-            rp.ekle("❓", f"Antrea {a.antrea}: veri yok — hesaplanamadı", "[antrea]")
-        else:
-            ok = v.antrea_destekler(mn, k8s)
-            en_az = next((m for m in sorted(v.antrea, key=hat_t) if v.antrea_destekler(m, k8s)), None)
-            rp.ekle("✅" if ok else "❌", f"Antrea {a.antrea} ↔ K8s {k8s}: v{mn} → {an['alt']}–{an['ust']}"
-                    + ("" if ok else f" · en az v{en_az} ({v.antrea[en_az]['yama']})" if en_az else ""), "[antrea] antrea-uyum.txt")
-            if surum_t(a.antrea) < surum_t(an["yama"]):
-                rp.ekle("⚠️", f"Antrea {a.antrea}: minor'ın en son yaması {an['yama']} (yama = yalnız hata düzeltmesi)", "[antrea]")
+        antrea_kontrol(v, a, k8s, rp)
+
+    if getattr(a, "gpu_operator", None):
+        gpu_kontrol(v, a, k8s, rp)
 
     for r in a.rhel:
         ana = r.split(".")[0]
@@ -211,6 +230,82 @@ def kontrol(v, a, bugun):
                     "[rhel-omur] access.redhat.com/support/policy/updates/errata")
     rp.bas()
     return rp
+
+
+def kosul_tutar(kosul, deger):
+    """'<2.5', '>=1.33', '2.3', '*' gibi minor koşulu."""
+    m = re.fullmatch(r"(<=|>=|<|>|=)?\s*v?(\d+\.\d+)", kosul.strip())
+    if kosul.strip() in ("*", ""):
+        return True
+    if not m:
+        return False
+    op, h = m.group(1) or "=", hat_t(m.group(2))
+    d = hat_t(deger)
+    return {"<": d < h, "<=": d <= h, ">": d > h, ">=": d >= h, "=": d == h}[op]
+
+
+def antrea_kontrol(v, a, k8s, rp):
+    """G77 (Alp, 2026-10-21): her kaynak ayrı satır; ❌ yalnız kanıtlı kayıtla. Pencere/matris dışı = ⚠️ 'olabilir'."""
+    mn = hat(a.antrea)
+    an = v.antrea.get(mn)
+    if not an:
+        rp.ekle("❓", f"Antrea {a.antrea}: upstream verisi yok — hesaplanamadı (uyumlu/uyumsuz olabilir)", "[antrea]")
+    elif v.antrea_garanti(mn, k8s):
+        rp.ekle("✅", f"Antrea {a.antrea} ↔ K8s {k8s}: upstream garanti aralığında (v{mn} → {an['alt']}–{an['ust']})",
+                "Antrea docs/versioning.md 'Supported K8s versions' + GitHub releases + endoflife.date [antrea]")
+    else:
+        rp.ekle("⚠️", f"Antrea {a.antrea} ↔ K8s {k8s}: upstream GARANTİ DIŞI (v{mn} çıktığında bakımdaki K8s {an['alt']}–{an['ust']}) "
+                f"— resmi metin asgari garanti ('at least'); uyumsuz OLABİLİR, uyumsuzluk kanıtı değil",
+                "Antrea docs/versioning.md 'Supported K8s versions' [antrea]")
+    vcn = [x for x in v.a_vmware if hat(x["upstream"]) == mn]
+    for x in vcn:
+        icinde = k8s in x["k8s"]
+        rp.ekle("✅" if icinde else "⚠️",
+                f"VMware VCN Antrea {x['vcn']} (= upstream {x['upstream']}, {x['tarih']}) matrisi: K8s {x['k8s'][0]}–{x['k8s'][-1]}, "
+                f"Rancher {x['rancher']} → K8s {k8s} {'listede' if icinde else 'LİSTEDE YOK'}"
+                + (f"; Rancher {hat(a.rancher)} listede yok" if a.rancher and hat(a.rancher) != x['rancher'] else "")
+                + " — yalnız VMware imajı (antreainterworking, _vmware) kullanılıyorsa destek beyanı",
+                f"Broadcom TechDocs vmware-container-networking-with-antrea-{x['kod']}-release-notes [antrea-vmware]")
+    if not vcn:
+        rp.ekle("ℹ️", f"VMware VCN: upstream v{mn}'e karşılık gelen sürüm verisi yok", "[antrea-vmware]")
+    vkr = v.antrea_vkr(mn, k8s)
+    if vkr:
+        rp.ekle("✅", f"VMware VKr {k8s}.x aynı ikiliyi paketliyor (Antrea {', '.join(vkr)}) — üretici bu ikiliyi kendi ürününde çalıştırıyor",
+                "Broadcom TechDocs vmware-vkr-release-notes [antrea-vkr]")
+    elif k8s in v.a_vkr:
+        rp.ekle("ℹ️", f"VMware VKr {k8s}.x Antrea {', '.join(v.a_vkr[k8s]['antrea'])} paketliyor (v{mn} değil)", "[antrea-vkr]")
+    kotu = False
+    for satir in v.a_kayit:
+        ak, kk, isaret, kapsam, aciklama, kaynak = (satir + [""] * 6)[:6]
+        if kosul_tutar(ak, mn) and kosul_tutar(kk, k8s):
+            rp.ekle(isaret, f"Bilinen kayıt ({kapsam}): {aciklama}", kaynak)
+            kotu = kotu or isaret == "❌"
+    if v.rke2_cni and "antrea" not in v.rke2_cni:
+        rp.ekle("ℹ️", f"RKE2'nin paketlediği CNI'lar: {', '.join(v.rke2_cni)} — Antrea değil; SUSE desteği Antrea'yı kapsamaz", "[rke2-cni]")
+    if not kotu:
+        rp.ekle("ℹ️", f"Antrea {a.antrea} + K8s {k8s}: kanıtlı uyumsuzluk kaydı YOK — olay/arıza sebebi olarak yazılamaz", "[antrea-kayit]")
+
+
+def gpu_kontrol(v, a, k8s, rp):
+    """NVIDIA GPU Operator üretici matrisi (Platform Support). Liste dışı = ⚠️ (doğrulanmamış), ❌ değil."""
+    s_ad = "v" + a.gpu_operator.lstrip("v")
+    g = v.gpu_op.get(s_ad)
+    kaynak = f"docs.nvidia.com/datacenter/cloud-native/gpu-operator/{s_ad.lstrip('v')}/platform-support.html [gpu-operator]"
+    if not g:
+        rp.ekle("❓", f"GPU Operator {s_ad}: veri yok — hesaplanamadı (veriye ekle: o sürümün Platform Support sayfası)", "[gpu-operator]")
+        return
+    if k8s:
+        ok = hat_t(g["alt"]) <= hat_t(k8s) <= hat_t(g["ust"])
+        rp.ekle("✅" if ok else "⚠️", f"GPU Operator {s_ad} ↔ RKE2 {k8s}: NVIDIA doğrulama aralığı {g['alt']}–{g['ust']}"
+                + ("" if ok else " — listede yok, destek kapsamı dışı olabilir"), kaynak)
+    for r in a.rhel:
+        ok = r in g["rhel"]
+        rp.ekle("✅" if ok else "⚠️", f"GPU Operator {s_ad} ↔ RHEL {r}: " + ("listede" if ok else f"listede yok ({', '.join(g['rhel'])}) — doğrulanmamış"), kaynak)
+    if getattr(a, "surucu", None):
+        ok = a.surucu in g["suruculer"]
+        rp.ekle("✅" if ok else "⚠️", f"Sürücü {a.surucu} ↔ GPU Operator {s_ad}: "
+                + ("desteklenenler listesinde" + (" (varsayılan/önerilen)" if a.surucu == g["varsayilan"] else f"; varsayılan {g['varsayilan']}")
+                   if ok else f"listede yok (varsayılan {g['varsayilan']})"), kaynak)
 
 
 def yol(v, a, bugun):
@@ -275,8 +370,8 @@ def yol(v, a, bugun):
                     adimlar.append(f"❌ RKE2 {k8s}→{yeni} için hem {k8s} hem {yeni}'i destekleyen Antrea (≤{ANTREA_ATLAMA} minor atlama) yok")
                     sorun += 1
                     break
-                adimlar.append(f"Antrea {antrea_ad} → {v.antrea[secim]['yama']} (K8s {v.antrea[secim]['alt']}–{v.antrea[secim]['ust']}; "
-                               f"önce controller sonra agent, node node)")
+                adimlar.append(f"Antrea {antrea_ad} → {v.antrea[secim]['yama']} ({k8s}: {v.antrea_dayanak(secim, k8s)}; "
+                               f"{yeni}: {v.antrea_dayanak(secim, yeni)}; önce controller sonra agent, node node)")
                 antrea, antrea_ad = secim, v.antrea[secim]["yama"]
             hedef_yama = v.k_yama.get(yeni, f"v{yeni}.x (veri yok)")
             adimlar.append(f"RKE2 {k8s} → {hedef_yama} (önce etcd snapshot; server'lar tek tek, sonra agent'lar)")
@@ -306,6 +401,8 @@ def main():
     p.add_argument("--rancher")
     p.add_argument("--rke2", help="ör. v1.33.13+rke2r1")
     p.add_argument("--antrea", help="ör. v2.3.0")
+    p.add_argument("--gpu-operator", help="ör. v25.3.4 (NVIDIA GPU Operator)")
+    p.add_argument("--surucu", help="ör. 580.82.07 (GPU sürücüsü, --gpu-operator ile)")
     p.add_argument("--rhel", default="", help="virgüllü: 9.2,9.4,9.8")
     p.add_argument("--rol", choices=["downstream", "upstream"], default="downstream", help="upstream = Rancher'ın kendi local kümesi")
     p.add_argument("--hedef-rke2")

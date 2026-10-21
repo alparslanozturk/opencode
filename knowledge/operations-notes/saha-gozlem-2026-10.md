@@ -1007,3 +1007,12 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   kontrolü, SAN/tarih/issuer (şu anki secret'la karşılaştırma), anahtar eşleşmesi, `verify -CAfile chain.pem`, ara sertifika ekleme,
   issuer farklıysa dur; yedek `old/`'a + `apply` (ilk kurulum `create` AlreadyExists verir) + s_client doğrulama + geri alma.
   Okuma komutları kilitten geçiyor, `apply` K1 (beklenen; bu platformda kullanıcı çalıştırır).
+
+### G85 — "Danışman" kipinde ajan komut yerine soru sordu; beceriyi yüklemedi
+- Görülen (Alp ekranları, 2026-10-21 13:15): Alp: "master sunucuya bağlandım, bulut tarafında ben sana komutları ve çıktıları vereceğim,
+  danışman gibi çalışacağız; sertifikalar hazır, tls.crt ve tls.key eskileri old/'a koydum" + `ls` + `kubectl get nodes -o wide`.
+  Ajan `rancher-sertifika`'yı yüklemedi (oturum G82'den önce açılmıştı — tahmin: beceri listesi oturum başında okunuyor); "/root/certs
+  (veya ~/certs)" diye yol tahmin etti; "RKE2 iç sertifikası mı ingress mi, hangi domain, chain.pem'i kullanacak mıyız" diye sordu —
+  domain/zincir `openssl` ile okunabilirdi. Alp: "ingress sertifikası; cacerts.pem içinde sanırım CA ve SUBCA var".
+- Aksiyon (yapıldı): AGENTS erişilemeyen platform 3 → komutla okunabilecek şeyi sorma, okuyacak komutu ver; yol/dosya adını tahmin
+  etme; 3b işin becerisini yükle. `rancher-sertifika` tetikleyicilerine "sertifikaları değiştir", "tls.crt", "tls.key", "pfx" …

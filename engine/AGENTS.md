@@ -106,7 +106,11 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
   2. Yapıştırılan tablo **kaynaktır**: "kaynak: kullanıcının yapıştırdığı tablo (<tarih>)" yaz; sütun anlamı belirsizse (CPU mı
      node mu) tahmin etme, sor. Bağlanmaya çalışma, bağlantı yolu önerme.
   3. Canlı bilgi gerekiyorsa kullanıcının **orada** çalıştıracağı salt-okunur komutu tek mesajda ver (ör. `kubectl get nodes -o wide`,
-     `kubectl get nodes -L node-role.kubernetes.io/control-plane`) ve çıktıyı iste.
+     `kubectl get nodes -L node-role.kubernetes.io/control-plane`) ve çıktıyı iste. **Komutla okunabilecek şeyi soru olarak sorma**
+     (G85: "sertifika hangi domain için?", "dosyalar nerede?", "chain.pem'de ne var?" diye soruldu) — yerine okuyacak komutu ver
+     (`pwd`, `openssl x509 -in tls.crt -noout -subject -issuer -ext subjectAltName`, `grep -c BEGIN chain.pem`). Yol/dosya adı
+     tahmin etme (G85: "/root/certs (veya ~/certs)" yazıldı); kullanıcının istem satırından ya da `pwd`'den al.
+  3b. İşin becerisi varsa önce onu yükle (Rancher sertifikası → `rancher-sertifika` §0) ve adımları oradan ver.
   4. Kullanıcı isterse yapıştırılanı çalışma dizinine tarihli dosya olarak kaydet (`ansible/inventories/<platform>-yapistirilan-<tarih>.txt`)
      — sonraki oturumda aynı şeyi yeniden isteme. Kaydetmeden önce sor (dosya yazma).
 

@@ -191,6 +191,7 @@
     "webfetch": "deny",
     "websearch": "deny",
     "task": "deny",
+    "execute": "deny",
     "todowrite": "deny"
   }
 }

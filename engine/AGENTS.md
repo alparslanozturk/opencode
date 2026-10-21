@@ -69,6 +69,12 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
 ## Komut hata verirse ya da seçeneğinden emin değilsen: önce makinedeki doküman (Alp, 2026-10-05)
 - Bir komut/seçenek hata verdiyse **tahminle yeni değer deneme** — önce hata mesajını aynen oku, sonra o
   makinedeki dokümana bak, değeri dokümandan al ve kaynağını yaz. Her komut için geçerli.
+- **Uzun veriyi yeniden yazma (G94):** kullanıcının yapıştırdığı base64, sertifika, anahtar, uzun JSON/log değerini kopyalayıp
+  dosyaya/komuta **yazma** — yeniden yazarken bozuluyor ("1 more than a multiple of 4", PEM sonu çöp). Değeri kaynağından boruyla
+  al (`kubectl … | base64 -d | openssl …`) ya da kullanıcıya orada çalıştıracağı tek satırı ver.
+- **Kubernetes Secret (G88, G94):** `.data` değerleri base64 — bir kez `base64 -d` → PEM → `openssl x509`. Anahtarda nokta varsa
+  jsonpath'te kaçır: `{.data.tls\.crt}`; `{.data.tls.crt}` **boş** döner (openssl "Could not find certificate" / "header too long"
+  bunun sonucudur, PEM/DER sorunu değil — `-inform DER` deneme). Ayrıntı: `kume-bul` §3, `rancher-sertifika`.
 - Sıra: `<komut> --help` · `man <komut>` · dosya sistemi/biçim için bölüm 5 (`man 5 tmpfs`, `man 5 fstab`) ·
   `man 8 mount` · `man -k <kelime>` · `rpm -qd <paket>` ve `/usr/share/doc/<paket>/` · çekirdek hatası için
   `dmesg | tail` / `journalctl -k -n 50` (mount hatası "dmesg(1) may have more information" der).
@@ -96,6 +102,9 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
    salt-okunurdur:** `Read` / `Glob` / `Grep` ile `hosts*.ini`, kubeconfig, CSV/XLSX içeriğini oku;
    tabloyu kur. Playbook çalıştırma, dosya değiştirme, sunucuya bağlanma — bunlar 1. maddedeki açık
    istek olmadan yapılmaz.
+- **"Bu sunucu/IP hangi kümede / hangi platformda?" (saha G94):** `kume-bul` becerisini yükle ve önce
+  `python3 /root/ai/opencode/knowledge/skills/approved/kume-bul/kume-bul.py <ad|IP>` çalıştır — tüm envanteri ad, kısa ad **ve IP**
+  ile eşler (bir dosyada adla yok diye "kümede yok" deme). Envanter yetmezse becerinin §2'si (node'dan salt-okunur kanıt).
 - **Sayı/birim tutarlılığı zorunlu:** aynı tabloda birim karıştırma; satır toplamlarını tek tek doğrula
   (KUME-B + KUME-A toplamı gibi). Kaynağı ve tarihi yaz; ölçmediğin sayıyı "ölçülmedi" diye işaretle.
 - **Bu makineden erişilemeyen platform (Alp, 2026-10-21 — ikinci bulut platformu; saha G81):** bazı Rancher platformlarına
@@ -218,7 +227,7 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
 
 ## Beceri (skill) disiplini
 - **Değişiklik yapan işe başlamadan önce o konunun becerisini yükle** (disk/mount/fstab → `rhel-depolama`, kurulum/teslim →
-  `rhel-teslim`, GPU → `rke2-denetim`, Rancher sertifikası → `rancher-sertifika` …). Kullanıcı beceri adını söylemese de. Kanıt: saha G39 (2026-10-14) —
+  `rhel-teslim`, GPU → `rke2-denetim`, Rancher sertifikası → `rancher-sertifika`, node/IP → küme → `kume-bul` …). Kullanıcı beceri adını söylemese de. Kanıt: saha G39 (2026-10-14) —
   beceri yüklenmeden diske LVM'siz `mkfs` + fstab'a `/dev/sdb` yazıldı; becerideki her kural bunu yasaklıyordu.
 - Beceriler talep üzerine yüklenir; konu kapanınca bırak. Kullanıcı "ansible işlerini bırak" dediyse
   o beceriyi tekrar yükleme.

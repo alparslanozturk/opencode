@@ -1097,3 +1097,26 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   `rhel-teslim` §0 seti dışındaki kurum playbook'ları.
 - Düzeltme (Alp, aynı gün): ekip playbook'ları kaliteli değil, becerilere referans olmasın → `rhel-teslim`'deki Splunk/SEP satırı
   kaldırıldı. Kalan: IdM kurum notu (`rhel-yonetim`) ve genel kontrol listesi (`ansible` §8).
+
+### G94 — "splkubelocal2 hangi kümede?": envanterden bulunamadı, base64 elle kopyalanıp bozuldu, `execute` aracına bash/python
+- Görülen (Alp ekranları, 2026-10-21, oturum "splkubelocal2 küme ve platform sorgusu"): Alp "sertifikadan bak, envanterden bak" +
+  `kubectl -n cattle-system get secret tls-rancher-ingress -o json` çıktısını yapıştırdı. Ajan: (1) base64'ü kendisi yeniden yazıp
+  `/tmp/tls.crt`'ye koydu → `openssl x509 -in` (base64'ü çözmeden) hata; `base64 -d` → "Could not find certificate"; python ile
+  "number of data characters (1857) cannot be 1 more than a multiple of 4" → karakter silerek onarma denemeleri (`decode_cert2/3.py`),
+  PEM sonu çöp. (2) `execute` aracına üç kez kod gönderdi → "Unexpected token (1:5)", "'import' and 'export' may appear only with
+  'sourceType: module'". (3) Envanterde `awk` ile adı aradı: `hosts.ini:281` `[production]` düz liste, `hosts-rke2.ini`'de adla yok →
+  "hiçbir RKE2 platformunda tanımlı değil"; IP ile eşleme denenmedi. (4) Özet tablosunda kanıtsız: "splkubelocal1/2/3 = 3 node'lu local
+  küme", "RKE2 öncesi (RKE1 / Rancher 2.1)". (5) Sonra yine `jsonpath='{.data.tls.crt}'` (G88'deki nokta kaçışı hatası) ve
+  `-inform DER` önerdi → splkubelocal1'de "header too long".
+- Alp: "envanter çalışmasını daha önce yapmıştım, bütün kümelerin master'larını almıştı; bir master ya da worker söylediğimde kümeyi
+  hemen bulması lazım. Bulamazsa master'a gidip sertifikadan CN'i bulabilir. Kubernetes datasının base64 olduğunu bile bilmiyor."
+- Kök: `execute` = opencode 2.x Code Mode aracı (JS; içinde yalnız MCP kaynak / oturum araçları — kurumda MCP yok), Qwen bunu genel
+  "kod çalıştır" sanıyor. Envanterde ad ↔ IP ↔ grup eşlemesini yapan araç yoktu (kilitte `envanter.ts` var ama ajana açık değil).
+- Aksiyon (yapıldı): `engine/opencode.json` `"execute": "deny"` (upstream testi: deny → araç şemadan düşer, `tool-registry.test.ts`
+  41 pass). Yeni beceri `kume-bul` + `kume-bul.py` (envanter.ts kurallarıyla: aralık, `ansible_host`, `:children`; IP üzerinden
+  dosyalar arası eşleme, grup üyeleri, `:vars` gizli alan maskeli, çok adda grup kapsama özeti); §2 canlı salt-okunur yol (rke2 config
+  `server:`, `get nodes` → betik, Rancher `server-url` / `tls-rancher-ingress` CN/SAN / `CATTLE_SERVER`); §3 Secret okuma. Komutlar
+  kilitten geçiyor (kilitDenetle → null). AGENTS: yönlendirme + "uzun veriyi yeniden yazma" + Secret base64/jsonpath kuralı.
+- Açık: kurum envanterinde splkubelocal2'nin küme grubunda IP ile geçip geçmediği bilinmiyor (betik sahada ilk koşuda gösterecek);
+  "tüm kümelerin master'ları" listesi `hosts-rke2.ini` dışında bir dosyadaysa (ya da yalnız eski bir oturumda yapıştırıldıysa) betik
+  onu görmez — çalışma dizinindeki `ansible/inventories/` altına konmalı.

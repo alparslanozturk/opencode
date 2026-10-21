@@ -50,7 +50,7 @@ def veri_oku(yol=VERI):
 
 
 def tarih(s):
-    return None if s in (None, "-") else dt.date.fromisoformat(s)
+    return None if s in (None, "-") else dt.datetime.strptime(s, "%Y-%m-%d").date()  # 3.6 uyumu (RHEL 8 platform-python)
 
 
 def hat(s):
@@ -417,7 +417,7 @@ def main():
         return 0
     try:
         v = Veri(d)
-        bugun = dt.date.fromisoformat(a.tarih) if a.tarih else dt.date.today()
+        bugun = dt.datetime.strptime(a.tarih, "%Y-%m-%d").date() if a.tarih else dt.date.today()
         if a.islem == "kontrol":
             return 1 if kontrol(v, a, bugun).kotu else 0
         return 1 if yol(v, a, bugun) else 0

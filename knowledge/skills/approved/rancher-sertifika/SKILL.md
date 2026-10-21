@@ -54,6 +54,15 @@ echo | openssl s_client -connect <rancher-hostname>:443 -servername <rancher-hos
 `notAfter` yeni tarih → tamam. Eski tarih → birkaç dakika sonra tekrar (§5). Geri alma: `kubectl apply -f old/tls-rancher-ingress-yedek-<tarih>.yaml`.
 Aynı CA'da `helm upgrade`, `tls-ca`, `rollout restart`, ajan/Fleet adımı **yok** — önerme.
 
+**Bu akışta yapılan hatalar (saha G86) — yapma:**
+- `--cert=chain.pem` vermek: `chain.pem`/`cacerts.pem` **eski** kurulumdan kalan dosyalardır; `chain.pem`'deki sunucu sertifikası
+  ESKİSİDİR. `--cert` yalnız **yeni `tls.crt`** (yaprak + ara). (kubectl anahtar–sertifika uyuşmazlığında genelde hata verir — genel;
+  ama yanlış dosyayla denemek zaten yanlış.)
+- Yedek almadan, anahtar eşleşmesine ve issuer karşılaştırmasına (adım 3-4) bakmadan uygulama komutu vermek.
+- Aynı CA'da `kubectl rollout restart deploy rancher` önermek — docs yalnız `tls-ca` değişince ister; ingress secret'ı kendisi alır.
+- jsonpath'te noktayı kaçırmamak: `{.data.tls.crt}` boş döner, doğrusu `{.data.tls\.crt}`.
+- Okumadığın değeri yazmak ("2028'e kadar geçerli") — `openssl x509 -dates` çıktısından al.
+
 ## 1. İlk karar — yeni sertifika aynı CA'dan mı? (her şey buna bağlı)
 
 Mevcut durumu oku (Rancher'ın **local** kümesinde, bir master'da `export KUBECONFIG=/etc/rancher/rke2/rke2.yaml`):

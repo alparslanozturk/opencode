@@ -1016,3 +1016,12 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   domain/zincir `openssl` ile okunabilirdi. Alp: "ingress sertifikası; cacerts.pem içinde sanırım CA ve SUBCA var".
 - Aksiyon (yapıldı): AGENTS erişilemeyen platform 3 → komutla okunabilecek şeyi sorma, okuyacak komutu ver; yol/dosya adını tahmin
   etme; 3b işin becerisini yükle. `rancher-sertifika` tetikleyicilerine "sertifikaları değiştir", "tls.crt", "tls.key", "pfx" …
+
+### G86 — Sertifika planı: `--cert=chain.pem` (eski zincir), yedek/eşleşme/issuer yok, gereksiz Rancher restart
+- Görülen (Alp ekranı, 2026-10-21): ajan birkaç çıktı istedi, sonra "Güncelleme adımları": (1) `kubectl create secret tls
+  tls-rancher-ingress --cert=/root/rancher/certs/chain.pem --key=…/tls.key --dry-run=client -o yaml | kubectl apply -f -`
+  (2) doğrulama `jsonpath='{.data.tls.crt}'` (nokta kaçırılmamış → boş) (3) `kubectl rollout restart deploy rancher` (4) pod izleme;
+  "tarayıcıda 2028'e kadar geçerli olduğunu doğrula". Ajanın tespiti: "chain.pem = server cert + root CA (tam zincir)".
+- ❌ chain.pem eski kurulumun dosyası — içindeki sunucu sertifikası eski; yeni tls.crt kullanılmadı. Yedek, anahtar eşleşmesi, issuer
+  karşılaştırması yok. Aynı CA'da restart gereksiz (docs). §0 akışı izlenmedi — tahmin: oturum beceriden önce açıldı / beceri yüklenmedi.
+- Aksiyon (yapıldı): `rancher-sertifika` §0 sonuna "Bu akışta yapılan hatalar — yapma" listesi.

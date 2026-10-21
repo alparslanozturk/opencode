@@ -41,6 +41,10 @@ Sıra (2026-10-13 itibarıyla):
 11-reboot
 ```
 
+- **Seti dışındaki kurum playbook'ları (Alp, 2026-10-21; Satellite'taki ansible dizini):** Splunk UF kurulumu (`splunk/`, paket
+  Satellite `pub/splunk/`'tan, 2026-10 itibarıyla `splunkforwarder-9.4.14`), SEP güncelleme (`sep/96-sep-update.yaml`, `LinuxInstaller`
+  Satellite `pub/SAL/<sürüm>/`'dan, `--local-repo`). XDR (Cortex) betikleri de ekipte var. Çalıştırmadan önce `ansible` §8 kontrol listesi.
+  Yerel kullanıcı ekleyen playbook kullanılmaz (IdM — `rhel-yonetim`).
 - **Adım adım, kullanıcı kontrolünde (Alp, 2026-10-14):** her adım bitince dur, sonucu göster, sonraki adımı **sor**.
   Araya başka iş girdiyse (disk düzeltme, reboot) önceki "X ile devam et" onayı düşer — sıradaki adıma yeniden sor.
   "Verilen işi sonuna kadar yap" (AGENTS.md) bu akışta adımın **içi** içindir, adımlar arası geçiş için değil.

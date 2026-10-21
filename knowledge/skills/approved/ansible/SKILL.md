@@ -143,6 +143,22 @@ ansible-playbook <p>.yml     -l/--limit yoksa TÜM envanter
 
 Önce **kimi kapsadığını göster** (`--list-hosts`) ve `--check` çıktısını sun.
 
+## 8. Hazır (kurum/arkadaş) playbook'u çalıştırmadan önce oku — kontrol listesi
+
+Kurumda ekiplerin hazır playbook'ları var (Splunk UF, SEP güncelleme, kullanıcı …). Çalıştırmadan önce dosyayı oku ve kullanıcıya
+bulduğunu **tek liste** halinde söyle (düzeltmek kullanıcının kararı; kendin düzenleme):
+
+- `hosts: all` → `--limit` şart; `--list-hosts` ile kapsamı göster.
+- Play düzeyinde `ignore_errors: yes` → hatalar sessizce geçer, `PLAY RECAP` "ok" der ama iş yapılmamış olabilir; sonucu ayrı doğrula.
+- **Yıkıcı adım doğrulamadan önce mi?** (ör. eski ajanı kaldır → sonra indir/doğrula: indirme bozulursa sunucu ajansız kalır). Sıra
+  "indir → doğrula → kaldır → kur" olmalı.
+- **Yorum satırına alınmış ön koşul:** sonraki görev bir dosyayı kullanıyor ama o dosyayı kopyalayan görev `#` ile kapalı mı?
+  (ör. kurulum betiği `/tmp/…sh` çalıştırılıyor, betiği kopyalayan görev yorumda → betik sunucuda yoksa görev düşer, `ignore_errors`
+  ile de görünmez).
+- **Tekrar çalıştırılabilir mi?** Sürüm kontrolü yoksa her koşuda kaldır-kur yapar; `stat`/sürüm karşılaştırması var mı.
+- Sabit sürüm/yol (`…-9.4.14-….tgz`, `sal_version`) — kullanıcının beklediği sürüm mü, sor.
+- Parola/anahtar düz metin mi (`vars/main.yaml`), sudo `NOPASSWD: ALL` veriyor mu → güvenlik notu olarak söyle.
+
 ## Raporlama
 
 `PLAY RECAP` satırlarını olduğu gibi yapıştırma; sorunluları ayır:

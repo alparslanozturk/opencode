@@ -1,6 +1,6 @@
 ---
 name: rhel-yonetim
-description: RHEL sunucularda sistem yönetimi yaparken kullan — servis, log, paket, abonelik, Satellite (hammer), IdM (ipa). "servis", "systemctl", "journalctl", "dnf", "satellite", "hammer", "ipa", "idm", "abonelik", "repo" isteklerinde tetiklenir. Güncelleme ve yama için `rhel-guncelleme`.
+description: RHEL sunucularda sistem yönetimi yaparken kullan — servis, log, paket, abonelik, Satellite (hammer), IdM (ipa). "servis", "systemctl", "journalctl", "dnf", "satellite", "hammer", "ipa", "idm", "abonelik", "repo", "kullanıcı ekle", "yerel kullanıcı", "sudo yetkisi" isteklerinde tetiklenir. Güncelleme ve yama için `rhel-guncelleme`.
 ---
 
 ## Önce: gerçekten Linux mu
@@ -28,6 +28,11 @@ hammer --help
 hammer host --help
 hammer host list --help
 ```
+
+**Kurumda kullanıcı yönetimi (Alp, 2026-10-21):** kişiler **Red Hat IdM** (Active Directory ile entegre) üzerinden giriş yapar —
+sunuculara **yerel kullanıcı eklenmez**; geçici eklenen yerel kullanıcı sonra silinir. Erişim/yetki sorusunda yerel `useradd` /
+`/etc/sudoers.d/` önerme; IdM tarafını (kullanıcı/grup, HBAC, sudo kuralı) söyle. Hazır "yerel admin kullanıcı ekle" playbook'u
+görürsen bunu hatırlat.
 
 IdM için:
 

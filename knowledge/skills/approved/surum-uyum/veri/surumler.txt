@@ -65,16 +65,65 @@ v2.15.2   1.34  1.36  1.34,1.35,1.36  8.10,9.6,9.8,10.0,10.2              ranche
 1.30  2025-07-15
 
 [antrea]
-# Antrea minor → desteklenen K8s (kural: çıktığı gün bakımdaki son 4 K8s). Kaynak: kurum rke2-ansible araclar/matris/antrea-uyum.txt (2026-09-30).
+# Antrea minor → GARANTİLİ K8s (asgari): x.y.0 yayın günü bakımdaki K8s minor'ları. Üretim 2026-10-21: script/antrea-veri.py.
+# Kural: github.com/antrea-io/antrea docs/versioning.md "Supported K8s versions" ('guarantee … supports at least').
+# Kaynak: api.github.com/repos/antrea-io/antrea/releases (CIKIS = x.y.0 published_at) · endoflife.date/api/kubernetes.json.
+# Pencere dışı = garanti yok (⚠️ olabilir), uyumsuz DEĞİL. Kanıtlı uyumsuzluk yalnız [antrea-kayit].
 # MINOR  EN_SON_YAMA  CIKIS       K8S_ALT  K8S_UST
 2.0  v2.0.1  2024-04-26  1.27  1.30
-2.1  v2.1.2  2024-07-26  1.27  1.30
-2.2  v2.2.2  2024-11-10  1.28  1.31
+2.1  v2.1.2  2024-07-26  1.28  1.30
+2.2  v2.2.2  2024-11-10  1.29  1.31
 2.3  v2.3.2  2025-02-22  1.29  1.32
 2.4  v2.4.5  2025-07-10  1.30  1.33
-2.5  v2.5.3  2025-12-04  1.31  1.34
-2.6  v2.6.3  2026-03-21  1.32  1.35
-2.7  v2.7.0  2026-08-15  1.33  1.36
+2.5  v2.5.3  2025-12-04  1.32  1.34
+2.6  v2.6.3  2026-03-21  1.33  1.35
+2.7  v2.7.0  2026-08-15  1.34  1.36
+
+[antrea-vmware]
+# VMware Container Networking with Antrea (Broadcom'un TİCARİ Antrea ürünü) — her sürüm notundaki "Compatibility Testing Matrix".
+# Kaynak: techdocs.broadcom.com/us/en/vmware-cis/nsx/container-networking/1-x/release-notes/vmware-container-networking-with-antrea-<KOD>-release-notes.html
+# İndirme 2026-10-21 (Doktor, ham sayfa). 1-x dizinindeki en yeni sürüm 1.11.0. Bu matris YALNIZ VMware imajlarını
+# (projects.packages.broadcom.com/antreainterworking/…, etiket v2.3.0_vmware.1) kullanan kurulumlar için destek beyanıdır.
+# VCN    UPSTREAM  TARIH       K8S_LISTESI                     RANCHER  KOD
+1.9.0   1.15.0    2024-04-02  1.27,1.28,1.29,1.30             2.7      190
+1.10.0  2.1.0     2024-10-16  1.27,1.28,1.29,1.30,1.31        2.7      1100
+1.11.0  2.3.0     2025-04-16  1.27,1.28,1.29,1.30,1.31,1.32   2.7      1110
+
+[antrea-vkr]
+# VMware VKr (vSphere Kubernetes release) — Broadcom'un KENDİ K8s dağıtımında paketlediği Antrea (üretici bu ikiliyi kendi ürününde
+# kullanıyor = çalıştığına dair üretici kanıtı; VCN destek matrisi yerine geçmez). Kaynak: techdocs.broadcom.com/us/en/vmware-cis/vcf/
+# vcf-service-administration-and-development/9-0/release-notes/vmware-vkr-release-notes.html (bileşen tabloları), indirme 2026-10-21.
+# Not: VKr 1.33.6 bölümünün tablo başlığı belgede "1.33.3" yazıyor; tablodaki kubernetes satırı 1.33.6.
+# K8S   ANTREA_SURUMLERI      VKR_SURUMLERI
+1.30  1.15.1                v1.30.1,v1.30.11,v1.30.14
+1.31  2.1.0,2.1.1,2.1.2     v1.31.1,v1.31.4,v1.31.7,v1.31.11,v1.31.14
+1.32  2.2.0,2.2.2           v1.32.0,v1.32.3,v1.32.7,v1.32.10
+1.33  2.3.0,2.3.1,2.3.2     v1.33.1,v1.33.3,v1.33.6,v1.33.13
+1.34  2.4.2,2.4.4,2.4.5     v1.34.1,v1.34.2,v1.34.8,v1.34.9
+1.35  2.5.1,2.5.2           v1.35.0,v1.35.2,v1.35.5,v1.35.6
+1.36  2.6.1,2.6.2           v1.36.1,v1.36.2
+
+[antrea-kayit]
+# Belirli Antrea × K8s ikilisine ÖZGÜ kaynaklı kayıtlar (CHANGELOG / issue). Biçim: '|' ayrılmış —
+# ANTREA_KOŞULU | K8S_KOŞULU | İŞARET | KAPSAM | AÇIKLAMA | KAYNAK. İŞARET ❌ yalnız kanıtlı işlev hatası için.
+<2.5 | >=1.33 | ⚠️ | yalnız Multi-cluster özelliği | ServiceCIDR keşfi K8s 1.33+'da hatalı, v2.5'te düzeltildi | github.com/antrea-io/antrea CHANGELOG-2.5.md (#7291)
+<2.6 | >=1.33 | ℹ️ | log | "v1 Endpoints is deprecated in v1.33+" uyarı logu — işlev hatası değil; ServiceExternalIP v2.6'da EndpointSlice'a geçti | github.com/antrea-io/antrea issue #7332, CHANGELOG-2.6.md (#7686)
+
+[rke2-cni]
+# RKE2'nin paketlediği CNI'lar — RKE2 v1.33.13+rke2r1 sürüm notu "Available CNIs" (github.com/rancher/rke2/releases, indirme 2026-10-21).
+# Antrea listede YOK → RKE2/SUSE desteği Antrea'yı kapsamaz (kurum Antrea'yı kendisi kuruyor).
+# CNI
+canal
+calico
+cilium
+multus
+
+[gpu-operator]
+# NVIDIA GPU Operator "Platform Support" — docs.nvidia.com/datacenter/cloud-native/gpu-operator/<SURUM>/platform-support.html
+# ("Supported Operating Systems and Kubernetes Platforms" tablosu, RKE2 sütunu; "NVIDIA GPU Driver" satırı). İndirme 2026-10-21 (ham HTML).
+# Liste dışı = "NVIDIA doğrulama listesinde yok — destek kapsamı dışı olabilir", çalışmaz kanıtı değil.
+# SURUM    RKE2_ALT  RKE2_UST  RHEL_LISTESI                VARSAYILAN_SURUCU  SURUCU_LISTESI
+v25.3.4    1.29      1.33      8.8,8.10,9.2,9.4,9.5,9.6    580.82.07          580.82.07,580.65.06,575.57.08,570.172.08,570.158.01,570.148.08,550.163.01,535.261.03,535.247.01
 
 [rhel-omur]
 # RHEL ana sürüm — endoflife.date/api/rhel.json (indirme 2026-10-17). TAM = full support sonu, BAKIM = maintenance sonu.

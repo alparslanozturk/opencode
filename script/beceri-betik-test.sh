@@ -256,6 +256,14 @@ icerir "NotReady + süre" ko1.txt "❌ ornekwor02 · Ready=Unknown · 42dk süre
 icerir "lease tazeliği" ko1.txt "lease son yenileme: 41dk önce"
 icerir "sürüm sapması" ko1.txt "SÜRÜM SAPMASI"
 
+# --------------------------------------------------------------------------- kilit
+baslik "Becerilerdeki sabit okuma komutları güvenlik kilidinden geçiyor (G67/G68)"
+if command -v bun > /dev/null; then
+  if (cd "$KOK" && bun script/beceri-komut-kilit.ts) > kilit.txt 2>&1; then gecti "$(tail -1 kilit.txt | sed 's/^ *//')"; else kaldi "$(cat kilit.txt)"; fi
+else
+  printf '  ATLANDI bun yok\n'
+fi
+
 # --------------------------------------------------------------------------- python 3.6
 baslik "Python 3.6 uyumu (RHEL 8 platform-python)"
 if command -v vermin > /dev/null; then

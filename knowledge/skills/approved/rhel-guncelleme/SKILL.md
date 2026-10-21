@@ -1,6 +1,6 @@
 ---
 name: rhel-guncelleme
-description: RHEL ailesinde paket güncellemesi, güvenlik yaması ve yeniden başlatma kararı için kullan. "güncelle", "güncel mi", "update", "upgrade", "yama", "dnf update", "güvenlik yaması", "reboot gerekiyor mu" isteklerinde tetiklenir. Devralma ve teslim akışı için `rhel-teslim`.
+description: RHEL ailesinde paket güncellemesi, güvenlik yaması ve yeniden başlatma kararı için kullan — güncelleme durumu tablosu `filo-tablo.py --kv` ile (sürüm, çalışan/son kurulu çekirdek, reboot, dnf sürüyor mu). "güncelle", "güncel mi", "update", "upgrade", "yama", "dnf update", "güvenlik yaması", "reboot gerekiyor mu", "güncellendi mi", "hangi çekirdekte", "dnf bitti mi" isteklerinde tetiklenir. Devralma ve teslim akışı için `rhel-teslim`.
 ---
 
 Doğrulandı: AlmaLinux 10.2, dnf 4.20.0 — 2026-08-29
@@ -58,17 +58,20 @@ dnf repolist                          # hangi depolar etkin
 subscription-manager status           # YALNIZCA RHEL, AlmaLinux/Rocky'de yok
 ```
 
-## Filoda güncellik taraması
+## Güncelleme durumu tablosu — tek sunucu ya da filo (saha G34/G36/G37)
 
-Tek sunucu değil "hangileri güncel değil" sorusuysa `filo-kontrol`
-becerisine geç; ad-hoc olarak:
+"Güncellendi mi, reboot lazım mı, hangi sürümde, dnf bitti mi" sorusunun tamamı tek komut + `filo-tablo.py` (`filo-kontrol` §5).
+Tabloyu sen kurma — G36'da "Çekirdek" sütununa RHEL sürümü yazıldı, G34'te dnf'in yarım kalıp kalmadığı belirsiz kaldı:
 
 ```bash
-ansible <grup> -m command -a "needs-restarting -r" -o
+ansible <grup|ad1,ad2,> -i <envanter> -m shell -f 20 -T 10 --task-timeout 30 -t cikti/filo/guncel -a 'echo surum=$(cat /etc/redhat-release 2>/dev/null); echo cekirdek_calisan=$(uname -r); echo cekirdek_son_kurulu=$(rpm -q kernel --last 2>/dev/null | head -1 | cut -d" " -f1 | sed "s/^kernel-//"); needs-restarting -r >/dev/null 2>&1; r=$?; [ $r -eq 1 ] && echo reboot_gerekli=EVET; [ $r -eq 0 ] && echo reboot_gerekli=hayir; [ $r -gt 1 ] && echo reboot_gerekli=bilinmiyor-rc$r; echo dnf_suruyor=$(pgrep -x dnf >/dev/null && echo EVET || echo hayir); echo release=$(subscription-manager release --show 2>/dev/null | head -1 | sed "s/^Release: //"); echo son_paket_kurulumu=$(rpm -qa --last 2>/dev/null | head -1 | sed "s/^[^ ]* *//")'
+python3 /root/ai/opencode/knowledge/skills/approved/filo-kontrol/filo-tablo.py cikti/filo/guncel --kv
 ```
 
-`-o` tek satırlık çıktı için uygundur. Yeniden başlatma gereken sunucuları
-bu şekilde tek taramada ayırabilirsin.
+Sütunlar: `surum` (/etc/redhat-release) · `cekirdek_calisan` (uname -r) · `cekirdek_son_kurulu` (rpm -q kernel --last) ·
+`reboot_gerekli` (needs-restarting -r çıkış kodu: 1 → EVET) · `dnf_suruyor` (EVET ise o sunucuda ikinci işlem başlatma — G37) ·
+`release` (boş = sabit minor yok, Satellite CV'nin en sonu) · `son_paket_kurulumu`. Çalışan ≠ son kurulu çekirdek ve reboot EVET →
+güncelleme kurulu, **yeniden başlatma** bekliyor (aşağıdaki "En sık yanlış okuma"). Ölçüldü: AlmaLinux 10.2, ansible-core 2.16 (2026-10-21).
 
 ## Yapma
 

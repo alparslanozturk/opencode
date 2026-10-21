@@ -979,3 +979,16 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Aksiyon (yapıldı): AGENTS "Bu makineden erişilemeyen platform" — soru hangi platformsa ona cevap, yapıştırılan tablo kaynak (sütun
   belirsizse sor), canlı bilgi için kullanıcının orada çalıştıracağı okuma komutu, isterse tarihli dosyaya kaydet. Ayrıca repo herkese
   açık: G74 kodu/AGENTS'taki iki iç IP örneği `10.0.9.x` ile maskelendi.
+
+### G82 — Bulut platformunda Rancher sertifikası yenilenecek; kitte beceri yoktu → `rancher-sertifika`
+- Alp (2026-10-21): bulut platformunun Rancher'ına (`rancher-nonprod.<bulut>`, local küme 3 master, RKE2 v1.30.5+rke2r1, RHEL 9.8 —
+  Alp'in `kubectl get nodes -o wide` ekranı) yeni sertifika geldi: `2026-key.p8.pem` + `2026-sertifika.cer`, zincir `<BULUT>ROOTCA →
+  <BULUT>SUBCA01 → rancher-nonprod.<bulut>` (Windows "This certificate is OK"). Tarayıcıda şu an "Not secure". Alp'in eski kurulum notu:
+  `helm upgrade --install rancher … --set ingress.tls.source=secret --set privateCA=true …`, `cacerts.pem` = kurum CA'ları,
+  `kubectl create secret generic tls-ca` / `secret tls tls-rancher-ingress`. "Aynı bunun gibi yenileyeceğiz — bununla ilgili yetenek var mı?"
+- Kitte yoktu (rke2-denetim/-guvenlik yalnız RKE2 iç sertifikaları).
+- Yapılan: `rancher-sertifika` becerisi — Rancher docs *Updating the Rancher Certificate* + *Adding TLS Secrets* (rancher-docs main,
+  2026-10-21): §1 aynı CA / farklı CA kararı (aynı CA → yalnız `tls-rancher-ingress`; farklı → `tls-ca` + rollout restart + ajan force
+  deploy + Fleet Force Update), §2 dosya hazırlama (PKCS#8/PKCS#1/şifreli anahtar, DER .cer, zincir sırası tls.crt = yaprak+ara,
+  cacerts.pem = ara+kök, CRLF), §3 doğrulama (SAN, pubkey eşleşmesi, verify), §4 yedek + `apply`, §5 s_client/cacerts doğrulama,
+  "Not secure" ayrımı, §6 geri alma. Okuma komutları kilitten geçiyor; `base64` okuma listesine eklendi (test 326).

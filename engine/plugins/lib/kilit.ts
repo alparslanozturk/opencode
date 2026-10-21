@@ -673,6 +673,7 @@ export const SALT_OKUNUR = new Set([
   "locale", "ntpq", "nc", "curl", "wget", "openssl", "ansible", "cd", "xfs_info",
   "pidstat", "fincore", "sadf", "iotop", "slabtop", "numastat", "lsns", "lslocks", "lsipc",
   "mountpoint", "nfsiostat", "mountstats", // NFS/bağlama teşhisi (G71)
+  "base64", "base32", // yalnız stdout'a kodlar/çözer — dosya yazmaz (G82: secret'tan sertifika okuma)
   // kabuk sözdizimi (saha G62): döngü/koşul kapanışları ve `read` kendi başına bir şey değiştirmez; gövdedeki
   // komutlar ayrı segment olarak ayrıca incelenir
   "done", "fi", "esac", "read", "{", "}",

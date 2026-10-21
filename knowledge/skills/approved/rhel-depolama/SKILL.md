@@ -201,23 +201,32 @@ Temizlik önerirken hangisinin geri alınamaz olduğunu ayrıca belirt.
 ## B. Disk ekleme / büyütme
 
 Doğrulandı: AlmaLinux 10.2 — 2026-08-29; lvextend -r — RHEL 10, 2026-09-10; `findmnt --verify`,
-`wipefs -n`, `lsblk -f` bayrakları util-linux 2.40 — 2026-09-26 (A24/A26-A28 dersleriyle yeniden yazıldı).
+`lsblk -f` bayrakları util-linux 2.40 — 2026-09-26; `disk-durum.py` + `blkid -p` — 2026-10-21 (A24/A26-A28 dersleriyle yeniden yazıldı).
 
 **Yanlış diske yazmak veri kaybıdır.** Sıra her zaman: **keşfet → kurum düzenini oku → plan göster → onay
 (CN/KURULUM yetkisi) → uygula → doğrula.** Değişiklik adımlarını güvenlik kilidi yetkisiz çalıştırmaz.
 
-### 1. Keşif — hiçbir şeyi varsayma (A27, A28)
+### 1. Keşif — hiçbir şeyi varsayma (A27, A28) → `disk-durum.py`
+
+**Disk sınıfını sen çıkarma — betik çıkarsın** (saha G38: `lsblk` okunmadan "sda (Sistem) / sdb (Boş)" başlıklı tablo dolduruldu,
+OS diski sdb'deydi ve "boş" yazıldı; o tabloyla `mkfs` atılsaydı sunucu giderdi). Sabit okuma komutu + betik:
 
 ```bash
-lsblk -f -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINTS   # cihaz harfi VARSAYILMAZ, buradan okunur
-pvs; vgs; lvs -o +devices                       # LVM var mı, hangi disk nerede
-findmnt -t xfs,ext4 -o TARGET,SOURCE,FSTYPE     # mevcut bağlama düzeni
+ssh root@<sunucu> "echo '#LSBLK'; lsblk -P -b -o NAME,KNAME,PKNAME,TYPE,SIZE,FSTYPE,MOUNTPOINT,UUID 2>/dev/null || lsblk -P -b -o NAME,KNAME,TYPE,SIZE,FSTYPE,MOUNTPOINT,UUID; echo '#PVS'; pvs --noheadings --separator '|' -o pv_name,vg_name 2>/dev/null; echo '#MOUNT'; findmnt -rn -o SOURCE,TARGET; echo '#SWAP'; cat /proc/swaps; echo '#FSTAB'; grep -v '^[[:space:]]*#' /etc/fstab; echo '#IMZA'; for d in \$(lsblk -dn -o NAME -e 7,11); do echo \"== /dev/\$d\"; blkid -p -o export /dev/\$d 2>&1; done" | python3 /root/ai/opencode/knowledge/skills/approved/rhel-depolama/disk-durum.py - --ad <sunucu>
 ```
 
-**Hedef diskin boş olduğu kanıtlanmadan yıkıcı adım yok** (`pvcreate`, `mkfs`, `parted`). Boş sayılması için:
-`lsblk -f`'te FSTYPE yok **ve** alt bölümü yok **ve** `pvs`'te yok **ve** mount edilmemiş **ve**
-`wipefs -n /dev/<disk>` hiçbir imza listelemiyor. Biri bile tutmazsa **dur**, çıktıyı kullanıcıya göster.
-Aynı boyutta iki disk varsa hangisi olduğunu kullanıcıya sor — boyuttan tahmin etme.
+Çok sunucu: aynı tırnak içi komutu `ansible <grup> -m shell -T 10 --task-timeout 30 -t cikti/disk/<etiket> -a '…'` ile çalıştır,
+`disk-durum.py cikti/disk/<etiket>`. (Betiğin başındaki yorumda komut tek parça durur; oradan kopyala.)
+
+Betik her disk için **OS DİSKİ / KULLANIMDA / BOŞ ADAY** ve gerekçesini basar. BOŞ ADAY = şunların **hepsi**: bölüm/alt aygıt
+yok · FSTYPE yok · LVM PV değil · bağlı/swap değil · fstab'da (ad/UUID/mapper) yok · diskte imza yok (`blkid -p` — `wipefs -n` de
+okur ama güvenlik kilidi wipefs'i her biçimde K5 sayar, çalışmaz). OS diski adından değil `/`, `/boot`, `/boot/efi` ya da
+kök VG'nin PV'sinden bulunur (RHEL 7 `lsblk`'ında PKNAME yoksa da çalışır). Sonuç satırı:
+- "BOŞ disk yok" → yıkıcı adım (`pvcreate`, `mkfs`, `parted`) **yok**, çıktıyı kullanıcıya göster;
+- "Aynı boyutta birden çok boş aday" → boyuttan seçme, **sor**;
+- yıkıcı adımdan **hemen önce** betiği aynı sunucuda yeniden çalıştır — reboot'ta sda/sdb yer değiştirebilir (G38, 2026-10-14).
+
+Tabloyu aynen aktar; başlığa sabit "sda (Sistem)" yazma. Ek okuma (VG/LV adları için): `vgs`, `lvs -o +devices`.
 
 ### 2. Kurumun düzenine uy — ad uydurma (A28)
 

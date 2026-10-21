@@ -55,8 +55,8 @@ Sıra (2026-10-13 itibarıyla):
   becerisini yükle**. Kurum `/data` düzeni LVM'dir (Alp'in örneği, splsplunksh02: `sdb` → `kt_rhel_vg/kt_rhel_lv` →
   `/data`, xfs; fstab'da LV yolu `/dev/kt_rhel_vg/kt_rhel_lv`, UUID değil); diske doğrudan `mkfs` yapılmaz. Ek disklerin (sdb, sdc …) ne olacağı **kurulum talebinde
   sorulur** — `/` büyütme, `/var` büyütme, `/data` ya da proje adıyla yeni dizin (ör. `/genesys/gcti`). Hedefi
-  tahmin etme, kullanıcıya sor. Disk adı sabit değildir: `lsblk -f` ile oku, boş olduğunu `rhel-depolama`
-  becerisindeki kontrolle kanıtla. OS `sda`'da değilse sunucu yeniden başlatılarak düzeltilir (Alp, 2026-10-14 — beklenen akış):
+  tahmin etme, kullanıcıya sor. Disk adı sabit değildir: sınıfı (OS / kullanımda / boş aday) `rhel-depolama` B §1
+  `disk-durum.py` ile çıkar — kendin tablo kurma. OS `sda`'da değilse sunucu yeniden başlatılarak düzeltilir (Alp, 2026-10-14 — beklenen akış):
   1) kullanıcıya açıkça söyle: "<sunucu>'da OS `sdX`'te, `sda` boş — reboot gerekiyor, disk işine geçmiyorum";
   2) onayla yeniden başlat; 3) açılınca `lsblk`'ı **tekrar** çalıştır ve göster; 4) OS `sda`'ya geçtiyse disk adımına
   devam, hâlâ değilse dur ve sor. Bu sunucuda reboot öncesi `lsblk` sonucuyla disk işlemi yapılmaz.

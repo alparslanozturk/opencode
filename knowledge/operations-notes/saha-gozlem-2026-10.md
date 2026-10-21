@@ -965,3 +965,17 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Aksiyon (yapıldı): `rke2-denetim` §4 "NFS bağlaması VARSA" (bağlama seçenekleri, önceki açılışta not responding saati, hung task
   yığınında nfs_/rpc_/sisevt, nfsiostat, NFS'li pod) ve §6 "karşılaştırma tablonla sonucun çelişmesin" (sağlam node'da da olan faktör
   tek başına sebep değil; kanıt yoksa başlık "Aday sebepler (kanıt durumu)"). Komutlar kilitten geçiyor.
+
+### G81 — Erişilemeyen ikinci platform ("bulut" tarafı): envanter yalnız Alp'in yapıştırdığı tablo
+- Görülen (Alp ekranları, 2026-10-21 ~13:0x, oturum "rancher-nonprod local küme masterları"): Alp ikinci platformun
+  (`rancher-nonprod.<bulut>`, `rke-drc.<bulut>`) local küme master'larını sordu; ajan önce **diğer** platformun envanteriyle
+  (`hosts-rke2.ini`, `rancher-nonprod.<kurum>` local) cevap verdi. Alp düzeltince çalışma dizininde arayıp "bulut geçmiyor" dedi ✅,
+  IP/sunucu adı istedi. Alp: "daha önce envanteri vermiştim, ama bulut tarafına bağlanamazsın, sadece envanteri al" + ~36 satır tablo
+  (küme · master/node · CPU · bellek · ilk master IP). Ajan tabloyu okuyup local kümeyi çıkardı. Alp, o platforma başka bir yönetim
+  sunucusundan ssh ile bağlanıyor (ekran); "gerekirse kubectl get nodes alır veririm".
+- Sorunlar: (1) yanlış platformla cevap; (2) önceki oturumda verilen envanter kalıcı değil — her seferinde yeniden yapıştırma;
+  (3) ajanın tablosunda sütun başlıkları kaymış ("Master sayısı → 24", "Toplam CPU → 46" — tahmin: yapıştırılan sütunlar master
+  sayısı/CPU/bellek, sıra karıştı).
+- Aksiyon (yapıldı): AGENTS "Bu makineden erişilemeyen platform" — soru hangi platformsa ona cevap, yapıştırılan tablo kaynak (sütun
+  belirsizse sor), canlı bilgi için kullanıcının orada çalıştıracağı okuma komutu, isterse tarihli dosyaya kaydet. Ayrıca repo herkese
+  açık: G74 kodu/AGENTS'taki iki iç IP örneği `10.0.9.x` ile maskelendi.

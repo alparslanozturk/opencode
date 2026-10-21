@@ -98,6 +98,17 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
    istek olmadan yapılmaz.
 - **Sayı/birim tutarlılığı zorunlu:** aynı tabloda birim karıştırma; satır toplamlarını tek tek doğrula
   (KUME-B + KUME-A toplamı gibi). Kaynağı ve tarihi yaz; ölçmediğin sayıyı "ölçülmedi" diye işaretle.
+- **Bu makineden erişilemeyen platform (Alp, 2026-10-21 — ikinci bulut platformu; saha G81):** bazı Rancher platformlarına
+  (farklı domain/ağ, başka bir yönetim sunucusundan erişilen) buradan ssh/kubectl **yok**; envanter yalnız kullanıcının yapıştırdığı
+  tablodur. O zaman:
+  1. Soru **hangi platform/domain** hakkındaysa yalnız ona cevap ver; elindeki başka platformun envanteriyle cevaplama (G81: "bulut
+     tarafı" sorulunca diğer platformun `local` kümesi anlatıldı). Envanterde yoksa önce bunu söyle.
+  2. Yapıştırılan tablo **kaynaktır**: "kaynak: kullanıcının yapıştırdığı tablo (<tarih>)" yaz; sütun anlamı belirsizse (CPU mı
+     node mu) tahmin etme, sor. Bağlanmaya çalışma, bağlantı yolu önerme.
+  3. Canlı bilgi gerekiyorsa kullanıcının **orada** çalıştıracağı salt-okunur komutu tek mesajda ver (ör. `kubectl get nodes -o wide`,
+     `kubectl get nodes -L node-role.kubernetes.io/control-plane`) ve çıktıyı iste.
+  4. Kullanıcı isterse yapıştırılanı çalışma dizinine tarihli dosya olarak kaydet (`ansible/inventories/<platform>-yapistirilan-<tarih>.txt`)
+     — sonraki oturumda aynı şeyi yeniden isteme. Kaydetmeden önce sor (dosya yazma).
 
 ## Uzak işlem araç seçimi (A41 — anlık okuma vs. tekrarlanan iş vs. kalıcı durum)
 - **ssh tek satır:** anlık/tek seferlik okuma-teşhis. **ansible ad-hoc:** birkaç uçta
@@ -160,7 +171,7 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
   listesini ve "Envanter: …" notunu kullanıcıya **aynen** göster, eksik olanı (hangi sunucu, kriz/CN beyanı) tek cümleyle sor.
 - **Yetki dili serbesttir (Alp, 2026-10-20):** kullanıcı "kriz var", "krizdeyiz", "kriz durumundayız, wor14'te …" gibi cümle içinde
   söylediyse bu KRİZ beyanıdır; "KRİZ yazıp alt satıra sunucular:" gibi biçim isteme. Aralık yazımı (`wor07-14`,
-  `10.14.9.127-134`) kilitte açılır. Kilit yine reddederse yalnız **eksik olanı** söyle (kriz notu mu, sunucu mu, IP mi).
+  `10.0.9.127-134`) kilitte açılır. Kilit yine reddederse yalnız **eksik olanı** söyle (kriz notu mu, sunucu mu, IP mi).
 - **Ad ↔ IP envanterden (G74):** kilit yetki verildiği anda `ansible/` ve `inventories/` altındaki INI envanterden eşler: ad,
   kısa ad (tek host'a uyuyorsa), `ansible_host` IP'si, grup üyeleri. Komutta ad ya da IP kullanabilirsin. Kilit "envanterde
   yok" ya da "birden çok host'a uyuyor" derse kullanıcıya **yalnız o adı** sor. Çok sunucuya aynı değişiklik: düz listeli

@@ -1,6 +1,6 @@
 // envanter.ts — motordan BAĞIMSIZ (ADR-0005): ansible INI envanterinden ad ↔ IP ↔ grup eşlemesi (saha G74).
 // Alp (2026-10-20): "IP ya da isim verdiğinde envanterden bunu anlayabilmesi önemli." Kullanıcı yetkide `wor07`,
-// `stlrancherwor07`, `10.14.9.127` ya da grup adı yazabilir; ajan komutta başka birini kullanabilir. Kilit, yetki
+// `stlrancherwor07`, `10.0.9.127` ya da grup adı yazabilir; ajan komutta başka birini kullanabilir. Kilit, yetki
 // VERİLDİĞİ ANDA envanteri okuyup listeyi tüm eş adlarla genişletir (Yetki.esler) — sonradan çalışma dizinindeki
 // envanter dosyası (ajan yazabilir) değişse de verilmiş yetki genişlemez.
 import { readdirSync, readFileSync, statSync } from "fs"

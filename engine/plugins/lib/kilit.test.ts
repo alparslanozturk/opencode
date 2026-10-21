@@ -494,3 +494,11 @@ describe("G78: 'kiriz' yazım hatası ve yalın '07-14' aralığı (Alp: 'kiriz 
     expect(karar(`ssh stlrancherwor09 "systemctl stop x"`, y)?.mesaj).toContain("kilit YALNIZ kullanıcının mesajını okur")
   })
 })
+
+describe("G82: secret'tan sertifika okuma (base64 -d) uzakta okuma", () => {
+  test("base64 -d | openssl x509 serbest; base64 > dosya K1", () => {
+    const k = (c: string) => kilitDenetle("bash", { command: c }, workdir, undefined)
+    expect(k(`ssh m1 "kubectl -n cattle-system get secret tls-rancher-ingress -o jsonpath='{.data.tls\\.crt}' | base64 -d | openssl x509 -noout -issuer -enddate"`)).toBeNull()
+    expect(k(`ssh m1 "base64 -d /tmp/a > /etc/x"`)?.kilit).toBe("K1")
+  })
+})

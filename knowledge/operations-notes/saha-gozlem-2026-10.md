@@ -902,3 +902,34 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   karakterde kesiliyordu; önek (timestamp/level/run) yer kapladığı için mesaj hiç görünmüyordu.
 - Aksiyon (yapıldı): kur.sh `log_ozet` — logfmt'tan `HH:MMZ message (error)`; ayrıntılı kipte log dosyası yolu + ham satır (600
   karakter). Doktor sunucusunda denendi: `13:02Z failed (Error: Expected a string starting with "ses" …`.
+
+## 2026-10-21
+
+### G77 — Antrea matrisi kaynaksızdı; Alp: "kanıt zorunlu, yoksa 'olabilir'"; üretici (VMware) matrisi de incelenmeli
+- Alp (2026-10-21): "test kümesindeki hatanın Antrea ile ilişkilendirilmesi ve Antrea matrisinin düzgün tanımlanmaması beni çok zor
+  duruma düşürdü. Matrisi kanıtlarıyla istiyorum; kanıt yoksa yalnız 'olabilir' desin." Kaynak gösterdi: Broadcom *VMware Container
+  Networking with Antrea 1.11.0* sürüm notu (upstream 2.3.0'a denk) — "upstream'de matris olmayabilir ama üreticide var; diğer
+  yeteneklerde de upstream + üretici matrisini incele, kaynakları not et."
+- Kök: `surum-uyum` Antrea tablosu kurum rke2-ansible `antrea-uyum.txt`'ten geliyordu — kural "her minor çıktığı gün desteklenen son
+  4 K8s" (kestirme). Resmi metin (Antrea `docs/versioning.md` "Supported K8s versions"): "should support maintained K8s releases at the
+  time of release … we guarantee … at least … (in practice it also supports …)" → **asgari garanti**, yasak listesi değil. "Son 4"
+  sayımı ayrıca 5 satırda yanlıştı (EOL'u geçmiş K8s'i sayıyordu: v2.1/2.2/2.5/2.6/2.7; ör. v2.7'ye 1.33'ü katıyordu).
+- Kanıtlar (Doktor, ham sayfalar, 2026-10-21): VCN 1.9.0/1.10.0/1.11.0 matrisleri (1.11.0 = 2.3.0, 2025-04-16: K8s 1.27–1.32,
+  Rancher 2.7, RHEL 8+; imaj `projects.packages.broadcom.com/antreainterworking/…:v2.3.0_vmware.1`); **VMware VKr 1.33.1/1.33.3/
+  1.33.6/1.33.13 → Antrea 2.3.0/2.3.1/2.3.2** (üretici aynı ikiliyi kendi K8s dağıtımında paketliyor); RKE2 1.33.13 "Available CNIs"
+  = Canal/Calico/Cilium/Multus (Antrea yok → SUSE kapsamaz); Antrea CHANGELOG-2.5 #7291 (Multi-cluster ServiceCIDR 1.33+),
+  issue #7332 (1.33+ Endpoints uyarı logu). Sonuç: 2.3.0 + 1.33 → ⚠️ garanti/VCN dışı, VKr'de paketli, **kanıtlı uyumsuzluk yok**.
+- Yapılan: `script/antrea-veri.py` (GitHub releases + endoflife.date + resmi kural → `[antrea]` ve SKILL tablosu); veri `[antrea-vmware]`,
+  `[antrea-vkr]`, `[antrea-kayit]`, `[rke2-cni]`, `[gpu-operator]` (NVIDIA Platform Support v25.3.4: RKE2 1.29–1.33, RHEL 9.2/9.4/9.5/9.6,
+  sürücü 580.82.07 varsayılan); `uyum.py` her kaynağı ayrı satır + kaynak, ❌ yalnız kanıtlı kayıt; Antrea yolu garanti ya da VKr
+  dayanağını yazar; `--gpu-operator/--surucu`; RHEL/Rancher liste dışı satırına "destek kapsamı dışı — çalışmaz demek değil".
+  `surum-uyum` "Kanıt zorunluluğu" + "Antrea — kurum durumu ve kanıtlar"; AGENTS kaynak katmanları kuralı; rke2-denetim/-guvenlik/
+  -kurulum/-yukseltme eski "❌ kural dışı" ifadeleri düzeltildi; `veri-guncelle.sh` artık Antrea yazmaz.
+- gpu-dtx (Alp ekranları, 10-20 16:4x): Xid 31 yalnız GPU1 (`29:00`), 9–13 Ekim, hep `VLLM::EngineCore`; ajan "donanım/driver
+  ihtimalini güçlendirir" dedi. NVIDIA XID Catalog `WORKFLOW_XID_31`: aynı GPU'da tekrar → DCGM EUD (olası donanım), farklı GPU →
+  uygulama. Eksik: pid → model eşlemesi (GPU1'e hep aynı model düşüyorsa kalıp ayırt etmez). `NCCL_P2P_DISABLE=1` "performans kaybı"
+  ölçülmeden yazıldı; çelişen prefix-caching argümanı argparse kuralından çıkarıldı (log okunmadı). → `rke2-gpu` Xid 31 akışı + tuzak,
+  NVIDIA matrisi, env/argüman kuralı.
+- test kümesi (10-21 sabah): wor12/wor13 erişilemez, ansible ad-hoc 60 sn araç sınırında takıldı (diğer node çıktıları da kayboldu) →
+  `filo-kontrol` §3b `-T 10 --task-timeout 30 -f 20`. Gün hesabı `echo $(( … ))` izin sordu → `engine/opencode.json` `echo`/`printf`
+  allow (yazma girişimi kilitte K1 kalır — denendi). XDR 10-20'de yalnız disable → `rke2-edr` §0 "önce is-active".

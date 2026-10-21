@@ -47,13 +47,16 @@ matris tablosu da orada). Kurulum öncesi seçtiğin sürümü onunla doğrula; 
 
 - **RKE2 sürümü Rancher sürümüne göre seçilir** (SUSE destek matrisi). OS yalnız RHEL 8 / 9 / 10. Matris dışı sürüm
   kurulmaz/yükseltilmez. Rancher sürümünü kullanıcıya sor ya da yukarıdaki yollarla oku, uydurma.
-- **CNI = Antrea** (`cni: none` + `pre_deploy_manifests/antrea.yaml`). Antrea kuralı: her minor, çıktığı gün
-  desteklenen son 4 K8s'i destekler. Tam tablo: yukarıdaki **Çevrimdışı veri** bölümü. **Uyumu tahmin etme** —
+- **CNI = Antrea** (`cni: none` + `pre_deploy_manifests/antrea.yaml`; RKE2'nin kendi CNI listesinde Antrea yok → SUSE
+  desteği kapsamaz). Antrea uyumu: **`surum-uyum` becerisi** (`uyum.py`) — kaynak katmanları: upstream `versioning.md` asgari
+  garantisi (çıktığı gün bakımdaki K8s'ler), VMware VCN matrisi (VMware imajı kullanılıyorsa), VMware VKr ikilisi, bilinen
+  kayıtlar. "Son 4 K8s" kestirmesini kullanma (G77). **Uyumu tahmin etme** —
   "Uyumluluk kontrolü" adımlarını uygula; tabloda yoksa "hesaplanamadı" de. K8s yükseltmeden ÖNCE Antrea yeni sürümü
   desteklemiyorsa önce Antrea yükseltilir. Kümedeki sürüm:
   `kubectl -n kube-system get ds antrea-agent -o jsonpath='{.spec.template.spec.containers[0].image}'`.
-  **Kurum durumu (saha ekran10, 2026-09-30):** Antrea **v2.3.0** + K8s **1.33.13** = ❌ **kural dışı** (v2.3 → en çok
-  1.32). 1.33 için en az v2.4; önerilen **v2.7.0** (1.33–1.36, v2.15'e geçişi de karşılar).
+  **Kurum durumu (2026-10-21, kaynaklı — `surum-uyum`):** Antrea **v2.3.0** + K8s **1.33.13** = ⚠️ upstream garantisi (1.29–1.32)
+  ve VMware VCN 1.11.0 matrisi (1.27–1.32) dışında; VMware VKr 1.33.x aynı ikiliyi (2.3.0–2.3.2) paketliyor; kanıtlı uyumsuzluk
+  yok. Garanti kapsamına girmek için 1.33'ü garanti eden en küçük: v2.4 (1.30–1.33); 1.34'e geçişi de kapsayan v2.5 (1.32–1.34).
 - **Yükseltmeyi system-upgrade-controller (SUC) yapar**, playbook değil → envanterde `rke2_upgrade: false`.
   SUC sonrası `all.yml`'deki `rke2_install_version` kümenin yeni sürümüne güncellenmeli. **SUC'u kim yönetiyor — önce bak:**
   küme Rancher'a içe aktarılmış ve sürüm yönetimi açıksa SUC + Plan'ları Rancher kurar (`cattle-system`'da
@@ -74,7 +77,7 @@ Sahada bu fork kullanılıyorsa (`KURUM.md` dosyası varsa) aşağıdakiler haz�
 - `araclar/rancher_matris.py <rancher> [rhel9] [--upstream v…] [--downstream v…]` — RKE2 hatları + RHEL + mevcut
   kümeler uygun mu; matris repoda (internetsiz). `--liste` repodaki Rancher sürümleri.
 - Saha dışarıda **yalnız GitHub'a** erişir: suse.com/get.rke2.io kapalı → gerekenler repoda (matris, `airgap/install.sh`).
-- `araclar/antrea_surum.py <k8s> [--antrea <sürüm>]` — Antrea uyum tablosu (repoda, internetsiz) + öneri + kümedeki sürüm uyumlu mu
+- `araclar/antrea_surum.py` — **kullanma** (G77): "son 4 K8s" kestirmesine dayanır; Antrea uyumu `surum-uyum`/`uyum.py`
 - `airgap/indir.sh --rancher v2.15.2 --os rhel9 [--antrea v2.7] [--kuru]` — indirir, sha256 doğrular, sonda tablo
 - **Preflight** (playbook başında, değişiklik yapmaz) şunlarda durur: sürüm verilmemiş · tarball/imaj dosyası yok ·
   `--limit`'li koşuda API adresi boş · `rke2_upgrade: false` iken küme sürümü ≠ envanter sürümü. `node_name` için uyarır.

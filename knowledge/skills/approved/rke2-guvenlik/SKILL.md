@@ -26,7 +26,8 @@ Sürümleri `rke2-yukseltme` §1 ile topla, sonra betik (kafadan hesaplama):
 ```bash
 python3 /root/ai/opencode/knowledge/skills/approved/surum-uyum/uyum.py kontrol --rancher <r> --rke2 <k> --antrea <a> --rhel <liste>
 ```
-❌ satırları (EOL geçmiş/matris dışı) puan kartında **kritik**. Antrea ↔ K8s satırı zorunlu.
+❌ satırları (EOL geçmiş / üreticinin destek listesi dışı) puan kartında **kritik**; ⚠️ "garanti dışı — olabilir" satırları kritik
+**değil**, "destek kapsamı" başlığında kaynağıyla yazılır (`surum-uyum` §"Kanıt zorunluluğu", G77). Antrea ↔ K8s satırı zorunlu.
 
 ## 2. Control plane ve veri koruma (master'da, ssh)
 

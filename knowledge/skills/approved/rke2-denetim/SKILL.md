@@ -64,8 +64,10 @@ kubectl -n kube-system get pods -l app=antrea -o jsonpath='{range .items[*]}{.sp
   kontrol --rancher … --rke2 … --antrea … --rhel …` — çıktıyı olduğu gibi aktar (`rke2-yukseltme`). Güvenlik puan kartı: `rke2-guvenlik`.
 - **Uyumluluk yorumu yalnız `surum-uyum` becerisindeki çevrimdışı matristen (`uyum.py`)** (Rancher ↔ RKE2 ↔ RHEL; Antrea notu
   orada). **Antrea ↔ K8s satırı her raporda zorunlu** (Alp, 2026-10-17: "matris çok önemli, supported olmalı"); Antrea RKE2
-  ile gelmez, ayrı yükseltilir — K8s yükseltilip Antrea unutulabilir. Bilinen: `test` Antrea v2.3.0 + 1.33 → ❌ (v2.3 →
-  1.29–1.32); saha G65 raporunda bu satır hiç yoktu. Matriste olmayan sürüm → "matriste yok — `--kaydet` ile eklenmeli" de, tahmin etme.
+  ile gelmez, ayrı yükseltilir — K8s yükseltilip Antrea unutulabilir. Satırı **kanıt katmanlarıyla** yaz (`surum-uyum` §"Kanıt
+  zorunluluğu": upstream garanti · VMware VCN matrisi · VMware VKr ikilisi · bilinen kayıt). `test` Antrea v2.3.0 + 1.33 → ⚠️ garanti/
+  matris dışı, VKr'de paketli, **kanıtlı uyumsuzluk yok** (G77 — eskiden yanlışlıkla ❌ yazılıyordu). Matris durumu node donmasının ya
+  da pod hatasının sebebi olarak **yazılmaz**. Veride olmayan sürüm → "veri yok — uyumlu/uyumsuz olabilir" de, tahmin etme.
 
 ### 2. Control plane
 
@@ -268,7 +270,7 @@ journalctl -k --since -7d --no-pager | grep -c "table full"        # 0 → tablo
 ### 5. Node işletim sistemi — toplu (ansible ad-hoc, tek izin)
 
 ```bash
-ansible <grup> -i <envanter> -m shell -o -a 'uname -r; cat /etc/redhat-release; uptime; free -g | sed -n 2p; sysctl -n net.ipv4.ip_forward; swapon --show | wc -l'
+ansible <grup> -i <envanter> -m shell -o -f 20 -T 10 --task-timeout 30 -a 'uname -r; cat /etc/redhat-release; uptime; free -g | sed -n 2p; sysctl -n net.ipv4.ip_forward; swapon --show | wc -l'
 ```
 
 - Çekirdek ve RHEL minor'ün node'lar arası farkı; `ip_forward=1`, swap kapalı (RKE2 gereği — `rke2-kurulum`).

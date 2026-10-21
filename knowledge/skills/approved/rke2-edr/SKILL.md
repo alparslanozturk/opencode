@@ -18,6 +18,9 @@ Kaynak etiketi: **(Alp)** kurum bilgisi · **(saha G…)** saha gözlemi · **(�
 - **2026-10-20 akşam (Alp):** XDR (`traps_pmd`) wor07-14'te `disable`; SEP de kapatılıyor (Alp kararı — iki ajan birlikte, tüm
   grupta). Bundan sonraki olayda ilk soru: ajanlar gerçekten kapalı mı (`systemctl is-active`, `lsmod`) — kapalıysa sebep
   ajanların dışında aranır (hipervizör §5b, OVS/Antrea `rke2-denetim` §4).
+- **2026-10-21 sabah (saha G77):** wor12 ve wor13 yine erişilemez (ansible ad-hoc 60 sn'de takıldı; wor13 07:03'te Ready'di).
+  XDR 10-20'de yalnız `disable` edildi (`stop` görünmedi) → önce `systemctl is-active traps_pmd` ve `lsmod | grep traps` ile
+  gerçekten kapalı mı oku. **Kapalıysa** bu olay XDR adayını zayıflatır (§4: tekrar = aday elenir).
 - wor14'ün önceki olayları: 10-12, 10-15, 10-19 05:30, 10-20 (saha G7-G11, G48, G71) — aralık 1-4 gün.
 
 ## 1. Envanter (okuma)
@@ -36,7 +39,7 @@ Küme tarafı (DaemonSet olarak kurulanlar): `kubectl get ds -A | grep -i -e twi
 Bütün grup (ansible ad-hoc, tek izin — `filo-kontrol`); sorunlu ve sağlam node'ları yan yana koy (wor07 sağlam ↔ wor03, wor08, wor14):
 
 ```bash
-ansible <grup> -i <envanter> -m shell -o -a 'systemctl is-active sisamdagent traps_pmd | tr "\n" " "; lsmod | grep -c -i -e traps -e sisap; uptime'
+ansible <grup> -i <envanter> -m shell -o -f 20 -T 10 --task-timeout 30 -a 'systemctl is-active sisamdagent traps_pmd | tr "\n" " "; lsmod | grep -c -i -e traps -e sisap; uptime'
 ```
 
 ## 2. Neden önemli

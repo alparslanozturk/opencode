@@ -79,7 +79,10 @@ yeni `tls.key` → `apply` "configured" (last-applied uyarısı zararsız — se
 Rancher `rollout restart` yapıldı, pod'lar sorunsuz döndü — aynı CA'da **gerekli değil** (docs), yapıldıysa zararsız.
 **Yük dengeleyici (VIP):** Rancher adı bir VIP'e çözülüyor (`host <rancher-hostname>`); kurum yeni sertifika sonrası ağ ekibine VIP'li
 mail atıyor (Alp). LB'de TLS sonlandırma (SSL offload) varsa sertifika LB'ye de yüklenmeli; geçiş (passthrough) ise yalnız secret yeter —
-hangisi `[SAHA]`, ağ ekibine sor. Ayırt etme: LB üzerinden `openssl s_client -connect <hostname>:443` ile doğrudan bir master
+bulut platformunda **LB'de de sertifika var** (Alp, 2026-10-21, G89) → yenilemenin son adımı ağ ekibi:
+değişiklik kaydı (CN) açılır, yeni sertifika + anahtar + parola (PFX ise) ağ ekibine **geçici ortak klasörden** verilir (kurum içi
+parola kasasına eklemek gerekmedi), ağ ekibi LB'ye kurar. Anahtar şifresiz paylaşıldıysa LB kurulumu bitince klasörden silinmesini
+hatırlat (genel). Diğer platformlarda durum `[SAHA]`. Ayırt etme: LB üzerinden `openssl s_client -connect <hostname>:443` ile doğrudan bir master
 ingress'ine (`-connect <master-ip>:443 -servername <hostname>`) aynı `notAfter`'ı veriyorsa sunulan sertifika ingress'inkidir.
 
 **Bu akışta yapılan hatalar (saha G86) — yapma:**

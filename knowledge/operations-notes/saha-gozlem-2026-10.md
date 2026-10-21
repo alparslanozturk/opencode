@@ -1043,3 +1043,10 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   "NFS erişim sorunu: lokal sıkıştırma → NFS mount → LB'ye yükleme", LB ürünü "vCentrix NScaler", "Rancher restart" kritik adım.
 - Aksiyon (yapıldı): `rancher-sertifika` §0 "Sahada doğrulanan" (3'lü zincir çalıştı, jq doğrulama, restart gereksiz ama zararsız,
   VIP/LB SSL offload sorusu `[SAHA]` + ayırt etme) ve "yapma" listesine uydurma özet.
+
+### G89 — Bulut Rancher sertifikası: LB'ye ağ ekibi kuruyor (CN açıldı, dosyalar geçici ortak klasörde)
+- Alp (2026-10-21 ~15:10): değişiklik kaydı açıldı; belgeler önce kurum parola kasasına eklendi ama gerekmiyormuş; sertifika (.cer),
+  anahtar (.p8.pem), PFX ve parola notu ağ ekibine geçici ortak paylaşım klasöründen verildi; ağ ekibi LB'ye kuracak. → LB'de TLS
+  sertifikası var (G88 `[SAHA]` sorusu bulut için cevaplandı).
+- Aksiyon (yapıldı): `rancher-sertifika` §0 VIP maddesi — bulutta son adım ağ ekibi (CN + ortak klasör), şifresiz anahtarın kurulumdan
+  sonra silinmesi hatırlatması.

@@ -36,14 +36,16 @@ ls -lt /var/lib/rancher/rke2/server/db/snapshots/ | head -5            # son sna
 grep -E "^(secrets-encryption|etcd-s3|etcd-snapshot|audit-policy-file|profile|kube-apiserver-arg)" /etc/rancher/rke2/config.yaml
 ls -l /var/lib/rancher/rke2/server/cred/encryption-config.json
 grep -o "aescbc\|secretbox\|aesgcm\|identity" /var/lib/rancher/rke2/server/cred/encryption-config.json | head -3   # ilk sağlayıcı = yazma
-for f in /var/lib/rancher/rke2/server/tls/*.crt; do printf '%s ' "$f"; openssl x509 -enddate -noout -in "$f"; done | sort -t= -k2 | head -5
 ls -l /var/lib/rancher/rke2/server/logs/                                 # audit.log var mı, boyutu/zamanı
 ps -ef | grep -o -- "--anonymous-auth=[a-z]*" | sort | uniq -c           # apiserver/kubelet anonim erişim
 ```
 Değerlendirme:
 - Snapshot son 24 saatte yoksa ❌; yalnız master diskinde (S3/dış kopya yok) ⚠️ — VM/datastore kaybında yedek de gider.
 - Şifreleme dosyası yok ya da ilk sağlayıcı `identity` → secrets etcd'de düz metin ❌.
-- Sertifika < 30 gün ❌; 120 gün içinde ⚠️ bilgi (RKE2 yeniden başlatmada kendisi yeniler — `rke2-yukseltme` §3).
+- Sertifika (ayrı komut — yerelde çalışan betik, ssh borunun başında):
+  `ssh root@<master> 'cd /var/lib/rancher/rke2/server/tls && for f in *.crt */*.crt; do [ -f "$f" ] && { echo "#DOSYA $f"; base64 -w0 "$f"; echo; }; done' | python3 /root/ai/opencode/knowledge/skills/approved/rancher-sertifika/sertifika-kontrol.py - --ozet` → sertifika başına tek satır,
+  **kalan güne göre sıralı, gün betikte hesaplı** (eski `sort -t= -k2` ay adına göre alfabetik sıralıyordu — en yakın bitişi göstermez).
+  < 30 gün ❌; 120 gün içinde ⚠️ bilgi (RKE2 yeniden başlatmada kendisi yeniler — `rke2-yukseltme` §3).
 - audit.log yok ya da boş ⚠️ (kim ne yaptı izlenemez); `--anonymous-auth=true` ⚠️.
 - Doğrudan araç da serbest (saha G67): `/var/lib/rancher/rke2/bin/rke2 certificate check --output table`, `rke2 secrets-encrypt status`,
   `rke2 etcd-snapshot list` — çıktısı daha net; `rotate`/`save`/`prune` değişikliktir (K1).

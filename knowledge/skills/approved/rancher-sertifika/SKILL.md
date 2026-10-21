@@ -1,6 +1,6 @@
 ---
 name: rancher-sertifika
-description: Rancher sunucusunun (ingress / web arayüzü) TLS sertifikasını yenilerken ya da değiştirirken kullan — kurumun aynı-CA yenileme akışı (old/ dizini, aynı dosya adları, apply), `tls-rancher-ingress` ve `tls-ca` secret'ları, privateCA, "aynı CA mı yeni CA mı" kararı, dosya hazırlama (PKCS#8 anahtar, .cer DER/PEM, zincir sırası, Windows CRLF), doğrulama, yedek ve geri alma, CA değiştiyse Rancher pod'ları + ajanların CATTLE_CA_CHECKSUM'u + Fleet force update. "rancher sertifika", "sertifika yenile", "sertifikaları değiştir", "sertifika yükle", "yeni sertifika geldi", "tls.crt", "tls.key", "ingress sertifikası", "cacerts.pem", "chain.pem", "pfx", "tls-rancher-ingress", "tls-ca", "cacerts", "privateCA", "ingress sertifikası", "not secure", "x509", "certificate signed by unknown authority" isteklerinde tetiklenir. RKE2'nin kendi iç sertifikaları (etcd, apiserver — 120 gün kala kendiliğinden yenilenir) bu beceri değil: `rke2-denetim`, `rke2-guvenlik`.
+description: Rancher sunucusunun (ingress / web arayüzü) TLS sertifikasını yenilerken ya da değiştirirken kullan — deterministik `sertifika-kontrol.py` (dosya türü, kalan gün, anahtar eşleşmesi, zincir, verify, eski yaprak tespiti, canlı secret ile aynı CA mı), kurumun aynı-CA yenileme akışı (old/ dizini, aynı dosya adları, apply), `tls-rancher-ingress` ve `tls-ca` secret'ları, privateCA, "aynı CA mı yeni CA mı" kararı, dosya hazırlama (PKCS#8 anahtar, .cer DER/PEM, zincir sırası, Windows CRLF), doğrulama, yedek ve geri alma, CA değiştiyse Rancher pod'ları + ajanların CATTLE_CA_CHECKSUM'u + Fleet force update. "rancher sertifika", "sertifika yenile", "sertifikaları değiştir", "sertifika yükle", "yeni sertifika geldi", "tls.crt", "tls.key", "ingress sertifikası", "cacerts.pem", "chain.pem", "pfx", "tls-rancher-ingress", "tls-ca", "cacerts", "privateCA", "ingress sertifikası", "not secure", "x509", "certificate signed by unknown authority", "sertifika ne zaman bitiyor", "kaç gün kaldı", "sertifikayı kontrol et" isteklerinde tetiklenir. RKE2'nin kendi iç sertifikaları (etcd, apiserver — 120 gün kala kendiliğinden yenilenir) bu beceri değil: `rke2-denetim`, `rke2-guvenlik`.
 ---
 
 # Rancher sunucu sertifikası — yenileme / değiştirme
@@ -23,6 +23,21 @@ Alp'in yolu: PFX → (araçla) şifresiz anahtar + sertifika metni → local kü
 `chain.pem`, kök/ara `.cer` dosyalarının yanı) → **eski `tls.crt`/`tls.key` `old/` dizinine**, yenileri **aynı adlarla** (`tls.crt`,
 `tls.key`) → komutlar. Bulut platformunda komutları **kullanıcı** çalıştırır; sen aşağıdaki listeyi **dosya adlarını onun `ls`
 çıktısından alarak** ver, her adımın çıktısını iste, yorumla. `cacerts.pem`/`chain.pem`/`.cer` dosyalarına dokunulmaz (aynı CA).
+
+**Erişebildiğin platformda önce tek komut — `sertifika-kontrol.py` (aşağıdaki 1-5 adımlarının hepsini birden yapar, saha G65/G86/G94):**
+
+```bash
+ssh root@<local-master> 'cd <sertifika-dizini> && for f in * */*; do [ -f "$f" ] && { echo "#DOSYA $f"; base64 -w0 "$f"; echo; }; done' | python3 /root/ai/opencode/knowledge/skills/approved/rancher-sertifika/sertifika-kontrol.py - --ad <rancher-hostname>
+ssh root@<local-master> "/var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml -n cattle-system get secret tls-rancher-ingress -o json" | python3 /root/ai/opencode/knowledge/skills/approved/rancher-sertifika/sertifika-kontrol.py - --ad <rancher-hostname>
+```
+
+Dosyalar elindeyse (çalışma dizininde) yollarını ver: `… sertifika-kontrol.py tls.crt tls.key - --ad <host> < secret.json` → canlı ile
+yeni aynı çıktıda karşılaştırılır. Betik basar: her dosyanın türü (PEM/DER/şifreli anahtar/PFX), CRLF, BEGIN≠END, yapışık blok; her
+sertifikanın subject/issuer/SAN/tarihi ve **kalan gün (hesaplı)**; anahtar ↔ sertifika eşleşmesi; dosya içi zincir sırası; `openssl
+verify`; **aynı sertifikanın hangi dosyalarda geçtiği** ve "Aynı ad, FARKLI yapraklar … ← ESKİ / ← EN YENİ" (G86: `chain.pem`'deki
+yaprak eskiydi — bu satır onu gösterir); en sonda **Karar bloğu**: SAN ✓/❌ · kalan gün · anahtar ✓/❌ · verify · canlı ile issuer
+adı AYNI (→ bu §0) / FARKLI (→ §1). Özel anahtar hiç basılmaz. Karar bloğunu **aynen** kullanıcıya göster; ❌ varsa uygulama yok.
+Erişemediğin platformda (bulut — kullanıcı çalıştırır) betik orada yok → aşağıdaki elle adımlar:
 
 ```bash
 export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
@@ -160,7 +175,7 @@ openssl x509 -in tls.crt -noout -issuer; openssl x509 -in subca.pem -noout -subj
 ```
 
 Yazmadan önce ekrana tek blok: SAN ✓/❌ · geçerlilik (notBefore ≤ şimdi, notAfter) · anahtar eşleşmesi ✓/❌ · zincir OK · §1 kararı
-(aynı CA / farklı CA). Biri ❌ ise dur, kullanıcıya söyle — uygulama.
+(aynı CA / farklı CA). Biri ❌ ise dur, kullanıcıya söyle — uygulama. Erişebildiğin yerde bu blok = `sertifika-kontrol.py` "Karar bloğu" (§0).
 
 ## 4. Uygula (değişiklik — yetki; bulut platformunda kullanıcı çalıştırır)
 

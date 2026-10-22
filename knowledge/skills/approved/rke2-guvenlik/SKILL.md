@@ -37,8 +37,20 @@ grep -E "^(secrets-encryption|etcd-s3|etcd-snapshot|audit-policy-file|profile|ku
 ls -l /var/lib/rancher/rke2/server/cred/encryption-config.json
 grep -o "aescbc\|secretbox\|aesgcm\|identity" /var/lib/rancher/rke2/server/cred/encryption-config.json | head -3   # ilk sağlayıcı = yazma
 ls -l /var/lib/rancher/rke2/server/logs/                                 # audit.log var mı, boyutu/zamanı
-ps -ef | grep -o -- "--anonymous-auth=[a-z]*" | sort | uniq -c           # apiserver/kubelet anonim erişim
+ps -ef | grep -o -E -- "--anonymous-auth=[a-z]+" | sort | uniq -c       # apiserver/kubelet anonim erişim ([a-z]* grep'in kendi satırını da sayıyordu)
 ```
+**Üç master'da tek tablo — `filo-tablo.py --kv`** (değerleri gözle `ls -lt`'den hesaplama; snapshot yaşı komutta hesaplı):
+
+```bash
+ansible <master-grubu|mas01,mas02,mas03,> -i <envanter> -m shell -f 20 -T 10 --task-timeout 30 -t cikti/filo/master -a 'd=/var/lib/rancher/rke2/server/db/snapshots; echo snapshot_sayisi=$(ls $d 2>/dev/null | wc -l); echo snapshot_son_24sa=$(find $d -maxdepth 1 -type f -mmin -1440 2>/dev/null | wc -l); echo snapshot_son=$(ls -t -l --time-style=+%F_%H:%M $d 2>/dev/null | awk "NR==2{print \$6}"); echo etcd_s3_satiri=$(grep -c "^etcd-s3" /etc/rancher/rke2/config.yaml 2>/dev/null); echo sifreleme_ilk=$(grep -o -E "aescbc|secretbox|aesgcm|identity" /var/lib/rancher/rke2/server/cred/encryption-config.json 2>/dev/null | head -1); echo audit_log_mb=$(du -sm /var/lib/rancher/rke2/server/logs/audit.log 2>/dev/null | cut -f1); echo anonim_auth=$(ps -ef | grep -o -E -- "--anonymous-auth=[a-z]+" | sort -u | tr "\n" " "); echo rancher_disk=$(df --output=pcent /var/lib/rancher 2>/dev/null | tail -1 | tr -d " "); echo rke2_surum=$(rke2 --version 2>/dev/null | head -1 | cut -d" " -f3)'
+python3 /root/ai/opencode/knowledge/skills/approved/filo-kontrol/filo-tablo.py cikti/filo/master --kv
+```
+
+`snapshot_son_24sa` = son 24 saatteki snapshot sayısı (0 → ❌), `snapshot_son` = en yeni dosyanın zamanı, `etcd_s3_satiri` 0 → dış kopya
+yok (⚠️), `sifreleme_ilk` = `identity` ya da boş → secrets düz metin (❌), `audit_log_mb` boş → audit log yok, `anonim_auth` boş =
+bayrak verilmemiş (varsayılan), `rke2_surum` master'lar arasında farklıysa `*` ile görünür. Boş hücre = dosya/bayrak yok.
+Ölçüldü (sahte RKE2 dizin ağacı, 2026-10-21); kilitten geçiyor.
+
 Değerlendirme:
 - Snapshot son 24 saatte yoksa ❌; yalnız master diskinde (S3/dış kopya yok) ⚠️ — VM/datastore kaybında yedek de gider.
 - Şifreleme dosyası yok ya da ilk sağlayıcı `identity` → secrets etcd'de düz metin ❌.

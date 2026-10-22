@@ -53,7 +53,6 @@ RHEL listesi için `OS-IMAGE` sütunundaki ara sürümleri tekilleştir. Rancher
 ```bash
 # master'da (ssh): etcd snapshot'ı var ve yeni mi (varsayılan 00:00/12:00, node başına 5 adet, yerel diskte)
 ls -lt /var/lib/rancher/rke2/server/db/snapshots/ | head -5
-for f in /var/lib/rancher/rke2/server/tls/*.crt; do printf '%s ' "$f"; openssl x509 -enddate -noout -in "$f"; done | sort -t= -k2 | head -5
 df -h /var/lib/rancher /var/lib/kubelet
 # küme:
 kubectl get nodes | grep -v ' Ready ' ; kubectl get pods -A | grep -v -e Running -e Completed | head
@@ -61,6 +60,20 @@ kubectl get --raw /metrics | grep apiserver_requested_deprecated_apis | grep -v 
 kubectl get pdb -A | awk 'NR==1 || $5=="0"'                      # ALLOWED DISRUPTIONS 0 → drain takılır
 kubectl -n cattle-resources-system get backups.resources.cattle.io 2>/dev/null   # Rancher local'de: rancher-backup var mı
 ```
+
+**Üç master'da tek tablo — `filo-tablo.py --kv`** (değerleri gözle `ls -lt`'den hesaplama; snapshot yaşı komutta hesaplı):
+
+```bash
+ansible <master-grubu|mas01,mas02,mas03,> -i <envanter> -m shell -f 20 -T 10 --task-timeout 30 -t cikti/filo/master -a 'd=/var/lib/rancher/rke2/server/db/snapshots; echo snapshot_sayisi=$(ls $d 2>/dev/null | wc -l); echo snapshot_son_24sa=$(find $d -maxdepth 1 -type f -mmin -1440 2>/dev/null | wc -l); echo snapshot_son=$(ls -t -l --time-style=+%F_%H:%M $d 2>/dev/null | awk "NR==2{print \$6}"); echo etcd_s3_satiri=$(grep -c "^etcd-s3" /etc/rancher/rke2/config.yaml 2>/dev/null); echo sifreleme_ilk=$(grep -o -E "aescbc|secretbox|aesgcm|identity" /var/lib/rancher/rke2/server/cred/encryption-config.json 2>/dev/null | head -1); echo audit_log_mb=$(du -sm /var/lib/rancher/rke2/server/logs/audit.log 2>/dev/null | cut -f1); echo anonim_auth=$(ps -ef | grep -o -E -- "--anonymous-auth=[a-z]+" | sort -u | tr "\n" " "); echo rancher_disk=$(df --output=pcent /var/lib/rancher 2>/dev/null | tail -1 | tr -d " "); echo rke2_surum=$(rke2 --version 2>/dev/null | head -1 | cut -d" " -f3)'
+python3 /root/ai/opencode/knowledge/skills/approved/filo-kontrol/filo-tablo.py cikti/filo/master --kv
+```
+
+`snapshot_son_24sa` = son 24 saatteki snapshot sayısı (0 → ❌), `snapshot_son` = en yeni dosyanın zamanı, `etcd_s3_satiri` 0 → dış kopya
+yok (⚠️), `sifreleme_ilk` = `identity` ya da boş → secrets düz metin (❌), `audit_log_mb` boş → audit log yok, `anonim_auth` boş =
+bayrak verilmemiş (varsayılan), `rke2_surum` master'lar arasında farklıysa `*` ile görünür. Boş hücre = dosya/bayrak yok.
+Ölçüldü (sahte RKE2 dizin ağacı, 2026-10-21); kilitten geçiyor.
+
+Sertifika kalan günü (kalan güne göre sıralı — eski `sort -t= -k2` ay adına göre alfabetikti): `ssh root@<master> 'cd /var/lib/rancher/rke2/server/tls && for f in *.crt */*.crt; do [ -f "$f" ] && { echo "#DOSYA $f"; base64 -w0 "$f"; echo; }; done' | python3 /root/ai/opencode/knowledge/skills/approved/rancher-sertifika/sertifika-kontrol.py - --ozet`.
 
 - `rke2 certificate check --output table` ve `rke2 etcd-snapshot list` de serbest (saha G67) — `openssl`/`ls` karşılıkları yedek. RKE2 sertifikaları 365 gün geçerli; **120 gün** kala (v1.33.1+rke2r1'den beri; öncesi 90)
   `CertificateExpirationWarning` event'i üretilir ve **rke2 yeniden başlarken** kendiliğinden yenilenir (RKE2 docs

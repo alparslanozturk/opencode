@@ -271,7 +271,7 @@ def main(argv):
         print("  %-28s %-16s ⚠️ envanterde yok — doğrula" % (b, "-"))
     for u in uyarilar:
         print("⚠️ " + u)
-    print("kullanım: ansible-playbook -i %s --limit %s <playbook.yml>" % (yol, ",".join(secilen + bulunamayan)))
+    print("kullanım: ansible-playbook -i %s <playbook.yml>   (--limit gerekmez: dosyada yalnız bu işin sunucuları var)" % yol)
     return 0
 
 

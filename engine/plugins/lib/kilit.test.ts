@@ -702,3 +702,30 @@ describe("G101: iş envanteri (hosts-<CN>-<tarih>.ini) ad ↔ IP eşlemesine kay
     expect(IS_DESEN.test("hosts-rke2.ini")).toBe(false)
   })
 })
+
+describe("G101: --limit'siz ansible-playbook — hedef -i ile verilen (iş) envanterinin host'ları", () => {
+  const { mkdirSync, writeFileSync } = require("fs")
+  const dz = workdir + "-g101pb"
+  mkdirSync(dz + "/ansible/inventories", { recursive: true })
+  mkdirSync(dz + "/ansible/playbooks", { recursive: true })
+  writeFileSync(dz + "/ansible/playbooks/12-cert.yaml", "- hosts: all\n  tasks:\n    - ansible.builtin.copy:\n        dest: /etc/x.crt\n        content: abc\n")
+  writeFileSync(dz + "/ansible/inventories/hosts-dn29000-20261022-1430.ini",
+    "[google-captcha-cert]\nsdlaiworker01 ansible_host=10.0.5.11\nsdlaiworker02 ansible_host=10.0.5.12\n")
+  writeFileSync(dz + "/ansible/inventories/hosts-kotu-20261022-1430.ini", "[g]\nsdlaiworker01 ansible_host=10.0.5.99\n")
+  writeFileSync(dz + "/ansible/inventories/hosts-grupvars-20261022-1430.ini", "[g]\nsdlaiworker01\n[g:vars]\nansible_host=10.0.5.99\n")
+  const y = (s: string[]): Yetki => ({ tur: "CN", cn: "dn29000", krizMetni: false, sunucular: s, zaman: Date.now(), esler: s })
+  const pb = (inv: string) => ({ command: `cd ansible && ansible-playbook -i inventories/${inv} playbooks/12-cert.yaml` })
+  test("envanterdeki ad + IP yetkideyse geçer", () => {
+    const yy = y(["sdlaiworker01", "sdlaiworker02", "10.0.5.11", "10.0.5.12"])
+    expect(kilitDenetle("bash", pb("hosts-dn29000-20261022-1430.ini"), dz, yy)).toBeNull()
+  })
+  test("envanterde yetkisiz host / yetkili ada başka IP / grup vars'ta ansible_host → K1", () => {
+    expect(kilitDenetle("bash", pb("hosts-dn29000-20261022-1430.ini"), dz, y(["sdlaiworker01", "10.0.5.11"]))?.kilit).toBe("K1")
+    expect(kilitDenetle("bash", pb("hosts-kotu-20261022-1430.ini"), dz, y(["sdlaiworker01", "10.0.5.11"]))?.kilit).toBe("K1")
+    expect(kilitDenetle("bash", pb("hosts-grupvars-20261022-1430.ini"), dz, y(["sdlaiworker01", "10.0.5.99"]))?.kilit).toBe("K1")
+  })
+  test("-i yok (ansible.cfg envanteri) → hedef belirsiz, K1", () => {
+    const yy = y(["sdlaiworker01", "10.0.5.11"])
+    expect(kilitDenetle("bash", { command: "cd ansible && ansible-playbook playbooks/12-cert.yaml" }, dz, yy)?.kilit).toBe("K1")
+  })
+})

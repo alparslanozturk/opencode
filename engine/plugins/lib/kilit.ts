@@ -6,6 +6,7 @@ import { readFileSync } from "fs"
 import { hostname, userInfo } from "os"
 import { dirname, isAbsolute, join, resolve } from "path"
 import { isInside } from "./maskele"
+import { envanterAyristir, type Envanter } from "./envanter"
 
 // Audit log yolu: ajanın kendi kaydı K6 ile korunur. Adaptörle aynı kaynaktan (ortam değişkeni) okunur.
 export const auditLogYolu = () => process.env.OPS_AGENT_AUDIT_LOG ?? "/var/log/ops-agent/audit.jsonl"
@@ -1229,6 +1230,9 @@ export function komutIncele(metin: string, b: Baglam): Bulgu[] {
   const tumDonguler: { ad: string; ogeler: string[] }[] = [] // $(…) içleri için (saha G92: result=$(ssh root@x.$ip …))
   for (const k of ayristir(metin, ic)) {
     const a = k.argv
+    // G101: "cd ansible && ansible-playbook -i inventories/x.ini …" — sonraki komutların göreli yolları cd'nin dizininden
+    // çözülür (envanter/playbook okunabilsin). Değişkenli/joker yol izlenmez; uzak komutta (ssh içi) yerel dizin değişmez.
+    if (a[0] === "cd" && !b.uzak && a.length === 2 && !/[$`*?~]/.test(a[1]) && a[1] !== "-") b = { ...b, cwd: yolCoz(a[1], b) }
     if (["for", "while", "until", "select"].includes(a[0] ?? "")) {
       const ogeler = a[0] === "for" && a[2] === "in" && /^[A-Za-z_]\w*$/.test(a[1] ?? "") ? a.slice(3).filter((x) => x !== "do") : []
       const d = { ad: a[1] ?? "", ogeler: ogeler.length <= 200 && ogeler.every((x) => !/[$`*?(){}\[\]]/.test(x)) ? ogeler : [] }
@@ -1394,11 +1398,11 @@ export function tekKomut(k: Komut, b: Baglam): Bulgu[] {
       const diskIc = icler.filter((x) => x.tur === "disk")
       if (diskIc.length) {
         const lim = secenekDegeri(a, "-l", "--limit")
-        out.push(diskBulgu(`ansible-playbook içinde: ${[...new Set(diskIc.map((x) => x.neden))].join("; ")}`, lim ? limitHedefleri(lim) : ["?"]))
+        out.push(diskBulgu(`ansible-playbook içinde: ${[...new Set(diskIc.map((x) => x.neden))].join("; ")}`, lim ? limitHedefleri(lim) : envanterHedefleri(a, b)))
       } else if (kitaplar.length > 0 && kitaplar.every((k) => playbookSaltOkunur(yolCoz(k, b), b))) return out
     }
     const limit = secenekDegeri(a, "-l", "--limit")
-    const hedefler = limit ? limitHedefleri(limit) : ["?"]
+    const hedefler = limit ? limitHedefleri(limit) : envanterHedefleri(a, b)
     return [...out, degisiklik(`ansible-playbook ${a.filter(secenekDegil).find((x) => /\.ya?ml$/.test(x)) ?? ""} (--check yok)`.trim(), hedefler)]
   }
   if (p === "ansible") {
@@ -1615,6 +1619,46 @@ export function ansibleOruntu(a: string[]): string {
   return "?"
 }
 
+// G101 (Alp, 2026-10-22: "limit yok, çünkü yeni dosyada sadece değişiklik yapılan sunucular var"): --limit yoksa hedef, -i ile
+// verilen envanter DOSYA(LAR)ının host'larıdır — iş envanteri (hosts-<CN>-<tarih>.ini) tam bunun için. Her host'un adı VE
+// ansible_host IP'si ayrı hedef olur (ikisi de yetkide olmalı: yetkili ada başka IP yazılarak hedef kaydırılamaz). -i yok
+// (ansible.cfg'deki envanter), dizin, betik, YAML, okunamayan ya da boş envanter → "?" (hedef belirsiz, --limit gerekir).
+// "-i a,b," satır içi host listesi → o adlar.
+export function envanterHedefleri(a: string[], b: Baglam): string[] {
+  const iler: string[] = []
+  for (let i = 0; i < a.length; i++) {
+    const m = /^(?:-i|--inventory|--inventory-file)(?:=(.+))?$/.exec(a[i])
+    if (m) iler.push(m[1] ?? a[++i] ?? "")
+    else if (/^-i./.test(a[i])) iler.push(a[i].slice(2))
+  }
+  if (!iler.length) return ["?"]
+  const out = new Set<string>()
+  for (const inv of iler) {
+    if (inv.includes(",")) {
+      inv.split(",").map((x) => x.trim()).filter(Boolean).forEach((x) => out.add(normHost(x)))
+      continue
+    }
+    if (!/\.ini$/i.test(inv) && !/(^|\/)hosts[^/]*$/i.test(inv)) return ["?"]
+    let metin: string
+    try {
+      metin = readFileSync(yolCoz(inv, b), "utf8")
+    } catch {
+      return ["?"]
+    }
+    if (metin.length > 2 * 1024 * 1024) return ["?"]
+    // [grup:vars] altında ansible_host → grubun tüm host'larını başka adrese yönlendirir; host başına denetlenemez
+    if (/^\s*ansible_(?:ssh_)?host\s*=/im.test(metin)) return ["?"]
+    const env: Envanter = { hostlar: new Map(), gruplar: new Map(), altGruplar: new Map(), dosyalar: [] }
+    envanterAyristir(metin, env)
+    // eş adlar = ad, kısa ad (addan türetilir — ayrı hedef değil), ansible_host değeri (IP ya da FQDN — ayrı hedef)
+    for (const [h, esler] of env.hostlar) {
+      out.add(normHost(h))
+      for (const e of esler) if (e !== h && e !== h.split(".")[0]) out.add(normHost(e))
+    }
+  }
+  return out.size ? [...out] : ["?"]
+}
+
 export function limitHedefleri(limit: string): string[] {
   const h = limit
     .split(/[,:]/)
@@ -1760,7 +1804,7 @@ export function kilitDenetle(
   if (hedefler.includes("?") || hedefler.includes("__ansible__"))
     return {
       kilit: "K1",
-      mesaj: `[güvenlik kilidi K1] Değişiklik yapan komutun hedefi belirlenemedi (${nedenler}). ansible-playbook için hedefi --limit <sunucu,…> ile açıkça ver; toplu araç yerine sunucu başına komut kullan. ${YETKI_NASIL}`,
+      mesaj: `[güvenlik kilidi K1] Değişiklik yapan komutun hedefi belirlenemedi (${nedenler}). ansible-playbook için hedefi --limit <sunucu,…> ile ya da -i ile yalnız işin sunucularını içeren iş envanteri (hosts-<CN>-<tarih>.ini) ile ver; toplu araç yerine sunucu başına komut kullan. ${YETKI_NASIL}`,
     }
   // G68: tüm değişiklik bulguları "belirsiz" (kilidin tanımadığı uzak komut) ise engel yerine kullanıcıya sor.
   const hepsiBelirsiz = degisenler.every((x) => x.belirsiz)

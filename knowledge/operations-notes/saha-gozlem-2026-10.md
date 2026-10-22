@@ -1215,3 +1215,6 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   ad dahil). Yeni `ansible/gomulu-dosya.py`: dosyayı bayt bayt `copy content: |`'a gömer, PEM'i openssl ile denetler, `validate:`,
   sha256 `assert`, `--sonra` handler; özel anahtar yalnız `--anahtar`; `backup` varsayılan kapalı (anchors dizininde eski
   sertifika güvenilir kalırdı). Yerel deneme: yazılan dosya kaynakla `cmp` aynı, ikinci çalıştırma changed=0.
+- Ek (G101, Alp): "limit yok, çünkü yeni dosyada sadece değişiklik yapılan sunucular var — böyle çalışabiliriz". Kilit `--limit`'siz
+  gerçek çalıştırmayı durduruyordu → `envanterHedefleri`: hedef `-i` dosyasının host'ları (ad + ansible_host ayrı ayrı yetkide
+  olmalı; `[g:vars]` ansible_host / -i yok → belirsiz); komut içi `cd` izlenir (göreli `-i inventories/…` çözülsün). Test 349.

@@ -151,7 +151,7 @@ def main(argv):
     if anahtar:
         print("⚠️ özel anahtar gömüldü (no_log, 0600) — dosyayı git'e commit'leme")
     print("sözdizimi: ansible-playbook --syntax-check %s" % cikti)
-    print("kuru:      ansible-playbook -i <iş envanteri> --limit <liste> %s --check --diff" % cikti)
+    print("kuru:      ansible-playbook -i <iş envanteri> %s --check --diff" % cikti)
     return 0
 
 

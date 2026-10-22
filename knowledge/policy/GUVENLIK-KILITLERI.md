@@ -13,7 +13,7 @@
 | **K2** | Dizin dışı | Çalışma dizini dışına çıkan her okuma/yazma **onay sorar** | Kullanıcı (onay ekranı) |
 | **K3** | Okuma (A104/A105: kapsam tabanlı) | Çalışma dizini (kapsam) İÇİNDE okuma **istisnasız** serbest (A105 — `hosts*`/`env`/`*.key`/… denylist'i de dahil, kapsam içinde artık uygulanmaz); DIŞINA çıkan okuma K2'nin onayına düşer, denylist'e uyan kapsam-dışı dosyalar audit-log plugin'inde hâlâ reddedilir | Kullanıcı (K2 onay ekranı, "always" = o oturum boyunca) |
 | **K4** | İzin listesi | Sorusuz çalışan komutlar yalnız salt-okunur olanlar; `ss`≠`ssh`, `ps`≠`psql` vb. | — |
-| **K5** | Yıkıcı komut | `rm -rf /`-benzeri, mkfs, diske `dd`, force-push, `kill -9 -1` … **hiç çalışmaz** | Kimse (gerekirse insan elle çalıştırır) |
+| **K5** | Yıkıcı komut | `rm -rf /`-benzeri, `chmod -R /`, force-push, `kill -9 -1` … **hiç çalışmaz**. **Disk yıkıcı** (`mkfs*`, `wipefs -a/-o`, blok aygıtına `dd`/`>`, `blkdiscard`, `sgdisk --zap`, diske `shred`/`mkswap`; ansible ad-hoc/playbook içinde de): K1 yetkisi (hedef listede) **+ her komutta onay ekranı** — "her zaman izin ver" atlatamaz (Alp, 2026-10-22) | Felaket: kimse · Disk: yetki + kullanıcının o komuta onayı |
 | **K6** | Öz-koruma | Ajan kendi ayarını/eklentisini/audit log'unu değiştiremez, anahtar dosyasını okuyamaz, kilitsiz ikinci opencode başlatamaz | Kimse |
 | **K7** | Varsayılan kilitli | Kilitler her açılışta açık; gözlem modu yalnız bilerek | İnsan: `OPS_AGENT_KAPI=GOZLEM opencode` |
 

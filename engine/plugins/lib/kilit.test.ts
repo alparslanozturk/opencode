@@ -515,13 +515,13 @@ describe("G92: döngü değişkeni komut ikamesinin içinde — result=$(ssh roo
 
 describe("G96: okuma çalışmalı — wipefs listeleme, $(( )) aritmetiği, case…esac desenleri (Alp, 2026-10-22)", () => {
   const k = (c: string) => kilitDenetle("bash", { command: c }, workdir, undefined)
-  test("wipefs: seçeneksiz / -n / --no-act okuma; -a, -o, -af K5", () => {
+  test("wipefs: seçeneksiz / -n / --no-act okuma; -a, -o, -af yetkisiz engel (yetkiyle onay — 'Disk yıkıcı')", () => {
     expect(k(`ssh m1 "wipefs -n /dev/sdb"`)).toBeNull()
     expect(k(`ssh m1 "wipefs /dev/sdb"`)).toBeNull()
     expect(k(`wipefs --no-act -a /dev/sdb`)).toBeNull()
     expect(k(`ssh m1 'for d in $(lsblk -dn -o NAME); do wipefs -n /dev/$d; done'`)).toBeNull()
     for (const c of [`ssh m1 "wipefs -a /dev/sdb"`, `wipefs --all /dev/sdb`, `ssh m1 "wipefs -o 0x438 /dev/sdb"`, `ssh m1 "wipefs -af /dev/sdb"`])
-      expect(k(c)?.kilit).toBe("K5")
+      expect(k(c)?.kilit).toBe("K1")
   })
   test("$(( … )) aritmetik okuma; içindeki ikame yine denetlenir", () => {
     expect(k(`ssh m1 'echo s=$(( ($(date +%s) - $(stat -c %Y /etc/hosts)) / 3600 ))'`)).toBeNull()
@@ -595,5 +595,41 @@ describe("G98: 'kriz durumu evet sadece onu restart et' — ajanın önerdiği s
     expect(y.envanterNotu).toContain("ad çözümleme")
     expect(kilitDenetle("bash", { command: "ssh root@10.14.4.135 'systemctl restart rke2-server'" }, dz, y)).toBeNull()
     expect(kilitDenetle("bash", { command: "ssh root@10.14.4.136 'systemctl restart rke2-server'" }, dz, y)?.kilit).toBe("K1")
+  })
+})
+
+
+describe("Disk yıkıcı (mkfs, wipefs -a, dd/> blok aygıt, blkdiscard, sgdisk --zap): yetki + her komutta onay (Alp, 2026-10-22)", () => {
+  const y: Yetki = { tur: "CN", cn: "CHG0000001", krizMetni: false, sunucular: ["web01", "localhost"], zaman: Date.now() }
+  const k = (c: string, yt?: Yetki) => kilitDenetle("bash", { command: c }, workdir, yt)
+  test("yetki yok → K1 engel (onay sorusu yok), mesajda yıkıcı disk notu", () => {
+    const r = k(`ssh web01 'mkfs.xfs /dev/sdb'`)
+    expect(r?.kilit).toBe("K1")
+    expect(r?.sor).toBeFalsy()
+    expect(r?.mesaj).toContain("YIKICI DİSK")
+  })
+  test("yetki + hedef listede → engel değil, ONAY sorusu (her komutta)", () => {
+    for (const c of [`ssh web01 'mkfs.xfs /dev/sdb'`, `ssh web01 'wipefs -a /dev/sdb'`, `ssh web01 'dd if=/dev/zero of=/dev/sdb bs=1M count=10'`,
+      `ssh web01 'echo x > /dev/sdb'`, `ssh web01 'blkdiscard /dev/sdb'`, `ssh web01 'sgdisk --zap-all /dev/sdb'`, `mkfs.ext4 /dev/sdc`,
+      `ansible web01 -m shell -a 'wipefs -a /dev/sdb'`]) {
+      const r = k(c, y)
+      expect(r?.sor).toBe(true)
+      expect(r?.mesaj).toContain("ONAY: YIKICI DİSK")
+    }
+  })
+  test("hedef listede değil → K1 engel", () => {
+    const r = k(`ssh web02 'mkfs.xfs /dev/sdb'`, y)
+    expect(r?.kilit).toBe("K1")
+    expect(r?.sor).toBeFalsy()
+  })
+  test("felaket sınıfı yetkiyle de K5 kalır (sorulmaz)", () => {
+    for (const c of [`ssh web01 'rm -rf /'`, `kill -9 -1`, `git push --force origin main`, `ssh web01 'chmod -R 777 /'`]) {
+      const r = k(c, y)
+      expect(r?.kilit).toBe("K5")
+      expect(r?.sor).toBeFalsy()
+    }
+  })
+  test("aynı komutta felaket + disk → K5 engel", () => {
+    expect(k(`ssh web01 'mkfs.xfs /dev/sdb; rm -rf /'`, y)?.sor).toBeFalsy()
   })
 })

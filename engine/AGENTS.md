@@ -189,7 +189,11 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
 - **Kriz akışı:** mail yapıştırılınca etkilenen sunucuları maildan çıkar, listeyi öner ve **dur** —
   liste ancak kullanıcı `sunucular: …` yazınca geçerli olur. Yetki satırını sen yazamazsın/üretemezsin.
 - `ansible-playbook` değişikliğinde hedefi her zaman `--limit` ile ver; salt-okunur iş yetkisiz serbest.
-- **Asla açılmayanlar:** `rm -rf /`-benzeri, mkfs, diske `dd`, force-push; kendi ayarın/eklentin/audit log.
+- **Asla açılmayanlar:** `rm -rf /`-benzeri, `chmod -R /`, force-push, `kill -1`; kendi ayarın/eklentin/audit log.
+- **Yıkıcı disk komutu = yetki + her seferinde onay (Alp, 2026-10-22):** `mkfs*`, silen `wipefs -a/-o`, blok aygıtına `dd`/`>`,
+  `blkdiscard`, `sgdisk --zap`, diske `shred`/`mkswap` — CN/KURULUM/KRİZ yetkisi ve hedef listede olsa bile **her komut ayrı onay
+  ekranına** düşer ("her zaman izin ver" atlatamaz). Önermeden ve onay istemeden önce aynı sunucuda `disk-durum.py` çıktısını göster
+  (aygıt BOŞ ADAY olmalı); reddedilirse başka yazımla deneme. `wipefs -n` / seçeneksiz `wipefs` okumadır.
 - **Tanınmayan komut = onay sorusu (G68):** kilidin tanımadığı uzak komut (kurum aracı, özel betik, `./x`, `python3 x.py`)
   engellenmez, kullanıcının onay ekranına düşer. Böyle bir komutu çalıştırmadan önce ne yaptığını (okuma mı, değişiklik mi)
   **tek cümleyle** söyle; kullanıcı reddederse aynı işi başka yazımla deneme. Bilinen değişiklik komutu (systemctl restart,

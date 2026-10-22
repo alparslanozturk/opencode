@@ -696,7 +696,7 @@ export function tehlikeliKok(raw: string, b: Baglam, silme: boolean): boolean {
 }
 
 export interface Bulgu {
-  tur: "sert" | "degisiklik"
+  tur: "sert" | "degisiklik" | "disk"
   neden: string
   hedefler: string[]
   // Saha G68 (Alp, 2026-10-17): kilidin hiç tanımadığı uzak komut "belirsiz" → engel yerine kullanıcıya sorulur.
@@ -704,6 +704,10 @@ export interface Bulgu {
 }
 
 export const sert = (neden: string): Bulgu => ({ tur: "sert", neden, hedefler: [] })
+// Alp, 2026-10-22: diski biçimleyen/silen komut (mkfs, wipefs -a, blok aygıtına dd/yönlendirme, blkdiscard, sgdisk --zap, diske
+// shred/mkswap) "asla açılmaz" değil; yetki (CN/KURULUM/KRİZ + hedef listede) VE her komutta ayrı onay ister ("her zaman izin
+// ver" atlatamaz). Felaket sınıfı (rm -rf /, force-push, kill -1, kilit/audit) K5'te kalır.
+export const diskBulgu = (neden: string, hedefler: string[]): Bulgu => ({ tur: "disk", neden, hedefler })
 export const degisiklik = (neden: string, hedefler: string[], belirsiz = false): Bulgu =>
   belirsiz ? { tur: "degisiklik", neden, hedefler, belirsiz } : { tur: "degisiklik", neden, hedefler }
 
@@ -1218,7 +1222,7 @@ export function tekKomut(k: Komut, b: Baglam): Bulgu[] {
   const { argv, xargs } = sarmalayiciSoy(k.argv)
   const out: Bulgu[] = []
   for (const y of k.yazilan) {
-    if (BLOK_AYGIT_RE.test(y)) out.push(sert(`diske doğrudan yazma (> ${y})`))
+    if (BLOK_AYGIT_RE.test(y)) out.push(diskBulgu(`diske doğrudan yazma (> ${y})`, [b.uzak ?? "localhost"]))
   }
   if (argv.length === 0) {
     if (b.uzak && k.yazilan.some((y) => !zararsizHedef(y)))
@@ -1272,14 +1276,17 @@ export function tekKomut(k: Komut, b: Baglam): Bulgu[] {
     }
   }
   if (p === "mv") for (const h of a.filter(secenekDegil).slice(0, -1)) if (tehlikeliKok(h, b, false)) out.push(sert(`mv ${h}`))
-  if (/^mkfs(\..*)?$/.test(p) || p === "mke2fs" || (p === "wipefs" && !wipefsOkur(a)) || p === "blkdiscard") out.push(sert(p))
-  if (p === "mkswap" && a.some((x) => BLOK_AYGIT_RE.test(x))) out.push(sert("mkswap (disk)"))
-  if (p === "sgdisk" && a.some((x) => /^(--zap|--zap-all|-Z|-z)$/.test(x))) out.push(sert("sgdisk --zap"))
+  const diskHedef = [b.uzak ?? "localhost"]
+  const diskAygit = a.filter((x) => BLOK_AYGIT_RE.test(x)).join(" ")
+  if (/^mkfs(\..*)?$/.test(p) || p === "mke2fs" || (p === "wipefs" && !wipefsOkur(a)) || p === "blkdiscard")
+    out.push(diskBulgu(`${p}${diskAygit ? " " + diskAygit : ""}`, diskHedef))
+  if (p === "mkswap" && a.some((x) => BLOK_AYGIT_RE.test(x))) out.push(diskBulgu(`mkswap ${diskAygit}`, diskHedef))
+  if (p === "sgdisk" && a.some((x) => /^(--zap|--zap-all|-Z|-z)$/.test(x))) out.push(diskBulgu(`sgdisk --zap ${diskAygit}`, diskHedef))
   if (p === "dd") {
     const of = a.find((x) => x.startsWith("of="))
-    if (of && BLOK_AYGIT_RE.test(of.slice(3))) out.push(sert(`dd ${of}`))
+    if (of && BLOK_AYGIT_RE.test(of.slice(3))) out.push(diskBulgu(`dd ${of}`, [b.uzak ?? "localhost"]))
   }
-  if (p === "shred" && a.some((x) => BLOK_AYGIT_RE.test(x))) out.push(sert("shred (disk)"))
+  if (p === "shred" && a.some((x) => BLOK_AYGIT_RE.test(x))) out.push(diskBulgu(`shred ${a.filter((x) => BLOK_AYGIT_RE.test(x)).join(" ")}`, [b.uzak ?? "localhost"]))
   if (p === "kill" && /(^|\s)(-\d+|-[A-Z]+|-s\s+\S+|--)\s+-1(\s|$)/.test(a.join(" "))) out.push(sert("kill … -1 (tüm süreçler)"))
   if (p === "git" && a.includes("push") && a.some((x) => /^(-f|--force|--force-with-lease.*|--force-if-includes|--mirror)$/.test(x) || /^\+/.test(x)))
     out.push(sert("git push --force"))
@@ -1339,10 +1346,15 @@ export function tekKomut(k: Komut, b: Baglam): Bulgu[] {
     if (!b.uzak) {
       const kitaplar = playbookDosyalari(a)
       // K5 playbook içindeki komutlara da uygulanır (önceden içerik hiç okunmuyordu)
-      for (const k of kitaplar) out.push(...playbookKomutlari(yolCoz(k, b)).flatMap((c) =>
-        komutIncele(c, { ...b, uzak: "__ansible__", derinlik: b.derinlik + 1 }).filter((x) => x.tur === "sert")))
+      const icler = kitaplar.flatMap((k) => playbookKomutlari(yolCoz(k, b)).flatMap((c) =>
+        komutIncele(c, { ...b, uzak: "__ansible__", derinlik: b.derinlik + 1 })))
+      out.push(...icler.filter((x) => x.tur === "sert"))
       if (out.some((x) => x.tur === "sert")) return out
-      if (kitaplar.length > 0 && kitaplar.every((k) => playbookSaltOkunur(yolCoz(k, b), b))) return out
+      const diskIc = icler.filter((x) => x.tur === "disk")
+      if (diskIc.length) {
+        const lim = secenekDegeri(a, "-l", "--limit")
+        out.push(diskBulgu(`ansible-playbook içinde: ${[...new Set(diskIc.map((x) => x.neden))].join("; ")}`, lim ? limitHedefleri(lim) : ["?"]))
+      } else if (kitaplar.length > 0 && kitaplar.every((k) => playbookSaltOkunur(yolCoz(k, b), b))) return out
     }
     const limit = secenekDegeri(a, "-l", "--limit")
     const hedefler = limit ? limitHedefleri(limit) : ["?"]
@@ -1358,7 +1370,10 @@ export function tekKomut(k: Komut, b: Baglam): Bulgu[] {
     if (!degistirir && ["command", "shell", "raw"].includes(taban(modul).replace(/^ansible\.(builtin|legacy)\./, ""))) {
       const ic = komutIncele(arg, { ...b, uzak: "__ansible__", derinlik: b.derinlik + 1 })
       out.push(...ic.filter((x) => x.tur === "sert"))
-      degistirir = ic.some((x) => x.tur === "degisiklik")
+      const diskIc = ic.filter((x) => x.tur === "disk")
+      if (diskIc.length)
+        out.push(diskBulgu([...new Set(diskIc.map((x) => x.neden))].join("; "), limitHedefleri(secenekDegeri(a, "-l", "--limit") ?? oruntu)))
+      degistirir = ic.some((x) => x.tur === "degisiklik" || x.tur === "disk")
     }
     const limit = secenekDegeri(a, "-l", "--limit")
     if (degistirir) out.push(degisiklik(`ansible -m ${modul}`, limitHedefleri(limit ?? oruntu)))
@@ -1693,7 +1708,11 @@ export function kilitDenetle(
       mesaj: `[güvenlik kilidi K5] Yıkıcı komut engellendi: ${[...new Set(sertler.map((x) => x.neden))].join("; ")}. Bu kilit CN/KURULUM/KRİZ yetkisiyle de açılmaz — gerçekten gerekiyorsa kullanıcı komutu kendisi çalıştırır.`,
     }
 
-  const degisenler = bulgular.filter((x) => x.tur === "degisiklik")
+  const degisenler = bulgular.filter((x) => x.tur === "degisiklik" || x.tur === "disk")
+  const diskler = bulgular.filter((x) => x.tur === "disk")
+  const diskNotu = diskler.length
+    ? ` YIKICI DİSK KOMUTU (${[...new Set(diskler.map((x) => x.neden))].join("; ")}): yetkiden sonra her komut ayrıca onay ekranına düşer.`
+    : ""
   if (!degisenler.length) return null
   const hedefler = [...new Set(degisenler.flatMap((x) => x.hedefler))]
   const nedenler = [...new Set(degisenler.map((x) => x.neden))].join("; ")
@@ -1720,7 +1739,7 @@ export function kilitDenetle(
           : "yetkinin süresi doldu (12 saat)"
     return {
       kilit: "K1",
-      mesaj: `[güvenlik kilidi K1] Bu komut değişiklik yapıyor (${nedenler}) → hedef: ${hedefler.join(", ")}. Çalıştırılmadı: ${eksik}.${yetki?.uyari ? ` Not: ${yetki.uyari}.` : ""} ${YETKI_NASIL}`,
+      mesaj: `[güvenlik kilidi K1] Bu komut değişiklik yapıyor (${nedenler}) → hedef: ${hedefler.join(", ")}. Çalıştırılmadı: ${eksik}.${yetki?.uyari ? ` Not: ${yetki.uyari}.` : ""}${diskNotu} ${YETKI_NASIL}`,
     }
   }
   const disarida = hedefler.filter((h) => !hostListede(h, yetki.esler ?? yetki.sunucular))
@@ -1728,7 +1747,13 @@ export function kilitDenetle(
   if (disarida.length)
     return {
       kilit: "K1",
-      mesaj: `[güvenlik kilidi K1] Hedef yetki listesinde yok: ${disarida.join(", ")} (geçerli yetki — ${yetkiOzeti(yetki)}).${yetki.uyari ? ` Not: ${yetki.uyari}.` : ""} Komut: ${nedenler}. Kullanıcı listeyi güncellemeli (serbest yazabilir; envanterdeki ad, kısa ad, IP, grup adı ve "07-14" aralığı eşleşir).${yetki.envanterNotu ? ` Envanter: ${yetki.envanterNotu}.` : ""} (Ajan için: kilit YALNIZ kullanıcının mesajını okur — komuta "kriz" yazmak ya da başka yazımla denemek yetki vermez; geçerli listeyi kullanıcıya aynen göster, eksik olanı sor. "Kilit çalışmıyor" deme.)`,
+      mesaj: `[güvenlik kilidi K1] Hedef yetki listesinde yok: ${disarida.join(", ")} (geçerli yetki — ${yetkiOzeti(yetki)}).${yetki.uyari ? ` Not: ${yetki.uyari}.` : ""} Komut: ${nedenler}. Kullanıcı listeyi güncellemeli (serbest yazabilir; envanterdeki ad, kısa ad, IP, grup adı ve "07-14" aralığı eşleşir).${yetki.envanterNotu ? ` Envanter: ${yetki.envanterNotu}.` : ""} (Ajan için: kilit YALNIZ kullanıcının mesajını okur — komuta "kriz" yazmak ya da başka yazımla denemek yetki vermez; geçerli listeyi kullanıcıya aynen göster, eksik olanı sor. "Kilit çalışmıyor" deme.)${diskNotu}`,
+    }
+  if (diskler.length)
+    return {
+      kilit: "K5",
+      sor: true,
+      mesaj: `[kilit — ONAY: YIKICI DİSK KOMUTU] ${[...new Set(diskler.map((x) => x.neden))].join("; ")} → hedef: ${[...new Set(diskler.flatMap((x) => x.hedefler))].join(", ")} (yetki: ${yetkiOzeti(yetki)}). Diskteki veri GERİ GELMEZ. Onaylamadan önce bu aygıtın o sunucuda "BOŞ ADAY" olduğunu gör (rhel-depolama disk-durum.py — reboot sonrası harfler değişebilir). Emin değilsen reddet. (Ajan için: reddedilirse başka yazımla deneme.)`,
     }
   return null
 }

@@ -299,9 +299,7 @@ describe("K5 yikici komut kilidi — yetkiyle bile acilmaz", () => {
     "ls; rm -rf /",
     "echo x && bash -c 'rm -rf /usr'",
     "ssh web01 'rm -rf /'",
-    "mkfs.ext4 /dev/sdb",
-    "dd if=/dev/zero of=/dev/sda bs=1M",
-    "echo x > /dev/sda",
+    // mkfs / dd / > /dev/sdX: 2026-10-22'den beri "yetki + her seferinde onay" sınıfı (kilit.test.ts "Disk yıkıcı")
     "git push --force origin main",
     "git push origin +main",
     "find / -name '*.log' -delete",

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # is-envanter.py — iş (değişiklik) envanteri: CN numarası (ya da kriz/kurulum/is etiketi) + sunucu listesi verilince ana
 # envanterlerden (ansible/inventories/hosts*.ini …) yalnız o sunucuları içeren ayrı bir INI üretir:
-#   ansible/is/hosts-<ETIKET>-<YYYYMMDD-HHMM>.ini
+#   ansible/inventories/hosts-<ETIKET>-<YYYYMMDD-HHMM>.ini   (ana envanterin yanında; CN önce, tarih-saat arkada)
 # Host satırları, grupları, üst grupları (:children) ve grup değişkenleri ([g:vars]) kaynaktan AYNEN alınır — ad/IP
 # uydurulmaz; envanterde olmayan öğe [is_ek] grubuna olduğu gibi yazılır ve raporlanır. Var olan dosyanın üzerine yazmaz.
 # Ana envantere dokunmaz. Ayrıştırma kume-bul.py ile aynı (engine/plugins/lib/envanter.ts kuralları).
@@ -18,14 +18,18 @@ _spec = importlib.util.spec_from_file_location(
 kb = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(kb)
 
-IS_DIZIN = os.path.join("ansible", "is")
+IS_DIZIN = os.path.join("ansible", "inventories")
+# İş envanteri adı (bu betiğin ya da elle/ajanla üretilmiş tarihli kopya: hosts-20261022-dn29000.ini) — kaynak sayılmaz.
+# Aynı desen kume-bul.py ve engine/plugins/lib/envanter.ts'te.
+IS_DESEN = re.compile(r"^hosts-(?:.+-\d{8}(?:-\d{4})?|\d{8}(?:-\d{4})?-.+)\.ini$", re.I)
 KULLANIM = """kullanım:
-  is-envanter.py <ETIKET> <sunucu|kısa ad|IP|aralık|grup> ... [--dosya <ana.ini>]... [--not "<metin>"]
+  is-envanter.py <ETIKET> <sunucu|kısa ad|IP|aralık|grup> ... [--grup <iş grubu>] [--dosya <ana.ini>]... [--not "<metin>"]
   is-envanter.py <ETIKET> -            # sunucular stdin'den (yapıştırılan liste, serbest biçim)
-  is-envanter.py --liste               # ansible/is/ altındaki iş envanterleri
-ETIKET: CN numarası (CHG0012345) ya da kriz | kurulum | is (CN'siz iş).
+  is-envanter.py --liste               # ansible/inventories/ altındaki iş envanterleri
+ETIKET: CN numarası (dn29000, CHG0012345 — yazıldığı gibi) ya da kriz | kurulum | is (CN'siz iş).
+--grup: tüm seçilen host'ları ayrıca bu gruba koyar (playbook "hosts: <grup>" için, ör. google-captcha-cert).
 Aralık: wor07-14, 10.0.9.127-134, yalın 07-14 (envanterde tek önekle karşılanırsa).
-Çıktı: ansible/is/hosts-<ETIKET>-<YYYYMMDD-HHMM>.ini — ana envanter değişmez, üzerine yazılmaz."""
+Çıktı: ansible/inventories/hosts-<ETIKET>-<YYYYMMDD-HHMM>.ini — ana envanter değişmez, üzerine yazılmaz."""
 
 
 def aralik_ac(t):
@@ -129,7 +133,7 @@ def liste():
         return 0
     for g in sorted(os.listdir(IS_DIZIN)):
         yol = os.path.join(IS_DIZIN, g)
-        if not g.endswith(".ini"):
+        if not IS_DESEN.match(g):
             continue
         bas, n = "", "?"
         for s in open(yol, encoding="utf-8", errors="replace"):
@@ -147,11 +151,14 @@ def main(argv):
         return 0
     if argv[0] == "--liste":
         return liste()
-    dosya_arg, notu, kalan = [], "", []
+    dosya_arg, notu, is_grup, kalan = [], "", "", []
     i = 0
     while i < len(argv):
         if argv[i] == "--dosya" and i + 1 < len(argv):
             dosya_arg.append(argv[i + 1])
+            i += 2
+        elif argv[i] == "--grup" and i + 1 < len(argv):
+            is_grup = argv[i + 1].strip().lower()
             i += 2
         elif argv[i] == "--not" and i + 1 < len(argv):
             notu = argv[i + 1]
@@ -166,15 +173,15 @@ def main(argv):
     if not re.fullmatch(r"[A-Za-z0-9_-]{2,40}", etiket):
         print("etiket geçersiz: %r — CN numarası (CHG0012345) ya da kriz/kurulum/is" % etiket)
         return 1
-    etiket = etiket.upper() if re.search(r"\d", etiket) else etiket.lower()
+    # CN kullanıcının yazdığı gibi kalır (dn29000 / CHG0012345) — büyük/küçük harf değiştirilmez
     istenen = ogeler(kalan[1:])
     if not istenen:
         print("sunucu listesi boş")
         return 1
 
-    # iş envanterleri (ansible/is/) kaynak değildir — kume-bul.py ATLA'da da "is" var
+    # iş envanterleri kaynak değildir (kume-bul.dosyalar zaten atlar; --dosya ile verilse de)
     kaynaklar = [os.path.relpath(d) for d in (dosya_arg or kb.dosyalar(os.getcwd()))]
-    kaynaklar = [d for d in kaynaklar if not os.path.normpath(d).startswith(IS_DIZIN + os.sep)]
+    kaynaklar = [d for d in kaynaklar if not IS_DESEN.match(os.path.basename(d))]
     kayitlar, gruplar, cocuklar, grup_vars = [], {}, {}, {}
     for d in kaynaklar:
         kb.ayristir(d, kayitlar, gruplar, cocuklar, grup_vars)
@@ -247,6 +254,8 @@ def main(argv):
                 satirlar += [s for _, s in v]
     if bulunamayan:
         satirlar += ["", "# envanterde yok — ad/IP'yi kullanıcıyla doğrula", "[is_ek]"] + bulunamayan
+    if is_grup:
+        satirlar += ["", "# iş grubu — playbook'ta hosts: %s" % is_grup, "[%s]" % is_grup] + secilen + bulunamayan
     with open(yol, "w", encoding="utf-8") as f:
         f.write("\n".join(satirlar) + "\n")
 

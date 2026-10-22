@@ -62,7 +62,11 @@ export function envanterAyristir(metin: string, env: Envanter): void {
   }
 }
 
-// Çalışma dizinindeki envanterler: ansible/ ve inventories/ altında (3 düzey) *.ini ya da hosts* dosyaları (is/ hariç).
+// İş envanteri (CN/tarihli kopya: hosts-dn29000-20261022-1430.ini, hosts-20261022-dn29000.ini) ana envanterden türetilir; ajan
+// yazar → ad ↔ IP eşlemesine kaynak olmaz (G100/G101). Aynı desen kume-bul.py ve ansible/is-envanter.py'de.
+export const IS_DESEN = /^hosts-(?:.+-\d{8}(?:-\d{4})?|\d{8}(?:-\d{4})?-.+)\.ini$/i
+
+// Çalışma dizinindeki envanterler: ansible/ ve inventories/ altında (3 düzey) *.ini ya da hosts* dosyaları (iş envanterleri hariç).
 // OPS_AGENT_ENVANTER (":" ayrılmış yol listesi) verilirse yalnız onlar okunur.
 export function envanterDosyalari(workdir: string): string[] {
   const ortam = process.env.OPS_AGENT_ENVANTER
@@ -76,8 +80,7 @@ export function envanterDosyalari(workdir: string): string[] {
       return
     }
     for (const g of girdiler.sort()) {
-      // is/ = iş envanterleri (is-envanter.py, ana envanterden türetilir; ajan yazar) — eşlemeye kaynak olmaz (G100)
-      if (g.startsWith(".") || g === "node_modules" || g === "roles" || g === "group_vars" || g === "host_vars" || g === "is") continue
+      if (g.startsWith(".") || g === "node_modules" || g === "roles" || g === "group_vars" || g === "host_vars") continue
       const yol = join(dizin, g)
       let st
       try {
@@ -87,7 +90,7 @@ export function envanterDosyalari(workdir: string): string[] {
       }
       if (st.isDirectory()) {
         if (derinlik < 3) gez(yol, derinlik + 1)
-      } else if (st.size <= BUYUK_DOSYA && (/\.ini$/i.test(g) || /^hosts/i.test(g)) && !/\.(ya?ml|json|j2|bak|orig)$/i.test(g))
+      } else if (st.size <= BUYUK_DOSYA && (/\.ini$/i.test(g) || /^hosts/i.test(g)) && !/\.(ya?ml|json|j2|bak|orig)$/i.test(g) && !IS_DESEN.test(g))
         out.push(yol)
     }
   }

@@ -689,3 +689,16 @@ describe("G100: CN ve sunucu listesi ayrı mesajlarda — 'bir cümlede ikisini 
     expect(m.get("s")!.sunucular).toEqual(["stlweb01"])
   })
 })
+
+describe("G101: iş envanteri (hosts-<CN>-<tarih>.ini) ad ↔ IP eşlemesine kaynak olmaz", () => {
+  test("tarihli kopyalar atlanır, ana envanter okunur", () => {
+    const { mkdirSync, writeFileSync } = require("fs")
+    const { envanterDosyalari, IS_DESEN } = require("./envanter") as typeof import("./envanter")
+    const dz = workdir + "-g101"
+    mkdirSync(dz + "/ansible/inventories", { recursive: true })
+    for (const f of ["hosts.ini", "hosts-rke2.ini", "hosts-dn29000-20261022-1430.ini", "hosts-20261022-dn29000.ini", "hosts-kriz-20261022.ini"])
+      writeFileSync(`${dz}/ansible/inventories/${f}`, "[g]\nx01\n")
+    expect(envanterDosyalari(dz).map((d) => d.split("/").pop()).sort()).toEqual(["hosts-rke2.ini", "hosts.ini"])
+    expect(IS_DESEN.test("hosts-rke2.ini")).toBe(false)
+  })
+})

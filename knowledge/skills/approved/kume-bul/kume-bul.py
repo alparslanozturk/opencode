@@ -10,7 +10,9 @@ import re
 import sys
 
 KOKLER = ("ansible", "inventories", "inventory")
-ATLA = {"node_modules", "roles", "group_vars", "host_vars", "is"}  # is/ = iş envanterleri (is-envanter.py, kaynaktan türetilir)
+ATLA = {"node_modules", "roles", "group_vars", "host_vars"}
+# İş envanteri (CN/tarihli kopya: hosts-dn29000-20261022-1430.ini, hosts-20261022-dn29000.ini) ana envanterden türetilir — okunmaz
+IS_DESEN = re.compile(r"^hosts-(?:.+-\d{8}(?:-\d{4})?|\d{8}(?:-\d{4})?-.+)\.ini$", re.I)
 GIZLI = re.compile(r"pass|token|secret|key|vault", re.I)
 BUYUK = 2 * 1024 * 1024
 
@@ -64,7 +66,7 @@ def dosyalar(kok):
             if os.path.isdir(yol):
                 if derinlik < 3:
                     gez(yol, derinlik + 1)
-            elif (g.lower().endswith(".ini") or g.lower().startswith("hosts")) and not re.search(
+            elif (g.lower().endswith(".ini") or g.lower().startswith("hosts")) and not IS_DESEN.match(g) and not re.search(
                 r"\.(ya?ml|json|j2|bak|orig)$", g, re.I
             ):
                 try:

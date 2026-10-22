@@ -97,6 +97,27 @@ df -h /var/lib/rancher; cat /proc/pressure/io
   (eski `… | sort -t= -k2` ay adına göre alfabetik sıralıyordu, en yakın bitişi göstermez). Tek tarih için: `echo $(( ($(date -d "2027-01-09" +%s) - $(date +%s)) / 86400 ))` (saha G65: event'teki 120 gün eşiği "120 gün sonra" diye
   yazıldı; gerçek kalan 84 gündü).
 
+**rke2-server döngüde çöküyor / `context deadline exceeded` (saha G98, 2026-10-22: test-sasviya master01, 3 günde 2566 restart; ajan
+"en temiz çözüm reboot" deyip kanıt toplamadan reboot önerdi — G11'deki hatanın tekrarı).** Restart/reboot **değişikliktir ve kanıtı
+siler**; önce oku (hepsi okuma, kilitten geçer), sonra en hafif adımdan öner:
+
+```bash
+ssh root@<master> "systemctl show rke2-server -p NRestarts -p ActiveEnterTimestamp; systemctl status rke2-server --no-pager | head -12"
+ssh root@<master> "journalctl -u rke2-server -n 200 --no-pager | grep -i -e error -e fatal -e 'context deadline' -e etcd -e 'failed to' | tail -30"
+ssh root@<master> "tail -n 300 /var/log/pods/kube-system_etcd-*/etcd/*.log | grep -i -e error -e warn -e 'took too long' -e fdatasync -e leader -e 'no space' | tail -30"
+ssh root@<master> "df -h /var/lib/rancher; du -sh /var/lib/rancher/rke2/server/db/etcd; cat /proc/pressure/io; chronyc tracking | head -4"
+```
+
+- Diğer master'lardan küme gözüyle: `k8s-sorun` "Durum özeti" (`k8s-ozet.py`) + `kubectl get --raw='/readyz?verbose' | grep -v ' ok$'`.
+- Olayın başladığı saat (`ActiveEnterTimestamp`, ilk hata satırı) → `rhel-sorun/olay-penceresi.py` ile o pencerenin journal/sar komutları.
+- Ayırt et (her biri "tahmin:" ile, kanıt gelince kesinleşir — genel): etcd logunda `fdatasync`/`took too long` + PSI io yüksek → disk;
+  `no space`/alarm → etcd veritabanı/disk doluluğu; etcd logu temiz, yalnız rke2-server tarafında deadline → sertifika/yerel bağlantı
+  ya da rke2-server'ın kendisi; saat sıçraması → chrony.
+- Öneri sırası (değişiklik — CN/KRİZ yetkisi, kullanıcı karar verir): kanıt çıktıları kaydedildi mi → tek servis
+  (`systemctl restart rke2-server`) → node reboot en son. Önerirken hedefi `sunucular: <ad>` satırıyla yaz, yalnız onay iste (AGENTS).
+- Sonrası doğrulama: `NRestarts` artmayı kesti mi (10 dk sonra tekrar oku), `k8s-ozet.py` ile node Ready + etcd/apiserver pod'ları.
+  "Düzeldi" yalnız bu iki okumayla (G12).
+
 **Control plane kararı (saha G62/G65 — iki kez yanlış "✅" yazıldı):**
 - "Control plane ✅" yalnız readyz temiz **ve** her master'a ssh bu turda başarılıysa. Bir master'a ssh banner timeout →
   Control plane **⚠️, en yüksek bulgu** (§4 tablo, §5b). "Geçici" yazmak için sonradan başarılı bir ssh çıktısı gerekir.

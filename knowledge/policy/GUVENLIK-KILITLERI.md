@@ -69,6 +69,13 @@ Kabuk sözdizimi komut sayılmaz: `$(( … ))` aritmetiği ve `case … in desen
 dal gövdeleri yine tek tek denetlenir (test: `kilit.test.ts` "G96"). Becerilerdeki sabit okuma satırlarının kilitten geçtiği
 `script/beceri-komut-kilit.ts` ile denetlenir.
 
+**Ajanın önerisini onaylamak (Alp, 2026-10-22 — G98):** ajan hedefi bir önceki mesajında tek satır `sunucular: <ad>` ile önerdiyse
+kullanıcının kriz/CN beyanı + onay ifadesi ("kriz durumu evet, sadece onu restart et") yeter; ad yeniden yazdırılmaz. Liste YALNIZ
+onaydan hemen önceki ajan mesajının açık `sunucular:` satırından alınır (metnin başka yerindeki ad yetki açmaz), 10 dk içinde
+kullanılmazsa düşer; eklenti `context` kancasında, araç çağrısından önce eşler (`denetim.ts` `oneriyleTamamla`).
+**Ad ↔ IP:** envanterde yok ya da IP'siz ad için yetki verildiği anda `getent hosts` (/etc/hosts + DNS) ile IP eklenir (en çok
+20 ad, 2 sn zaman aşımı); envanter eşlemesi gibi o anda donar.
+
 Eski kalıplar aynen geçerli:
 
 ```

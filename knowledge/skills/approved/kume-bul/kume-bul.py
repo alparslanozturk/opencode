@@ -10,7 +10,7 @@ import re
 import sys
 
 KOKLER = ("ansible", "inventories", "inventory")
-ATLA = {"node_modules", "roles", "group_vars", "host_vars"}
+ATLA = {"node_modules", "roles", "group_vars", "host_vars", "is"}  # is/ = iş envanterleri (is-envanter.py, kaynaktan türetilir)
 GIZLI = re.compile(r"pass|token|secret|key|vault", re.I)
 BUYUK = 2 * 1024 * 1024
 

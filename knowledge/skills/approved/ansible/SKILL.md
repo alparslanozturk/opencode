@@ -1,6 +1,6 @@
 ---
 name: ansible
-description: Ansible ile birden çok sunucuda iş yaparken kullan — proje düzeni kurma, envanter doğrulama, tek sunucuya daraltma, ad-hoc komut, playbook çalıştırma, kuru çalıştırma. "ansible", "playbook", "hosts dosyası", "tüm sunucularda", "şu sunucuda çalıştır", "ansible-playbook" isteklerinde tetiklenir.
+description: Ansible ile birden çok sunucuda iş yaparken kullan — proje düzeni kurma, CN/değişiklik numarasıyla iş envanteri (hosts-<CN>-<tarih>.ini) üretme, envanter doğrulama, tek sunucuya daraltma, ad-hoc komut, playbook çalıştırma, kuru çalıştırma. "ansible", "playbook", "hosts dosyası", "tüm sunucularda", "şu sunucuda çalıştır", "ansible-playbook" isteklerinde tetiklenir.
 ---
 
 Doğrulandı: ansible-core 2.16.16, AlmaLinux 10.2 — 2026-08-29
@@ -45,6 +45,41 @@ Host değişkeni satır sonuna, grup değişkeni `[web:vars]`, alt grup
 
 Düzenin karşılığı: doğru dizine `cd` ettiğin an doğru envanter etkin olur.
 `-i` verirsen cfg'deki envanteri **ezer**; ikisi farklıysa çalışan `-i`'dir.
+
+### Envanter düzeni ve iş envanteri (CN başına) — saha G100
+
+İki tür envanter vardır, karıştırma:
+
+```
+ansible/
+  inventories/
+    hosts.ini          ana envanter (tüm sunucular) — KAYNAK, işe göre değiştirme
+    hosts-rke2.ini     RKE2 kümeleri — KAYNAK
+  is/                  iş envanterleri — kaynaktan TÜRETİLİR, elle yazılmaz
+    hosts-CHG0012345-20261022-1430.ini
+    hosts-kriz-20261022-1515.ini
+```
+
+- **Değişiklik işi (CN verildi) ya da kriz/kurulum** → o işin sunucularıyla iş envanteri üret; adı
+  `hosts-<CN>-<YYYYMMDD-HHMM>.ini` (CN'siz: `hosts-kriz-…`, `hosts-kurulum-…`, `hosts-is-…`). Elle INI yazma, IP
+  kopyalama — betik ana envanterden host satırını, grubunu, üst grubunu (`:children`) ve `[grup:vars]`'ı **aynen** alır:
+
+  ```bash
+  python3 /root/ai/opencode/knowledge/skills/approved/ansible/is-envanter.py CHG0012345 wor07-14 stlweb01 10.0.0.12
+  printf '%s\n' "<kullanıcının yapıştırdığı liste>" | python3 …/is-envanter.py CHG0012345 -   # serbest biçim
+  python3 …/is-envanter.py --liste      # önceki iş envanterleri (etiket, tarih, host sayısı)
+  ```
+
+  Ad, kısa ad (`wor07`), IP, aralık (`wor07-14`, `10.0.9.127-134`, yalın `07-14`) ve grup adı kabul edilir. Çıktıdaki
+  tabloyu (ad · IP · `dosya:satır [grup]`) kullanıcıya **aynen** göster. `❓ birden çok host'a uyuyor` → dosya yazılmaz,
+  yalnız o adı sor. `⚠️ envanterde yok` → `[is_ek]` grubuna olduğu gibi yazıldı, kullanıcıyla doğrula (kurulumda normal).
+- Çalıştırırken: `ansible-playbook -i ansible/is/hosts-<CN>-….ini --limit <betiğin bastığı liste> <playbook>` — kilit
+  değişiklikte `--limit` ister; betik listeyi hazır basar.
+- Aynı CN için yeni sunucu eklenirse yeniden üret (yeni dakika → yeni dosya); eski dosya kayıt olarak kalır, üzerine yazılmaz.
+- Betik `group_vars/`/`host_vars/` uyarısı verirse o değişkenler iş envanterine gelmez → ana envanteri `-i` ile, hedefi
+  `--limit` ile ver.
+- Ana envanterde düzeltme gerekiyorsa (yanlış IP, eksik host) bu ayrı bir iştir: kullanıcıya söyle, onayla düzelt.
+- `ansible/is/` kilidin ve `kume-bul.py`'nin ad ↔ IP eşlemesinde **okunmaz** (kaynak yalnız ana envanter).
 
 ## 2. Hangi ansible.cfg etkin
 

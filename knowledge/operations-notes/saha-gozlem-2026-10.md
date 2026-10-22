@@ -1190,3 +1190,16 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   yetki + hedef tamamsa `sor` → adaptör her seferinde "ask" (saved "her zaman izin ver" atlatamaz), mesaj "veri geri gelmez, önce
   disk-durum.py BOŞ ADAY". Felaket sınıfı (rm -rf /, chmod -R /, force-push, kill -1, K6) K5'te kaldı; aynı komutta felaket varsa K5.
   Test 336 → 339 (+ adaptör: yetkisiz deny, yetkili ask). AGENTS, GUVENLIK-KILITLERI, rhel-depolama güncellendi.
+
+### G100 — "bir cümlede hem sunucu listesi hem değişiklik numarası vermek zorunda mıyım? garabet"
+- Alp (2026-10-22, sözlü anlatım): önce "çalışmamızda değişiklik var" + CN, sonraki mesajda sunucu listesi verdi. Ajan "sunucu
+  listesini ver" dedi; liste verilince "sunucu listesini nereden verdin?" diye sordu. Ayrıca: CN verildiği için `hosts` yerine
+  `hosts-<CN>` INI üretilsin, tarih (yıl-ay-gün saat-dakika) olsun, `hosts.ini` / `hosts-rke2.ini` düzeni organize edilsin;
+  TUI'de satır satır kaydırma yok (shift+↑/↓ işe yaramadı; PageUp/PageDown sayfa atlıyor).
+- Kök neden (kilit): `yetkiSatirlariniOku` serbest adları yalnız AYNI mesajda beyan varsa sayıyordu; beyansız yalın liste hiç
+  okunmuyordu → ikinci mesaj yetkiye girmedi. Beyandan önce verilen `sunucular:` da sonraki beyanda sıfırlanıyordu.
+- Yapılan: kilit.ts `yalinListe` + `adaylar/cumleAdlari`; denetim.ts `yetkiIsle` iki yönlü birleştirme (AYRI_MESAJ_MS = 30 dk;
+  dolu listeyi yalın liste değiştirmez); test 339 → 345. AGENTS "Konuşma bağlamı" (verilmiş bilgiyi yeniden isteme, "nerede
+  verdin" deme) + "Dosya adlarında tarih" (`YYYYMMDD-HHMM`). ansible becerisi "Envanter düzeni" + `is-envanter.py`
+  (`ansible/is/hosts-<CN>-<YYYYMMDD-HHMM>.ini`, ana envanterden aynen; `ansible/is/` kilit/kume-bul eşlemesinde okunmaz).
+  kur.sh: cli.json `keybinds` → `session.line.up/down` = `ctrl+↑/↓` (varsayılan ctrl+alt+y/e korunur; shift+↑/↓ girişte seçim).

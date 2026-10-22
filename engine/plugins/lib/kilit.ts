@@ -40,6 +40,9 @@ export interface Yetki {
   // model isteğinde ajanın HEMEN ÖNCEKİ mesajındaki açık `sunucular:` satırı listeye alınır (denetim.ts oneriyleTamamla).
   oneriBekliyor?: number
   oneriden?: boolean
+  // G100 (Alp, 2026-10-22: "bir cümlede hem sunucu listesi hem değişiklik numarası vermek zorunda mıyım? garabet"): beyandan
+  // ÖNCE ayrı mesajla verilen yalın sunucu listesi — ardından gelen sunucusuz CN/KURULUM/KRİZ beyanı bu listeye uygulanır.
+  aday?: { sunucular: string[]; zaman: number }
 }
 export const YETKI_OMRU_MS = 12 * 60 * 60 * 1000
 // Kriz mesajında yetki satırları dışında en az bu kadar metin (yapıştırılmış mail/toplantı notu) olmalı.
@@ -55,6 +58,9 @@ export interface YetkiSatiri {
   kapat?: boolean
   uyari?: string
   govde: number
+  // G100: beyan (CN/KURULUM/KRİZ) OLMAYAN mesajdaki adlar — yetki değildir; denetim.ts yetkiIsle ayrı mesajlı beyanla birleştirir.
+  adaylar?: string[] // mesajın tamamı yalın liste (alt alta / virgüllü; "sunucu listesi" başlığı olabilir)
+  cumleAdlari?: string[] // "sunucu/host/node" geçen cümledeki sunucu biçimli adlar
 }
 
 // --- serbest biçim (Alp, 2026-10-17: "formatsız verdiğimde anlayabiliyor olması lazım — bu bir zeka göstergesi") ---
@@ -121,6 +127,35 @@ export function aralikAc(t: string): string[] {
   if (!(son > bas) || son - bas > 63 || (ip && son > 255)) return [t]
   const gen = ip ? 0 : m[2].length
   return Array.from({ length: son - bas + 1 }, (_, i) => m[1] + String(bas + i).padStart(gen, "0"))
+}
+
+// G100: mesajın tamamı sunucu listesi mi? Satırlar yalnız ad/IP (madde imi, numara "1." , virgül, "ve" serbest; envanter
+// yapıştırması "web01 ansible_host=10.0.0.11" da olur); başlık satırı ("Sunucu listesi:", "hostlar") olabilir. En az bir öğe
+// sunucu biçimli olmalı ("evet", "tamam" gibi tek sözcük liste sayılmaz); "hariç/dışında" geçen mesaj liste sayılmaz.
+export function yalinListe(text: string): string[] | null {
+  const out: string[] = []
+  for (const ham of text.split("\n")) {
+    const satir = ham
+      .replace(/\*\*|__/g, "")
+      .replace(/^[\s"'`*>#•-]+/, "")
+      .replace(/^\d{1,3}[.)]\s+/, "")
+      .replace(/\bansible_(?:ssh_)?host=/gi, "")
+      .replace(/\s\S+=\S*/g, "")
+      .replace(/["'`\s]+$/, "")
+      .trim()
+    if (!satir) continue
+    if (OLUMSUZ.test(buyuk(satir))) return null
+    if (/^[a-zçğıöşü ]{0,40}:?$/i.test(satir) && /sunucu|server|host|hedef|makine|node|liste/i.test(satir)) continue
+    const toks = satir.split(/[\s,;]+/).map(temizTok).filter((t) => t && !DOLGU.has(t.toLowerCase()))
+    // satırdaki her öğe sunucu biçimli (ad, IP, aralık) olmalı; rakamsız ad (srvsatellite) yalnız satırda tek başınaysa
+    const tekAd = toks.length === 1 && /^[a-z][a-z0-9._-]*$/i.test(toks[0]) && !DOSYA_UZANTI.test(toks[0].toLowerCase())
+    if (toks.length && (tekAd || toks.every(sunucuBicimli))) {
+      out.push(...toks)
+      continue
+    }
+    return null
+  }
+  return out.some(sunucuBicimli) ? out : null
 }
 
 export function yetkiSatirlariniOku(text: string): YetkiSatiri {
@@ -225,8 +260,14 @@ export function yetkiSatirlariniOku(text: string): YetkiSatiri {
       : out.tur === "KRIZ" && out.govde < KRIZ_METNI_MIN
         ? [...acik, ...krizSerbest]
         : acik
-  const n = [...new Set(hepsi.flatMap(aralikAc).map(normHost).filter((h) => h.length > 0))].slice(0, 200)
+  const norm = (l: string[]) => [...new Set(l.flatMap(aralikAc).map(normHost).filter((h) => h.length > 0))].slice(0, 200)
+  const n = norm(hepsi)
   if (n.length) out.sunucular = n
+  if (!out.tur && !out.sunucular) {
+    const liste = yalinListe(text)
+    if (liste) out.adaylar = norm(liste)
+    else if (serbest.length) out.cumleAdlari = norm(serbest)
+  }
   return out
 }
 

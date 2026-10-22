@@ -34,6 +34,8 @@ En ağır hatalar ham çıktıyı kafadan tabloya/özete dökmekten çıktı (uy
 Bu işlerde betiği çalıştır, satırlarını **aynen** aktar; sayı/gün/süre hesaplama. Yol: `python3 /root/ai/opencode/knowledge/skills/approved/<beceri>/<betik>`,
 kullanım becerinin SKILL.md'sinde (önce beceriyi yükle):
 - sunucu/IP → hangi küme, Rancher'ın kümeleri, ingress, sertifika CN → `kume-bul/kume-bul.py`
+- CN (değişiklik numarası) / kriz / kurulum + sunucu listesi → iş envanteri `ansible/is/hosts-<CN>-<YYYYMMDD-HHMM>.ini` →
+  `ansible/is-envanter.py` (ana envanterden aynen türetir; elle INI yazma — `ansible` becerisi "Envanter düzeni")
 - çok sunucuda aynı komut → `ansible … -t cikti/filo/<etiket>` + `filo-kontrol/filo-tablo.py`
 - geçmiş kapasite (sar, "son N gün") → `rhel-performans/sar-ozet.py`
 - disk OS mu / boş mu → `rhel-depolama/disk-durum.py` — **yıkıcı disk adımından (pvcreate/mkfs/parted) önce zorunlu**
@@ -180,7 +182,8 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
   değişiklik numarası İSTENMEZ, CN önerme** ·
   mevcut (çalışan) sunucuda değişiklik: CN numarası + sunucular — **biçim dayatma** (Alp, 2026-10-17): kullanıcı aynı
   mesajda serbest yazar ("CHG0012345 ile web01, web02 sunucularında", alt alta liste, birden çok CN); kilit anlar. Eksikse
-  yalnız eksik olanı sor (numara mı, sunucu mu), "şu formatta yaz" deme · kriz: cümle içinde "kriz var" + sunucular
+  yalnız eksik olanı sor (numara mı, sunucu mu), "şu formatta yaz" deme. **CN ve sunucu listesi ayrı mesajlarda da gelebilir**
+  (önce "değişiklik var, CHG…", sonra alt alta liste — ya da tersi; G100): kilit ikisini birleştirir, aynı cümlede isteme · kriz: cümle içinde "kriz var" + sunucular
   yeter (Alp, 2026-10-20 — mail/toplantı notu şartı yok; kısa kriz cümlesindeki adlar geçer, yapıştırılan maildeki adlar
   yetki açmaz; "kiriz var" gibi yazım hatası da tanınır). Sunucu ad, kısa ad (`wor07`), IP, aralık (`wor07-14`, yalın `07-14` —
   envanterde tek önekle karşılanırsa) ya da envanter grubu olarak verilebilir — kilit
@@ -275,6 +278,19 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
 - **Eksik bilgi işi durdurmaz (A18):** çözülemeyen öğeyi `[SAHA]`/`bilinmiyor` diye işaretle, kalanlarla
   devam et; sonda **"Açık kalanlar"** listesi ver (ne eksik, nereden gelebilir).
 - Aynı başarısız adımı tekrar tekrar deneme; iki denemede olmuyorsa dur ve durumu anlat.
+
+## Konuşma bağlamı — bilgi birden çok mesajda gelir (Alp, 2026-10-22, saha G100)
+- Kullanıcı bilgiyi parça parça verir: bir mesajda "çalışmamızda değişiklik var, CHG…", sonrakinde yalnız sunucu listesi (ya da
+  tersi). Bunlar **tek istek**tir — konuşmanın tamamını birlikte oku; her mesajı ayrı soru sanma.
+- **Verilmiş bilgiyi yeniden isteme.** "Sunucu listesini ver" demeden önce önceki mesajlara bak; listeyi bulduysan kullan ve
+  hangi mesajdan aldığını tek satırda söyle ("listeyi 2. mesajından aldım: wor07-14, web01"). "Nereden verdin / nerede?" diye
+  **sorma** — bulamıyorsan "önceki mesajlarda sunucu listesi göremiyorum" de, yalnız eksik olanı iste.
+- Liste yapıştırılınca (alt alta, numaralı, virgüllü, envanter satırı) ne olduğunu sen anla; biçim isteme.
+- CN + sunucular tamamlanınca değişiklik işinde ilk adım iş envanteridir (`ansible/is-envanter.py`, yukarıdaki betik listesi).
+
+## Dosya adlarında tarih (Alp, 2026-10-22)
+- Ürettiğin iş dosyası, çıktı, yedek adına tarih-saat ekle: **`YYYYMMDD-HHMM`** (`date +%Y%m%d-%H%M`), CN varsa önce CN:
+  `hosts-CHG0012345-20261022-1430.ini`, `fstab.20261022-1430`. Var olan dosyanın üzerine yazma; yeni ad üret.
 
 ## Çalışma dizini boşsa (Alp kuralı — 2026-09-15)
 - Çalışma dizini boşsa ya da beklenen proje köküne (AGENTS.md/README/engine/knowledge gibi işaretler)

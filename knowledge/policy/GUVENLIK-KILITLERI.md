@@ -51,6 +51,12 @@ Nasıl okunur (`engine/plugins/lib/kilit.ts` `yetkiSatirlariniOku`, testleri `ki
   riski). Serbest adlar yalnız **aynı mesajda CN ya da KURULUM beyanı varsa** sayılır — sıradan bir soru ("web05 sunucusunda disk
   dolu") açık yetkinin listesini değiştirmez. **KRİZ**'de kısa kriz cümlesindeki adlar ve açık `sunucular:` satırı geçerli;
   mail yapıştırılan mesajda yalnız açık liste (yapıştırılan mail yetki açmaz — G73).
+- **Ayrı mesajlar (G100, Alp 2026-10-22: "bir cümlede hem sunucu listesi hem değişiklik numarası vermek zorunda mıyım?"):**
+  beyan (CN/KURULUM/KRİZ) sunucusuz geldiyse sonraki **yalın liste** mesajı (yalnız ad/IP/aralık satırları; "Sunucu listesi:"
+  başlığı, madde numarası, `ansible_host=` yapıştırması olabilir) yetkinin listesi olur — beyanın ömrü boyunca; "web05
+  sunucusunda …" gibi cümledeki adlar yalnız beyandan sonraki 30 dk içinde. Tersi: önce yalın liste, 30 dk içinde sunucusuz
+  beyan → listeye uygulanır (liste tek başına yetki değildir, `aday` olarak bekler). Listesi dolu yetkiyi yalın liste sessizce
+  **değiştirmez** (açık `sunucular:` satırı değiştirir). Testler `kilit.test.ts` "G100".
 
 ### Tanınmayan komut — engel değil, onay (G68, Alp 2026-10-17)
 

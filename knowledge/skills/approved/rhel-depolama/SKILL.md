@@ -257,7 +257,7 @@ XFS **küçültülemez**.
 ### 4. fstab — tekrar çalıştırılabilir olmalı (A26)
 
 ```bash
-cp -a /etc/fstab /etc/fstab.$(date +%F-%H%M)                       # önce yedek
+cp -a /etc/fstab /etc/fstab.$(date +%Y%m%d-%H%M)                   # önce yedek (tarih: AGENTS "Dosya adlarında tarih")
 mkdir -p <dizin>                                                  # verify'dan ÖNCE (yoksa [E] target)
 grep -q "^/dev/<vg>/<lv>[[:space:]]" /etc/fstab || echo "/dev/<vg>/<lv>  <dizin>  xfs  defaults  0 0" >> /etc/fstab
 findmnt --verify                                                  # [E] satırı varsa DUR, yeniden başlatma

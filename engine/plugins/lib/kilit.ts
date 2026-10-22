@@ -489,6 +489,13 @@ export function ayristir(src: string, ic: string[]): Komut[] {
       i += src[i + 2] === "&" ? 3 : 2
       continue
     }
+    if (c === "{" && src[i + 1] === "}" && !tokVar) {
+      // find … -exec cmd {} \; / {} + yer tutucusu — blok parantezi değil (saha G97)
+      tok = "{}"
+      tokVar = true
+      i += 2
+      continue
+    }
     if (c === ";" || c === "(" || c === ")" || c === "{" || c === "}") {
       if ((c === "{" || c === "}") && tokVar) {
         tok += c
@@ -908,8 +915,20 @@ export function saltOkunur(argv: string[]): boolean {
       return a.length > 0 && a.every((x) => x === "-l" || x === "-u" || !x.startsWith("-")) && has("-l")
     case "sed":
       return !a.some((x) => /^-[a-zA-Z]*i|^--in-place/.test(x))
-    case "find":
-      return !a.some((x) => /^-(delete|exec|execdir|ok|okdir|fprint|fprint0|fprintf|fls)$/.test(x))
+    case "find": {
+      // -delete / -fprint* dosya yazar → değişiklik. -exec/-execdir/-ok/-okdir: çalıştırılan HER alt komut okumaysa
+      // (find … -exec ls -lah {} \; — saha G97, etcd incelemesi) find de okumadır; alt komut ayrıca da denetlenir.
+      if (a.some((x) => /^-(delete|fprint|fprint0|fprintf|fls)$/.test(x))) return false
+      for (let i = 0; i < a.length; i++) {
+        if (!/^-(exec|execdir|ok|okdir)$/.test(a[i])) continue
+        let son = a.findIndex((x, j) => j > i && (x === ";" || x === "+"))
+        if (son < 0) son = a.length
+        const alt = a.slice(i + 1, son).map((x) => (x === "{}" ? "/x" : x))
+        if (!alt.length || !saltOkunur(alt)) return false
+        i = son
+      }
+      return true
+    }
     case "subscription-manager":
       if (ilk === "repos") return a.every((x) => x === "repos" || /^--list(-enabled|-disabled)?$/.test(x)) && a.length > 1
       return ["status", "list", "identity", "facts", "version", "orgs", "release", "syspurpose"].includes(ilk) && !has("--set", "--unset")

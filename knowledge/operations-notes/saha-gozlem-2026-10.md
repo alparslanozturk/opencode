@@ -1157,3 +1157,12 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   `-a/-o` K5 kalır; `$(( ))` aritmetiği ve `case…esac` desenleri de artık okuma (içteki ikameler denetlenir; test 330); (2) beceri betikleri her çağrıda onay soruyor (`python3 …` →
   bash "*": ask) — `/root/ai/opencode/knowledge/skills/approved/*` betikleri için allow kuralı; (3) Rancher v3 alan adları
   (`status.nodeName`, `spec.controlPlane`, `internalNodeStatus`) ve Run:ai annotation adları sahada ilk koşuda doğrulanacak.
+
+### G97 — etcd incelemesinde okuma komutu K1'e düştü: `find … -exec ls -lah {} \;`
+- Görülen (Alp ekranı, 2026-10-22 ~09:0x): rke2-server 3 gündür 6-15 sn'de bir yeniden başlıyor (2564 restart), etcd'ye `context deadline
+  exceeded`. Ajanın okuma satırı `ps … | grep etcd; ls -lah …/member/snap/; ls -lah …/wal/ …; find …/member -type f -exec ls -lah {} \; | head -20`
+  → `[güvenlik kilidi K1] … (find (uzakta); ; (uzakta — kilit bu komutu tanımıyor))`. Alp: "gerçekten değişiklik yapıyor mu? yapmaması lazım."
+- Kök (kilit.ts): `saltOkunur("find")` `-exec` görünce alt komuta bakmadan değişiklik diyordu; ayrıştırıcı `{}`'yi blok parantezi sanıp
+  komutu bölüyordu (`{} +` → `+` adlı "komut").
+- Aksiyon (yapıldı): `-exec/-execdir/-ok/-okdir` ile çalışan her alt komut okumaysa `find` okumadır (alt komut ayrıca denetlenir);
+  `-delete`, `-fprint*`, `-exec rm`, `-exec sh -c …` değişiklik kalır; `{}` tek simge. Test 330 → 332, `tsc --strict` temiz.

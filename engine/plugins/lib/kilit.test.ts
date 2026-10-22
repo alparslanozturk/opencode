@@ -512,3 +512,26 @@ describe("G92: döngü değişkeni komut ikamesinin içinde — result=$(ssh roo
     expect(r?.mesaj).not.toContain("belirlenemedi")
   })
 })
+
+describe("G96: okuma çalışmalı — wipefs listeleme, $(( )) aritmetiği, case…esac desenleri (Alp, 2026-10-22)", () => {
+  const k = (c: string) => kilitDenetle("bash", { command: c }, workdir, undefined)
+  test("wipefs: seçeneksiz / -n / --no-act okuma; -a, -o, -af K5", () => {
+    expect(k(`ssh m1 "wipefs -n /dev/sdb"`)).toBeNull()
+    expect(k(`ssh m1 "wipefs /dev/sdb"`)).toBeNull()
+    expect(k(`wipefs --no-act -a /dev/sdb`)).toBeNull()
+    expect(k(`ssh m1 'for d in $(lsblk -dn -o NAME); do wipefs -n /dev/$d; done'`)).toBeNull()
+    for (const c of [`ssh m1 "wipefs -a /dev/sdb"`, `wipefs --all /dev/sdb`, `ssh m1 "wipefs -o 0x438 /dev/sdb"`, `ssh m1 "wipefs -af /dev/sdb"`])
+      expect(k(c)?.kilit).toBe("K5")
+  })
+  test("$(( … )) aritmetik okuma; içindeki ikame yine denetlenir", () => {
+    expect(k(`ssh m1 'echo s=$(( ($(date +%s) - $(stat -c %Y /etc/hosts)) / 3600 ))'`)).toBeNull()
+    expect(k(`ssh m1 'echo $(( $(systemctl restart sshd) + 1 ))'`)?.kilit).toBe("K1")
+    expect(k("ssh m1 'echo $(( 1 + `reboot` ))'")?.kilit).toBe("K1")
+  })
+  test("case…esac: desenler komut değil; dal gövdesi ve desen/başlık ikamesi denetlenir", () => {
+    expect(k(`ssh m1 'needs-restarting -r >/dev/null 2>&1; r=$?; echo x=$(case $r in 0) echo hayir;; 1) echo EVET;; *) echo "b$r";; esac)'`)).toBeNull()
+    expect(k(`ssh m1 'case $(uname -r) in *el9*) uptime;; *) df -h;; esac'`)).toBeNull()
+    expect(k(`ssh m1 'case x in x) rm -rf /var/lib/kubelet;; esac'`)?.kilit).toBe("K1")
+    expect(k(`ssh m1 'case $(systemctl stop rke2-agent) in *) echo;; esac'`)?.kilit).toBe("K1")
+  })
+})

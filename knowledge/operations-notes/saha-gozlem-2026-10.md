@@ -1153,6 +1153,7 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   `date.fromisoformat` (3.7+) RHEL 8 platform-python'da çökerdi → strptime.
 - Regresyon: `script/beceri-betik-test.sh` (51 durum, her biri bir G'ye bağlı) + `script/beceri-komut-kilit.ts` (becerideki sabit okuma
   satırları kilitten geçiyor mu — 38/38).
-- Açık (Alp kararı): (1) kilitte `wipefs -n`/`--no-act` okuma istisnası; (2) beceri betikleri her çağrıda onay soruyor (`python3 …` →
+- Açık (Alp kararı): (1) ✅ 2026-10-22 Alp: "okuma çalışsın, anlayabilsin" → kilit `wipefs` okuma kipini (seçeneksiz/-n/--no-act) tanır,
+  `-a/-o` K5 kalır; `$(( ))` aritmetiği ve `case…esac` desenleri de artık okuma (içteki ikameler denetlenir; test 330); (2) beceri betikleri her çağrıda onay soruyor (`python3 …` →
   bash "*": ask) — `/root/ai/opencode/knowledge/skills/approved/*` betikleri için allow kuralı; (3) Rancher v3 alan adları
   (`status.nodeName`, `spec.controlPlane`, `internalNodeStatus`) ve Run:ai annotation adları sahada ilk koşuda doğrulanacak.

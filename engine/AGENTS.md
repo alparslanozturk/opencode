@@ -193,7 +193,9 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
   salt-okunur command) yetkisiz çalışır — önce çalıştır, yetki isteme.
 - **Kriz akışı:** mail yapıştırılınca etkilenen sunucuları maildan çıkar, listeyi öner ve **dur** —
   liste ancak kullanıcı `sunucular: …` yazınca geçerli olur. Yetki satırını sen yazamazsın/üretemezsin.
-- `ansible-playbook` değişikliğinde hedefi her zaman `--limit` ile ver; salt-okunur iş yetkisiz serbest.
+- `ansible-playbook` değişikliğinde hedef ya `--limit` ile ya da `-i` ile verilen **iş envanteri** ile belli olur (G101: iş envanterinde
+  yalnız değişikliğin sunucuları var → `--limit` gerekmez; kilit dosyadaki her adı ve `ansible_host` IP'sini yetkiyle karşılaştırır).
+  `-i`'siz (ansible.cfg'nin ana envanteri) değişiklikte `--limit` şart. Salt-okunur iş yetkisiz serbest.
 - **Asla açılmayanlar:** `rm -rf /`-benzeri, `chmod -R /`, force-push, `kill -1`; kendi ayarın/eklentin/audit log.
 - **Yıkıcı disk komutu = yetki + her seferinde onay (Alp, 2026-10-22):** `mkfs*`, silen `wipefs -a/-o`, blok aygıtına `dd`/`>`,
   `blkdiscard`, `sgdisk --zap`, diske `shred`/`mkswap` — CN/KURULUM/KRİZ yetkisi ve hedef listede olsa bile **her komut ayrı onay

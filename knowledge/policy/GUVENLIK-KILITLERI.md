@@ -59,6 +59,10 @@ Nasıl okunur (`engine/plugins/lib/kilit.ts` `yetkiSatirlariniOku`, testleri `ki
   **değiştirmez** (açık `sunucular:` satırı değiştirir). Testler `kilit.test.ts` "G100".
 - **İş envanteri eşlemeye girmez (G101):** `hosts-<x>-YYYYMMDD[-HHMM].ini` / `hosts-YYYYMMDD-<x>.ini` (ajanın yazdığı türetilmiş
   kopya) ad ↔ IP kaynağı değildir; içindeki iş grubu yetkiyi genişletmez — yetki kullanıcının verdiği adlarla.
+- **`--limit`'siz ansible-playbook (G101, Alp: "yeni dosyada sadece değişiklik yapılan sunucular var"):** hedef `-i` ile verilen INI
+  dosya(lar)ının host'ları; her host adı ve `ansible_host` değeri ayrı hedef (ikisi de yetkide olmalı — yetkili ada başka IP yazılamaz).
+  `-i` yok / dizin / YAML / betik / okunamayan / `[g:vars]`'ta `ansible_host` → hedef belirsiz (K1). Göreli yol için `cd x && …`
+  izlenir. Sınır: envanterin yanındaki `host_vars/`'ta `ansible_host` denetlenmez.
 
 ### Tanınmayan komut — engel değil, onay (G68, Alp 2026-10-17)
 

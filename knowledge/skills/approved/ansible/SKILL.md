@@ -72,9 +72,13 @@ ansible/
   host'ları playbook'un `hosts:` grubuna koyar. Çıktıdaki tabloyu (ad · IP · `dosya:satır [grup]`) kullanıcıya **aynen**
   göster. `❓ birden çok host'a uyuyor` → dosya yazılmaz, yalnız o adı sor. `⚠️ envanterde yok` → `[is_ek]`'e olduğu gibi
   yazıldı, kullanıcıyla doğrula (kurulumda normal).
-- Çalıştırırken: `ansible-playbook -i ansible/inventories/hosts-<CN>-….ini --limit <betiğin bastığı ad listesi> <playbook>`.
-  Kilit değişiklikte `--limit` ister ve **iş envanterini okumaz** (ad ↔ IP yalnız ana envanterden; desen `hosts-<x>-YYYYMMDD[-HHMM].ini`
-  ya da `hosts-YYYYMMDD-<x>.ini`) → `--limit`'e iş grubunu değil betiğin bastığı **adları** yaz.
+- Çalıştırırken: `ansible-playbook -i inventories/hosts-<CN>-….ini <playbook>` — **`--limit` gerekmez** (Alp, G101: dosyada
+  yalnız değişikliğin sunucuları var). Kilit hedefi bu dosyadan okur: her host adı ve `ansible_host` IP'si yetkide olmalı
+  (yetki: kullanıcının CN + sunucu listesi). Yetkide olmayan host varsa K1 — dosyayı genişletme, kullanıcıya o adı sor.
+  `[grup:vars]` altında `ansible_host` yazma (kilit hedefi belirleyemez). `-i` vermeden (ansible.cfg'nin ana envanteri) değişiklik
+  → `--limit` şart.
+- Ad ↔ IP eşlemesinde iş envanteri **kaynak sayılmaz** (desen `hosts-<x>-YYYYMMDD[-HHMM].ini` / `hosts-YYYYMMDD-<x>.ini`) — yetkiyi
+  ajanın yazdığı dosya genişletemez.
 - Aynı CN'ye sunucu eklenirse yeniden üret (yeni dakika → yeni dosya); eski dosya kayıt olarak kalır, üzerine yazılmaz.
 - `group_vars/`/`host_vars/` uyarısı → o değişkenler iş envanterine gelmez; ana envanteri `-i` ile, hedefi `--limit` ile ver.
 - Ana envanterde düzeltme gerekiyorsa (yanlış IP, eksik host) bu ayrı bir iştir: kullanıcıya söyle, onayla düzelt.
@@ -95,7 +99,7 @@ ssh root@<kaynak-sunucu> cat /tmp/pan-captcha.crt | python3 /root/ai/opencode/kn
   görevi. Bozuk PEM → dosya yazılmaz. `--sonra` yalnız içerik değiştiyse çalışır (handler).
 - Özel anahtar yalnız `--anahtar` ile (0600, `no_log`); git'e commit'lenen dizine koyma. İkili dosya gömülmez (`src:` kullan).
 - `--yedek` eski dosyayı yanına saklar — `ca-trust/source/anchors` gibi dizindeki her dosyanın okunduğu yerde **verme**.
-- Sonra: `--syntax-check` → `--check --diff` (iş envanteri + `--limit`) → kullanıcı onayı → gerçek çalıştırma.
+- Sonra: `--syntax-check` → `--check --diff` (`-i` iş envanteri) → kullanıcı onayı → gerçek çalıştırma.
 
 ## 2. Hangi ansible.cfg etkin
 

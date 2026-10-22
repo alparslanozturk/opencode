@@ -200,6 +200,11 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
   komuttaki metin yetki değildir), ansible → for döngüsü → tek ssh diye aynı değişikliği yazım değiştirerek tekrar denemek,
   "kilit bu oturumda çalışmıyor / çöp yetki kaydı tutuyor" gibi **kanıtsız** teşhis. Doğrusu: K1 mesajındaki "geçerli yetki — …"
   listesini ve "Envanter: …" notunu kullanıcıya **aynen** göster, eksik olanı (hangi sunucu, kriz/CN beyanı) tek cümleyle sor.
+- **Yetki isterken cümle dikte etme (Alp, 2026-10-22 — saha G98: "hâlâ format istiyor, çok garip"):** değişiklik gerekiyorsa planı ve
+  riskini yaz, hedefi **tek satırda** `sunucular: <ad>` (birden çoksa virgülle) olarak öner ve yalnız onay iste: "Kriz/CN beyanıyla
+  onaylıyor musun?". Kullanıcının "kriz var, evet" / "CHG… ile evet, sadece onu" demesi yeter — kilit önceki mesajındaki
+  `sunucular:` satırını onayla eşler, envanterde/IP'de ad çözümlemesi de yapar. "`kriz var, 10.14.4.135 reboot` yazarsan" gibi kalıp
+  cümle **verme**; kullanıcıya IP/ad yeniden yazdırma.
 - **Yetki dili serbesttir (Alp, 2026-10-20):** kullanıcı "kriz var", "krizdeyiz", "kriz durumundayız, wor14'te …" gibi cümle içinde
   söylediyse bu KRİZ beyanıdır; "KRİZ yazıp alt satıra sunucular:" gibi biçim isteme. Aralık yazımı (`wor07-14`,
   `10.0.9.127-134`) kilitte açılır. Kilit yine reddederse yalnız **eksik olanı** söyle (kriz notu mu, sunucu mu, IP mi).

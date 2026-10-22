@@ -1166,3 +1166,18 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   komutu bölüyordu (`{} +` → `+` adlı "komut").
 - Aksiyon (yapıldı): `-exec/-execdir/-ok/-okdir` ile çalışan her alt komut okumaysa `find` okumadır (alt komut ayrıca denetlenir);
   `-delete`, `-fprint*`, `-exec rm`, `-exec sh -c …` değişiklik kalır; `{}` tek simge. Test 330 → 332, `tsc --strict` temiz.
+
+### G98 — "kriz durumu evet sadece onu restart et" → "sunucu listesi yok"; ad yazınca IP eşleşmedi; ajan kalıp cümle dikte etti
+- Görülen (Alp ekranları, 2026-10-22, test-sasviya master01 `10.14.4.135`): ajan "CN: CHGXXXXXX (varsa) / sunucular: stlsasmaster01 …
+  restart edeyim mi?" dedi. Alp: "kriz durumu evet sadece onu restart et." → K1 "KRIZ verildi ama sunucu listesi yok"; ajan "sunucular:
+  stlsasmaster01 yazarsan" → Alp yazdı → K1 "Hedef yetki listesinde yok: 10.14.4.135 (geçerli yetki — KRİZ: stlsasmaster01)" → ajan
+  "kriz var, 10.14.4.135 yazmayı dener misin?" → geçti. Sonra ajan "en temiz çözüm reboot … `kriz var, 10.14.4.135 reboot` yazarsan
+  reboot ederim" → Alp yazdı, master reboot edildi (kanıt toplanmadan). Alp: "hâlâ format istiyor, çok garip."
+- Kök: (1) kilit yalnız kullanıcı mesajındaki adları okuyordu — onaylanan önerideki ad kullanılmıyordu; (2) ad envanterde IP'siz/yok →
+  ad ↔ IP eşlemesi yapılamadı (tahmin: test-sasviya master'ları envanterde `ansible_host`'suz; sahada `kume-bul.py stlsasmaster01` ile
+  görülecek); (3) K1 mesajı ve AGENTS ajanı kalıp cümleye yönlendiriyordu.
+- Aksiyon (yapıldı): kilit/eklenti — kriz/CN + onay ifadesi ("evet/onu/bunu/tamam/onaylıyorum…") ve adsız mesaj → `context` kancasında
+  onaydan hemen önceki ajan mesajının açık `sunucular:` satırı listeye alınır (10 dk; başka yerdeki ad yetki açmaz); yetki anında
+  envanterde IP'si olmayan ad için `getent hosts` (ad → IP, IP → ad). Test 332 → 336. AGENTS: hedefi `sunucular:` satırıyla öner,
+  yalnız onay iste, cümle dikte etme. `rke2-denetim` §2: rke2-server döngüde çöküyor — reboot/restart öncesi kanıt sırası, ayırt etme,
+  öneri sırası (tek servis → reboot en son), sonrası doğrulama.

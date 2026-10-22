@@ -36,6 +36,10 @@ export interface Yetki {
   // bununla yapılır; sonradan envanter dosyası değişse de verilmiş yetki genişlemez.
   esler?: string[]
   envanterNotu?: string
+  // G98: kullanıcı kriz/CN beyanıyla ajanın önerisini onayladı ("evet, sadece onu restart et") ama ad yazmadı → bir sonraki
+  // model isteğinde ajanın HEMEN ÖNCEKİ mesajındaki açık `sunucular:` satırı listeye alınır (denetim.ts oneriyleTamamla).
+  oneriBekliyor?: number
+  oneriden?: boolean
 }
 export const YETKI_OMRU_MS = 12 * 60 * 60 * 1000
 // Kriz mesajında yetki satırları dışında en az bu kadar metin (yapıştırılmış mail/toplantı notu) olmalı.
@@ -1710,7 +1714,7 @@ export function kilitDenetle(
     const eksik = !yetki || !yetki.tur
       ? "bu oturumda yetki yok"
       : yetki.sunucular.length === 0
-        ? `${yetki.tur} verildi ama sunucu listesi yok`
+        ? `${yetki.tur} verildi ama sunucu listesi yok — ajan hedefi bir önceki mesajında tek satır "sunucular: <ad>" ile önerip kullanıcıdan yalnız onay istemeli ("kriz var, evet" yeter; cümle dikte etme)`
         : yetki.tur === "CN" && !yetki.cn
           ? "CN numarası yok"
           : "yetkinin süresi doldu (12 saat)"

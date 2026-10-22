@@ -550,3 +550,50 @@ describe("G97: find -exec <okuma> okumadır (etcd incelemesi — Alp: 'gerçekte
     expect(k(`ssh m1 'find /var/lib/x -exec sh -c "systemctl restart x" \\;'`)?.kilit).toBe("K1")
   })
 })
+
+
+describe("G98: 'kriz durumu evet sadece onu restart et' — ajanın önerdiği sunucular: satırı onayla yetki olur; IP'siz envanter adı çözülür", () => {
+  const d = require("./denetim") as typeof import("./denetim")
+  const mesajlar = (asistan: string, kullanici: string) => [
+    { role: "user", content: [{ type: "text", text: "rke2-server neden çöküyor?" }] },
+    { role: "assistant", content: [{ type: "text", text: asistan }] },
+    { role: "user", content: [{ type: "text", text: kullanici }] },
+  ]
+  const oneri = "Öneri: restart edeyim mi?\n\nCN: CHGXXXXXX (varsa)\nsunucular: ornekmas01\n\nCN varsa yaz, yoksa kriz durumu beyanında bulun."
+  test("onay + önceki mesajdaki sunucular: satırı → yetki; başka sunucu K1", () => {
+    const m = new Map<string, Yetki>()
+    const kul = "kriz durumu evet sadece onu restart et."
+    expect(d.yetkiIsle(m, "s", kul, Date.now())).toContain("yetki bekliyor")
+    expect(d.oneriyleTamamla(m, "s", d.sonAsistanMetni(mesajlar(oneri, kul)), Date.now())).toContain("ornekmas01")
+    const y = m.get("s")!
+    expect(yetkiAktif(y, Date.now())).toBe(true)
+    expect(kilitDenetle("bash", { command: "ssh root@ornekmas01 'systemctl restart rke2-server'" }, workdir, y)).toBeNull()
+    expect(kilitDenetle("bash", { command: "ssh root@ornekmas02 'systemctl restart rke2-server'" }, workdir, y)?.kilit).toBe("K1")
+  })
+  test("önceki mesajda sunucular: satırı yoksa açılmaz; metindeki başka ad yetki vermez", () => {
+    const m = new Map<string, Yetki>()
+    d.yetkiIsle(m, "s", "kriz var evet onu yap", Date.now())
+    expect(d.oneriyleTamamla(m, "s", "ornekmas01'de rke2-server çöküyor, restart edeyim mi?", Date.now())).toContain("satırı yok")
+    expect(m.get("s")!.sunucular.length).toBe(0)
+  })
+  test("10 dakikadan eski onay düşer; onay ifadesi yoksa bekleme kurulmaz", () => {
+    const m = new Map<string, Yetki>()
+    const t0 = Date.now()
+    d.yetkiIsle(m, "s", "kriz var, evet", t0)
+    expect(d.oneriyleTamamla(m, "s", "sunucular: ornekmas01", t0 + 11 * 60 * 1000)).toBeNull()
+    const m2 = new Map<string, Yetki>()
+    d.yetkiIsle(m2, "s", "kriz var", t0)
+    expect(m2.get("s")?.oneriBekliyor).toBeUndefined()
+  })
+  test("IP'siz envanter kaydı: yetki anında ad çözümlemesi (getent) ad → IP ekler", () => {
+    const { mkdirSync, writeFileSync } = require("fs")
+    const dz = workdir + "-g98"
+    mkdirSync(dz + "/ansible/inventories", { recursive: true })
+    writeFileSync(dz + "/ansible/inventories/hosts-rke2.ini", "[rke-ornek-sas]\nornekmas01\n")
+    const y: Yetki = { tur: "KRIZ", cn: null, krizMetni: false, sunucular: ["ornekmas01"], zaman: Date.now() }
+    d.envanterEsle(y, dz, (x) => (x === "ornekmas01" ? ["10.14.4.135", "ornekmas01.kurum.local"] : []))
+    expect(y.envanterNotu).toContain("ad çözümleme")
+    expect(kilitDenetle("bash", { command: "ssh root@10.14.4.135 'systemctl restart rke2-server'" }, dz, y)).toBeNull()
+    expect(kilitDenetle("bash", { command: "ssh root@10.14.4.136 'systemctl restart rke2-server'" }, dz, y)?.kilit).toBe("K1")
+  })
+})

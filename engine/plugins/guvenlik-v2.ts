@@ -22,7 +22,7 @@ import { join } from "path"
 import { deriveTarget, truncate } from "./lib/maskele"
 import { kilitDenetle } from "./lib/kilit"
 import type { KilitKarari, Yetki } from "./lib/kilit"
-import { STALE_PENDING_MS, beceriCommit, denetimYazici, sha256, yetkiIsle } from "./lib/denetim"
+import { STALE_PENDING_MS, beceriCommit, denetimYazici, oneriyleTamamla, sha256, sonAsistanMetni, yetkiIsle } from "./lib/denetim"
 
 // --- 2.x eklenti bağlamının kullandığımız kadarı (@opencode/plugin promise API) ---
 interface AracOncesi {
@@ -51,6 +51,11 @@ interface Baglam {
   readonly permission: { hook(ad: "evaluate", cb: (e: IzinDegerlendirme) => Promise<void> | void): Promise<unknown> }
   readonly session: {
     hook(ad: "prompt", cb: (e: { readonly sessionID: string; prompt: { text: string } }) => Promise<void> | void): Promise<unknown>
+    // G98: her model isteğinden önce; messages = modele giden konuşma (plugin/effect/session.ts SessionContext)
+    hook(
+      ad: "context",
+      cb: (e: { readonly sessionID: string; messages: ReadonlyArray<{ role?: string; content?: unknown }> }) => Promise<void> | void,
+    ): Promise<unknown>
     get(input: { sessionID: string }): Promise<{ parentID?: string; model?: unknown } | undefined>
   }
 }
@@ -147,6 +152,16 @@ export function guvenlikKur(ctx: Baglam) {
       const k = await kok(e.sessionID)
       if (k !== e.sessionID) return // alt ajan oturumu: metni model yazdı, yetki sayılmaz
       const ozet = yetkiIsle(yetkiler, k, e.prompt.text ?? "", Date.now(), calismaDizini)
+      if (ozet) yetkiKaydi(e.sessionID, ozet, yetkiler.get(k))
+    }),
+
+    // G98: kullanıcı kriz/CN + "evet/onu" ile ajanın önerdiği hedefi onayladıysa, onaydan hemen önceki ajan mesajındaki açık
+    // "sunucular:" satırı listeye alınır. Bu kanca her model isteğinden önce çalışır → araç çağrısından önce yetki hazır olur.
+    ctx.session.hook("context", async (e) => {
+      const k = await kok(e.sessionID)
+      if (k !== e.sessionID) return
+      if (!yetkiler.get(k)?.oneriBekliyor) return
+      const ozet = oneriyleTamamla(yetkiler, k, sonAsistanMetni(e.messages as Parameters<typeof sonAsistanMetni>[0]), Date.now(), calismaDizini)
       if (ozet) yetkiKaydi(e.sessionID, ozet, yetkiler.get(k))
     }),
 

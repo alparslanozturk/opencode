@@ -1202,4 +1202,5 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   dolu listeyi yalın liste değiştirmez); test 339 → 345. AGENTS "Konuşma bağlamı" (verilmiş bilgiyi yeniden isteme, "nerede
   verdin" deme) + "Dosya adlarında tarih" (`YYYYMMDD-HHMM`). ansible becerisi "Envanter düzeni" + `is-envanter.py`
   (`ansible/is/hosts-<CN>-<YYYYMMDD-HHMM>.ini`, ana envanterden aynen; `ansible/is/` kilit/kume-bul eşlemesinde okunmaz).
-  kur.sh: cli.json `keybinds` → `session.line.up/down` = `ctrl+↑/↓` (varsayılan ctrl+alt+y/e korunur; shift+↑/↓ girişte seçim).
+  Kaydırma: opencode varsayılanı `ctrl+alt+y/e` (satır) yeterli — kur.sh'ye eklenen ctrl+↑/↓ geri alındı (Alp: "varsayılanı yok
+  mu, programda çok değişiklik istemiyorum"); yalnız ALP-README'de belgelendi.

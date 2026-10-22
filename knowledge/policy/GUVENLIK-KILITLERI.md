@@ -57,6 +57,8 @@ Nasıl okunur (`engine/plugins/lib/kilit.ts` `yetkiSatirlariniOku`, testleri `ki
   sunucusunda …" gibi cümledeki adlar yalnız beyandan sonraki 30 dk içinde. Tersi: önce yalın liste, 30 dk içinde sunucusuz
   beyan → listeye uygulanır (liste tek başına yetki değildir, `aday` olarak bekler). Listesi dolu yetkiyi yalın liste sessizce
   **değiştirmez** (açık `sunucular:` satırı değiştirir). Testler `kilit.test.ts` "G100".
+- **İş envanteri eşlemeye girmez (G101):** `hosts-<x>-YYYYMMDD[-HHMM].ini` / `hosts-YYYYMMDD-<x>.ini` (ajanın yazdığı türetilmiş
+  kopya) ad ↔ IP kaynağı değildir; içindeki iş grubu yetkiyi genişletmez — yetki kullanıcının verdiği adlarla.
 
 ### Tanınmayan komut — engel değil, onay (G68, Alp 2026-10-17)
 

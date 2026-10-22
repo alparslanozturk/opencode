@@ -34,8 +34,10 @@ En ağır hatalar ham çıktıyı kafadan tabloya/özete dökmekten çıktı (uy
 Bu işlerde betiği çalıştır, satırlarını **aynen** aktar; sayı/gün/süre hesaplama. Yol: `python3 /root/ai/opencode/knowledge/skills/approved/<beceri>/<betik>`,
 kullanım becerinin SKILL.md'sinde (önce beceriyi yükle):
 - sunucu/IP → hangi küme, Rancher'ın kümeleri, ingress, sertifika CN → `kume-bul/kume-bul.py`
-- CN (değişiklik numarası) / kriz / kurulum + sunucu listesi → iş envanteri `ansible/is/hosts-<CN>-<YYYYMMDD-HHMM>.ini` →
-  `ansible/is-envanter.py` (ana envanterden aynen türetir; elle INI yazma — `ansible` becerisi "Envanter düzeni")
+- CN (değişiklik numarası) / kriz / kurulum + sunucu listesi → iş envanteri `ansible/inventories/hosts-<CN>-<YYYYMMDD-HHMM>.ini`
+  → `ansible/is-envanter.py` (ana envanterden aynen türetir; elle INI yazma — `ansible` becerisi "Envanter düzeni")
+- sertifika/ayar dosyasını sunuculara dağıtma → içerik playbook'a gömülü (`copy content:`) → `ansible/gomulu-dosya.py`
+  (PEM/base64'ü kendin yazma — betik bayt bayt gömer, sha256 doğrular)
 - çok sunucuda aynı komut → `ansible … -t cikti/filo/<etiket>` + `filo-kontrol/filo-tablo.py`
 - geçmiş kapasite (sar, "son N gün") → `rhel-performans/sar-ozet.py`
 - disk OS mu / boş mu → `rhel-depolama/disk-durum.py` — **yıkıcı disk adımından (pvcreate/mkfs/parted) önce zorunlu**
@@ -290,7 +292,7 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
 
 ## Dosya adlarında tarih (Alp, 2026-10-22)
 - Ürettiğin iş dosyası, çıktı, yedek adına tarih-saat ekle: **`YYYYMMDD-HHMM`** (`date +%Y%m%d-%H%M`), CN varsa önce CN:
-  `hosts-CHG0012345-20261022-1430.ini`, `fstab.20261022-1430`. Var olan dosyanın üzerine yazma; yeni ad üret.
+  `hosts-dn29000-20261022-1430.ini` (CN önce, tarih-saat arkada; yalnız gün değil), `fstab.20261022-1430`. Var olan dosyanın üzerine yazma; yeni ad üret.
 
 ## Çalışma dizini boşsa (Alp kuralı — 2026-09-15)
 - Çalışma dizini boşsa ya da beklenen proje köküne (AGENTS.md/README/engine/knowledge gibi işaretler)

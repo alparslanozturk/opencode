@@ -1204,3 +1204,14 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   (`ansible/is/hosts-<CN>-<YYYYMMDD-HHMM>.ini`, ana envanterden aynen; `ansible/is/` kilit/kume-bul eşlemesinde okunmaz).
   Kaydırma: opencode varsayılanı `ctrl+alt+y/e` (satır) yeterli — kur.sh'ye eklenen ctrl+↑/↓ geri alındı (Alp: "varsayılanı yok
   mu, programda çok değişiklik istemiyorum"); yalnız ALP-README'de belgelendi.
+
+### G101 — iş envanteri sahada `hosts-20261022-dn29000.ini`; sertifika playbook'a gömüldü (copy content)
+- Görülen (2026-10-22, 2 ekran): ajan betiği kullanmadan `ansible/inventories/hosts-20261022-dn29000.ini` yazdı (tarih önde, saat
+  yok; CN biçimi `dn29000` — CHG değil), 18 sunucu `google-captcha-cert` grubunda; playbook `playbooks/12-google-captcha-cert.yaml`.
+  İlk taslak sertifikayı `fetch` ile çekiyordu; Alp düzelttirdi: sertifika playbook'a metin olarak gömülü, yalnız `copy` görevi
+  ("o daha iyi"). Alp: "Tarih geride" → CN önce, tarih-saat arkada uygulandı.
+- Yapılan: iş envanteri `ansible/is/` yerine sahadaki gibi `ansible/inventories/` (ad `hosts-<CN>-<YYYYMMDD-HHMM>.ini`, CN harfi
+  korunur, `--grup`); iş envanteri adı desenle (`IS_DESEN`) kilit/kume-bul/is-envanter kaynağından çıkarıldı (sahadaki tarih-önde
+  ad dahil). Yeni `ansible/gomulu-dosya.py`: dosyayı bayt bayt `copy content: |`'a gömer, PEM'i openssl ile denetler, `validate:`,
+  sha256 `assert`, `--sonra` handler; özel anahtar yalnız `--anahtar`; `backup` varsayılan kapalı (anchors dizininde eski
+  sertifika güvenilir kalırdı). Yerel deneme: yazılan dosya kaynakla `cmp` aynı, ikinci çalıştırma changed=0.

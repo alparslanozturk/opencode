@@ -207,18 +207,50 @@ export function yetkiIsle(
       y.zaman = now
       return `KRİZ metni alındı (${s.govde} karakter)`
     }
+    // G100: beyan önceki mesajdaydı, sunucular bu mesajda (yalın liste ya da "şu sunucularda" cümlesi). Yalın liste beyanın
+    // ömrü boyunca, cümledeki adlar yalnız beyandan sonraki AYRI_MESAJ_MS içinde — sonraki sıradan soru listeyi açmasın.
+    if (y?.tur && !y.sunucular.length && now - y.zaman <= YETKI_OMRU_MS) {
+      const adlar = s.adaylar ?? (now - y.zaman <= AYRI_MESAJ_MS ? s.cumleAdlari : undefined)
+      if (adlar?.length) {
+        y.sunucular = adlar
+        envanterEsle(y, workdir)
+        y.zaman = now
+        y.oneriBekliyor = undefined
+        return `${yetkiDurumu(y, now)} (sunucular ayrı mesajda verildi)`
+      }
+    }
+    // Beyandan ÖNCE gelen yalın liste: aday olarak tutulur, yetki değildir; sunucusuz beyan gelirse ona uygulanır.
+    if (s.adaylar?.length) {
+      const yeni = y ?? { tur: null, cn: null, krizMetni: false, sunucular: [], zaman: now }
+      yeni.aday = { sunucular: s.adaylar, zaman: now }
+      yetkiler.set(sessionID, yeni)
+      return `aday sunucu listesi (${s.adaylar.length}) — CN/kurulum/kriz beyanı gelirse uygulanır`
+    }
     return null
   }
+  // Ayrı mesajla önceden verilmiş liste: aday ya da beyansız "sunucular:" satırı (tur yok) — AYRI_MESAJ_MS içinde
+  const aday =
+    y?.aday && now - y.aday.zaman <= AYRI_MESAJ_MS
+      ? y.aday.sunucular
+      : y && !y.tur && y.sunucular.length && now - y.zaman <= AYRI_MESAJ_MS
+        ? y.sunucular
+        : undefined
   if (!y || now - y.zaman > YETKI_OMRU_MS || (s.tur && s.tur !== y.tur))
     y = { tur: s.tur ?? null, cn: null, krizMetni: false, sunucular: [], zaman: now }
+  y.aday = undefined
   if (s.cn) {
     y.tur = "CN"
     y.cn = s.cn
   }
   if (y.tur === "KRIZ" && s.govde >= KRIZ_METNI_MIN) y.krizMetni = true
+  let ayriMesaj = false
   if (s.sunucular) {
     y.sunucular = s.sunucular
     envanterEsle(y, workdir)
+  } else if (aday && y.tur && !y.sunucular.length && !onayIfadesi(metin)) {
+    y.sunucular = aday
+    envanterEsle(y, workdir)
+    ayriMesaj = true
   }
   y.uyari = s.uyari
   y.zaman = now
@@ -227,6 +259,13 @@ export function yetkiIsle(
   yetkiler.set(sessionID, y)
   if (y.oneriBekliyor)
     return `yetki bekliyor: ${y.tur} beyanı + onay ("evet/onu/bunu") — sunucu listesi ajanın önceki mesajındaki "sunucular:" satırından alınacak`
+  return `${yetkiDurumu(y, now)}${ayriMesaj ? " (sunucular önceki mesajda verildi)" : ""}`
+}
+
+// G100: beyan ve sunucu listesi ayrı mesajlarda gelebilir; aradaki en çok süre (cümle içi adlar ve beyandan önceki liste için)
+export const AYRI_MESAJ_MS = 30 * 60 * 1000
+
+function yetkiDurumu(y: Yetki, now: number): string {
   return yetkiAktif(y, now)
     ? `yetki: ${yetkiOzeti(y)}${y.esler && y.esler.length > y.sunucular.length ? ` (envanterle ${y.esler.length} ad/IP)` : ""}${y.uyari ? ` (not: ${y.uyari})` : ""}${y.envanterNotu ? ` (envanter: ${y.envanterNotu})` : ""}`
     : `yetki eksik: tur=${y.tur ?? "-"} cn=${y.cn ?? "-"} kriz_metni=${y.krizMetni} sunucu=${y.sunucular.length}`

@@ -633,3 +633,59 @@ describe("Disk yıkıcı (mkfs, wipefs -a, dd/> blok aygıt, blkdiscard, sgdisk 
     expect(k(`ssh web01 'mkfs.xfs /dev/sdb; rm -rf /'`, y)?.sor).toBeFalsy()
   })
 })
+
+describe("G100: CN ve sunucu listesi ayrı mesajlarda — 'bir cümlede ikisini vermek zorunda mıyım?'", () => {
+  const d = require("./denetim") as typeof import("./denetim")
+  const ssh = (h: string) => ({ command: `ssh root@${h} 'systemctl restart nginx'` })
+  test("önce CN, sonra alt alta yalın liste → yetki", () => {
+    const m = new Map<string, Yetki>()
+    const t0 = Date.now()
+    expect(d.yetkiIsle(m, "s", "Çalışmamızda değişiklik var, numarası CHG0012345", t0)).toContain("yetki eksik")
+    expect(d.yetkiIsle(m, "s", "stlweb01\nstlweb02\n10.0.0.13", t0 + 60_000)).toContain("ayrı mesajda")
+    const y = m.get("s")!
+    expect(y.cn).toBe("CHG0012345")
+    expect(kilitDenetle("bash", ssh("stlweb02"), workdir, y)).toBeNull()
+    expect(kilitDenetle("bash", ssh("10.0.0.13"), workdir, y)).toBeNull()
+    expect(kilitDenetle("bash", ssh("stlweb09"), workdir, y)?.kilit).toBe("K1")
+  })
+  test("başlıklı / numaralı / envanter yapıştırması liste sayılır", () => {
+    expect(yetkiSatirlariniOku("Sunucu listesi:\n1. stlweb01\n2. stlweb02").adaylar).toEqual(["stlweb01", "stlweb02"])
+    expect(yetkiSatirlariniOku("stlweb01 ansible_host=10.0.0.11\nstlweb02 ansible_host=10.0.0.12").adaylar).toEqual([
+      "stlweb01", "10.0.0.11", "stlweb02", "10.0.0.12",
+    ])
+    expect(yetkiSatirlariniOku("wor07-09").adaylar).toEqual(["wor07", "wor08", "wor09"])
+  })
+  test("liste olmayan mesaj aday değildir", () => {
+    for (const t of ["evet", "tamam devam et", "stlweb01 hariç hepsi", "stlweb01'de disk dolu mu bak", "nginx.conf'u oku"])
+      expect(yetkiSatirlariniOku(t).adaylar).toBeUndefined()
+  })
+  test("önce liste, sonra sunucusuz CN → listeye uygulanır; liste tek başına yetki değildir", () => {
+    const m = new Map<string, Yetki>()
+    const t0 = Date.now()
+    expect(d.yetkiIsle(m, "s", "stlweb01, stlweb02", t0)).toContain("aday")
+    expect(yetkiAktif(m.get("s"), t0)).toBe(false)
+    expect(d.yetkiIsle(m, "s", "bu sunucularda CHG0012345 ile değişiklik yapacağız", t0 + 60_000)).toContain("önceki mesajda")
+    const y = m.get("s")!
+    expect(kilitDenetle("bash", ssh("stlweb01"), workdir, y)).toBeNull()
+  })
+  test("eski aday (30 dk+) uygulanmaz; cümle içi ad yalnız beyandan sonraki 30 dk'da", () => {
+    const m = new Map<string, Yetki>()
+    const t0 = Date.now()
+    d.yetkiIsle(m, "s", "stlweb01\nstlweb02", t0)
+    d.yetkiIsle(m, "s", "CN CHG0012345", t0 + 31 * 60_000)
+    expect(m.get("s")!.sunucular.length).toBe(0)
+    const m2 = new Map<string, Yetki>()
+    d.yetkiIsle(m2, "s", "CN CHG0012345", t0)
+    d.yetkiIsle(m2, "s", "stlweb05 sunucusunda disk dolu mu", t0 + 40 * 60_000)
+    expect(m2.get("s")!.sunucular.length).toBe(0)
+    d.yetkiIsle(m2, "s", "stlweb05\nstlweb06", t0 + 41 * 60_000)
+    expect(m2.get("s")!.sunucular).toEqual(["stlweb05", "stlweb06"])
+  })
+  test("dolu yetkinin listesini yalın liste sessizce değiştirmez", () => {
+    const m = new Map<string, Yetki>()
+    const t0 = Date.now()
+    d.yetkiIsle(m, "s", "CHG0012345 ile stlweb01 sunucusunda", t0)
+    d.yetkiIsle(m, "s", "stlweb07\nstlweb08", t0 + 60_000)
+    expect(m.get("s")!.sunucular).toEqual(["stlweb01"])
+  })
+})

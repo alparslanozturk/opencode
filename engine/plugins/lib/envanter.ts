@@ -62,7 +62,7 @@ export function envanterAyristir(metin: string, env: Envanter): void {
   }
 }
 
-// Çalışma dizinindeki envanterler: ansible/ ve inventories/ altında (3 düzey) *.ini ya da hosts* dosyaları.
+// Çalışma dizinindeki envanterler: ansible/ ve inventories/ altında (3 düzey) *.ini ya da hosts* dosyaları (is/ hariç).
 // OPS_AGENT_ENVANTER (":" ayrılmış yol listesi) verilirse yalnız onlar okunur.
 export function envanterDosyalari(workdir: string): string[] {
   const ortam = process.env.OPS_AGENT_ENVANTER
@@ -76,7 +76,8 @@ export function envanterDosyalari(workdir: string): string[] {
       return
     }
     for (const g of girdiler.sort()) {
-      if (g.startsWith(".") || g === "node_modules" || g === "roles" || g === "group_vars" || g === "host_vars") continue
+      // is/ = iş envanterleri (is-envanter.py, ana envanterden türetilir; ajan yazar) — eşlemeye kaynak olmaz (G100)
+      if (g.startsWith(".") || g === "node_modules" || g === "roles" || g === "group_vars" || g === "host_vars" || g === "is") continue
       const yol = join(dizin, g)
       let st
       try {

@@ -999,23 +999,16 @@ if os.path.exists(yol):
         print("bozuk"); sys.exit(0)
     if not isinstance(d, dict):
         print("bozuk"); sys.exit(0)
-once = json.dumps(d, sort_keys=True)
-fare = "korundu:false" if d.get("mouse") is False else "yazildi"
+if d.get("mouse") is False:
+    print("korundu:false"); sys.exit(0)
 d["mouse"] = False
-# Fare kapalıyken tekerlekle kaydırma yok → satır satır kaydırma ctrl+↑/↓ (varsayılan ctrl+alt+y/e MobaXterm'de zor;
-# shift+↑/↓ girişte seçime ayrılmış). Kullanıcı kendi tuşunu yazdıysa dokunulmaz.
-kb = d.setdefault("keybinds", {})
-if isinstance(kb, dict):
-    kb.setdefault("session.line.up", "ctrl+alt+y,ctrl+up")
-    kb.setdefault("session.line.down", "ctrl+alt+e,ctrl+down")
-if json.dumps(d, sort_keys=True) != once:
-    json.dump(d, open(yol, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
-print(fare)
+json.dump(d, open(yol, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+print("yazildi")
 PY
 )"
     case "$tui_sonuc" in
-      yazildi) yesil "  tui: ~/.config/opencode/cli.json → mouse: false (seçim terminalde, MobaXterm kopyalar); satır kaydırma ctrl+↑/↓" ;;
-      korundu:*) yesil "  tui: mouse zaten kapalı; satır kaydırma ctrl+↑/↓ (cli.json keybinds)" ;;
+      yazildi) yesil "  tui: ~/.config/opencode/cli.json → mouse: false (seçim terminalde, MobaXterm kopyalar)" ;;
+      korundu:*) yesil "  tui: mouse zaten ayarlı (${tui_sonuc#korundu:}) — dokunulmadı" ;;
       bozuk) sari "  ! cli.json okunamadı (yorumlu/bozuk JSON?) — mouse ayarı yazılmadı" ;;
     esac
   fi

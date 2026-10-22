@@ -52,9 +52,9 @@ Kaynak: `packages/tui/src/config/keybind.ts` (lider tuşu `ctrl+x`) ve `packages
   (ya da `/exit`, `/quit`) + Enter, veya `ctrl+x` sonra `q`.
 - **Oturum sekmesini kapat:** `ctrl+x` sonra `w` · **yeni oturum:** `ctrl+x` sonra `n`.
 - **Oturum sil:** `ctrl+x` sonra `l` (oturum listesi) → oturumu seç → `ctrl+d`. Komut paleti `ctrl+p` → "Switch session" de olur.
-- **Mesajlarda kaydırma** (fare kapalı — `mouse:false`, MobaXterm kopyalasın diye): satır satır `ctrl+↑` / `ctrl+↓`
-  (`./kur.sh` cli.json'a yazar; varsayılan `ctrl+alt+y` / `ctrl+alt+e` de çalışır) · yarım sayfa `ctrl+alt+u` / `ctrl+alt+d` ·
-  sayfa `PageUp` / `PageDown` · en başa `Home` · en sona `End`. `shift+↑/↓` istem kutusunda seçim yapar, kaydırmaz.
+- **Mesajlarda kaydırma** (opencode varsayılanı — opencode.ai/docs/keybinds; fare kapalı olduğu için tekerlek çalışmaz):
+  satır satır `ctrl+alt+y` (yukarı) / `ctrl+alt+e` (aşağı) · yarım sayfa `ctrl+alt+u` / `ctrl+alt+d` · sayfa `PageUp` / `PageDown`
+  · en başa `Home` · en sona `End`. `shift+↑/↓` istem kutusunda seçim yapar, kaydırmaz.
 
 ## Bir şey çalışmıyorsa: `./kur.sh kontrol`
 TUI `Failed to send prompt` / `Unexpected server error` dediyse **tek satır**:

@@ -1181,3 +1181,12 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   envanterde IP'si olmayan ad için `getent hosts` (ad → IP, IP → ad). Test 332 → 336. AGENTS: hedefi `sunucular:` satırıyla öner,
   yalnız onay iste, cümle dikte etme. `rke2-denetim` §2: rke2-server döngüde çöküyor — reboot/restart öncesi kanıt sırası, ayırt etme,
   öneri sırası (tek servis → reboot en son), sonrası doğrulama.
+
+### G99 — Alp kararı: tehlikeli disk komutları "asla" değil, "onaylı" çalışsın
+- Alp (2026-10-22, üç mesajda): "wipefs için onay olsun" · "format, dd, wipefs gibi köklü değişiklik yapıyorsa onaylı olması lazım,
+  onay olmadan yapmaması lazım". Önceki durum: bunlar K5 — yetki ve onayla da hiç çalışmıyordu (disk ekleme işinde son adım hep elle).
+- Yapılan (kilit.ts): yeni bulgu türü `disk` — `mkfs*`, `mke2fs`, silen `wipefs`, blok aygıtına `dd`/`>`, `blkdiscard`, `sgdisk --zap`,
+  diske `shred`/`mkswap`; ansible ad-hoc ve playbook içinde de (`--limit` hedefleriyle). Yetkisiz ya da hedef listede değilse K1 engel;
+  yetki + hedef tamamsa `sor` → adaptör her seferinde "ask" (saved "her zaman izin ver" atlatamaz), mesaj "veri geri gelmez, önce
+  disk-durum.py BOŞ ADAY". Felaket sınıfı (rm -rf /, chmod -R /, force-push, kill -1, K6) K5'te kaldı; aynı komutta felaket varsa K5.
+  Test 336 → 339 (+ adaptör: yetkisiz deny, yetkili ask). AGENTS, GUVENLIK-KILITLERI, rhel-depolama güncellendi.

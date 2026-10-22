@@ -191,3 +191,23 @@ describe("G68: belirsiz komut adaptörde 'ask' olur; 'her zaman izin ver' atlata
     expect(olay.effect).toBe("deny")
   })
 })
+
+
+describe("Disk yıkıcı komut adaptörde: yetkiyle 'ask' (saved allow atlatamaz), yetkisiz 'deny' (Alp, 2026-10-22)", () => {
+  test("CN + hedef → ask; yetkisiz → deny", async () => {
+    const s = sahteBaglam()
+    await guvenlikKur(s.ctx)
+    const k = s.kancalar
+    const input = { command: "ssh web01 'mkfs.xfs /dev/sdb'" }
+    await k["tool.execute.before"]({ tool: "shell", sessionID: "s2", id: "d1", agent: "build", messageID: "m1", input })
+    const yok = { sessionID: "s2", action: "shell", resources: ["x"], source: { type: "tool", messageID: "m1", id: "d1" }, effect: "allow" as string, message: undefined as string | undefined }
+    await k["permission.evaluate"](yok)
+    expect(yok.effect).toBe("deny")
+    await k["session.prompt"]({ sessionID: "s2", prompt: { text: "CHG0000001 ile web01 sunucusunda diski hazırla" } })
+    await k["tool.execute.before"]({ tool: "shell", sessionID: "s2", id: "d2", agent: "build", messageID: "m1", input })
+    const var_ = { sessionID: "s2", action: "shell", resources: ["x"], source: { type: "tool", messageID: "m1", id: "d2" }, effect: "allow" as string, message: undefined as string | undefined }
+    await k["permission.evaluate"](var_)
+    expect(var_.effect).toBe("ask")
+    expect(var_.message).toContain("YIKICI DİSK")
+  })
+})

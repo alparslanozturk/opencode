@@ -276,9 +276,13 @@ export interface Komut {
 
 export function eslesenParantez(src: string, start: number): [string, number] {
   let derinlik = 1
+  let caseAcik = 0 // $( case … in 0) …;; esac ): desen ")"si ikameyi kapatmaz (bash da böyle ayrıştırır)
   let i = start
   while (i < src.length) {
     const c = src[i]
+    const kelimeBasi = i === start || /[\s;(|&]/.test(src[i - 1])
+    if (kelimeBasi && /^case[\s]/.test(src.slice(i, i + 5))) caseAcik++
+    if (kelimeBasi && caseAcik > 0 && /^esac(?![A-Za-z0-9_])/.test(src.slice(i, i + 5))) caseAcik--
     if (c === "\\") {
       i += 2
       continue
@@ -296,12 +300,37 @@ export function eslesenParantez(src: string, start: number): [string, number] {
     }
     if (c === "(") derinlik++
     if (c === ")") {
+      if (derinlik === 1 && caseAcik > 0) {
+        i++ // case dal deseninin kapanışı
+        continue
+      }
       derinlik--
       if (derinlik === 0) return [src.slice(start, i), i + 1]
     }
     i++
   }
   return [src.slice(start), src.length]
+}
+
+// $(( … )) içindeki komut ikamelerini (iç içe aritmetik dahil) denetim listesine ekler.
+export function aritmetikIkameleri(ifade: string, ic: string[]): void {
+  let i = 0
+  while (i < ifade.length) {
+    if (ifade[i] === "$" && ifade[i + 1] === "(") {
+      const [inner, j] = eslesenParantez(ifade, i + 2)
+      if (inner.startsWith("(") && inner.endsWith(")")) aritmetikIkameleri(inner.slice(1, -1), ic)
+      else ic.push(inner)
+      i = j
+      continue
+    }
+    if (ifade[i] === "`") {
+      const j = ifade.indexOf("`", i + 1)
+      ic.push(ifade.slice(i + 1, j < 0 ? ifade.length : j))
+      i = j < 0 ? ifade.length : j + 1
+      continue
+    }
+    i++
+  }
 }
 
 export function ayristir(src: string, ic: string[]): Komut[] {
@@ -312,9 +341,23 @@ export function ayristir(src: string, ic: string[]): Komut[] {
   let tokVar = false
   let hedef: "yok" | "yaz" | "oku" = "yok"
   const heredoc: { son: string; girinti: boolean }[] = []
+  // case … esac: `case X in` başlığı ve dal desenleri (`0)`, `*)`) komut değildir — atlanır; dal gövdeleri normal denetlenir.
+  // Desendeki $(…) ikamesi tokenlaştırmada zaten `ic`'ye eklenir (atlanmaz).
+  let caseDerinlik = 0
+  let desenBekleniyor = false
 
   const bitirTok = () => {
     if (!tokVar) return
+    if (hedef === "yok" && argv.length === 0 && tok === "case") {
+      caseDerinlik++
+      desenBekleniyor = true
+    } else if (hedef === "yok" && argv.length === 0 && tok === "esac" && caseDerinlik > 0) {
+      caseDerinlik--
+      desenBekleniyor = false
+      tok = ""
+      tokVar = false
+      return
+    }
     if (hedef === "yaz") yazilan.push(tok)
     else if (hedef === "yok") argv.push(tok)
     hedef = "yok"
@@ -381,6 +424,15 @@ export function ayristir(src: string, ic: string[]): Komut[] {
     if ((c === "$" || c === "<" || c === ">") && src[i + 1] === "(") {
       // $(…) komut ikamesi, <(…)/>(…) süreç ikamesi
       const [inner, j] = eslesenParantez(src, i + 2)
+      if (c === "$" && inner.startsWith("(") && inner.endsWith(")")) {
+        // $(( … )) aritmetik genişletme — komut değil (Alp 2026-10-22: okuma çalışsın). İçindeki $(…)/`…` ikameleri
+        // yine çalışır → onlar ayrıca denetlenir; aritmetiğin kendisi hiçbir şey çalıştırmaz.
+        aritmetikIkameleri(inner.slice(1, -1), ic)
+        tok += "0"
+        tokVar = true
+        i = j
+        continue
+      }
       ic.push(inner)
       tok += "$(...)"
       tokVar = true
@@ -418,6 +470,23 @@ export function ayristir(src: string, ic: string[]): Komut[] {
           if ((h.girinti ? satir.trim() : satir) === h.son) break
         }
       }
+      continue
+    }
+    if (c === ")" && caseDerinlik > 0 && desenBekleniyor) {
+      // dal deseni bitti: `case X in PAT)` ya da `PAT)` — komut olarak kaydetme
+      argv = []
+      yazilan = []
+      tok = ""
+      tokVar = false
+      hedef = "yok"
+      desenBekleniyor = false
+      i++
+      continue
+    }
+    if (c === ";" && src[i + 1] === ";" && caseDerinlik > 0) {
+      bitirKomut()
+      desenBekleniyor = true
+      i += src[i + 2] === "&" ? 3 : 2
       continue
     }
     if (c === ";" || c === "(" || c === ")" || c === "{" || c === "}") {
@@ -770,6 +839,13 @@ function mountListeler(a: string[]): boolean {
   return true
 }
 
+// wipefs yalnız listeler: seçeneksiz, -n/--no-act (hiçbir şey silmez), -J/-p/-i/-O (çıktı biçimi). Silen: -a/--all, -o/--offset
+// (kısa bayrak birleşimi dahil, ör. -af). -n varsa silen bayrak da yazmaz (man wipefs). Alp 2026-10-22: okuma çalışsın.
+export function wipefsOkur(a: string[]): boolean {
+  if (a.some((x) => x === "-n" || x === "--no-act" || /^-[a-zA-Z]*n[a-zA-Z]*$/.test(x))) return true
+  return !a.some((x) => x === "--all" || x === "--offset" || x.startsWith("--offset=") || x === "-o" || /^-[a-zA-Z]*[ao][a-zA-Z]*$/.test(x) || x === "--force" || x === "-f" || x === "--backup" || x === "-b")
+}
+
 export function saltOkunur(argv: string[]): boolean {
   const p = taban(argv[0] ?? "")
   const a = argv.slice(1)
@@ -898,6 +974,8 @@ export function saltOkunur(argv: string[]): boolean {
       return ctrOkur(a)
     case "containerd":
       return a.length > 0 && a.every((x) => ["--version", "-v", "config", "dump"].includes(x)) && (a.includes("--version") || a.includes("-v") || (a[0] === "config" && a[1] === "dump"))
+    case "wipefs":
+      return wipefsOkur(a)
     case "python":
     case "python3":
       // yalnız stdin'den okuyup biçimleyen json.tool (çıktı dosyası argümanı yok) — gerisi kod çalıştırır
@@ -1171,7 +1249,7 @@ export function tekKomut(k: Komut, b: Baglam): Bulgu[] {
     }
   }
   if (p === "mv") for (const h of a.filter(secenekDegil).slice(0, -1)) if (tehlikeliKok(h, b, false)) out.push(sert(`mv ${h}`))
-  if (/^mkfs(\..*)?$/.test(p) || p === "mke2fs" || p === "wipefs" || p === "blkdiscard") out.push(sert(p))
+  if (/^mkfs(\..*)?$/.test(p) || p === "mke2fs" || (p === "wipefs" && !wipefsOkur(a)) || p === "blkdiscard") out.push(sert(p))
   if (p === "mkswap" && a.some((x) => BLOK_AYGIT_RE.test(x))) out.push(sert("mkswap (disk)"))
   if (p === "sgdisk" && a.some((x) => /^(--zap|--zap-all|-Z|-z)$/.test(x))) out.push(sert("sgdisk --zap"))
   if (p === "dd") {

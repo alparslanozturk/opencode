@@ -219,8 +219,8 @@ ssh root@<sunucu> "echo '#LSBLK'; lsblk -P -b -o NAME,KNAME,PKNAME,TYPE,SIZE,FST
 `disk-durum.py cikti/disk/<etiket>`. (Betiğin başındaki yorumda komut tek parça durur; oradan kopyala.)
 
 Betik her disk için **OS DİSKİ / KULLANIMDA / BOŞ ADAY** ve gerekçesini basar. BOŞ ADAY = şunların **hepsi**: bölüm/alt aygıt
-yok · FSTYPE yok · LVM PV değil · bağlı/swap değil · fstab'da (ad/UUID/mapper) yok · diskte imza yok (`blkid -p` — `wipefs -n` de
-okur ama güvenlik kilidi wipefs'i her biçimde K5 sayar, çalışmaz). OS diski adından değil `/`, `/boot`, `/boot/efi` ya da
+yok · FSTYPE yok · LVM PV değil · bağlı/swap değil · fstab'da (ad/UUID/mapper) yok · diskte imza yok (`blkid -p`; `wipefs -n` / seçeneksiz
+`wipefs` de okumadır, kilitten geçer — silen `wipefs -a/-o` K5, asla açılmaz). OS diski adından değil `/`, `/boot`, `/boot/efi` ya da
 kök VG'nin PV'sinden bulunur (RHEL 7 `lsblk`'ında PKNAME yoksa da çalışır). Sonuç satırı:
 - "BOŞ disk yok" → yıkıcı adım (`pvcreate`, `mkfs`, `parted`) **yok**, çıktıyı kullanıcıya göster;
 - "Aynı boyutta birden çok boş aday" → boyuttan seçme, **sor**;

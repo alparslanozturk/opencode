@@ -11,7 +11,7 @@
 #   echo '#PVS'; pvs --noheadings --separator '|' -o pv_name,vg_name 2>/dev/null; echo '#MOUNT'; findmnt -rn -o SOURCE,TARGET;
 #   echo '#SWAP'; cat /proc/swaps; echo '#FSTAB'; grep -v '^[[:space:]]*#' /etc/fstab;
 #   echo '#IMZA'; for d in $(lsblk -dn -o NAME -e 7,11); do echo "== /dev/$d"; blkid -p -o export /dev/$d 2>&1; done
-# İmza için `blkid -p` (diskten doğrudan okur): `wipefs -n` de yalnız okur ama güvenlik kilidi wipefs'i her biçimde K5 sayıyor.
+# İmza için `blkid -p` (diskten doğrudan okur). `wipefs -n` de okumadır (kilit 2026-10-22'den beri okuma kipini tanır; -a/-o K5).
 #
 # kullanım:
 #   ssh root@<h> '<uzak komut>' | disk-durum.py - [--ad <h>]

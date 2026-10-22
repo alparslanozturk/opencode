@@ -63,6 +63,12 @@ Uzak komut üç sınıftan birine düşer (`engine/plugins/lib/kilit.ts`):
   kayıtlı kurallardan sonra çalışır ve effect'i yine "ask" yapar (core `permission.ts`). Aynı komutta bilinen değişiklik de
   varsa sorulmaz, engellenir. Onaylanan komut audit'e `ONAY K1? :: …` diye yazılır — sık onaylananlar okuma listesine aday.
 
+**Okuma her zaman çalışmalı (Alp, 2026-10-22):** kilit yalnız **değişikliğe** bakar; okuyan komutu yanlışlıkla engellemesi hatadır.
+Yıkıcı araçların okuma kipi de okumadır: `wipefs` seçeneksiz / `-n` / `--no-act` → serbest; silen `wipefs -a/-o` → K5 (asla açılmaz).
+Kabuk sözdizimi komut sayılmaz: `$(( … ))` aritmetiği ve `case … in desen) … ;; esac` desenleri; içlerindeki `$( … )` ikameleri ve
+dal gövdeleri yine tek tek denetlenir (test: `kilit.test.ts` "G96"). Becerilerdeki sabit okuma satırlarının kilitten geçtiği
+`script/beceri-komut-kilit.ts` ile denetlenir.
+
 Eski kalıplar aynen geçerli:
 
 ```

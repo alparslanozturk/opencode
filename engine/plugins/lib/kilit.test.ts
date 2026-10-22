@@ -535,3 +535,18 @@ describe("G96: okuma çalışmalı — wipefs listeleme, $(( )) aritmetiği, cas
     expect(k(`ssh m1 'case $(systemctl stop rke2-agent) in *) echo;; esac'`)?.kilit).toBe("K1")
   })
 })
+
+describe("G97: find -exec <okuma> okumadır (etcd incelemesi — Alp: 'gerçekten değişiklik yapıyor mu?')", () => {
+  const k = (c: string) => kilitDenetle("bash", { command: c }, workdir, undefined)
+  test("-exec ls/stat/md5sum {} \\; ve {} + serbest", () => {
+    expect(k(`ssh m1 'ps -eo pid,args | grep etcd | grep -v grep; echo "---"; ls -lah /var/lib/rancher/rke2/server/db/etcd/member/snap/; find /var/lib/rancher/rke2/server/db/etcd/member -type f -exec ls -lah {} \\; 2>&1 | head -20'`)).toBeNull()
+    expect(k(`ssh m1 'find /var/lib/x -type f -exec ls -lah {} +'`)).toBeNull()
+    expect(k(`ssh m1 'find /etc -name "*.conf" -exec md5sum {} \\; -exec stat -c %y {} \\;'`)).toBeNull()
+  })
+  test("-delete, -fprint, -exec rm, -exec sh -c değişiklik", () => {
+    expect(k(`ssh m1 'find /var/lib/x -delete'`)?.kilit).toBe("K1")
+    expect(k(`ssh m1 'find /var/lib/x -fprint /tmp/liste'`)?.kilit).toBe("K1")
+    expect(k(`ssh m1 'find /var/lib/x -name "*.log" -exec rm {} \\;'`)?.kilit).toBe("K1")
+    expect(k(`ssh m1 'find /var/lib/x -exec sh -c "systemctl restart x" \\;'`)?.kilit).toBe("K1")
+  })
+})

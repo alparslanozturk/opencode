@@ -1134,3 +1134,25 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   Yönlendirme: AGENTS, `ansible` §3, `k8s-sorun` Rancher, `rancher-sertifika` doğrulama.
 - Açık: Rancher v3 alan adları (`status.provider`, `status.nodeName`, `spec.controlPlane`, `internalNodeStatus`, `apiEndpoint`) genel
   bilgiden — kurum Rancher'ında ilk koşuda doğrulanacak (eksik alan `?` basılır).
+
+### G96 — Alp: "amaç sorunu çözmek değil, yapay zekânın ortamda çözebilmesi için yetenek geliştirmek" → deterministik betik katmanı
+- Alp (2026-10-21 gece): `kume-bul` örnek olsun, tüm becerileri gözden geçir; zayıf/offline model güçlükleri aşacak yetenek hazırla.
+- Ders (G1–G95 taraması): en ağır hatalar ham çıktıyı kafadan birleştirmekten — G21/G22 kapasite, G38 disk, G59 OOM↔exit, G65 gün,
+  G86 eski zincir, G94 base64. Kural metni tutmuyor; betik tutuyor. İlke: `knowledge/skills/README.md` "Deterministik betik ilkesi".
+- Yapılan (hepsi yalnız okur, uzak komut borunun başında, Python 3.6 uyumlu, örnek veriyle test edildi):
+  `filo-tablo.py` (filo-kontrol; ansible --tree → durum/sapma/çıktı grupları/kv/--csv) · `sar-ozet.py` (rhel-performans; sadf sütun
+  ADIYLA, hostname≠hedef ve birebir aynı değer uyarısı) · `disk-durum.py` (rhel-depolama; OS/KULLANIMDA/BOŞ ADAY) · `sertifika-kontrol.py`
+  (rancher-sertifika; kalan gün, anahtar, zincir, verify, ESKİ yaprak, canlı ile aynı CA mı, `--ozet`) · `k8s-ozet.py` (k8s-sorun;
+  NotReady+lease, sürüm sapması, restart son çıkış sebebi) · `gpu-dagilim.py` (rke2-gpu; pod başına GPU/Run:ai/vLLM/shm/NCCL) ·
+  `olay-penceresi.py` (rhel-sorun; yerel↔UTC, saDD, hazır komutlar) · `tablo-cevir.py` (rapor; CSV → HTML/XLSX). Sabit `--kv` satırları:
+  rhel-guncelleme (güncelleme durumu), rhel-teslim (teslim kontrolü), rke2-edr (ajanlar gerçekten kapalı mı), rke2-guvenlik/-yukseltme
+  (master sağlığı). AGENTS "Ham çıktıyı kafadan birleştirme — betiğe borula" soru→betik listesi.
+- Bulunan kit hataları: `wipefs -n` (rhel-depolama B §1'in "boş disk kanıtı") kilitte her biçimde K5 → sahada hiç çalışamıyordu, `blkid -p`
+  ile değiştirildi; rke2 sertifika "en yakın bitiş" komutu `sort -t= -k2` ay ADINA göre alfabetik sıralıyordu; `--anonymous-auth=[a-z]*`
+  grep'in kendi satırını sayıyordu; `case…esac` ve `$(( … ))` içeren okuma satırları kilitte K1 → yeniden yazıldı; `uyum.py`
+  `date.fromisoformat` (3.7+) RHEL 8 platform-python'da çökerdi → strptime.
+- Regresyon: `script/beceri-betik-test.sh` (51 durum, her biri bir G'ye bağlı) + `script/beceri-komut-kilit.ts` (becerideki sabit okuma
+  satırları kilitten geçiyor mu — 38/38).
+- Açık (Alp kararı): (1) kilitte `wipefs -n`/`--no-act` okuma istisnası; (2) beceri betikleri her çağrıda onay soruyor (`python3 …` →
+  bash "*": ask) — `/root/ai/opencode/knowledge/skills/approved/*` betikleri için allow kuralı; (3) Rancher v3 alan adları
+  (`status.nodeName`, `spec.controlPlane`, `internalNodeStatus`) ve Run:ai annotation adları sahada ilk koşuda doğrulanacak.

@@ -22,6 +22,7 @@ import { ShellSelect } from "@opencode/core/shell/select"
 import { Job } from "@opencode/core/job"
 import { Mcp } from "@opencode/core/mcp/index"
 import { Global } from "@opencode/util/global"
+import { FSUtil } from "@opencode/util/fs-util"
 import { InstructionDiscovery } from "@opencode/core/instruction-discovery"
 import { LocationServiceMap } from "@opencode/core/location-service-map"
 import { LocationActivity } from "@opencode/core/location-activity"
@@ -32,8 +33,8 @@ import { SdkPlugins } from "@opencode/core/plugin/sdk"
 import { WellKnown } from "@opencode/core/wellknown"
 import { Workspace } from "@opencode/core/workspace"
 import { Watcher } from "@opencode/core/filesystem/watcher"
-import { HttpRouter } from "effect/unstable/http"
-import { HttpApiBuilder } from "effect/unstable/httpapi"
+import { HttpRouter } from "effect/http"
+import { HttpApiBuilder } from "effect/http-api"
 import { Context, Effect, Layer, Option } from "effect"
 import { Api } from "./api"
 import { ServerAuth } from "./auth"
@@ -41,7 +42,6 @@ import { CorsConfig } from "./cors"
 import { handlers } from "./handlers"
 import { authorizationLayer } from "./middleware/authorization"
 import { schemaErrorLayer } from "./middleware/schema-error"
-import { PtyEnvironment } from "./pty-environment"
 import { ServerPairing } from "./pairing"
 import { layer } from "./location"
 import { formLocationLayer } from "./middleware/form-location"
@@ -51,12 +51,14 @@ import type { ServerOptions } from "./options"
 
 const applicationServiceNodes = [
   Global.node,
+  FSUtil.node,
   Database.node,
   Bus.node,
   EventLogger.node,
   httpClient,
   Job.node,
   Project.node,
+  Project.sweepNode,
   Worktree.node,
   Session.node,
   Instance.node,
@@ -68,7 +70,6 @@ const applicationServiceNodes = [
   PersistentPty.node,
   Credential.node,
   WellKnown.node,
-  PtyEnvironment.node,
   ServerPairing.node,
   LocationServiceMap.node,
   LocationActivity.node,
@@ -124,6 +125,7 @@ function makeRoutes<AuthError, AuthServices>(
     Config.node.replace(
       Config.configured({
         project: options.config?.project,
+        claude: options.config?.claude,
         file: options.config?.file,
         content: options.config?.content,
       }),
@@ -133,7 +135,7 @@ function makeRoutes<AuthError, AuthServices>(
     Mcp.node.replace(
       Mcp.configured({
         clientInfo: {
-          name: options.app?.name ?? "opencode",
+          name: "opencode",
           version: options.app?.version ?? "unknown",
         },
       }),

@@ -54,7 +54,7 @@ KOK="$(cd "$(dirname "$_kaynak")" && pwd)"
 #  Sabitler
 # ---------------------------------------------------------------------------
 NODE_SURUM="v24.19.0"
-BUN_PAKET="$KOK/bin/bun-linux-x64-baseline-1.4.2.tgz"   # sifir makinede bun buradan acilir
+BUN_PAKET="$KOK/bin/bun-linux-x64-baseline-1.4.4.tgz"   # sifir makinede bun buradan acilir (upstream 2.1.x packageManager bun@1.4.4)
 
 # Ürün sürümü/kanalı — TEK YER burasıdır: derleme adımı ikiliye bu değerleri yazar
 # (build.ts), kurulum kararı da `bin/opencode --version`'ı bununla karşılaştırır.

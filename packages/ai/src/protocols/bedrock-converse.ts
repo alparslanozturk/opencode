@@ -1,4 +1,5 @@
-import { Effect, Encoding, Schema } from "effect"
+import { Effect, Schema } from "effect"
+import { Base64 } from "effect/encoding"
 import { Route } from "../route/client.js"
 import { Endpoint } from "../route/endpoint.js"
 import { Protocol } from "../route/protocol.js"
@@ -260,12 +261,12 @@ const providerMetadata = (key: string, metadata: Record<string, unknown>): Provi
 const reasoningSignature = (part: ReasoningPart, providerMetadataKey: string) => {
   const metadata = part.providerMetadata?.[providerMetadataKey]
   if (part.encrypted !== undefined) return part.encrypted
-  if (ProviderShared.isRecord(metadata) && typeof metadata.signature === "string") return metadata.signature
+  if (typeof metadata?.signature === "string") return metadata.signature
 }
 
 const reasoningRedactedData = (part: ReasoningPart, providerMetadataKey: string) => {
   const metadata = part.providerMetadata?.[providerMetadataKey]
-  if (ProviderShared.isRecord(metadata) && typeof metadata.redactedData === "string") return metadata.redactedData
+  if (typeof metadata?.redactedData === "string") return metadata.redactedData
 }
 
 const removeEmptyToolInputKeys = (input: unknown): unknown => {
@@ -330,7 +331,7 @@ const lowerMessages = Effect.fnUntraced(function* (
   const documentNames = new Set<string>()
   // Mistral can reject replay IDs even when they satisfy Converse's broader ID syntax.
   const normalizeID = request.model.id.includes("mistral.") ? MistralToolID.normalizer(request) : (id: string) => id
-  const providerMetadataKey = request.model.route.providerMetadataKey ?? String(request.model.provider)
+  const providerMetadataKey = request.model.route.providerMetadataKey ?? request.model.provider
   const hoistImages = !keepToolImagesInline(request.model.id)
   // Bedrock expects parallel tool results before any images hoisted beside them.
   const pendingImages: BedrockMedia.ImageBlock[] = []
@@ -476,7 +477,9 @@ const MIN_THINKING_BUDGET = 1_024
 
 const isThinkingDisabled = Schema.is(
   Schema.Struct({
-    additionalModelRequestFields: Schema.Struct({ thinking: Schema.Struct({ type: Schema.Literal("disabled") }) }),
+    additionalModelRequestFields: Schema.Struct({
+      thinking: Schema.Struct({ type: Schema.Literals(["disabled", "between_tools"]) }),
+    }),
   }),
 )
 
@@ -513,7 +516,7 @@ const fromRequest = Effect.fn("BedrockConverse.fromRequest")(function* (request:
   )
   // Bedrock-Claude shares Anthropic's 4-breakpoint cap. Spend the budget in
   // tools → system → messages order to favour the highest-impact prefixes.
-  const breakpoints = BedrockCache.breakpoints(request.model.id)
+  const breakpoints = BedrockCache.breakpoints(request.model)
   const toolConfig = (() => {
     if (flattened.tools.length === 0) return undefined
     return {
@@ -610,7 +613,7 @@ interface ParserState {
   readonly reasoningRedactedContent: Readonly<Record<number, Uint8Array[]>>
 }
 
-const encodeRedactedContent = (chunks: ReadonlyArray<Uint8Array>) => Encoding.encodeBase64(concatBytes(chunks))
+const encodeRedactedContent = (chunks: ReadonlyArray<Uint8Array>) => Base64.encode(concatBytes(chunks))
 
 const step = (state: ParserState, event: BedrockEvent) =>
   Effect.gen(function* () {
@@ -659,7 +662,7 @@ const step = (state: ParserState, event: BedrockEvent) =>
       const events: LLMEvent[] = []
       const redactedChunk = yield* (() => {
         if (reasoning.redactedContent === undefined) return Effect.succeed(undefined)
-        return Effect.fromResult(Encoding.decodeBase64(reasoning.redactedContent)).pipe(
+        return Effect.fromResult(Base64.decode(reasoning.redactedContent)).pipe(
           Effect.mapError((cause) =>
             ProviderShared.eventError(
               ADAPTER,
@@ -803,6 +806,7 @@ const step = (state: ParserState, event: BedrockEvent) =>
       return yield* new AIError({
         reason: classifyProviderFailure({
           message,
+          status: event.exception.details.originalStatusCode,
           rawBody: body,
         }),
       })
@@ -856,9 +860,9 @@ export const protocol = Protocol.make({
     from: fromRequest,
   },
   stream: {
-    event: BedrockEvent,
+    event: BedrockEventStream.Frame.pipe(Schema.decodeTo(BedrockEvent)),
     initial: (request) => ({
-      providerMetadataKey: request.model.route.providerMetadataKey ?? String(request.model.provider),
+      providerMetadataKey: request.model.route.providerMetadataKey ?? request.model.provider,
       tools: ToolStream.empty<number>(),
       finishReason: undefined,
       usage: undefined,
@@ -886,7 +890,5 @@ export const route = Route.make({
   auth: BedrockAuth.auth,
   framing,
 })
-
-export const sigV4Auth = BedrockAuth.sigV4
 
 export * as BedrockConverse from "./bedrock-converse.js"

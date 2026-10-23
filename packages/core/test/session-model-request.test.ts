@@ -59,6 +59,51 @@ describe("SessionModelRequest.unsupportedParts", () => {
     })
   })
 
+  test("replaces images xAI cannot decode and keeps png, jpeg and webp", () => {
+    const image = (mime: string, name: string) => ({
+      type: "media" as const,
+      media: Media.base64("aGVsbG8=", mime),
+      filename: name,
+    })
+    const user = [image("image/png", "a.png"), image("image/jpeg", "b.jpg"), image("image/webp", "c.webp")]
+    const messages = [
+      Message.user([...user, image("image/gif", "d.gif")]),
+      Message.tool(
+        ToolResultPart.make({
+          id: "call_1",
+          name: "read",
+          result: {
+            type: "content",
+            value: [
+              { type: "text", text: "Image read successfully" },
+              { type: "file", uri: "data:image/gif;base64,R0lGODlh", mime: "image/gif", name: "e.gif" },
+            ],
+          },
+        }),
+      ),
+    ]
+    const result = unsupportedParts(messages, capabilities(["text", "image"]), "xai")
+
+    expect(result[0]?.content).toEqual([
+      ...user,
+      Message.text('ERROR: Cannot read "d.gif" (this model does not support image/gif input). Inform the user.'),
+    ])
+    expect(result[1]?.content[0]).toMatchObject({
+      type: "tool-result",
+      result: {
+        type: "content",
+        value: [
+          { type: "text", text: "Image read successfully" },
+          {
+            type: "text",
+            text: 'ERROR: Cannot read "e.gif" (this model does not support image/gif input). Inform the user.',
+          },
+        ],
+      },
+    })
+    expect(unsupportedParts(messages, capabilities(["text", "image"]), "openai")).toEqual(messages)
+  })
+
   test("preserves supported media", () => {
     const message = Message.user({ type: "media", media: Media.base64("aGVsbG8=", "image/png") })
     expect(unsupportedParts([message], capabilities(["text", "image"]))[0]?.content).toEqual(message.content)
@@ -156,6 +201,21 @@ describe("SessionModelRequest.boundImages", () => {
     expect(result[2]).not.toBe(messages[2])
     expect(result[2]?.content[0]).toMatchObject({ type: "text" })
     expect(result[3]).toBe(third)
+  })
+
+  test("keeps the replaced prefix stable as new images arrive, so the prompt cache survives", () => {
+    const image = (name: string) =>
+      Message.user({ type: "media", media: Media.base64("a".repeat(3 * 1024 * 1024), "image/png"), filename: name })
+    const removed = (messages: ReturnType<typeof boundImages>) =>
+      messages.filter((message) => message.content[0]?.type === "text").length
+    const history = Array.from({ length: 9 }, (_, i) => image(`${i}.png`))
+
+    // 27 MiB passes the 25 MiB trigger: the oldest four go, leaving 15 MiB.
+    expect(removed(boundImages(history))).toBe(4)
+    // Each later image used to move the cut by one; now the cut holds until the kept payload passes the trigger again.
+    expect(removed(boundImages([...history, image("9.png")]))).toBe(4)
+    expect(removed(boundImages([...history, image("9.png"), image("10.png"), image("11.png")]))).toBe(4)
+    expect(removed(boundImages([...history, ...Array.from({ length: 4 }, (_, i) => image(`${9 + i}.png`))]))).toBe(8)
   })
 
   test("replaces images nested in tool results", () => {

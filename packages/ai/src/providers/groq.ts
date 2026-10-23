@@ -93,7 +93,6 @@ export const configure = (input: LanguageModelOptions = {}) => {
           maxTokensField: "max_completion_tokens",
           reasoningField: "reasoning",
           requireReasoning: false,
-          supportsStore: false,
           supportsStrictMode: false,
         },
       }),
@@ -110,8 +109,8 @@ export const model: ProviderPackage.Definition<Settings, ProviderOptions>["model
   configure({
     apiKey,
     baseURL,
-    headers: headers === undefined ? undefined : { ...headers },
-    http: body === undefined ? undefined : { body: { ...body } },
+    headers,
+    http: body === undefined ? undefined : { body },
     providerOptions,
   }).model(modelID)
 

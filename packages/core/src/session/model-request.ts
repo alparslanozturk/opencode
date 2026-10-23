@@ -24,7 +24,7 @@ import type { Agent } from "@opencode/schema/agent"
 import type { Model } from "@opencode/schema/model"
 import type { Content } from "@opencode/schema/tool"
 import { Cause, Context, Effect, Layer, Result, Stream } from "effect"
-import { HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
+import { HttpClientRequest, HttpClientResponse } from "effect/http"
 import { makeLocationNode } from "@opencode/util/effect/app-node"
 import { App } from "../app.js"
 import { Permission } from "../permission.js"
@@ -33,7 +33,6 @@ import { QuestionTool } from "../tool/plugin/question.js"
 import { Tool } from "../tool.js"
 import { SessionAffinity } from "./affinity.js"
 import { SessionModelTransport } from "./model-transport.js"
-import { SessionProviderContext } from "./provider-context.js"
 import { SessionRunnerModel } from "./runner/model.js"
 import { SessionSchema } from "./schema.js"
 import { SessionSystemPrompt } from "./system-prompt.js"
@@ -49,8 +48,6 @@ const GENERATION_KEYS = new Set(Object.keys(GenerationOptions.fields))
 const OUTPUT_TOKEN_FALLBACK = 32_000
 // No reply needs more, however much the model allows.
 const OUTPUT_TOKEN_MAX = 256_000
-// A summary never needs more, and a request asking for more cannot be shrunk to fit a window the catalog overstates.
-const SUMMARY_OUTPUT_MAX = 32_000
 // Prompt text is estimated at about 4 characters per token, which can run low on dense text such as code.
 const ESTIMATE_ERROR = 0.15
 // Never ask for less; only reachable with automatic compaction off, since it keeps the window from filling this far.
@@ -85,13 +82,8 @@ export interface Input {
 }
 
 /** The default output limit: the catalog limit, fitted to the room the prompt leaves in the context window. */
-const outputLimit = (
-  limit: Model.Info["limit"],
-  kind: "primary" | "compaction",
-  inputTokens?: Input["inputTokens"],
-) => {
-  const model = Math.min(limit.output > 0 ? limit.output : OUTPUT_TOKEN_FALLBACK, OUTPUT_TOKEN_MAX)
-  const requested = kind === "compaction" ? Math.min(model, SUMMARY_OUTPUT_MAX) : model
+export const outputLimit = (limit: Model.Info["limit"], inputTokens?: Input["inputTokens"]) => {
+  const requested = Math.min(limit.output > 0 ? limit.output : OUTPUT_TOKEN_FALLBACK, OUTPUT_TOKEN_MAX)
   if (inputTokens === undefined || limit.context <= 0) return requested
   const room = limit.context - inputTokens.measured - Math.ceil(inputTokens.estimated * (1 + ESTIMATE_ERROR))
   return Math.min(requested, Math.max(OUTPUT_TOKEN_MIN, room))
@@ -126,10 +118,24 @@ const mimeToModality = (mime: string) => {
   if (mime === "application/pdf") return "pdf"
 }
 
-const unsupportedMedia = (mime: string, name: string | undefined, capabilities: Model.Capabilities) => {
+// xAI rejects any other image type (e.g. GIF) with invalid_image, and the stored image would fail every later turn.
+const XAI_IMAGE_MIMES = new Set(["image/png", "image/jpeg", "image/webp"])
+
+const unsupportedMedia = (
+  mime: string,
+  name: string | undefined,
+  capabilities: Model.Capabilities,
+  provider: string | undefined,
+) => {
   const modality = mimeToModality(mime)
-  if (!modality || capabilities.input.some((item) => item.startsWith(modality))) return
-  return `ERROR: Cannot read ${name ? `"${name}"` : modality} (this model does not support ${modality} input). Inform the user.`
+  if (!modality) return
+  const unsupported = !capabilities.input.some((item) => item.startsWith(modality))
+    ? modality
+    : provider === "xai" && modality === "image" && !XAI_IMAGE_MIMES.has(mime.toLowerCase())
+      ? mime
+      : undefined
+  if (!unsupported) return
+  return `ERROR: Cannot read ${name ? `"${name}"` : modality} (this model does not support ${unsupported} input). Inform the user.`
 }
 
 // Remote and provider-referenced media carry no local payload and never count toward the inline budget.
@@ -166,35 +172,39 @@ const replaceMedia = (
       : new Message({ ...message, content })
   })
 
-export const unsupportedParts = (messages: LLMRequest["messages"], capabilities: Model.Capabilities) =>
-  replaceMedia(messages, (media) => unsupportedMedia(media.mime, media.name, capabilities))
+export const unsupportedParts = (
+  messages: LLMRequest["messages"],
+  capabilities: Model.Capabilities,
+  provider?: string,
+) => replaceMedia(messages, (media) => unsupportedMedia(media.mime, media.name, capabilities, provider))
 
 export const boundImages = (messages: LLMRequest["messages"]) => {
   const isImage = (mime: string) => mime.toLowerCase().startsWith("image/")
-  const imageBytes = messages.reduce(
-    (total, message) =>
-      total +
-      message.content.reduce((sum, part) => {
-        if (part.type === "media" && isImage(part.media.mediaType)) return sum + mediaBytes(part.media)
-        if (part.type !== "tool-result" || part.result.type !== "content") return sum
-        return (
-          sum +
-          part.result.value.reduce(
-            (bytes: number, item: Content) =>
-              bytes + (item.type === "file" && isImage(item.mime) ? Buffer.byteLength(item.uri) : 0),
-            0,
-          )
-        )
-      }, 0),
-    0,
+  const sizes = messages.flatMap((message) =>
+    message.content.flatMap((part) => {
+      if (part.type === "media") return isImage(part.media.mediaType) ? [mediaBytes(part.media)] : []
+      if (part.type !== "tool-result" || part.result.type !== "content") return []
+      return part.result.value.flatMap((item: Content) =>
+        item.type === "file" && isImage(item.mime) ? [Buffer.byteLength(item.uri)] : [],
+      )
+    }),
   )
-  if (imageBytes <= IMAGE_BYTES_TRIGGER) return messages
+  // Replay the images in order, dropping the oldest down to the target whenever the kept payload passes the trigger.
+  // A new image then moves the cut only every (trigger - target) bytes instead of on every request, so the replaced
+  // prefix, and with it the provider's prompt cache, stays the same between cuts.
+  let cut = 0
+  let kept = 0
+  for (const size of sizes) {
+    kept += size
+    if (kept <= IMAGE_BYTES_TRIGGER) continue
+    while (kept > IMAGE_BYTES_TARGET) kept -= sizes[cut++]!
+  }
+  if (cut === 0) return messages
 
-  let removed = 0
+  let index = 0
   return replaceMedia(messages, (media) => {
-    if (!isImage(media.mime) || imageBytes - removed <= IMAGE_BYTES_TARGET) return
-    removed += media.bytes()
-    return IMAGE_REMOVED
+    if (!isImage(media.mime)) return
+    return index++ < cut ? IMAGE_REMOVED : undefined
   })
 }
 
@@ -241,7 +251,7 @@ export const layer = Layer.effect(
           messages: input.messages,
           options:
             kind === "primary" || kind === "compaction"
-              ? { maxTokens: outputLimit(model.limit, kind, input.inputTokens) }
+              ? { maxTokens: outputLimit(model.limit, input.inputTokens) }
               : {},
         },
         Object.fromEntries(Array.from(given, ([d, t]) => [t.name, d])),
@@ -277,7 +287,7 @@ export const layer = Layer.effect(
         // TODO: Persist cache lineage so nested forks reuse the root session's cache key.
         promptCacheKey: /^ses_[0-9a-f]{64}$/.test(affinity) ? affinity.slice(4) : affinity,
         system: shaped.system,
-        messages: boundImages(unsupportedParts(shaped.messages, model.capabilities)),
+        messages: boundImages(unsupportedParts(shaped.messages, model.capabilities, model.model.provider)),
         tools: Array.from(hooked, ([name, t]) => ({ ...t, name })),
         toolChoice: input.toolChoice,
         generation: Object.keys(generation).length === 0 ? undefined : generation,
@@ -287,7 +297,7 @@ export const layer = Layer.effect(
       const baseURL = base.model.route.endpoint.baseURL
       const modelHook = yield* hooks.trigger("session", "model.request", {
         ...scope,
-        baseURL: typeof baseURL === "string" ? baseURL : undefined,
+        baseURL,
         headers: { ...base.http?.headers },
       })
       const route =
@@ -301,22 +311,6 @@ export const layer = Layer.effect(
           headers: Object.keys(modelHook.headers).length === 0 ? undefined : modelHook.headers,
         }),
       })
-      // History selects native windows against the catalog route before hooks run. A newly installed
-      // routing hook must not send an existing opaque window to another deployment; `prepare` has no
-      // error channel, so like hook failures this surfaces as a defect.
-      const selected = SessionProviderContext.provenance(model)
-      if (
-        selected &&
-        !SessionProviderContext.compatible(
-          selected,
-          SessionProviderContext.provenance({ model: request.model, ref: model.ref }),
-        ) &&
-        request.messages.some((message) => message.content.some((part) => part.type === "compaction"))
-      )
-        return yield* Effect.die(
-          new Error("Provider context is incompatible with the route selected by model request hooks"),
-        )
-
       const hasHttpHooks =
         (yield* hooks.has("session", "http.request", model.ref.providerID)) ||
         (yield* hooks.has("session", "http.response", model.ref.providerID))
@@ -344,7 +338,7 @@ export const layer = Layer.effect(
                 ),
               })
               return HttpClientResponse.fromWeb(sent, after.response)
-            }).pipe(Effect.mapError((cause) => (cause instanceof Error ? cause : new Error(String(cause)))))
+            })
         : undefined
       // HTTP hooks wrap every HTTP request, including the WebSocket fallback path. The route decides
       // which transport actually carries the request, so both hook families are always offered.
@@ -381,17 +375,19 @@ export const layer = Layer.effect(
         retry: (event: Parameters<Prepared["retry"]>[0]) =>
           hooks.trigger("session", "retry", event).pipe(Effect.asVoid),
         // Permission.assert and the question tool throw declines as defects so tools cannot
-        // catch them and turn a "no" into model-visible output. Recover them here as failures.
+        // catch them and turn a "no" into model-visible output. Recover them here as failures,
+        // including declines a tool rethrew and its wrapper attached to a Tool.Error, as Promise
+        // plugin tools do.
         executeTool: (call: Parameters<Prepared["executeTool"]>[0]) =>
           tools.execute({ ...call, definitions: hooked }).pipe(
             Effect.catchCauseFilter(
               (cause) => {
-                const decline = cause.reasons.flatMap((r) =>
-                  Cause.isDieReason(r) &&
-                  (r.defect instanceof Permission.DeclinedError || r.defect instanceof QuestionTool.CancelledError)
-                    ? [r.defect]
-                    : [],
-                )[0]
+                const decline = cause.reasons
+                  .map((r) => (Cause.isDieReason(r) ? r.defect : Cause.isFailReason(r) ? r.error.error : undefined))
+                  .find(
+                    (value): value is Permission.DeclinedError | QuestionTool.CancelledError =>
+                      value instanceof Permission.DeclinedError || value instanceof QuestionTool.CancelledError,
+                  )
                 return decline ? Result.succeed(decline) : Result.fail(cause)
               },
               (decline) => Effect.fail(decline),

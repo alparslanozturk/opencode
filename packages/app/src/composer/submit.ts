@@ -146,16 +146,25 @@ export function createComposerSubmit(input: ComposerSubmitInput) {
       const restore = () => restoreSubmission(input, submission, value, comments)
 
       if (value.mode === "normal" && !command) {
-        session.handoff?.set(handoffMessage(value))
+        // The timeline shows a steer, and any switches it makes, as the composer clears; a queued prompt shows in
+        // the queue once admitted.
+        if (value.delivery === "steer")
+          session.handoff.set({
+            message: handoffMessage(value),
+            selection: {
+              agent: value.selection.agent,
+              model: {
+                id: value.selection.model.modelID,
+                providerID: value.selection.model.providerID,
+                variant: value.selection.variant,
+              },
+            },
+          })
         const optimisticBusy = !input.adapter.working()
 
-        if (optimisticBusy && input.adapter.kind === "new-session")
-          session.data.session.setStatus(session.id, "running")
+        if (optimisticBusy) session.data.session.setStatus(session.id, "running")
 
-        const sending = sendPrompt(session, value, input.adapter.controls().model.selection.trackSessionCommit, () => {
-          if (optimisticBusy && input.adapter.kind === "active-session")
-            session.data.session.setStatus(session.id, "running")
-        }).then(
+        const sending = sendPrompt(session, value, input.adapter.controls().model.selection.trackSessionCommit).then(
           () => ({ ok: true as const }),
           (error) => ({ ok: false as const, error }),
         )
@@ -332,6 +341,8 @@ function clearSubmission(input: ComposerSubmitInput, submission: ReturnType<type
   submission.target().mode.set("normal")
   input.setMode("normal")
   input.closePopover()
+
+  if (window.matchMedia("(max-width: 767px)").matches) input.editor()?.blur()
 }
 
 function restoreSubmission(
@@ -483,7 +494,6 @@ async function sendPrompt(
   session: ComposerSession,
   value: ComposerSubmission,
   track: ModelSelection["trackSessionCommit"] | undefined,
-  onAdmit: () => void,
 ) {
   const request = await buildSubmissionRequest(session, value)
 
@@ -498,8 +508,16 @@ async function sendPrompt(
     if (session.current()?.revert) await session.api.revert.commit({ sessionID: session.id })
   }
 
-  if (value.delivery === "steer") await applySelection(session, value.selection, track, settle)
-  else await settle()
+  const commit = () => (value.delivery === "steer" ? applySelection(session, value.selection, track, settle) : settle())
+  // The data layer admits the prompt locally before it commits the selection, so a steer shows as pending while the
+  // selection commits. A staged revert settles before admission instead: its committed echo removes every local row
+  // from its boundary on. Only an idle session stages one, and a prompt into it starts work rather than showing as
+  // pending.
+  const staged = !!session.current()?.revert
+
+  if (staged) await commit()
+  // A retried admission reuses the first commit rather than switching again.
+  let committed: Promise<void> | undefined
 
   const admission = {
     id: value.id,
@@ -521,11 +539,10 @@ async function sendPrompt(
       agent: value.selection.agent,
       model: selectionModel(value.selection),
     },
+    prepare: staged ? undefined : () => (committed ??= commit()),
   }
 
-  const sending = session.data.session.prompt(admission).catch(() => session.data.session.prompt(admission))
-  onAdmit()
-  await sending
+  await session.data.session.prompt(admission).catch(() => session.data.session.prompt(admission))
 }
 
 async function buildSubmissionRequest(session: ComposerSession, value: ComposerSubmission) {
@@ -557,7 +574,7 @@ function failSubmission(
 ) {
   if (messageID && session.admitted(messageID)) return
 
-  if (messageID) session.handoff?.clear(messageID)
+  if (messageID) session.handoff.clear(messageID)
   rollback?.()
   restore()
   input.notify.failed(kind, error)

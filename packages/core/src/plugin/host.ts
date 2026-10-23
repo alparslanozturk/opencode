@@ -146,8 +146,8 @@ export const make = Effect.fn("PluginHost.make")(function* (
       transform: (callback) =>
         agents.transform((editor) => {
           callback({
-            list: () => mutable(editor.list()),
-            get: (id) => mutable(editor.get(Agent.ID.make(id))),
+            list: editor.list,
+            get: (id) => editor.get(Agent.ID.make(id)),
             default: (id) => editor.default(id === undefined ? undefined : Agent.ID.make(id)),
             update: (id, update) => editor.update(Agent.ID.make(id), update),
             remove: (id) => editor.remove(Agent.ID.make(id)),
@@ -252,6 +252,9 @@ export const make = Effect.fn("PluginHost.make")(function* (
       reload: commands.reload,
       transform: commands.transform,
     },
+    credential: {
+      activate: (input) => integration.connection.activate(input.credentialID),
+    },
     event: {
       subscribe: () =>
         bus
@@ -283,6 +286,13 @@ export const make = Effect.fn("PluginHost.make")(function* (
           integration.connection.key({
             integrationID: Integration.ID.make(input.integrationID),
             key: input.key,
+            answer: input.answer,
+            label: input.label,
+          }),
+        external: (input) =>
+          integration.connection.external({
+            integrationID: Integration.ID.make(input.integrationID),
+            methodID: Integration.MethodID.make(input.methodID),
             answer: input.answer,
             label: input.label,
           }),
@@ -358,8 +368,8 @@ export const make = Effect.fn("PluginHost.make")(function* (
       transform: (callback) =>
         integration.transform((editor) => {
           callback({
-            list: () => mutable(editor.list()),
-            get: (id) => mutable(editor.get(Integration.ID.make(id))),
+            list: editor.list,
+            get: (id) => editor.get(Integration.ID.make(id)),
             update: (id, update) => editor.update(Integration.ID.make(id), update),
             remove: (id) => editor.remove(Integration.ID.make(id)),
             method: {
@@ -424,6 +434,16 @@ export const make = Effect.fn("PluginHost.make")(function* (
                 : Effect.fail(new Error(`Permission request not found: ${input.requestID}`)),
             ),
           ),
+      // Plain rejections stay defects, as for built-in tools, so they end the step.
+      assert: (input) =>
+        permission.assert(input).pipe(
+          Effect.catchTags({
+            "Permission.BlockedError": (error) => Effect.fail(new Tool.Error({ message: error.message, error })),
+            "Permission.CorrectedError": (error) => Effect.fail(new Tool.Error({ message: error.feedback, error })),
+            "Session.NotFoundError": (error) =>
+              Effect.fail(new Tool.Error({ message: `Session not found: ${error.sessionID}`, error })),
+          }),
+        ),
     },
     plugin: {
       list: () => response(plugin.list()),
@@ -526,6 +546,7 @@ export const make = Effect.fn("PluginHost.make")(function* (
     },
     session: {
       hook: (name, callback, options) => hooks.register("session", name, callback, options),
+      list: sessions.list,
       create: (input) =>
         sessions.create({
           id: input?.id,
@@ -660,6 +681,12 @@ function methodImplementation(input: IntegrationMethodRegistration): Integration
     }
   }
   if (input.method.type === "command") {
+    return {
+      integrationID: Integration.ID.make(input.integrationID),
+      method: { ...input.method, id: Integration.MethodID.make(input.method.id) },
+    }
+  }
+  if (input.method.type === "external") {
     return {
       integrationID: Integration.ID.make(input.integrationID),
       method: { ...input.method, id: Integration.MethodID.make(input.method.id) },

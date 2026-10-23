@@ -3,6 +3,7 @@ export * as Credential from "./credential.js"
 import { asc, desc, eq } from "drizzle-orm"
 import { Cause, Context, Effect, Layer, Schema } from "effect"
 import { Credential } from "@opencode/schema/credential"
+import { CredentialLegacy } from "@opencode/schema/credential-legacy"
 import { Integration } from "@opencode/schema/integration"
 import { Database } from "./database/database.js"
 import { Bus } from "./bus.js"
@@ -18,6 +19,9 @@ export type OAuth = Credential.OAuth
 
 export const Key = Credential.Key
 export type Key = Credential.Key
+
+export const External = Credential.External
+export type External = Credential.External
 
 export const Value = Credential.Value
 export type Value = Credential.Value
@@ -64,7 +68,8 @@ const layer = Layer.effect(
   Effect.gen(function* () {
     const db = (yield* Database.Service).db
     const bus = yield* Bus.Service
-    const decode = Schema.decodeUnknownSync(Value)
+    // Rows written before v2.1 may carry the old key credential shape.
+    const decode = Schema.decodeUnknownSync(CredentialLegacy.Value)
     const stored = (row: typeof CredentialTable.$inferSelect) => {
       if (!row.integration_id) return
       return new Info({

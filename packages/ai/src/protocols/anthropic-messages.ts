@@ -6,7 +6,7 @@ import { Auth } from "../route/auth.js"
 import { Endpoint } from "../route/endpoint.js"
 import { Framing } from "../route/framing.js"
 import { Protocol } from "../route/protocol.js"
-import { Headers } from "effect/unstable/http"
+import { Headers } from "effect/http"
 import { HttpTransport } from "../route/transport/index.js"
 import {
   AIError,
@@ -25,7 +25,7 @@ import {
   type ToolDefinition,
   type ToolResultPart,
 } from "../schema/index.js"
-import { JsonObject, knownString, optionalArray, optionalNull, ProviderShared } from "./shared.js"
+import { JsonObject, knownString, optionalArray, optionalNull, ProviderShared, withUntypedFrames } from "./shared.js"
 import { classifyProviderFailure } from "../provider-error.js"
 import { effortUpdate, resolveEffortUpdates } from "../effort-updates.js"
 import * as Cache from "./utils/cache.js"
@@ -53,7 +53,6 @@ const SSE_EVENTS = new Set([
 ])
 export const framing = Framing.sseEvents(SSE_EVENTS)
 
-export type ThinkingBlockBinding = typeof AnthropicThinkingBlockBinding.Type
 export type ThinkingInput = typeof Thinking.Encoded
 /** Caller-facing provider options; unknown keys are accepted and ignored. `Options.Type` is the wire-ready form. */
 export type OptionsInput = ProviderOptions & typeof Options.Encoded
@@ -285,7 +284,7 @@ const AnthropicThinkingEnabled = Schema.Struct({
   ...AnthropicThinkingFields,
 })
 const AnthropicThinkingAdaptive = Schema.Struct({ type: Schema.tag("adaptive"), ...AnthropicThinkingFields })
-const AnthropicThinkingDisabled = Schema.Struct({ type: Schema.tag("disabled") })
+const AnthropicThinkingDisabled = Schema.Struct({ type: Schema.Literals(["disabled", "between_tools"]) })
 const AnthropicThinking = Schema.Union([AnthropicThinkingEnabled, AnthropicThinkingAdaptive, AnthropicThinkingDisabled])
 type AnthropicThinking = typeof AnthropicThinking.Type
 
@@ -467,7 +466,7 @@ const AnthropicStreamDelta = Schema.StructWithRest(
 type AnthropicStreamDelta = Schema.Schema.Type<typeof AnthropicStreamDelta>
 const decodeAnthropicStreamDelta = Schema.decodeUnknownOption(AnthropicStreamDelta)
 
-const AnthropicEvent = Schema.StructWithRest(
+const TypedAnthropicEvent = Schema.StructWithRest(
   Schema.Struct({
     type: Schema.String,
     index: Schema.optional(Schema.Number),
@@ -490,6 +489,7 @@ const AnthropicEvent = Schema.StructWithRest(
   }),
   [JsonObject],
 )
+const AnthropicEvent = withUntypedFrames(TypedAnthropicEvent)
 type AnthropicEvent = Schema.Schema.Type<typeof AnthropicEvent>
 
 interface ParserState {
@@ -534,13 +534,13 @@ const providerMetadata = (key: string, metadata: Record<string, unknown>): Provi
 
 const signatureFromMetadata = (metadata: ProviderMetadata | undefined, key: string): string | undefined => {
   const provider = metadata?.[key]
-  if (!ProviderShared.isRecord(provider)) return undefined
+  if (!provider) return undefined
   return typeof provider.signature === "string" ? provider.signature : undefined
 }
 
 const redactedDataFromMetadata = (metadata: ProviderMetadata | undefined, key: string): string | undefined => {
   const provider = metadata?.[key]
-  if (!ProviderShared.isRecord(provider)) return undefined
+  if (!provider) return undefined
   return typeof provider.redactedData === "string" ? provider.redactedData : undefined
 }
 
@@ -616,7 +616,7 @@ const lowerServerToolResult = Effect.fnUntraced(function* (part: ToolResultPart,
 })
 
 const fileIdFromMetadata = (metadata: MediaPart["metadata"]): string | undefined => {
-  if (!ProviderShared.isRecord(metadata)) return undefined
+  if (!metadata) return undefined
   const anthropic = metadata.anthropic
   if (ProviderShared.isRecord(anthropic)) {
     if (typeof anthropic.file_id === "string") return anthropic.file_id
@@ -630,7 +630,7 @@ const fileIdFromMetadata = (metadata: MediaPart["metadata"]): string | undefined
 const transformationsFromMetadata = (
   metadata: MediaPart["metadata"],
 ): AnthropicImageBlock["transformations"] | undefined => {
-  if (!ProviderShared.isRecord(metadata)) return undefined
+  if (!metadata) return undefined
   const anthropic = ProviderShared.isRecord(metadata.anthropic) ? metadata.anthropic : undefined
   const raw = anthropic?.transformations ?? metadata.transformations
   if (ProviderShared.isRecord(raw)) {
@@ -643,17 +643,17 @@ const transformationsFromMetadata = (
 }
 
 const documentTitleFromPart = (part: MediaPart): string | undefined => {
-  if (ProviderShared.isRecord(part.metadata)) {
+  if (part.metadata !== undefined) {
     const anthropic = part.metadata.anthropic
     if (ProviderShared.isRecord(anthropic) && typeof anthropic.title === "string") return anthropic.title
     if (typeof part.metadata.title === "string") return part.metadata.title
   }
-  if (typeof part.filename === "string" && part.filename.length > 0) return part.filename
+  if (part.filename && part.filename.length > 0) return part.filename
   return undefined
 }
 
 const documentContextFromMetadata = (metadata: MediaPart["metadata"]): string | undefined => {
-  if (!ProviderShared.isRecord(metadata)) return undefined
+  if (!metadata) return undefined
   const anthropic = ProviderShared.isRecord(metadata.anthropic) ? metadata.anthropic : undefined
   if (anthropic && typeof anthropic.context === "string") return anthropic.context
   if (typeof metadata.context === "string") return metadata.context
@@ -661,7 +661,7 @@ const documentContextFromMetadata = (metadata: MediaPart["metadata"]): string | 
 }
 
 const citationsFromMetadata = (metadata: MediaPart["metadata"]): AnthropicDocumentBlock["citations"] | undefined => {
-  if (!ProviderShared.isRecord(metadata)) return undefined
+  if (!metadata) return undefined
   const raw = ProviderShared.isRecord(metadata.anthropic)
     ? (metadata.anthropic.citations ?? metadata.citations)
     : metadata.citations
@@ -817,7 +817,7 @@ const requireThinkingSignature = (request: LLMRequest) => {
 
 // Opus 4.8 and every Claude 5 model accept mid-conversation system messages; later versions inherit support.
 const supportsNativeSystemUpdates = (request: LLMRequest) => {
-  const version = claudeVersion(String(request.model.id))
+  const version = claudeVersion(request.model.id)
   if (version === undefined) return false
   if (version.family === "opus" && version.major === 4) return version.minor >= 8
   return version.major >= 5
@@ -870,7 +870,7 @@ const appendToUserTurn = (messages: AnthropicMessage[], block: AnthropicUserBloc
 
 const lowerMessages = Effect.fnUntraced(function* (request: LLMRequest, breakpoints: Cache.Breakpoints) {
   const messages: AnthropicMessage[] = []
-  const providerMetadataKey = request.model.route.providerMetadataKey ?? String(request.model.provider)
+  const providerMetadataKey = request.model.route.providerMetadataKey ?? request.model.provider
   // Text updates stay where they are unless a user turn follows them; then they move after the latest
   // user turn, the nearest spot where Anthropic accepts a native system message.
   const holdUpdates = supportsNativeSystemUpdates(request)
@@ -939,7 +939,7 @@ const lowerMessages = Effect.fnUntraced(function* (request: LLMRequest, breakpoi
             content.push({ type: "redacted_thinking", data: redactedData })
             continue
           }
-          if (typeof signature !== "string" || signature.trim().length === 0) {
+          if (!signature || signature.trim().length === 0) {
             if (part.text.trim().length === 0) continue
             if (!requireThinkingSignature(request)) {
               content.push({ type: "thinking", thinking: part.text, signature: "" })
@@ -1001,18 +1001,21 @@ const lowerMessages = Effect.fnUntraced(function* (request: LLMRequest, breakpoi
 // TODO: Move per-model capability heuristics (`supportsEffortUpdates`, `supportsNativeSystemUpdates`,
 // `supportsThinkingBlockBinding`) into explicit model/provider `compatibility` metadata so the protocol
 // only reads `request.model.compatibility`.
+const isThinkingOff = Schema.is(AnthropicThinkingDisabled)
+
 // Per-turn effort started with Claude Opus 5 and every Claude 5.1 model; later versions of any family inherit it.
-const supportsEffortUpdates = (model: LLMRequest["model"]) => {
-  const override = model.compatibility?.supportsEffortUpdates
+const supportsEffortUpdates = (request: LLMRequest) => {
+  if (isThinkingOff(request.providerOptions?.thinking)) return false
+  const override = request.model.compatibility?.supportsEffortUpdates
   if (override !== undefined) return override
-  const version = claudeVersion(model.id)
+  const version = claudeVersion(request.model.id)
   if (version === undefined) return false
   if (version.family === "opus" && version.major >= 5) return true
   return version.major > 5 || (version.major === 5 && version.minor >= 1)
 }
 
 const applyThinkingBindingDefault = (model: LLMRequest["model"], thinking: AnthropicThinking | undefined) => {
-  if (thinking?.type === "disabled") return thinking
+  if (isThinkingOff(thinking)) return thinking
   if (!supportsThinkingBlockBinding(model)) return thinking
   return {
     ...(thinking ?? { type: "adaptive" as const }),
@@ -1195,9 +1198,7 @@ const isServerToolResultType = (type: string): type is AnthropicServerToolResult
 const serverToolResultEvent = (block: AnthropicStreamBlock, providerMetadataKey: string): LLMEvent | undefined => {
   if (!block.type || !isServerToolResultType(block.type)) return undefined
   const errorPayload =
-    typeof block.content === "object" && block.content !== null && "type" in block.content
-      ? String((block.content as Record<string, unknown>).type)
-      : ""
+    ProviderShared.isRecord(block.content) && "type" in block.content ? String(block.content.type) : ""
   const isError = errorPayload.endsWith("_tool_result_error")
   return LLMEvent.toolResult({
     id: block.tool_use_id ?? "",
@@ -1600,14 +1601,14 @@ export const protocol = Protocol.make({
     initial: (request) => ({
       provider: request.model.provider,
       compactions: {},
-      providerMetadataKey: request.model.route.providerMetadataKey ?? String(request.model.provider),
+      providerMetadataKey: request.model.route.providerMetadataKey ?? request.model.provider,
       tools: ToolStream.empty<number>(),
       reasoningSignatures: {},
       lifecycle: Lifecycle.initial(),
     }),
     step,
   },
-  supportsEffortUpdates: (request) => supportsEffortUpdates(request.model),
+  supportsEffortUpdates,
 })
 
 export const transport = <
@@ -1653,7 +1654,7 @@ function requiredBetaHeaders(body: Pick<AnthropicMessagesBody, "messages" | "con
     betas.push("mid-conversation-output-config-2026-07-01")
 
   const thinking = body.thinking
-  if (thinking && thinking.type !== "disabled" && thinking.block_binding) betas.push(THINKING_BINDING_BETA)
+  if (thinking && !isThinkingOff(thinking) && thinking.block_binding) betas.push(THINKING_BINDING_BETA)
   return betas
 }
 

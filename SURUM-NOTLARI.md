@@ -6,6 +6,19 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-10-23 — motor: upstream opencode 2.0.24 → 2.1.4 (13 sürüm) + bun 1.4.4
+
+Tek çakışma kök `package.json` `typecheck` satırı: bizimki (CLI ağacı + `safe-concurrency.sh`) kaldı, upstream'in
+yeni `typecheck:tsc` görevi aynı sınırla eklendi. Tek çekirdek yamamız (A35, `packages/core/src/file-access.ts`)
+upstream'in de değiştirdiği dosyada ama yama seti birebir korundu (v2.0.24→main ile v2.1.4→dal farkı aynı: 3 dosya);
+düşürülen yama yok. **Upstream bun@1.4.4 istiyor:** build script'i `^1.4.4` dışını reddeder, paket `typecheck`'leri
+`bun check` kullanır (1.4.2'de yok) → bu makine `bun upgrade` ile 1.4.4, repodaki saha paketi
+`bin/bun-linux-x64-baseline-1.4.4.tgz` (npm `@oven/bun-linux-x64-baseline@1.4.4`, sha512 npm kaydıyla aynı; 1.4.2 silindi).
+Doğrulama: typecheck 19/19 · `engine/plugins` 353/0 · `packages/core` 6430 geçti / 3 başarısız (bilinen üç, root
+ortamı) · `kur.sh derle` (bun 1.4.4) + `smoke-ikili.sh` GEÇTİ · yeni ikiliyle izole kurulumda (`kur.sh` + sahte uç)
+`rm -r /` K5 ile, `rm -rf /` config `deny` ile reddedildi, `uname -r` çalıştı. Ürün sürümü değişmedi (3.0.0).
+Sahada `al.sh` → `./kur.sh` (kaynak yeni → yeniden derler; makinede bun yoksa repodaki 1.4.4 paketi açılır).
+
 ## 2026-10-08 — motor: upstream opencode 2.0.23 → 2.0.24
 
 Tek çakışma `.gitignore` (upstream `/artifacts/` ekledi; ikisi de tutuldu). Tek çekirdek yamamız (A35,

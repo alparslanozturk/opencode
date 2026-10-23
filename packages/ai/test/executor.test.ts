@@ -1,6 +1,7 @@
 import { describe, expect } from "bun:test"
 import { Deferred, Effect, Fiber, Layer, Ref, Stream } from "effect"
-import { Headers, HttpClientError, HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
+import { Headers, HttpClientError, HttpClientRequest, HttpClientResponse } from "effect/http"
+import { Socket } from "effect/socket"
 import { LLM, AIError, HttpContext, InvalidProviderOutputError, TransportError, isRetryable } from "../src/index.js"
 import {
   LLMClient,
@@ -63,6 +64,14 @@ describe("RequestExecutor", () => {
       )
       expect(RequestExecutor.httpFailure({ message: "No response", url: request.url }).reason.http).toBeUndefined()
       expect(RequestExecutor.httpFailure({ message: "No URL", status: 500 }).reason.http).toBeUndefined()
+      expect(
+        RequestExecutor.httpFailure({
+          message: "Huge retry-after",
+          url: request.url,
+          status: 429,
+          responseHeaders: { "Retry-After": "1e20" },
+        }).reason,
+      ).toMatchObject({ _tag: "RateLimit", retryAfterMs: Number.MAX_SAFE_INTEGER })
     }),
   )
 
@@ -711,11 +720,18 @@ describe("WebSocket channel execution", () => {
         close() {}
       }
       const socket = new TestSocket()
-      const connection = yield* WebSocketTransport.fromWebSocket(
-        // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion
-        socket as unknown as globalThis.WebSocket,
-        { url: "wss://provider.test/responses", headers: Headers.empty },
+      const headers = Headers.fromInput({ authorization: "Bearer secret", "openai-beta": "responses-websocket" })
+      let observed: { url: string; options: Socket.WebSocketConstructorOptions | undefined } | undefined
+      const connection = yield* WebSocketTransport.open({
+        url: "wss://provider.test/responses",
+        headers,
+      }).pipe(
+        Effect.provideService(Socket.WebSocketConstructor, (url, options) => {
+          observed = { url, options }
+          return socket
+        }),
       )
+      expect(observed).toEqual({ url: "wss://provider.test/responses", options: { headers } })
       const event = new CloseEvent("close", { code: 1011, reason: "upstream trace: req_close" })
       socket.dispatchEvent(event)
       const error = yield* connection.messages.pipe(Stream.runDrain, Effect.flip)
@@ -740,11 +756,10 @@ describe("WebSocket channel execution", () => {
         close() {}
       }
       const socket = new TestSocket()
-      const open = WebSocketTransport.fromWebSocket(
-        // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion
-        socket as unknown as globalThis.WebSocket,
-        { url: "wss://provider.test/responses", headers: Headers.empty },
-      )
+      const open = WebSocketTransport.fromWebSocket(socket, {
+        url: "wss://provider.test/responses",
+        headers: Headers.empty,
+      })
       const fiber = yield* open.pipe(Effect.flip, Effect.forkChild({ startImmediately: true }))
       const event = new ErrorEvent("error", { message: "handshake rejected", error: cause })
       socket.dispatchEvent(event)
@@ -902,11 +917,10 @@ describe("WebSocket channel execution", () => {
         close() {}
       }
       const socket = new ClosedBeforeSend()
-      const connection = yield* WebSocketTransport.fromWebSocket(
-        // oxlint-disable-next-line typescript-eslint/no-unsafe-type-assertion
-        socket as unknown as globalThis.WebSocket,
-        { url: "wss://api.openai.test/v1/responses", headers: Headers.empty },
-      )
+      const connection = yield* WebSocketTransport.fromWebSocket(socket, {
+        url: "wss://api.openai.test/v1/responses",
+        headers: Headers.empty,
+      })
       socket.readyState = globalThis.WebSocket.CLOSED
 
       const error = yield* connection.sendText("create").pipe(Effect.flip)

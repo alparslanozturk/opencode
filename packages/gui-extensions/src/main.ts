@@ -11,6 +11,7 @@ import pairing from "./pairing"
 import updater from "./updater"
 import ssh from "./ssh"
 import wsl from "./wsl"
+import microsoftOffice from "./microsoft-office"
 
 /**
  * Built-in extensions with their main entries. Lists every built-in so their ids stay reserved. `builtins.typecheck.ts`
@@ -19,7 +20,7 @@ import wsl from "./wsl"
 export const builtins = Extension.compose(
   context,
   btw,
-  debug,
+  { ...debug, main: () => import("./debug/main") },
   terminal,
   file,
   review,
@@ -29,4 +30,5 @@ export const builtins = Extension.compose(
   { ...updater, main: () => import("./updater/main") },
   { ...ssh, main: () => import("./ssh/main") },
   { ...wsl, main: () => import("./wsl/main") },
+  microsoftOffice,
 )

@@ -142,7 +142,7 @@ akışının bir parçası DEĞİLDİR.
 
 > **Sıfır makine (2026-10-05, doğrulandı):** temel RHEL 9 + kurum npm proxy ayarı (npm'in kendi ayarı yeter:
 > `~/.npmrc` ya da `/etc/npmrc`) yeterli. **bun gerekmez** — yoksa `kur.sh` repodaki
-> `bin/bun-linux-x64-baseline-1.4.2.tgz`'yi `bin/bun`'a açar (baseline: AVX2 istemez). **gcc-c++/make/node
+> `bin/bun-linux-x64-baseline-1.4.4.tgz`'yi `bin/bun`'a açar (baseline: AVX2 istemez). **gcc-c++/make/node
 > header'ı gerekmez** — bağımlılık kurulum betikleri varsayılan olarak çalıştırılmaz (tek etkisi kullanılmayan
 > `tree-sitter-powershell` yerel derlemesiydi; opencode onu `.wasm` ile kullanır). Eski davranış: `KUR_BETIKLER=1`.
 > Gerekenler: `git` (al.sh), `tar`+`gzip`, `curl`, `python3`. Doğrulama: temiz klon, bun hiçbir yerde yok,
@@ -306,12 +306,9 @@ real 0m35s   (kurulum + derleme toplamı)
 
 ### Ön koşullar
 
-- **Bun.** Repo kökü `package.json` → `"packageManager": "bun@1.3.14"` istiyor; bu makinede kurulu olan
-  **1.4.2** ile hiçbir sorun çıkmadı (saha makinesiyle aynı sürüm/aynı sonuç). `packages/script/src/index.ts`
-  yalnız `^<packageManager sürümü>` aralığını **build script'i çalışırken** kontrol ediyor — 1.3.14 ile 1.4.2
-  aynı major.minor değil (`^1.3.14` aralığı 1.4.x'i kapsamaz) ama bu makinede build script hatasız çalıştı;
-  yani ya bu kontrol beklenenden gevşek davranıyor ya da build script'in bu satırına hiç girilmedi (statik
-  olarak doğrulanmadı — saha koşumunda `packageManager` uyarısı çıkarsa not düş).
+- **Bun.** Upstream 2.1.x kökü `package.json` → `"packageManager": "bun@1.4.4"`; build script'i
+  (`packages/script/src/index.ts:16`) `^1.4.4` dışını reddeder ve paketlerin `typecheck`'i `bun check` kullanır
+  (1.4.2'de yok — `Script not found "check"`, 2026-10-23 ölçüldü). Bu makine ve repodaki paket 1.4.4.
 - Bu makinede `bun` **PATH'te değildi**, ikili `/root/.bun/bin/bun` altında duruyordu →
   `export PATH="/root/.bun/bin:$PATH"` gerekti. Saha makinesinde PATH durumu ayrı kontrol edilmeli.
 - **`g++` (gcc-c++) eksikti** (`gcc` var, `gcc-c++` yok — `rpm -q gcc-c++` → kurulu değil). Bu, tam

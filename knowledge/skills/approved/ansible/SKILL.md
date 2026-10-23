@@ -176,6 +176,30 @@ ansible-playbook site.yml -l web01               # gerçek
 `--check` her modülde desteklenmez; `command`/`shell` kuru çalıştırmada
 atlanır — "değişiklik yok" çıktısı güvence değildir.
 
+## 5b. Çok sunucuda playbook — zaman sınırı, arka plan, yalnız düşenleri yeniden (saha G102)
+
+G102: playbook `--check` birkaç sunucuda takıldı (biri disk dolu, biri D-state süreçlere takılı), ajanın komut aracı
+`Command exceeded timeout` ile kesti — **bitmiş sunucuların sonucu da gitti**; aynı komut iki kez denendi, ikisi de düştü.
+Ansible'da görev süresi varsayılan **sınırsız** (`TASK_TIMEOUT default: 0`, `ansible-config list`); `ansible-playbook`'ta
+`--task-timeout` bayrağı yok, ortam değişkeniyle verilir. Üçünü birlikte kullan:
+
+```bash
+ANSIBLE_TASK_TIMEOUT=120 ANSIBLE_RETRY_FILES_ENABLED=1 ANSIBLE_RETRY_FILES_SAVE_PATH=cikti/retry \
+  ansible-playbook -i <iş envanteri> <playbook> --check --diff -f 20 -T 10
+```
+
+- `-T 10` bağlantı/banner zaman aşımı; `ANSIBLE_TASK_TIMEOUT` görev başına üst sınır (saniye; işin süresine göre seç —
+  paket kurulumu gibi uzun görevde büyüt). Takılan sunucu `failed` olur, diğerleri devam eder (ölçüldü, ansible-core 2.16:
+  `The command action failed to execute in the expected time frame (5) and was terminated`).
+- **Arka planda çalıştır:** komut aracına `background: true` ver — süre sınırı yok, çıktı dosyaya akar, bitince haber gelir
+  (yoklama yapma). Birkaç sunucuyu aşan her playbook (`--check` dahil) böyle. Ön planda kesilirse çıktı yarım kalır.
+- **Yalnız düşenleri yeniden:** düşen/erişilemeyen sunucular `cikti/retry/<playbook-adı>.retry` dosyasına yazılır, çıktı
+  `to retry, use: --limit @…retry` satırını basar (ölçüldü). Sorun giderildikten sonra **aynı komutu** `--limit @cikti/retry/<ad>.retry`
+  ile çalıştır — bitmiş sunuculara tekrar dokunulmaz. Retry dosyası yalnız playbook **sonuna kadar** koşarsa yazılır.
+- Sonuç raporu: `PLAY RECAP`'ten "N sunucu bitti, şu M sunucu düştü (sebep)" — düşen sunucuya `filo-kontrol` §3c `-m raw`
+  ilk yardımla bak (disk dolu sunucuda normal modüller hiç çalışmaz).
+- Gerçek çalıştırma (`--check`'siz) yine K1 yetkisi ister; ortam değişkeni öneki kilidi değiştirmez.
+
 ## 6. Modül seçeneklerini ezberden yazma
 
 `ansible-doc` yerel belgedir, ağ istemez:

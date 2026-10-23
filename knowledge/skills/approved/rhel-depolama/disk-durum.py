@@ -215,8 +215,11 @@ def main(argv):
                 print("\n== %s · okunamadı: %s" % (h, e))
                 continue
             if d.get("unreachable") or "rc" not in d:
+                # disk dolu → ansible modülü yazamaz, UNREACHABLE da işaretleyebilir; sunucu ayakta (saha G102, filo-kontrol §3c)
+                dolu = re.search(r"No space left on device|Errno 28", " ".join(str(d.get(k) or "") for k in ("msg", "stderr")))
                 print("\n== %s · %s — %s. Disk kararı YAZMA." % (
-                    h, "ERİŞİLEMEZ" if d.get("unreachable") else "ÇIKTI YOK", (d.get("msg") or "").strip()[:150]))
+                    h, "DİSK DOLU (ansible modülü yazamadı — `-m raw` ilk yardım)" if dolu
+                    else "ERİŞİLEMEZ" if d.get("unreachable") else "ÇIKTI YOK", (d.get("msg") or "").strip()[:150]))
                 continue
             analiz(h, d.get("stdout") or "")
     else:

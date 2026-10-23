@@ -18,6 +18,8 @@ import re
 import subprocess
 import sys
 
+DISK_DOLU = re.compile(r"No space left on device|Errno 28")
+
 
 def oku(dizin):
     sonuc = {}
@@ -36,6 +38,10 @@ def durum(d):
     if "_bozuk" in d:
         return "BOZUK JSON", d["_bozuk"]
     msg = (d.get("msg") or "").strip()
+    # disk dolu: ansible modül dosyasını uzağa kopyalayamaz (ölçüldü: "[Errno 28] No space left on device"; ssh'ta geçici
+    # dizin açılamazsa UNREACHABLE da işaretlenir) — "erişilemez" değil, sunucu ayakta; `-m raw` çalışır (saha G102)
+    if DISK_DOLU.search(" ".join(str(d.get(k) or "") for k in ("msg", "stderr", "module_stderr"))):
+        return "DİSK DOLU", "ansible modülü yazamadı — `-m raw` ilk yardım (filo-kontrol §3c)"
     if d.get("unreachable"):
         return "ERİŞİLEMEZ", msg
     if "expected time frame" in msg or "timed out" in msg.lower() and "rc" not in d:

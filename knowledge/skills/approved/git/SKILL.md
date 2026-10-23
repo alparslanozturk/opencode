@@ -1,0 +1,85 @@
+---
+name: git
+description: Kurum git depolarında çalışırken kullan — Azure DevOps Server (kurum içi, on-prem) depoları: ansible (playbook, iş envanteri), envanter, Kubernetes manifestleri, dokümanlar (MD). Depodan bilgi okuma, playbook/doküman ekleyip main'e push, parola sorma hatası, Semaphore'un okuyacağı düzen. "git", "repo", "depo", "commit", "push", "pull", "main", "envanter deposu", "azure devops", "tfs", "manifest deposu", "dokümanı depoya koy" isteklerinde tetiklenir. Playbook yazımı ve çalıştırma `ansible`.
+---
+
+Doğrulandı: git 2.52, 2026-10-23 (yerel ölçüm; sahadaki sürüm `git --version`)
+
+## 0. Ortam (Alp, 2026-10-23)
+
+- Depolar **Azure DevOps Server, kurum içi (on-prem)** — bulut (`dev.azure.com`) değil. `az` CLI **kullanılmaz** (gerek yok).
+- Bağlantı **https + Active Directory kullanıcı adı/parola**. SSH anahtarı yok.
+- Akış: **doğrudan `main`**. Dal/PR/onay yok — depolar doküman ve yapılandırma deposu, geliştirici akışı değil.
+- Depolar: ansible (playbook + iş envanteri), envanter, Kubernetes manifestleri (küme kurulunca otomatik kurulan uygulamalar —
+  izleme vb.; bazılarında ortam başına dal var), dokümanlar (MD). Ansible playbook'ları **Semaphore** okur (`ansible` §9).
+- Depo adresleri ve sahadaki klon yerleri **[SAHA]** — uydurma, `git remote -v` ile oku; bilinmiyorsa kullanıcıya sor.
+
+## 1. Kimlik — parolaya ajan dokunmaz
+
+Parolayı **isteme, yazma, komuta/URL'ye koyma**. `https://kullanici:parola@…`, `credential.helper store`, `~/.git-credentials`
+yasak (düz metin diske yazar).
+
+Terminal olmadığından git parola soramaz; takılmaz, hemen düşer (ölçüldü):
+
+```
+fatal: could not read Username for 'https://<tfs-sunucu>': No such device or address
+```
+
+Bu hatayı görürsen komutu tekrarlama — kullanıcıya şunu söyle: "Kendi terminalinde bir kez `git -C <depo> pull` çalıştırıp AD
+kullanıcı adı/parolanı gir; sonra devam ederim." Önbellek ayarı yoksa önce bir kez:
+
+```bash
+git config --global credential.helper 'cache --timeout=28800'
+```
+
+`cache` parolayı **yalnız bellekte** 8 saat tutar, diske yazmaz; o süre boyunca ajanın git komutları çalışır (ölçüldü: önbellekten
+`Authorization: Basic` gönderildi, diskte parola yok). Sunucu NTLM/Kerberos isterse davranış sahada doğrulanacak — farklıysa not düş.
+
+## 2. Önce nerede olduğunu bil
+
+```bash
+git -C <depo> status --short --branch     # dal, önde/geride, değişmiş dosyalar
+git -C <depo> remote -v                   # hangi depo (Azure DevOps adresi)
+git -C <depo> log --oneline -5
+```
+
+`git -C <depo>` kullan — `cd` gerekmez, hangi depoda çalıştığın komutta görünür. Kullanıcının commit'lenmemiş değişikliği varsa
+**dokunma**, söyle.
+
+## 3. Depodan bilgi okuma (envanter, manifest, doküman)
+
+```bash
+git -C <depo> pull --ff-only              # güncel hâli al (yerelde iş yoksa)
+git -C <depo> log --oneline -10 -- <yol>  # bu dosya ne zaman, kimin commit'iyle değişti
+git -C <depo> show <commit> -- <yol>      # o değişiklik
+git -C <depo> grep -n '<ad|IP>'           # depoda ara (izlenen dosyalarda)
+```
+
+`pull --ff-only` düşerse (yerel commit var, dallar ayrıldı) zorlama — durumu kullanıcıya söyle. Sunucu/IP → küme eşlemesi için
+`kume-bul` (envanter dosyalarını okur). **Envanter deposunu** yalnız kullanıcı isterse değiştir; işe özel envanter ansible
+deposuna yazılır (`ansible` — iş envanteri).
+
+## 4. Ekleme ve main'e gönderme
+
+Yalnız **bu işte senin yazdığın** dosyalar:
+
+```bash
+git -C <depo> pull --rebase                         # önce güncelle (başkası push etmiş olabilir)
+git -C <depo> add <dosya1> <dosya2>                 # tek tek; 'add -A' / 'add .' yok
+git -C <depo> diff --staged --stat                  # ne gidiyor — kullanıcıya bu listeyi göster
+git -C <depo> commit -m "<alan>: <ne ve neden>"     # deponun mevcut diline uy: git log -10
+git -C <depo> push origin main
+```
+
+- Push'tan önce gidecek dosya listesini söyle; push her seferinde onay ister (izin ayarı).
+- `pull --rebase` çakışırsa **dur**: `git -C <depo> rebase --abort` ile geri dön ve kullanıcıya hangi dosyada çakıştığını söyle.
+  İki tarafı da okumadan çözme.
+- Parola/anahtar/token **depoya girmez** — Semaphore'da Key Store'a, playbook'ta değişken adı olarak (`ansible` §9).
+- Rapor: commit hash'i + "main'e push edildi" ya da "push edilmedi" — kullanıcı işin uzakta olduğunu sanmasın.
+
+## 5. Yapma
+
+- `git push --force` (kilit K5 — paylaşılan main'i siler), `git reset --hard`, `git clean -fdx`, `git checkout -- <dosya>`:
+  kullanıcının ve ekibin işini geri dönüşsüz siler. Commit edilmemiş iş varken başka şey gerekiyorsa `git stash`.
+- Dal açma / PR akışı kurma — kurumda yok (§0).
+- Manifest deposunda ortam dallarını birleştirme / taşıma — kullanıcı açıkça istemedikçe.

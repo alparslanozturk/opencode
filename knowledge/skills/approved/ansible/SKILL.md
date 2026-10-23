@@ -241,6 +241,24 @@ bulduğunu **tek liste** halinde söyle (düzeltmek kullanıcının kararı; ken
 - Sabit sürüm/yol (`…-9.4.14-….tgz`, `sal_version`) — kullanıcının beklediği sürüm mü, sor.
 - Parola/anahtar düz metin mi (`vars/main.yaml`), sudo `NOPASSWD: ALL` veriyor mu → güvenlik notu olarak söyle.
 
+## 9. Semaphore'dan çalışacak playbook (Alp, 2026-10-23)
+
+Ekip playbook'ları **Semaphore UI**'den çalıştırır; playbook'lar Azure DevOps Server'daki ansible deposundan okunur (`git` §0).
+Semaphore'un okuma kuralı (semaphoreui.com/docs, user-guide: repositories, inventory, task-templates):
+
+- Playbook yolu **deponun köküne göre** (`playbooks/12-…yaml`). Envanter türü `file` ise **göreli yol şablonun kendi deposunu**
+  gösterir, mutlak yol Semaphore sunucusundaki dosyayı — ayrı envanter deposu doğrudan okunamaz. Bu yüzden iş envanteri
+  (`inventories/hosts-<CN>-<tarih>.ini`) playbook'la **aynı ansible deposuna** yazılır ve push edilir (`git` §4).
+- Semaphore yalnız depoda olanı görür: push edilmemiş playbook/envanter orada **yok**.
+- Kimlik (ssh kullanıcısı, sudo, depo için AD hesabı) Semaphore **Key Store**'da; playbook'a/depoya parola yazma, gerekiyorsa
+  Variable Group **Secrets**'a koy ve playbook'ta değişken adıyla kullan.
+- Zaman sınırı (§5b): şablonun Variable Group'una ortam değişkeni `ANSIBLE_TASK_TIMEOUT=<sn>`.
+- Kuru çalıştırma: aynı playbook için ayrı "kuru" şablon — ek CLI argümanı `["--check","--diff"]`. Sıra yine: kuru şablon →
+  çıktıyı kullanıcı okur → gerçek şablon.
+
+Kullanıcıya teslim: push edilen dosya yolları + Semaphore şablonu için doldurulacak alanlar (depo, dal `main`, playbook yolu,
+envanter dosyası, Variable Group'taki ortam değişkeni) — tek kısa liste.
+
 ## Raporlama
 
 `PLAY RECAP` satırlarını olduğu gibi yapıştırma; sorunluları ayır:

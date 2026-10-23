@@ -6,6 +6,16 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-10-23 — beceri: `git` (Azure DevOps Server, on-prem) + `ansible` §9 Semaphore
+
+Park'taki genel `git-azuredevops` (bulut + `az` CLI varsayıyordu, sahada denenmemişti) kurum yapısına göre yeniden yazılıp
+`approved/git` oldu (Alp): on-prem Azure DevOps Server, https + AD kullanıcı/parola, doğrudan `main`, PR yok; depolar ansible,
+envanter, k8s manifest, doküman. Parolaya ajan dokunmaz — terminalsiz git `could not read Username` ile hemen düşer (takılmaz),
+kullanıcı bir kez kendi terminalinde girer, `credential.helper cache` bellekte tutar (yerel 401 sunucusuyla ölçüldü; diske
+yazmıyor). NTLM/Kerberos isteyen sunucuda davranış sahada doğrulanacak. `ansible` §9: Semaphore playbook'u deponun köküne göre,
+envanter dosyasını göreli yolla yalnız şablonun deposundan okur → iş envanteri playbook'la aynı ansible deposunda; kimlik Key
+Store'da; `ANSIBLE_TASK_TIMEOUT` Variable Group'ta; ayrı "kuru" şablon `["--check","--diff"]`. Beceri sayısı 24.
+
 ## 2026-10-23 — motor: upstream opencode 2.0.24 → 2.1.4 (13 sürüm) + bun 1.4.4
 
 Tek çakışma kök `package.json` `typecheck` satırı: bizimki (CLI ağacı + `safe-concurrency.sh`) kaldı, upstream'in

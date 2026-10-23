@@ -59,10 +59,10 @@ bu beceri şu an fiilen kullanılamaz durumda, MCP entegrasyonu gelene kadar par
 (`ansible` ↔ `filo-kontrol` adayı — ikisi de çekirdekte kaldığı için burada değil, ayrıca
 değerlendirilmeli.)
 
-## Tam liste (26 — `rhel-depolama` 2026-09-26'da, `rhel-teslim` 2026-10-13'te onaylıya taşındı)
+## Tam liste (25 — `rhel-depolama` 2026-09-26'da, `rhel-teslim` 2026-10-13'te, `git-azuredevops` 2026-10-23'te `git` adıyla onaylıya taşındı)
 
 ```
-ag-teshis, beceri-gelistir, beceri-yaz, belge-yaz, git-azuredevops, guvenlik-ajani,
+ag-teshis, beceri-gelistir, beceri-yaz, belge-yaz, guvenlik-ajani,
 guvenlik-incelemesi, idm-yonetim, kod-inceleme, mcp-ekle, nexus-registry, nfs-mount,
 podman-docker, rhel-surumleri, sadelestir, satellite-yonetim, selinux, sertifika-tls,
 servis-teshis, solaris-ldom, splunk-forwarder, sssd-adtrust, test-yaz,

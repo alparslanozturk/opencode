@@ -1218,3 +1218,17 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Ek (G101, Alp): "limit yok, çünkü yeni dosyada sadece değişiklik yapılan sunucular var — böyle çalışabiliriz". Kilit `--limit`'siz
   gerçek çalıştırmayı durduruyordu → `envanterHedefleri`: hedef `-i` dosyasının host'ları (ad + ansible_host ayrı ayrı yetkide
   olmalı; `[g:vars]` ansible_host / -i yok → belirsiz); komut içi `cd` izlenir (göreli `-i inventories/…` çözülsün). Test 349.
+
+### G102 — playbook `--check` `Command exceeded timeout` ile düştü, iki kez aynı denendi; disk dolu + D-state node
+- Görülen (2026-10-23, Alp anlatımı): playbook check aşaması `Command exceeded timeout` ile kesildi; 3 sunucu bitmedi, ajan aynı
+  komutu iki kez denedi. Sunuculardan biri disk dolu ("df -h çalışmıyordu"), Kubernetes takılı süreçlere asılmıştı; ssh neyse ki
+  vardı, Alp elle müdahale etti, düzeldi. Alp: uzaktan erişim olmayan durumda sohbetle (konsol çıktısı) teşhis.
+- Kök (ölçüldü, ansible-core 2.16, yerel): `TASK_TIMEOUT` varsayılan 0 (sınırsız) → takılan sunucu tüm playbook'u bekletir, ajanın
+  aracı keser, bitmiş sunucuların sonucu da gider. Aracın mesajı "Retry with a larger timeout" (`packages/core/src/tool/plugin/shell.ts`)
+  aynı komutu tekrar ettiriyor. Disk dolu hedefte `command`/`shell` modülü kopyalanamaz (`[Errno 28] No space left on device`),
+  `-m raw` çalışır. Tahmin: "df -h çalışmıyordu" bu (ya da takılı mount'ta asılan df) — ayırt edici çıktı elimizde yok.
+- Yapılan: `ansible` §5b (`ANSIBLE_TASK_TIMEOUT` + `-T 10` + retry dosyası `--limit @cikti/retry/<ad>.retry` + `background: true`;
+  ölçüldü: takılan sunucu 5 sn'de failed, diğeri bitti, retry dosyasında yalnız o). `filo-kontrol` §3b timeout'ta tekrar yok,
+  §3c `-m raw` ilk yardım (yük, D-state sayısı/ad, `timeout 5 df -l`, inode; asılırsa `takildi`) + konsol yolu. `filo-tablo.py`,
+  `disk-durum.py`, `sar-ozet.py`: `DİSK DOLU` durumu ("erişilemez" değil). AGENTS: `Command exceeded timeout` kuralı. Kilit
+  ölçüldü: `ANSIBLE_*=… ansible-playbook --check` serbest, `--check`'siz (önekli, `--limit @retry` dahil) K1; raw okuma serbest.

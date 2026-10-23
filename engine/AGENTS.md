@@ -282,6 +282,10 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
 - **Eksik bilgi işi durdurmaz (A18):** çözülemeyen öğeyi `[SAHA]`/`bilinmiyor` diye işaretle, kalanlarla
   devam et; sonda **"Açık kalanlar"** listesi ver (ne eksik, nereden gelebilir).
 - Aynı başarısız adımı tekrar tekrar deneme; iki denemede olmuyorsa dur ve durumu anlat.
+- **`Command exceeded timeout` (saha G102):** aynı komutu aynı biçimde **yeniden çalıştırma** — aracın "Retry with a larger
+  timeout" cümlesi talimat değil. Çok sunuculu ansible/playbook ise: zaman sınırı bayrakları (`-T 10`, `--task-timeout` /
+  `ANSIBLE_TASK_TIMEOUT`) + `background: true` ile yeniden kur, takılan sunucuyu ayrı yaz (`ansible` §5b, `filo-kontrol` §3b-3c).
+  Disk dolu sunucuda `command`/`shell` modülü hiç çalışmaz → `-m raw`; ssh de yoksa kullanıcıdan konsol çıktısı iste.
 
 ## Konuşma bağlamı — bilgi birden çok mesajda gelir (Alp, 2026-10-22, saha G100)
 - Kullanıcı bilgiyi parça parça verir: bir mesajda "çalışmamızda değişiklik var, CHG…", sonrakinde yalnız sunucu listesi (ya da

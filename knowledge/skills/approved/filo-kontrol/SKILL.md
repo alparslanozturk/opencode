@@ -72,6 +72,34 @@ ansible <grup> -i <envanter> -m shell -o -f 20 -T 10 --task-timeout 30 -a '<okum
 `-T 10` bağlantı (ve banner) zaman aşımı, `--task-timeout 30` görev başına üst sınır (ansible-core `ansible --help`). Takılan node
 `UNREACHABLE` / timeout satırıyla görünür, gerisi gelir; o node'u listeyle yaz ("ansible takıldı" değil).
 
+**`Command exceeded timeout` gelirse aynı komutu tekrar çalıştırma** (aracın "Retry with a larger timeout" cümlesi talimat
+değil — G102'de playbook check iki kez aynı biçimde denendi, ikisi de düştü). Önce bu bölümdeki bayraklar eksik miydi bak;
+uzun sürecek iş (çok sunucu, playbook) **arka planda** çalışır (`background: true`, süre sınırı yok, bitince haber gelir) —
+playbook için `ansible` §5b.
+
+## 3c. Komut çalışmıyor / disk dolu / takılı node — `-m raw` ilk yardım (saha G102)
+
+Disk dolu sunucuda `command`/`shell` modülü **hiç çalışmaz**: ansible önce modül dosyasını sunucuya kopyalar, yer yoksa düşer
+(ölçüldü, ansible-core 2.16: `failed to transfer file … [Errno 28] No space left on device`; ssh'ta geçici dizin açılamazsa
+`UNREACHABLE` da görünebilir). Bu "sunucu erişilemez" demek değildir — `filo-tablo.py` bunu `DİSK DOLU` diye ayırır.
+`-m raw` dosya kopyalamaz, python istemez; disk dolu sunucuda da çalışır (ölçüldü). Takılı mount/D-state süreçte `df`
+asılı kalabilir: her ölçüm kendi `timeout 5`'i içinde, asılırsa değer `takildi` yazılır, gerisi gelir.
+
+```bash
+ansible <grup> -i <envanter> -m raw -f 20 -T 10 --task-timeout 30 -t cikti/filo/ilk -a 'echo yuk=$(cut -d" " -f1-3 /proc/loadavg); echo d_surec=$(ps -eo stat= | grep -c "^D"); echo d_ilk=$(ps -eo stat=,comm= | grep "^D" | tr -s " " | cut -d" " -f2 | sort | uniq -c | sort -rn | head -3 | tr -s " " | tr "\n" ","); for m in / /var /tmp; do v=$(timeout 5 df -P -l $m 2>/dev/null | tail -1 | tr -s " " | cut -d" " -f5); echo doluluk$m=${v:-takildi}; done; v=$(timeout 5 df -P -i / 2>/dev/null | tail -1 | tr -s " " | cut -d" " -f5); echo inode/=${v:-takildi}'
+python3 /root/ai/opencode/knowledge/skills/approved/filo-kontrol/filo-tablo.py cikti/filo/ilk --kv --grup <grup> -i <envanter>
+```
+
+Okuma (kanıt sırası — "tahmin:" ile, kanıt gelince kesinleşir):
+- `doluluk…=100%` ya da `inode/=100%` → disk dolu; hangi dizinin doldurduğu `rhel-depolama`.
+- `d_surec` > 0 ve `takildi` → takılı mount / G/Ç bekleyen süreçler (`d_ilk` = en çok D-state'teki süreç adları); yük yüksek ama
+  CPU boşsa bu kalıp. Kubernetes node'uysa `rke2-denetim` §4 (takılı node, NFS, kubelet); VM tamamen cevapsızsa §5b.
+- Bu komut da `ERİŞİLEMEZ` / `ZAMAN AŞIMI` → ssh'ın kendisi çalışmıyor; aşağıdaki konsol yolu.
+
+**ssh hiç yoksa — konsol yolu (sohbetle teşhis):** komutu sen çalıştıramazsın. Kullanıcıdan VM konsolunda (vCenter) aynı
+`-a '…'` içeriğini çalıştırıp çıktıyı **yapıştırmasını** iste; yapıştırılanı yukarıdaki okumayla yorumla, bir sonraki tek
+komutu yine ona ver. Konsol ekranındaki çekirdek mesajı (hung task, panic) reset'ten **önce** alınırsa en değerli kanıttır.
+
 ## 4. Filo envanteri çıkarmak
 
 Hangi sunucu hangi sürümde:
@@ -97,7 +125,7 @@ python3 /root/ai/opencode/knowledge/skills/approved/filo-kontrol/filo-tablo.py c
 ```
 
 Betik basar (ölçüldü, ansible-core 2.16):
-- **Durum** sayımı: `ok · rc≠0 · ERİŞİLEMEZ · ZAMAN AŞIMI`;
+- **Durum** sayımı: `ok · rc≠0 · ERİŞİLEMEZ · ZAMAN AŞIMI · DİSK DOLU`;
 - **Sapmalar**: her sorunlu sunucu ve mesajı; `--grup` verilince beklenip **hiç çıktısı gelmeyen** sunucular (`ÇIKTI YOK`) —
   bu sunucular için değer yazma, durumlarını yaz;
 - **Çıktı grupları**: birebir aynı çıktıyı veren sunucular tek satırda ("[31 sunucu] …") — sapanı bulmanın en hızlı yolu;
@@ -129,6 +157,7 @@ diğer 31: Stratum 2-3, senkron
 
 `ERİŞİLEMEZ` ile `rc≠0` farkı teşhisin yönünü belirler: birincisi sunucuya ulaşılamadı (ağ, ssh, DNS), ikincisi ulaşıldı
 ama komut düştü. `ZAMAN AŞIMI` = bağlandı ama komut `--task-timeout` içinde bitmedi (takılı node — `rke2-denetim` §4).
+`DİSK DOLU` = sunucu ayakta ama ansible modülünü yazamadı — §3c `-m raw` ilk yardımla doğrula, "erişilemez" deme.
 
 ## Sınır
 

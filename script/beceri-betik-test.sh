@@ -124,6 +124,23 @@ icerir "tablo-cevir HTML vurgu (ERİŞİLEMEZ/rc≠0/ZAMAN AŞIMI/sapan)" tc1.tx
 python3 "$B/rapor/tablo-cevir.py" filo.csv --html filo.html > tc2.txt 2>&1
 icerir "üzerine yazmaz" tc2.txt "zaten var"
 
+# G102: disk dolu hedef — modül kopyalanamaz (ölçülen mesaj), ssh'ta UNREACHABLE da gelebilir → ERİŞİLEMEZ değil DİSK DOLU
+mkdir -p tree-dolu
+cat > tree-dolu/f1 << 'E'
+{"changed": false, "msg": "failed to transfer file to /root/.ansible/tmp/ansible-tmp-1/AnsiballZ_command.py: [Errno 28] No space left on device"}
+E
+cat > tree-dolu/f2 << 'E'
+{"changed": false, "unreachable": true, "msg": "Failed to create temporary directory. mkdir: cannot create directory '/root/.ansible/tmp/x': No space left on device"}
+E
+cat > tree-dolu/f3 << 'E'
+{"changed": false, "msg": "Failed to connect to the host via ssh: Connection timed out", "unreachable": true}
+E
+python3 "$B/filo-kontrol/filo-tablo.py" tree-dolu > ft4.txt 2>&1
+icerir "disk dolu ayrı (ERİŞİLEMEZ değil)" ft4.txt "Durum: DİSK DOLU 2 · ERİŞİLEMEZ 1"
+icerir "disk dolu → raw ilk yardım" ft4.txt "§3c"
+python3 "$B/rhel-depolama/disk-durum.py" tree-dolu > dd-dolu.txt 2>&1
+icerir "disk-durum: disk dolu ayrı" dd-dolu.txt "f2 · DİSK DOLU"
+
 # --------------------------------------------------------------------------- sar-ozet
 baslik "sar-ozet.py (G21, G22)"
 sadf() { # <host> <cpu-idle> <mem%> <ldavg5>

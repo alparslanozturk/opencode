@@ -729,3 +729,21 @@ describe("G101: --limit'siz ansible-playbook — hedef -i ile verilen (iş) enva
     expect(kilitDenetle("bash", { command: "cd ansible && ansible-playbook playbooks/12-cert.yaml" }, dz, yy)?.kilit).toBe("K1")
   })
 })
+
+describe("G102: playbook zaman sınırı öneki ve raw ilk yardım", () => {
+  const karar = (c: string) => kilitDenetle("bash", { command: c }, workdir, undefined)
+  const env = "ANSIBLE_TASK_TIMEOUT=120 ANSIBLE_RETRY_FILES_ENABLED=1 ANSIBLE_RETRY_FILES_SAVE_PATH=cikti/retry"
+  test("önekli --check serbest", () => {
+    expect(karar(`${env} ansible-playbook -i inventories/hosts-x.ini p.yml --check --diff -f 20 -T 10`)).toBeNull()
+  })
+  test("önekli gerçek çalıştırma K1 (önek kilidi aşmaz)", () => {
+    expect(karar(`${env} ansible-playbook -i inventories/hosts-x.ini p.yml -f 20 -T 10`)?.kilit).toBe("K1")
+  })
+  test("--limit @retry ile gerçek çalıştırma K1", () => {
+    expect(karar(`${env} ansible-playbook -i inventories/hosts-x.ini p.yml -T 10 --limit @cikti/retry/p.retry`)?.kilit).toBe("K1")
+  })
+  test("raw okuma serbest, raw değişiklik K1", () => {
+    expect(karar(`ansible g -i h.ini -m raw -T 10 --task-timeout 30 -t cikti/filo/ilk -a 'echo yuk=$(cut -d" " -f1-3 /proc/loadavg); v=$(timeout 5 df -P -l / | tail -1); echo doluluk=\${v:-takildi}'`)).toBeNull()
+    expect(karar(`ansible g -i h.ini -m raw -a 'rm -rf /var/log/eski'`)?.kilit).toBe("K1")
+  })
+})

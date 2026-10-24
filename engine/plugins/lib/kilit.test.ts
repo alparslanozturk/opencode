@@ -194,6 +194,63 @@ describe("G67: okuma yanlış alarmları (beceri taraması) serbest, değiştire
   for (const c of degistirir) test(`K1: ${c}`, () => expect(kilitDenetle("bash", { command: c }, workdir, undefined)?.kilit).toBe("K1"))
 })
 
+describe("2026-10-24: IdM / CIS (OpenSCAP) / GPU sürücü okumaları serbest, kurulum ve düzeltme K1", () => {
+  const okur = [
+    `ssh idm01 "sssctl domain-status idm.ornek.local"`,
+    `ssh idm01 "sssctl user-checks -s sshd ali@ornek.local"`,
+    `ssh idm01 "sssctl user-checks -a acct -s sudo ali@ornek.local"`,
+    `ssh idm01 "sssctl config-check"`,
+    `ssh idm01 "ipa hbactest --user=ali@ornek.local --host=web01.idm.ornek.local --service=sshd"`,
+    `ssh idm01 "ipa dns-update-system-records --dry-run"`,
+    `ssh idm01 "ipa trust-show ornek.local"`,
+    `ssh idm01 "ipa server-role-find --role 'AD trust controller'"`,
+    `ssh idm01 "ipactl status"`,
+    `ssh idm01 "ipa-healthcheck --failures-only"`,
+    `ssh idm01 "ipa-cacert-manage list"`,
+    `ssh web01 "oscap info /usr/share/xml/scap/ssg/content/ssg-rhel10-ds.xml"`,
+    `ssh web01 "oscap xccdf eval --profile cis_server_l1 /usr/share/xml/scap/ssg/content/ssg-rhel10-ds.xml"`,
+    `ssh web01 "oscap xccdf eval --profile cis --tailoring-file /tmp/t.xml /usr/share/xml/scap/ssg/content/ssg-rhel9-ds.xml | tail -5"`,
+    `ssh gpu1 "dkms status"`,
+    `ssh gpu1 "dnf module list nvidia-driver"`,
+    `ssh gpu1 "dnf versionlock list"`,
+    `ssh gpu1 "dnf nvidia-plugin"`,
+    `ssh gpu1 "nvidia-ctk --version"`,
+    `ssh gpu1 "nvidia-ctk cdi list"`,
+    `ssh web01 "authselect current"`,
+    `ssh web01 "sudo -l -U ali@ornek.local"`,
+    `ssh web01 "sudo -l"`,
+    `ssh idm01 "umask"`,
+  ]
+  for (const c of okur) test(`serbest: ${c}`, () => expect(kilitDenetle("bash", { command: c }, workdir, undefined)).toBeNull())
+  const degistirir = [
+    `ssh idm01 "sssctl cache-expire -E"`,
+    `ssh idm01 "sssctl debug-level 6"`,
+    `ssh idm01 "sssctl user-checks -a auth -s sshd ali"`,
+    `ssh idm01 "ipa dns-update-system-records"`,
+    `ssh idm01 "ipa hbacrule-disable allow_all"`,
+    `ssh idm01 "ipa trust-add --type=ad ornek.local --admin x --password"`,
+    `ssh idm01 "ipa-adtrust-install"`,
+    `ssh idm01 "ipa-server-install --unattended"`,
+    `ssh idm01 "ipa-server-certinstall -w /tmp/h.crt /tmp/h.key"`,
+    `ssh idm01 "ipactl restart"`,
+    `ssh idm01 "ipa-healthcheck --output-file /tmp/hc.json"`,
+    `ssh web01 "oscap xccdf eval --remediate --profile cis /usr/share/xml/scap/ssg/content/ssg-rhel10-ds.xml"`,
+    `ssh web01 "oscap xccdf eval --profile cis --report /tmp/r.html /usr/share/xml/scap/ssg/content/ssg-rhel10-ds.xml"`,
+    `ssh gpu1 "dkms build -m nvidia/590.44.01 --force"`,
+    `ssh gpu1 "dnf module enable nvidia-driver:580-open"`,
+    `ssh gpu1 "dnf versionlock add nvidia*580*"`,
+    `ssh gpu1 "nvidia-ctk runtime configure --runtime=containerd"`,
+    `ssh web01 "authselect select sssd --force"`,
+    `ssh web01 "sudo systemctl -l restart x"`,
+    `ssh web01 "sudo -u ali rm -f /etc/x"`,
+  ]
+  for (const c of degistirir) test(`K1: ${c}`, () => expect(kilitDenetle("bash", { command: c }, workdir, undefined)?.kilit).toBe("K1"))
+  test("kurulum araçları bilinen değiştirici: sorulmaz, engellenir", () => {
+    for (const c of [`ssh idm01 "ipa-adtrust-install --netbios-name=IDM"`, `ssh idm01 "ipa-replica-install"`])
+      expect(kilitDenetle("bash", { command: c }, workdir, undefined)?.sor).toBeUndefined()
+  })
+})
+
 describe("G67: yetki serbest biçimde de anlaşılır (Alp: 'formatsız verdiğimde anlayabiliyor olması lazım')", () => {
   const oku = (m: string) => yetkiSatirlariniOku(m)
   test("eski biçim aynen", () => {

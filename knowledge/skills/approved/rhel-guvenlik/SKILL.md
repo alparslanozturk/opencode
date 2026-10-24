@@ -1,6 +1,6 @@
 ---
 name: rhel-guvenlik
-description: RHEL sunucuların (küme node'ları dahil) güvenlik sağlığını yalnız okuyarak denetlerken kullan — bekleyen güvenlik yaması (errata), çalışan↔kurulu çekirdek ve reboot gereksinimi, ara sürüm kilidi ve destek durumu, ssh ayarı, auditd, chrony; CIS Level 1 / OpenSCAP (Satellite) kurum profili. "sunucu güvenliği", "rhel güvenlik", "yama durumu", "güvenlik yaması", "errata", "reboot gerekiyor mu", "çekirdek güncel mi", "cis", "scap", "openscap", "benchmark", "sıkılaştırma", "ssh ayarı" isteklerinde tetiklenir. Yamayı uygulamak için `rhel-guncelleme`; küme tarafı `rke2-guvenlik`. Yalnız okur; düzeltmeyi önerir, uygulamaz.
+description: RHEL sunucuların (küme node'ları dahil) güvenlik sağlığını yalnız okuyarak denetlerken kullan — bekleyen güvenlik yaması (errata), çalışan↔kurulu çekirdek ve reboot gereksinimi, ara sürüm kilidi ve destek durumu, ssh ayarı, auditd, chrony; CIS Level 1 / OpenSCAP (Satellite) kurum profili. "sunucu güvenliği", "rhel güvenlik", "yama durumu", "güvenlik yaması", "errata", "reboot gerekiyor mu", "çekirdek güncel mi", "ssh ayarı", "auditd", "chrony" isteklerinde tetiklenir. CIS L1/L2 madde madde ölçüm `rhel-cis`; yamayı uygulamak için `rhel-guncelleme`; küme tarafı `rke2-guvenlik`. Yalnız okur; düzeltmeyi önerir, uygulamaz.
 ---
 
 # RHEL güvenlik sağlığı
@@ -10,10 +10,11 @@ description: RHEL sunucuların (küme node'ları dahil) güvenlik sağlığını
 
 ## 1. Kurum kararları ve CIS (bulgu değil — Alp)
 
-- SELinux kapalı · firewalld kapalı · `net.ipv4.ip_forward=1` (RKE2 node'ları) · `/tmp` noexec (2026-09-29).
+- SELinux kapalı · firewalld kapalı · `net.ipv4.ip_forward=1` (RKE2 node'ları) · `/tmp` noexec (2026-09-29) · **root ssh kapatılmaz**
+  (2026-10-24; erişim IdM + AD trust, HBAC/sudo — `idm-erisim`) · DNS/NTP MS AD'den.
 - **CIS (2026-10-17):** RHEL 10 şablonunda Satellite'tan SCAP ile **CIS Level 1** uygulanıyor (SELinux ve firewall kapsam dışı,
   politikaların çoğu uygulanmış). Kurumun hangi CIS maddelerini uyguladığı (profil) belli olana kadar "uygulanmamış" maddeyi
-  bulgu yazma → "CIS: kurum profili [SAHA]" bilgi satırı. RHEL şablonları / SCAP profilleri paylaşılınca buraya eklenecek.
+  bulgu yazma → "CIS: kurum profili [SAHA]" bilgi satırı. **CIS ölçümü (oscap + `cis-ozet.py`, L1/L2, istisna ayrımı) → `rhel-cis`.**
 - Sürüm destek durumu (ara sürüm en son mu, Rancher RHEL listesinde mi): `surum-uyum` (`uyum.py kontrol --rhel …`).
 
 ## 2. Node taraması (ansible ad-hoc, tüm grup — tek izin)
@@ -37,8 +38,8 @@ Değerlendirme:
 ```
 RHEL güvenlik · <grup/sunucu> · <tarih> · yalnız okuma
 ❌ Kritik: … (kanıt) — ör. bakım dışı ana sürüm, kritik errata + reboot bekleyen çekirdek
-⚠️ Önemli: … — çalışan ≠ kurulu çekirdek, ara sürüm kilidi, PermitRootLogin yes, auditd/chronyd kapalı
-ℹ️ Kurum kararı: SELinux/firewalld kapalı · CIS L1 (SCAP) — profil [SAHA]
+⚠️ Önemli: … — çalışan ≠ kurulu çekirdek, ara sürüm kilidi, auditd/chronyd kapalı
+ℹ️ Kurum kararı: SELinux/firewalld kapalı · root ssh açık (telafi: IdM HBAC/sudo) · CIS L1 (SCAP) — profil [SAHA]
 ✅ İyi: …
 Ölçülmedi: … (neden)
 ```

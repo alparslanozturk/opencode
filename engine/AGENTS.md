@@ -45,7 +45,8 @@ kullanım becerinin SKILL.md'sinde (önce beceriyi yükle):
 - küme durumu (NotReady, restart sebebi, DaemonSet, olaylar) → `k8s-sorun/k8s-ozet.py`
 - GPU dağılımı (pod başına GPU/Run:ai kesir, vLLM parametreleri, shm, NCCL) → `rke2-gpu/gpu-dagilim.py`
 - olay saati → log penceresi (yerel↔UTC, saDD, hazır journalctl/sar komutları) → `rhel-sorun/olay-penceresi.py`
-- sürüm uyumu / EOL → `surum-uyum/uyum.py`
+- sürüm uyumu / EOL (Rancher, RKE2, Antrea, RHEL, GPU Operator, sürücü, GPU modeli, Run:ai) → `surum-uyum/uyum.py`
+- CIS taraması (oscap ekran çıktısı → CIS no + L1/L2, kurum kararı ayrı) → `rhel-cis/cis-ozet.py`
 - rapor dosyası (CSV → HTML/XLSX) → betiğin `--csv` çıktısı + `rapor/tablo-cevir.py` — değerleri koda elle yazma
 Uzak okuma borunun başında kalır (`ssh … "<okuma>" | python3 <betik> -`), betiğe gömülmez. Betik hata verirse hatayı oku; iki denemede
 olmuyorsa dur ve söyle — elle ayrıştırmaya geçme.
@@ -170,7 +171,9 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
   Anthos (GKE): `anthos-erisim` becerisi — erişim jumpbox → admin workstation üzerinden, ajan şimdilik bağlanmaz. Hangi host'un 1. master olduğu belli değilse kullanıcıya sor.
 - **Kurum sunucu gerçekleri:** RHEL 7/8/9/10; template'ten kurulur (RHEL 9: CIS uygulanmış ESX template'i,
   RHEL 10: Satellite'ta CIS Level 1 template'i). **SELinux ve firewalld kapalı** (kurum kararı, SELinux grub'dan
-  disable) — bunları "açın" diye önerme, sorun teşhisinde sebep sayma. Yeni sunucuda IPv6 kapatılmış olabilir.
+  disable) — bunları "açın" diye önerme, sorun teşhisinde sebep sayma. Yeni sunucuda IPv6 kapatılmış olabilir (IdM sunucusu
+  çekirdekte IPv6 ister — `idm-kurulum`). **root ssh kapatılmaz** (kurum politikası; CIS 5.1.20 istisnası) — erişim IdM + AD trust,
+  HBAC/sudo kurallarıyla (`idm-erisim`); "PermitRootLogin no yapın" diye önerme. DNS ve NTP MS AD'den.
 - **ssh güvenliği:** `StrictHostKeyChecking=accept-new` kullan — **asla `no`**.
 - **🚫 dahili-bulut erişilemez** (bilinen kısıt): `dahili-bulut.ornek.local` / `192.0.2.x` / `198.51.100.x` —
   bu adreslere ssh **denenmez**; envantere "erişilemez (bilinen kısıt)" notuyla konur (gerçek
@@ -261,7 +264,9 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
 
 ## Beceri (skill) disiplini
 - **Değişiklik yapan işe başlamadan önce o konunun becerisini yükle** (disk/mount/fstab → `rhel-depolama`, kurulum/teslim →
-  `rhel-teslim`, GPU → `rke2-denetim`, Rancher sertifikası → `rancher-sertifika`, node/IP → küme → `kume-bul` …). Kullanıcı beceri adını söylemese de. Kanıt: saha G39 (2026-10-14) —
+  `rhel-teslim`, GPU → `rke2-denetim`, Rancher sertifikası → `rancher-sertifika`, node/IP → küme → `kume-bul`, NVIDIA sürücüsü →
+  `rhel-gpu-surucu`, GPU Operator/containerd → `rke2-gpu-kurulum`, Run:ai → `rke2-runai`, CIS → `rhel-cis`/`rke2-cis`, IdM/AD trust →
+  `idm-kurulum`, HBAC/sudo → `idm-erisim`, BDDK/KVKK/PCI → `bankacilik-uyum` …). Kullanıcı beceri adını söylemese de. Kanıt: saha G39 (2026-10-14) —
   beceri yüklenmeden diske LVM'siz `mkfs` + fstab'a `/dev/sdb` yazıldı; becerideki her kural bunu yasaklıyordu.
 - Beceriler talep üzerine yüklenir; konu kapanınca bırak. Kullanıcı "ansible işlerini bırak" dediyse
   o beceriyi tekrar yükleme.

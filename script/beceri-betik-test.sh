@@ -10,6 +10,8 @@
 #    disk-durum    OS diski sdb'deyken sda BOŞ ADAY (G38), /data LV KULLANIMDA, aynı boyut uyarısı
 #    sertifika     kalan gün, anahtar eşleşmesi, chain.pem'deki ESKİ yaprak (G86), verify, özel anahtar basılmaz
 #    k8s-ozet      exit 2 = OOM DEĞİL (G59), OOMKilled, NotReady süre + lease, sürüm sapması
+#    cis-ozet      kurum kararı (SELinux/firewalld/root ssh/ip_forward) bulgu sayılmaz; oscap "Title\r\t" biçimi
+#    uyum          GPU Operator ↔ GPU modeli (B300 ≥ 25.10), Run:ai ↔ K8s ↔ GPU Operator
 #    python 3.6    (vermin varsa) betikler RHEL 8 platform-python ile uyumlu
 #
 #  Örnek veriler genel adlıdır (kurum verisi yok); sertifikalar ve JSON'lar test anında üretilir.
@@ -321,6 +323,41 @@ icerir "gece yarısı: iki sa dosyası (1)" op2.txt "-s 23:45:00 -e 23:59:59 -f 
 icerir "gece yarısı: iki sa dosyası (2)" op2.txt "-s 00:00:00 -e 00:05:00 -f /var/log/sa/sa21"
 python3 "$B/rhel-sorun/olay-penceresi.py" 2026-10-19T02:30:00Z --tz +0300 > op3.txt 2>&1
 icerir "UTC girdi → yerel" op3.txt "yerel : 2026-10-19 05:15:00"
+
+# --------------------------------------------------------------------------- cis-ozet
+baslik "cis-ozet.py (kurum kararı ≠ bulgu; Title\\r\\t biçimi; CIS no + seviye)"
+python3 - > oscap.txt <<'PY'
+print('VERSION_ID="10.0"')
+for t, r, s in [("SELinux", "selinux_not_disabled", "fail"), ("root ssh", "sshd_disable_root_login", "fail"),
+                ("AIDE", "package_aide_installed", "fail"), ("ip_forward", "sysctl_net_ipv4_ip_forward", "fail"),
+                ("firewalld", "service_firewalld_enabled", "fail"), ("cramfs", "kernel_module_cramfs_disabled", "pass"),
+                ("elle", "x_manual", "notchecked")]:
+    print("Title\r\t%s\nRule\r\txccdf_org.ssgproject.content_rule_%s\nIdent\r\tCCE-1\nResult\r\t%s\n" % (t, r, s))
+PY
+python3 "$B/rhel-cis/cis-ozet.py" - < oscap.txt > cis1.txt 2>&1
+icerir "ürün VERSION_ID'den" cis1.txt "ürün rhel10 · kural 7 · fail 5"
+icerir "AIDE bulgu, CIS 6.1.1 L1" cis1.txt "6.1.1      L1 fail    package_aide_installed"
+icerir "SELinux kurum kararı" cis1.txt "1.3.1.4    L1 selinux_not_disabled — SELinux kurum kararıyla kapalı"
+icerir "root ssh kurum kararı" cis1.txt "5.1.20     L1 sshd_disable_root_login"
+icerir "ip_forward --rke2 yokken bulgu (RHEL 10 L2)" cis1.txt "3.3.1.1    L2 fail    sysctl_net_ipv4_ip_forward"
+python3 "$B/rhel-cis/cis-ozet.py" - --rke2 < oscap.txt > cis2.txt 2>&1
+icerir "--rke2: ip_forward kurum kararı" cis2.txt "RKE2 node'u: net.ipv4.ip_forward=1"
+icerir "--rke2: bulgu sayısı 1" cis2.txt "BULGU (fail, kurum kararı dışı): 1"
+mkdir -p cisagac
+python3 -c "import json; json.dump({'unreachable': True, 'msg': 'timeout'}, open('cisagac/web02', 'w'))"
+python3 "$B/rhel-cis/cis-ozet.py" cisagac > cis3.txt 2>&1
+icerir "erişilemeyen: değer yazma" cis3.txt "ERİŞİLEMEZ — değer YAZMA"
+
+# --------------------------------------------------------------------------- uyum (GPU Operator / Run:ai)
+baslik "uyum.py — GPU Operator GPU modeli + Run:ai matrisi (2026-10-24 verisi)"
+python3 "$B/surum-uyum/uyum.py" kontrol --rke2 v1.33.13+rke2r1 --gpu-operator v25.3.4 --surucu 580.126.16 --gpu H200,B300 --runai 2.24 --tarih 2026-10-24 > uy1.txt 2>&1
+icerir "B300 25.3 listesinde yok" uy1.txt "GPU B300 ↔ GPU Operator 25.3: listede yok"
+icerir "580.126.16 önerilen" uy1.txt "desteklenenler listesinde (önerilen)"
+icerir "Run:ai 2.24 ↔ 1.33 ✅" uy1.txt "✅ Run:ai 2.24 ↔ RKE2 1.33"
+python3 "$B/surum-uyum/uyum.py" kontrol --rke2 v1.33.13+rke2r1 --gpu-operator v25.3.4 --runai 2.26 --tarih 2026-10-24 > uy2.txt 2>&1
+icerir "Run:ai 2.26 ↔ 1.33 ❌ destek dışı" uy2.txt "❌ Run:ai 2.26 ↔ RKE2 1.33"
+icerir "uygun Run:ai listesi" uy2.txt "destekleyen Run:ai sürümleri (veride): 2.22, 2.23, 2.24"
+icerir "2.26 kaynağı kök sayfa" uy2.txt "run-ai-docs.nvidia.com/self-hosted/getting-started/installation/support-matrix.md"
 
 # --------------------------------------------------------------------------- kilit
 baslik "Becerilerdeki sabit okuma komutları güvenlik kilidinden geçiyor (G67/G68)"

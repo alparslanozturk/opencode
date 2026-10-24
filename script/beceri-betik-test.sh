@@ -12,6 +12,7 @@
 #                  düz PEM stdin; --uc canlı uç (https/ldaps) zinciri — yalnız 127.0.0.1'de yerel s_server
 #    k8s-ozet      exit 2 = OOM DEĞİL (G59), OOMKilled, NotReady süre + lease, sürüm sapması
 #    cis-ozet      kurum kararı (SELinux/firewalld/root ssh/ip_forward) bulgu sayılmaz; oscap "Title\r\t" biçimi
+#    leapp-rapor   inhibitor (groups + eski flags) ENGEL sayılır, çıkış 1; çok sunucu özeti; kesik rapor ❌
 #    uyum          GPU Operator ↔ GPU modeli (B300 ≥ 25.10), Run:ai ↔ K8s ↔ GPU Operator
 #    python 3.6    (vermin varsa) betikler RHEL 8 platform-python ile uyumlu
 #
@@ -271,6 +272,33 @@ if command -v openssl > /dev/null; then
 else
   kaldi "openssl yok — sertifika testleri atlandı"
 fi
+
+# --------------------------------------------------------------------------- leapp-rapor
+baslik "leapp-rapor.py (ENGEL önce, çok sunucu, bozuk rapor)"
+python3 - > leapp1.json << 'E'
+import json
+print(json.dumps({"leapp_run_id": "x", "entries": [
+  {"title": "Bilgi notu", "summary": "s", "severity": "info", "groups": ["sanity"]},
+  {"title": "Eski paket imzası SHA-1", "summary": "SHA-1 imzalı paket var", "severity": "high", "groups": ["inhibitor", "security"],
+   "detail": {"remediations": [{"type": "hint", "context": "Paketi kaldır"}, {"type": "command", "context": ["dnf", "remove", "ornek"]}]}},
+  {"title": "network-scripts kullanımda", "summary": "s", "severity": "medium", "groups": ["network"]},
+  {"title": "Eski bayraklı engel", "summary": "s", "severity": "high", "flags": ["inhibitor"]}]}))
+E
+python3 -c 'import json; print(json.dumps({"entries": [{"title": "Uyarı", "summary": "s", "severity": "low", "groups": []}]}))' > leapp2.json
+python3 "$B/rhel-yukseltme/leapp-rapor.py" leapp1.json > lr1.txt 2>&1
+echo "cikis=$?" >> lr1.txt
+icerir "groups inhibitor = ENGEL" lr1.txt "⛔ ENGEL · Eski paket imzası SHA-1"
+icerir "eski flags inhibitor da ENGEL" lr1.txt "⛔ ENGEL · Eski bayraklı engel"
+icerir "çözüm komutu basıldı" lr1.txt "komut: dnf remove ornek"
+icerir "sayaç" lr1.txt "ENGEL 2 · high 0 · medium 1 · low 0 · info 1"
+icermez "info varsayılanda basılmaz" lr1.txt "Bilgi notu"
+icerir "ENGEL varken çıkış 1" lr1.txt "cikis=1"
+{ echo "#SUNUCU web01"; cat leapp1.json; echo "#SUNUCU web02"; cat leapp2.json; echo "#SUNUCU web03"; echo "{kesik"; } \
+  | python3 "$B/rhel-yukseltme/leapp-rapor.py" - --kisa > lr2.txt 2>&1
+icerir "çok sunucu: engel yok" lr2.txt "web02                          ✓ engel yok"
+icerir "çok sunucu: kesik rapor ❌" lr2.txt "web03                          ❌ rapor okunamadı"
+python3 "$B/rhel-yukseltme/leapp-rapor.py" leapp2.json > lr3.txt 2>&1; echo "cikis=$?" >> lr3.txt
+icerir "engel yoksa çıkış 0" lr3.txt "cikis=0"
 
 # --------------------------------------------------------------------------- k8s-ozet
 baslik "k8s-ozet.py (G7, G8, G59, G65)"

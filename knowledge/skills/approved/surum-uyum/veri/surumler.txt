@@ -119,11 +119,48 @@ cilium
 multus
 
 [gpu-operator]
-# NVIDIA GPU Operator "Platform Support" — docs.nvidia.com/datacenter/cloud-native/gpu-operator/<SURUM>/platform-support.html
-# ("Supported Operating Systems and Kubernetes Platforms" tablosu, RKE2 sütunu; "NVIDIA GPU Driver" satırı). İndirme 2026-10-21 (ham HTML).
+# NVIDIA GPU Operator "Platform Support" — docs.nvidia.com/datacenter/cloud-native/gpu-operator/<MINOR>/platform-support.html
+# (MINOR: 25.3, 25.10, 26.3; en yeni = latest/ → 26.7). "Supported Operating Systems and Kubernetes Platforms" tablosu RKE2 sütunu,
+# "GPU Operator Component Matrix" → "NVIDIA GPU Driver" satırı (D = varsayılan, R = önerilen). İndirme 2026-10-24 (ham HTML, tablo
+# hücreleri betikle ayrıştırıldı). 25.3.4 satırı 2026-10-21'den beri güncellenmiş: NVIDIA sonradan "önerilen güncelleme" ekledi (R 580.126.16).
 # Liste dışı = "NVIDIA doğrulama listesinde yok — destek kapsamı dışı olabilir", çalışmaz kanıtı değil.
-# SURUM    RKE2_ALT  RKE2_UST  RHEL_LISTESI                VARSAYILAN_SURUCU  SURUCU_LISTESI
-v25.3.4    1.29      1.33      8.8,8.10,9.2,9.4,9.5,9.6    580.82.07          580.82.07,580.65.06,575.57.08,570.172.08,570.158.01,570.148.08,550.163.01,535.261.03,535.247.01
+# SURUM    RKE2_ALT  RKE2_UST  RHEL_LISTESI                                 VARSAYILAN(D)      ONERILEN(R)        SURUCU_LISTESI
+v26.7.0    1.33      1.37      10.0,10.1,10.2,9.2,9.4,9.6,9.7,9.8,8.8,8.10  595.91.07          595.91.07          610.57.04,595.91.07,580.173.02
+v26.7.1    1.33      1.37      10.0,10.1,10.2,9.2,9.4,9.6,9.7,9.8,8.8,8.10  595.91.07          595.91.07          615.71.09,610.57.04,595.91.07,580.173.02
+v26.7.2    1.33      1.37      10.0,10.1,10.2,9.2,9.4,9.6,9.7,9.8,8.8,8.10  595.91.07          595.91.07          615.71.09,610.57.04,595.91.07,580.173.02
+v26.3.0    1.32      1.36      10.0,10.1,10.2,9.2,9.4,9.6,9.7,9.8,8.8,8.10  580.126.20         580.173.02         595.71.05,595.58.03,590.48.01,580.173.02,580.167.08,580.159.04,580.159.03,580.126.20,570.211.01,535.309.01,535.288.01
+v26.3.1    1.32      1.36      10.0,10.1,10.2,9.2,9.4,9.6,9.7,9.8,8.8,8.10  580.126.20         580.173.02         595.71.05,595.58.03,590.48.01,580.173.02,580.167.08,580.159.04,580.159.03,580.126.20,570.211.01,535.309.01,535.288.01
+v26.3.2    1.32      1.36      10.0,10.1,10.2,9.2,9.4,9.6,9.7,9.8,8.8,8.10  580.126.20         580.173.02         595.71.05,595.58.03,590.48.01,580.173.02,580.167.08,580.159.04,580.159.03,580.126.20,570.211.01,535.309.01,535.288.01
+v26.3.3    1.32      1.36      10.0,10.1,10.2,9.2,9.4,9.6,9.7,9.8,8.8,8.10  580.126.20         580.178.04         615.71.09,610.57.04,595.91.07,595.71.05,595.58.03,590.48.01,580.178.04,580.173.02,580.167.08,580.159.04,580.159.03,580.126.20,570.211.01,535.309.01,535.288.01
+v25.10.0   1.30      1.35      9.2,9.4,9.6,8.8,8.10                         580.95.05          580.95.05          580.95.05,580.82.07,575.57.08,570.195.03,550.163.01,535.274.02
+v25.10.1   1.30      1.35      9.2,9.4,9.6,8.8,8.10                         580.105.08         580.178.04         610.57.04,595.91.07,595.71.05,595.58.03,590.48.01,580.178.04,580.167.08,580.159.04,580.159.03,580.126.16,580.126.09,580.105.08,580.95.05,580.82.07,575.57.08,570.211.01,570.195.03,550.163.01,535.309.01,535.288.01,535.274.02
+v25.3.4    1.29      1.33      9.2,9.4,9.5,9.6,8.8,8.10                     580.82.07          580.126.16         590.48.01,580.126.16,580.126.09,580.95.05,580.82.07,580.65.06,575.57.08,570.211.01,570.172.08,570.158.01,570.148.08,535.288.01,535.261.03,550.163.01,535.247.01
+v25.3.3    1.29      1.33      9.2,9.4,9.5,9.6,8.8,8.10                     580.82.07          580.82.07          580.82.07,580.65.06,575.57.08,570.172.08,570.158.01,570.148.08,535.261.03,550.163.01,535.247.01
+v25.3.2    1.29      1.33      9.2,9.4,9.5,9.6,8.8,8.10                     570.172.08         580.65.06          580.65.06,575.57.08,570.172.08,570.158.01,570.148.08,535.261.03,550.163.01,535.247.01
+v25.3.1    1.29      1.33      9.2,9.4,9.5,9.6,8.8,8.10                     570.172.08         580.65.06          580.65.06,575.57.08,570.172.08,570.158.01,570.148.08,535.261.03,550.163.01,535.247.01
+v25.3.0    1.29      1.33      9.2,9.4,9.5,9.6,8.8,8.10                     570.172.08         580.65.06          580.65.06,575.57.08,570.172.08,570.158.01,570.148.08,550.163.01,535.261.03,535.247.01
+
+[gpu-operator-gpu]
+# Aynı sayfa "Supported NVIDIA Data Center GPUs and Systems" — yalnız kurumda geçen modeller işlendi (H200, B300, L40S). İndirme 2026-10-24.
+# 25.3 sayfasında "HGX B300" YOK; 25.10, 26.3, 26.7'de var. "H300" adlı ürün NVIDIA belgelerinde yok (2026-10-24 araması).
+# MINOR  GPU_LISTESI
+25.3     H200,L40S
+25.10    H200,L40S,B300
+26.3     H200,L40S,B300
+26.7     H200,L40S,B300
+
+[runai]
+# NVIDIA Run:ai self-hosted "Support Matrix" — run-ai-docs.nvidia.com/self-hosted/<SURUM>/getting-started/installation/support-matrix.md
+# (2.26 = self-hosted/ kökü, en yeni). RKE2 "Compatible Distributions" listesinde: "Based on the upstream Kubernetes" → K8s aralığı RKE2
+# hattına uygulanır. "Supported operator range" satırı GPU Operator aralığı. İndirme 2026-10-24 (ham markdown).
+# Not (belge): vGPU desteklenmez, yalnız GPU passthrough; "all infrastructure components … must align with the versions specified".
+# SURUM  K8S_ALT  K8S_UST  GPUOP_ALT  GPUOP_UST
+2.26     1.34     1.36     25.10      26.3
+2.25     1.33     1.35     25.10      26.3
+2.24     1.33     1.35     25.3       25.10
+2.23     1.31     1.34     25.3       25.10
+2.22     1.31     1.33     24.9       25.3
+2.21     1.30     1.32     24.9       25.3
 
 [rhel-omur]
 # RHEL ana sürüm — endoflife.date/api/rhel.json (indirme 2026-10-17). TAM = full support sonu, BAKIM = maintenance sonu.

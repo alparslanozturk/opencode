@@ -14,7 +14,7 @@ gerektiğinde `skill` aracıyla içeriği çeker → bağlam şişmez.
 Dosya biçimi her üç dizinde aynı: `<ad>/SKILL.md`, frontmatter'da `name` + `description`.
 
 **Kural (2026-09-28):** `approved/`'daki her beceri `./kur.sh` ile sahaya kurulur — ayrı bir liste yok,
-sayı hedefi yok (eski "6-10" hedefi kaldırıldı; şu an **32**). Kullanılmayan beceri silinmez, `parked/`'a taşınır.
+sayı hedefi yok (eski "6-10" hedefi kaldırıldı; şu an **33**). Kullanılmayan beceri silinmez, `parked/`'a taşınır.
 
 ## Deterministik betik ilkesi (Alp, 2026-10-21 — saha G94: "yapay zekânın ortamda çözebilmesi için yetenek geliştir")
 
@@ -34,6 +34,7 @@ betiktir; model ham veriyi betiğe **borular**, betiğin bastığı satırı **a
 | `olay-penceresi.py` | `rhel-sorun` | olay saati → yerel/UTC pencere + hazır journalctl/sar/UTC grep komutları |
 | `tablo-cevir.py` | `rapor` | betik CSV'si → HTML/XLSX (değerler elle yazılmaz) |
 | `uyum.py` | `surum-uyum` | sürüm uyumu, EOL, yükseltme yolu; GPU Operator/sürücü/GPU modeli, Run:ai ↔ K8s ↔ GPU Operator |
+| `leapp-rapor.py` | `rhel-yukseltme` | `leapp preupgrade` raporu (JSON) → ENGEL önce, önem sırası, çözüm; çok sunucu özeti |
 | `cis-ozet.py` | `rhel-cis` | oscap ekran çıktısı → CIS madde no + L1/L2, kurum kararı ayrı (veri: SSG kontrol dosyaları) |
 
 Betik yazarken:
@@ -58,7 +59,7 @@ platformda bir iş**; ortak veri/araç tek yerde (`surum-uyum/uyum.py`), diğerl
   (Alp, 2026-10-17: genel olan `k8s-`, RKE2'ye özgü olan `rke2-`, GKE'leri yöneten Anthos `anthos-`)
 - **anthos-**: `anthos-erisim` (ileride `anthos-yukseltme`)
 - **vcf-** (VMware VCF): veri gelince `vcf-denetim` · `vcf-yukseltme`
-- **rhel-**: `rhel-yonetim` · `rhel-guncelleme` · `rhel-guvenlik` · `rhel-cis` (CIS L1/L2, OpenSCAP) · `rhel-gpu-surucu` (NVIDIA sürücü/CUDA/FM) · `rhel-depolama` · `rhel-performans` · `rhel-sorun` · `rhel-teslim`
+- **rhel-**: `rhel-yonetim` · `rhel-guncelleme` · `rhel-guvenlik` · `rhel-cis` (CIS L1/L2, OpenSCAP) · `rhel-gpu-surucu` (NVIDIA sürücü/CUDA/FM) · `rhel-depolama` · `rhel-performans` · `rhel-sorun` · `rhel-teslim` · `rhel-yukseltme` (Leapp 8 → 9 → 10, Satellite CV)
 - **idm-** (Red Hat IdM + AD trust): `idm-kurulum` · `idm-erisim` (HBAC, sudo, AD grup eşleme)
 - **genel**: `bankacilik-uyum` (BDDK/KVKK/PCI ↔ kanıt) · `ansible` · `filo-kontrol` · `kume-bul` (envanter + küme kimliği: ad/IP → küme/platform, Rancher haritası, sertifika — `kume-bul.py`) · `rapor` · `sep-paket`
 - **ortak**: `surum-uyum` (uyum.py + çevrimdışı matris/EOL verisi — tüm platformlar)

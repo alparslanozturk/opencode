@@ -646,6 +646,17 @@ export function sarmalayiciSoy(argv: string[]): { argv: string[]; xargs: boolean
     }
     if (p === "sudo" || p === "doas") {
       a.shift()
+      // `sudo -l [-U kullanıcı] [komut]` yalnız izinleri listeler/sınar, komutu çalıştırmaz (idm-erisim). -l komuttan ÖNCEKİ
+      // seçeneklerde olmalı (`sudo systemctl -l …` sayılmaz).
+      const onSecenek: string[] = []
+      for (let i = 0; i < a.length && a[i].startsWith("-") && a[i] !== "--"; i++) {
+        onSecenek.push(a[i])
+        if (/^-[ugCDhpRrTtU]$/.test(a[i]) || ["--user", "--group", "--prompt", "--chdir", "--other-user"].includes(a[i])) i++
+      }
+      if (p === "sudo" && onSecenek.some((o) => o === "-l" || o === "-ll" || o === "--list")) {
+        a.splice(0, a.length, "true")
+        continue
+      }
       secenekAt((o) => /^-[ugCDhpRrTt]$/.test(o) || ["--user", "--group", "--prompt", "--chdir"].includes(o))
       continue
     }
@@ -764,6 +775,7 @@ export const BILINEN_ARAC = new Set([
   "subscription-manager", "realm", "ipa", "kubectl", "oc", "helm", "docker", "podman", "nvidia-smi", "mdadm", "nvme",
   "cpupower", "crictl", "vmware-toolbox-cmd", "etcdctl", "ctr", "containerd", "tuned-adm", "authselect", "rke2",
   "hammer", "sshd", "perf", "command", "chronyc", "localectl", "awk", "gawk", "showmount", "rpcinfo", "nfsstat",
+  "sssctl", "oscap", "dkms", "ipactl", "ipa-healthcheck", "nvidia-ctk", "ipa-cacert-manage", "umask", // IdM / CIS / GPU (2026-10-24)
   // bilinen değiştiriciler
   "rm", "mv", "cp", "ln", "chmod", "chown", "chgrp", "mkdir", "rmdir", "touch", "tee", "dd", "truncate", "install",
   "shred", "unlink", "rsync", "scp", "tar", "unzip", "gzip", "gunzip", "xz", "bzip2", "zip", "patch",
@@ -780,6 +792,8 @@ export const BILINEN_ARAC = new Set([
   "ausearch", "auditctl", "augenrules", "tuned", "kdumpctl", "needs-restarting", "ansible-galaxy", "certbot",
   "keytool", "update-motd", "vgimport", "vgexport", "lvconvert", "blockdev", "hdparm", "smartctl", "ntpdate",
   "chronyd", "sshd-keygen", "ssh-keygen", "htpasswd", "openssl", "curl", "wget",
+  "ipa-server-install", "ipa-replica-install", "ipa-client-install", "ipa-adtrust-install", "ipa-server-certinstall",
+  "ipa-ca-install", "ipa-dns-install", "ipa-server-upgrade", "ipa-restore", "ipa-backup", "ipa-certupdate", "autotailor",
 ])
 
 export const secenekDegil = (x: string) => !x.startsWith("-")
@@ -929,7 +943,9 @@ export function saltOkunur(argv: string[]): boolean {
     case "dnf":
     case "yum":
       return ["list", "info", "repolist", "search", "check-update", "repoquery", "provides", "whatprovides",
-        "updateinfo", "--version", "deplist", "check"].includes(ilk) || (ilk === "history" && ["", "list", "info"].includes(a.filter(secenekDegil)[1] ?? "")) ||
+        "updateinfo", "--version", "deplist", "check", "nvidia-plugin"].includes(ilk) || (ilk === "history" && ["", "list", "info"].includes(a.filter(secenekDegil)[1] ?? "")) ||
+        (ilk === "module" && ["list", "info", "provides"].includes(a.filter(secenekDegil)[1] ?? "")) ||
+        (ilk === "versionlock" && ["", "list"].includes(a.filter(secenekDegil)[1] ?? "")) ||
         // deneme kipi: --assumeno her soruya "hayır" der, işlem yapılmaz (-y/--assumeyes ile birlikteyse sayılmaz)
         (["update", "upgrade", "install", "remove", "erase", "downgrade", "distro-sync", "autoremove"].includes(ilk) && has("--assumeno") && !has("-y", "--assumeyes"))
     case "ip":
@@ -985,7 +1001,40 @@ export function saltOkunur(argv: string[]): boolean {
     case "realm":
       return ilk === "list" || ilk === "discover"
     case "ipa":
-      return /-(show|find)$/.test(ilk) || ["ping", "env", "help", "--version"].includes(ilk)
+      // hbactest: kuralı yalnız sınar · dns-update-system-records --dry-run: gereken DNS kayıtlarını yalnız listeler (IdM DNS'siz kurulum)
+      return /-(show|find)$/.test(ilk) || ["ping", "env", "help", "--version", "hbactest"].includes(ilk) ||
+        (ilk === "dns-update-system-records" && has("--dry-run") && !has("--out"))
+    case "sssctl":
+      // user-checks varsayılan PAM eylemi acct (HBAC/hesap denetimi; parola sormaz — SSSD sssctl_user_checks.c DEFAULT_ACTION)
+      if (ilk === "user-checks") {
+        const ey = secenekDegeri(a, "-a", "--action") ?? (a.find((x) => x.startsWith("--action="))?.slice(9) ?? "acct")
+        return ey === "acct"
+      }
+      return ["domain-list", "domain-status", "user-show", "group-show", "netgroup-show", "config-check", "cert-show", "analyze"].includes(ilk)
+    case "oscap": {
+      // tarama/rehber/düzeltme betiği stdout'a — --remediate sistemi değiştirir, rapor/sonuç bayrakları dosya yazar
+      const [k1 = "", k2 = ""] = a.filter(secenekDegil)
+      if (k1 === "info") return true
+      if (k1 !== "xccdf" && k1 !== "oval" && k1 !== "ds") return a.some((x) => x === "-V" || x === "--version")
+      if (has("--remediate", "--report", "--results", "--results-arf", "--oval-results", "--stig-viewer", "--output", "-o") ||
+        a.some((x) => /^--(report|results|results-arf|output)=/.test(x))) return false
+      return ["eval", "generate", "validate"].includes(k2) || k1 === "ds" && ["sds-validate", "rds-validate"].includes(k2)
+    }
+    case "dkms":
+      return ilk === "status"
+    case "umask":
+      // argümansız / -S yalnız gösterir (değer verilen umask yalnız o kabuğu etkiler ama okuma değildir)
+      return a.length === 0 || a.length === 1 && a[0] === "-S"
+    case "ipactl":
+      return ilk === "status"
+    case "ipa-healthcheck":
+      return !has("--output-file") && !a.some((x) => x.startsWith("--output-file="))
+    case "nvidia-ctk": {
+      const [k1 = "", k2 = ""] = a.filter(secenekDegil)
+      return k1 === "cdi" && k2 === "list" || a.some((x) => x === "--version" || x === "-v")
+    }
+    case "ipa-cacert-manage":
+      return ilk === "list"
     case "kubectl":
     case "oc":
       // --dry-run=client|server: istek doğrulanır, kalıcı değişiklik yapılmaz (=none ya da yalın --dry-run=false değil)
@@ -1159,6 +1208,8 @@ export function yerelDegisiklik(argv: string[], yazilan: string[], b: Baglam): s
     case "passwd": case "chpasswd": case "chage": case "gpasswd": case "reboot": case "shutdown":
     case "poweroff": case "halt": case "init": case "telinit": case "umount": case "swapoff": case "setenforce":
     case "setsebool": case "semanage": case "ipa-client-install": case "ipa-server-install": case "modprobe":
+    case "ipa-replica-install": case "ipa-adtrust-install": case "ipa-server-certinstall": case "ipa-ca-install":
+    case "ipa-dns-install": case "ipa-server-upgrade": case "ipa-restore":
     case "rmmod": case "insmod": case "grubby": case "grub2-mkconfig": case "dracut": case "update-crypto-policies":
     case "fdisk": case "parted": case "sgdisk": case "gdisk": case "sfdisk": case "pvcreate": case "pvremove":
     case "vgcreate": case "vgremove": case "vgextend": case "vgreduce": case "lvcreate": case "lvremove":
@@ -1167,7 +1218,13 @@ export function yerelDegisiklik(argv: string[], yazilan: string[], b: Baglam): s
       if ((p === "fdisk" || p === "sfdisk" || p === "parted") && has(a, "-l", "--list")) return null
       return `${p} ${a.join(" ")}`.trim()
     case "ipa":
-      return saltOkunur(argv) ? null : `ipa ${ilk}`
+    case "sssctl":
+    case "oscap":
+    case "dkms":
+    case "ipactl":
+    case "nvidia-ctk":
+    case "ipa-cacert-manage":
+      return saltOkunur(argv) ? null : `${p} ${ilk}`
     case "docker":
     case "podman":
       return saltOkunur(argv) ? null : `${p} ${ilk}`

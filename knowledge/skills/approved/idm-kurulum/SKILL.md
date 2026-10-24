@@ -7,7 +7,8 @@ description: Red Hat IdM (FreeIPA) sunucusu/replikası kurarken ve AD trust kura
 
 Kaynak: Red Hat *Installing Identity Management* (RHEL 9: hazırlık §1, entegre DNS'siz kurulum, CA'sız kurulum, replica), *Installing trust
 between IdM and AD* (önkoşullar, DNS, portlar, trust kurulumu), *Managing certificates in IdM* (web/LDAP sertifikası değiştirme: süresi dolmadan §15, tümünde dolmuş §16) — indirme
-2026-10-24; *Using IdM Healthcheck* (§10 sertifika denetimi), `ipa-server-certinstall(1)`, `ipa-cacert-manage(1)` ve FreeIPA kaynağı
+2026-10-24; *Planning IdM* (§3 replika topolojisi, §7 trust denetleyicisi/ajanı), *Preparing for disaster recovery* (§3),
+*Managing certificates* §12 (CA yenileme sunucusu), *Migrating to IdM on RHEL 9/10* — 2026-10-25; *Using IdM Healthcheck* (§10 sertifika denetimi), `ipa-server-certinstall(1)`, `ipa-cacert-manage(1)` ve FreeIPA kaynağı
 (`ipa_server_certinstall.py`, `ipapython/certdb.py` — PIN/şifresiz anahtar) — 2026-10-25. **(Alp)** kurum politikası (2026-10-24) · **(genel)** doğrulanmadı. Kurum alan/sunucu adları burada yok: `<ad-alan>` (ör. AD alanı),
 `idm.<ad-alan>` (IdM alanı) — gerçek adı kullanıcıdan/envanterden al.
 
@@ -45,6 +46,28 @@ ssh root@<idm-aday> 'hostname; getent ahosts $(hostname) | cut -d" " -f1 | sort 
 
 - Alan `idm.<ad-alan>`, realm `IDM.<AD-ALAN>`, sunucu FQDN'leri (`<idm01>.idm.<ad-alan>` gibi) — kurulumdan sonra değişmez.
 - **NetBIOS adı** (trust): tek kelime, nokta yok, ≤ 15 karakter, AD'ninkinden **farklı** (genelde alanın ilk etiketi — IdM için `IDM`).
+
+## 2a. Topoloji — ana merkez 2 + DRC 1 (Alp, 2026-10-25)
+
+Kurum düzeni: ana merkezde (`s…`) 2, DRC'de (`d…`) 1 IdM sunucusu — ad kalıbı `engine/AGENTS.md` "Sunucu adı → ortam".
+- **Üçü de CA'lı** — RH (DR §3): "Configure three or more replicas to provide CA services"; tek CA sunucusu bozulursa ortam kaybolur.
+  Replikalar `ipa-replica-install --setup-ca` (sonradan: `ipa-ca-install`).
+- **Üçgen bağlantı** — RH: her replika en az 2 replikaya bağlı; veri merkezleri en az bir çift anlaşmayla (A1-B1 + A2-B2). Üç sunucuda bu
+  her ikilinin bağlı olması demek, hem `domain` hem `ca` son ekinde. Okuma: `ipa topologysegment-find domain` · `ipa topologysegment-find ca`;
+  eksik kenar (değişiklik): `ipa topologysegment-add domain <ad> --leftnode=<fqdn1> --rightnode=<fqdn2>` (aynısı `ca` ile).
+- **RH sapması (bilgi):** RH her veri merkezinde en az 2 replika önerir; DRC'de 1 var → o sunucu düşerse DRC'deki istemciler ana merkeze
+  gider (tahmin: AD DNS'teki SRV kayıtları üç sunucuyu da listeler). Karar Alp'in; yalnız söyle.
+- **CA yenileme sunucusu + CRL yayıncısı tek sunucudur** (RH §12: aynı anda tam bir yenileme sunucusu; varsayılan ilk CA sunucusu).
+  Okuma: `ipa config-show | grep 'CA renewal'` · `ipa-crlgen-manage status` · `ipa server-role-find --role 'CA server'`.
+  Ana merkez uzun süre kapalıysa (DR) DRC'ye taşı: `ipa config-mod --ca-renewal-master-server <drc-fqdn>`; CRL: eski sunucuda
+  (erişilebiliyorsa) `ipa-crlgen-manage disable` → yenide `enable` — aynı anda iki CRL üreticisi olmaz (RH). RH: yenileme sunucusu uzun
+  süre çevrimdışı kalırsa yenileme penceresi kaçar, sertifikalar tüm ortamda dolabilir.
+- **AD trust:** RH — denetleyici (`ipa-adtrust-install` çalışan) trust kurar/değiştirir, AD'ye katılı makinelerin Kerberos isteklerini
+  karşılar; ajan yalnız IdM istemcileri için AD kimliklerini çözer, Kerberos isteği işlemez; denetleyici daha geniş saldırı yüzeyi.
+  DRC sunucusu en az **ajan** olmalı (`ipa-adtrust-install --add-agents`, ilk sunucudan); DR'de trust yönetimi de gerekecekse
+  denetleyici (`ipa-replica-install … --setup-adtrust`) — hangisi olacağına **Alp karar verir**.
+- **Sertifika:** her sunucu kendi FQDN'li MSCA sertifikasını alır (3 sertifika); yenilemeleri aynı güne koyma — RH §15 ön koşulu "başka
+  en az bir replikada geçerli sertifika".
 
 ## 3. Sertifika (CA'lı kurulum — https/ldaps'e kurum MSCA'sı)
 
@@ -88,7 +111,7 @@ ssh root@<idm-aday> 'hostname; getent ahosts $(hostname) | cut -d" " -f1 | sort 
    hangisi olacağını AD'deki öznitelik durumuna göre **Alp karar verir**. Sonradan özel grup eşlemesi: `ipa idrange-mod --auto-private-groups=hybrid <range>` (RH).
 8. Doğrulama: `kinit <kullanıcı>@<AD-ALAN>` · `ipa trust-show <ad-alan>` · `ipa server-role-find --role 'AD trust controller'` ·
    `smbclient -L <idm01-fqdn> -U <kullanıcı> --use-kerberos=required` (RH) · `id <kullanıcı>@<ad-alan>` · `ipa-healthcheck --failures-only`.
-9. Replica (ikinci sunucu): aynı ön kontroller; CA yedekliliği için `--setup-ca` (genel — RH replica bölümünden doğrula); kendi MSCA sertifikası §6.2; trust ajanı/denetleyicisi gerekiyorsa `ipa-adtrust-install --add-agents` (RH).
+9. Replikalar (ana merkez 2. sunucu + DRC): aynı ön kontroller; `ipa-replica-install --setup-ca` (§2a); üçgeni tamamla (§2a); kendi MSCA sertifikası §6.2; trust ajanı/denetleyicisi gerekiyorsa `ipa-adtrust-install --add-agents` (RH).
 
 ## 5. İstemci katılımı (kurum playbook'u `05-ipa` — `rhel-teslim`)
 
@@ -146,6 +169,9 @@ durumuna bak.
 - IPv6 kapalı sunucuya kurulum; FQDN/realm'i "sonra düzeltiriz" diye geçici adla kurma.
 - Entegre DNS (`--setup-dns`) kurma — kurum DNS'i AD'de (Alp).
 - AD DNS'e kendin kayıt girme / AD'de değişiklik — listeyi AD yöneticilerine Alp iletir.
+- IdM **sunucusunu** leapp ile yükseltme — RH: RHEL 8→9 ve 9→10 yerinde yükseltme desteklenmez (istemciler leapp ile olur). Yol: yeni
+  sürümde replika (`--setup-ca`, gerekiyorsa `--setup-adtrust`) → CA yenileme + CRL rolünü taşı (§2a) → eskiyi `ipa-server-install --uninstall`;
+  sürüm karışıklığını uzun tutma (RH: veri bozulmasına kadar gidebilir). Kurum şimdilik RHEL 9'da kalıyor (Alp, 2026-10-25).
 - Yeni subCA'yı 6.1 + her yerde `ipa-certupdate` yapmadan o subCA'nın imzaladığı yaprağı takma.
 - MSCA yaprağı için `ipa-cacert-manage renew` — bu komut IdM CA'nın kendi sertifikası içindir (man); yaprak 6.2 ile değişir.
 - `allow_all` HBAC kuralını özel kurallar yazılmadan kapatma (herkesin erişimi kesilir) → `idm-erisim`.

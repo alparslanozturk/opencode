@@ -94,8 +94,10 @@ class Veri:
         self.a_vkr = {r[0]: dict(antrea=r[1].split(","), vkr=r[2].split(",")) for r in d.get("antrea-vkr", [])}
         self.a_kayit = [[x.strip() for x in l.split("|")] for l in d.get("_ham", {}).get("antrea-kayit", [])]
         self.rke2_cni = [r[0] for r in d.get("rke2-cni", [])]
-        self.gpu_op = {r[0]: dict(alt=r[1], ust=r[2], rhel=r[3].split(","), varsayilan=r[4], suruculer=r[5].split(","))
+        self.gpu_op = {r[0]: dict(alt=r[1], ust=r[2], rhel=r[3].split(","), varsayilan=r[4], onerilen=r[5], suruculer=r[6].split(","))
                        for r in d.get("gpu-operator", [])}
+        self.gpu_model = {r[0]: r[1].split(",") for r in d.get("gpu-operator-gpu", [])}
+        self.runai = {r[0]: dict(alt=r[1], ust=r[2], op_alt=r[3], op_ust=r[4]) for r in d.get("runai", [])}
         self.rhel = {r[0]: dict(son=r[1], tam=tarih(r[2]), bakim=tarih(r[3])) for r in d["rhel-omur"]}
 
     def matris_satiri(self, rancher):
@@ -212,6 +214,9 @@ def kontrol(v, a, bugun):
     if getattr(a, "gpu_operator", None):
         gpu_kontrol(v, a, k8s, rp)
 
+    if getattr(a, "runai", None):
+        runai_kontrol(v, a, k8s, rp)
+
     for r in a.rhel:
         ana = r.split(".")[0]
         rh = v.rhel.get(ana)
@@ -290,7 +295,7 @@ def gpu_kontrol(v, a, k8s, rp):
     """NVIDIA GPU Operator üretici matrisi (Platform Support). Liste dışı = ⚠️ (doğrulanmamış), ❌ değil."""
     s_ad = "v" + a.gpu_operator.lstrip("v")
     g = v.gpu_op.get(s_ad)
-    kaynak = f"docs.nvidia.com/datacenter/cloud-native/gpu-operator/{s_ad.lstrip('v')}/platform-support.html [gpu-operator]"
+    kaynak = f"docs.nvidia.com/datacenter/cloud-native/gpu-operator/{hat(s_ad)}/platform-support.html [gpu-operator]"
     if not g:
         rp.ekle("❓", f"GPU Operator {s_ad}: veri yok — hesaplanamadı (veriye ekle: o sürümün Platform Support sayfası)", "[gpu-operator]")
         return
@@ -303,9 +308,47 @@ def gpu_kontrol(v, a, k8s, rp):
         rp.ekle("✅" if ok else "⚠️", f"GPU Operator {s_ad} ↔ RHEL {r}: " + ("listede" if ok else f"listede yok ({', '.join(g['rhel'])}) — doğrulanmamış"), kaynak)
     if getattr(a, "surucu", None):
         ok = a.surucu in g["suruculer"]
+        rol = [ad for ad, d in (("varsayılan", g["varsayilan"]), ("önerilen", g["onerilen"])) if a.surucu == d]
         rp.ekle("✅" if ok else "⚠️", f"Sürücü {a.surucu} ↔ GPU Operator {s_ad}: "
-                + ("desteklenenler listesinde" + (" (varsayılan/önerilen)" if a.surucu == g["varsayilan"] else f"; varsayılan {g['varsayilan']}")
-                   if ok else f"listede yok (varsayılan {g['varsayilan']})"), kaynak)
+                + ("desteklenenler listesinde" + (f" ({'/'.join(rol)})" if rol else f"; varsayılan {g['varsayilan']}, önerilen {g['onerilen']}")
+                   if ok else f"listede yok (varsayılan {g['varsayilan']}, önerilen {g['onerilen']})"), kaynak)
+    for m in getattr(a, "gpu", []):
+        liste = v.gpu_model.get(hat(s_ad))
+        if liste is None:
+            rp.ekle("❓", f"GPU {m} ↔ GPU Operator {hat(s_ad)}: model verisi yok", "[gpu-operator-gpu]")
+            continue
+        ok = m in liste
+        ilk = [k for k, l in sorted(v.gpu_model.items(), key=lambda x: hat_t(x[0])) if m in l]
+        rp.ekle("✅" if ok else "⚠️", f"GPU {m} ↔ GPU Operator {hat(s_ad)}: " + ("desteklenen GPU listesinde" if ok else
+                f"listede yok ({', '.join(liste)}) — bu operator sürümüyle doğrulanmamış; listeleyen ilk operator: "
+                + (ilk[0] if ilk else "veride yok")), kaynak)
+
+
+def runai_kontrol(v, a, k8s, rp):
+    """NVIDIA Run:ai self-hosted Support Matrix: RKE2 = upstream K8s aralığı; GPU Operator aralığı. Liste dışı = üretici destek listesi dışı."""
+    s_ad = hat(a.runai)
+    r = v.runai.get(s_ad)
+    en_yeni = max(v.runai, key=hat_t) if v.runai else ""
+    kaynak = (f"run-ai-docs.nvidia.com/self-hosted/{'' if s_ad == en_yeni else s_ad + '/'}getting-started/installation/support-matrix.md"
+              " [runai]")
+    if not r:
+        rp.ekle("❓", f"Run:ai {a.runai}: veri yok — hesaplanamadı (veriye ekle: o sürümün Support Matrix sayfası)", "[runai]")
+        return
+    if k8s:
+        ok = hat_t(r["alt"]) <= hat_t(k8s) <= hat_t(r["ust"])
+        rp.ekle("✅" if ok else "❌", f"Run:ai {s_ad} ↔ RKE2 {k8s}: desteklenen Kubernetes {r['alt']}–{r['ust']}"
+                + ("" if ok else " — NVIDIA destek listesinde yok (destek kapsamı dışı — çalışmadığı anlamına gelmez)"), kaynak)
+    if getattr(a, "gpu_operator", None):
+        op = hat(a.gpu_operator)
+        ok = hat_t(r["op_alt"]) <= hat_t(op) <= hat_t(r["op_ust"])
+        rp.ekle("✅" if ok else "❌", f"Run:ai {s_ad} ↔ GPU Operator {op}: desteklenen aralık {r['op_alt']}–{r['op_ust']}"
+                + ("" if ok else " — destek kapsamı dışı (çalışmadığı anlamına gelmez)"), kaynak)
+    uygun = [s for s, x in sorted(v.runai.items(), key=lambda x: hat_t(x[0]))
+             if (not k8s or hat_t(x["alt"]) <= hat_t(k8s) <= hat_t(x["ust"]))
+             and (not getattr(a, "gpu_operator", None) or hat_t(x["op_alt"]) <= hat_t(hat(a.gpu_operator)) <= hat_t(x["op_ust"]))]
+    rp.ekle("ℹ️", "Bu K8s" + (" + GPU Operator" if getattr(a, "gpu_operator", None) else "") + " ikilisini destekleyen Run:ai sürümleri (veride): "
+            + (", ".join(uygun) or "yok"), "[runai]")
+    rp.ekle("ℹ️", "Run:ai yalnız GPU passthrough destekler, vGPU desteklenmez (belge) — VM worker'da GPU'nun veriliş biçimini oku", kaynak)
 
 
 def yol(v, a, bugun):
@@ -403,6 +446,8 @@ def main():
     p.add_argument("--antrea", help="ör. v2.3.0")
     p.add_argument("--gpu-operator", help="ör. v25.3.4 (NVIDIA GPU Operator)")
     p.add_argument("--surucu", help="ör. 580.82.07 (GPU sürücüsü, --gpu-operator ile)")
+    p.add_argument("--gpu", default="", help="virgüllü GPU modeli: H200,B300,L40S (--gpu-operator ile)")
+    p.add_argument("--runai", help="ör. 2.24 ya da 2.24.37 (NVIDIA Run:ai küme sürümü)")
     p.add_argument("--rhel", default="", help="virgüllü: 9.2,9.4,9.8")
     p.add_argument("--rol", choices=["downstream", "upstream"], default="downstream", help="upstream = Rancher'ın kendi local kümesi")
     p.add_argument("--hedef-rke2")
@@ -410,6 +455,7 @@ def main():
     p.add_argument("--tarih", help="YYYY-AA-GG (varsayılan bugün)")
     a = p.parse_args()
     a.rhel = [r.strip() for r in a.rhel.split(",") if r.strip()]
+    a.gpu = [g.strip().upper() for g in a.gpu.split(",") if g.strip()]
     d, kaynak = veri_oku()
     if a.islem == "veri":
         for b, k in kaynak.items():

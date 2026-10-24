@@ -17,13 +17,16 @@ python3 /root/ai/opencode/knowledge/skills/approved/surum-uyum/uyum.py kontrol -
 python3 /root/ai/opencode/knowledge/skills/approved/surum-uyum/uyum.py yol --rancher v2.14.3 --rke2 v1.33.13+rke2r1 --antrea v2.3.0 --hedef-rke2 1.35 --hedef-rancher 2.15
 python3 /root/ai/opencode/knowledge/skills/approved/surum-uyum/uyum.py kontrol --rol upstream --rancher v2.14.3 --rke2 v1.33.13+rke2r1   # Rancher'ın kendi local kümesi
 python3 /root/ai/opencode/knowledge/skills/approved/surum-uyum/uyum.py kontrol --rke2 v1.33.13+rke2r1 --gpu-operator v25.3.4 --surucu 580.82.07 --rhel 9.4,9.6   # GPU kümesi (NVIDIA matrisi)
+python3 /root/ai/opencode/knowledge/skills/approved/surum-uyum/uyum.py kontrol --rke2 v1.33.13+rke2r1 --gpu-operator v25.3.4 --gpu H200,B300,L40S --runai 2.24   # GPU modeli + Run:ai
 python3 /root/ai/opencode/knowledge/skills/approved/surum-uyum/uyum.py veri                                                              # veri hangi tarihte indirildi
 ```
 
 Çıktıyı **olduğu gibi** aktar (✅/⚠️/❌ + `[kaynak: …]`); satır ekleme, tarihi yeniden hesaplama. Çıkış kodu 1 = en az bir ❌.
 Kaynağı olmayan uyum cümlesi yazma — §"Kanıt zorunluluğu".
-Sürümleri toplama komutları: `rke2-yukseltme` §1. Kapsam şimdilik Rancher/RKE2/Antrea/RHEL; Anthos ve VMware VCF verisi gelince
-aynı dosyaya bölüm olarak eklenir.
+Sürümleri toplama komutları: `rke2-yukseltme` §1 (Run:ai sürümü `rke2-runai` §1). Kapsam: Rancher/RKE2/Antrea/RHEL + NVIDIA GPU Operator
+(25.3, 25.10, 26.3, 26.7 patch'leri; sürücü D/R listesi; GPU modeli H200/B300/L40S) + **NVIDIA Run:ai** 2.21–2.26 (K8s ve GPU Operator aralığı;
+RKE2 "upstream K8s'e göre"). GPU Operator ve Run:ai NVIDIA'nın ticari matrisi: GPU Operator liste dışı = ⚠️ (doğrulanmamış), Run:ai liste dışı = ❌
+"destek kapsamı dışı — çalışmadığı anlamına gelmez" (belge: "must align"). Anthos ve VMware VCF verisi gelince aynı dosyaya bölüm olarak eklenir.
 
 ## Kanıt zorunluluğu (Alp, 2026-10-21 — "matrisi kanıtlarıyla istiyorum; kanıt yoksa yalnız 'olabilir' desin")
 

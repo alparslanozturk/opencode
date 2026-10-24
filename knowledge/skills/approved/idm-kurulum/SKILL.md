@@ -1,13 +1,14 @@
 ---
 name: idm-kurulum
-description: Red Hat IdM (FreeIPA) sunucusu/replikası kurarken ve AD trust kurarken kullan — AD alanının alt alanında IdM (idm.<ad-alan>), entegre DNS YOK (DNS ve NTP MS AD'den), AD DNS'e girilecek kayıt listesi (ipa dns-update-system-records --dry-run), CA'sız kurulum + kurum MSCA sertifikası (PFX → PEM, https/ldaps), IPv6 çekirdek şartı, umask 0022 (CIS çakışması), NetBIOS adı, portlar, ipa-adtrust-install / ipa trust-add, sertifika yenileme, istemci katılımı. "idm kur", "ipa kur", "freeipa", "ipa-server-install", "replica", "ad trust", "trust kur", "ipa-adtrust-install", "idm sertifika", "ldaps sertifika", "idm dns kayıtları", "ipa-client-install", "idm join" isteklerinde tetiklenir. HBAC/sudo/AD grup eşleme ve erişim denetimi `idm-erisim`. Kurulum değişikliktir (kurulum yetkisi + sunucular).
+description: Red Hat IdM (FreeIPA) sunucusu/replikası kurarken ve AD trust kurarken kullan — AD alanının alt alanında IdM (idm.<ad-alan>), entegre DNS YOK (DNS ve NTP MS AD'den), AD DNS'e girilecek kayıt listesi (ipa dns-update-system-records --dry-run), entegre CA'lı kurulum + https (isteğe bağlı ldaps) için kurum MSCA sertifikası (şifresiz PEM key + sertifika), sertifika takibi ve yenileme (süresi dolmadan / dolmuş / yeni subCA), IPv6 çekirdek şartı, umask 0022 (CIS çakışması), NetBIOS adı, portlar, ipa-adtrust-install / ipa trust-add, sertifika yenileme, istemci katılımı. "idm kur", "ipa kur", "freeipa", "ipa-server-install", "replica", "ad trust", "trust kur", "ipa-adtrust-install", "idm sertifika", "ldaps sertifika", "sertifika yenile", "sertifika süresi", "subca değişti", "ara sertifika", "getcert", "idm dns kayıtları", "ipa-client-install", "idm join" isteklerinde tetiklenir. HBAC/sudo/AD grup eşleme ve erişim denetimi `idm-erisim`. Kurulum değişikliktir (kurulum yetkisi + sunucular).
 ---
 
 # IdM sunucusu + AD trust — AD DNS'li ortam
 
 Kaynak: Red Hat *Installing Identity Management* (RHEL 9: hazırlık §1, entegre DNS'siz kurulum, CA'sız kurulum, replica), *Installing trust
-between IdM and AD* (önkoşullar, DNS, portlar, trust kurulumu), *Managing certificates in IdM* (web/LDAP sertifikası değiştirme) — indirme
-2026-10-24. **(Alp)** kurum politikası (2026-10-24) · **(genel)** doğrulanmadı. Kurum alan/sunucu adları burada yok: `<ad-alan>` (ör. AD alanı),
+between IdM and AD* (önkoşullar, DNS, portlar, trust kurulumu), *Managing certificates in IdM* (web/LDAP sertifikası değiştirme: süresi dolmadan §15, tümünde dolmuş §16) — indirme
+2026-10-24; *Using IdM Healthcheck* (§10 sertifika denetimi), `ipa-server-certinstall(1)`, `ipa-cacert-manage(1)` ve FreeIPA kaynağı
+(`ipa_server_certinstall.py`, `ipapython/certdb.py` — PIN/şifresiz anahtar) — 2026-10-25. **(Alp)** kurum politikası (2026-10-24) · **(genel)** doğrulanmadı. Kurum alan/sunucu adları burada yok: `<ad-alan>` (ör. AD alanı),
 `idm.<ad-alan>` (IdM alanı) — gerçek adı kullanıcıdan/envanterden al.
 
 ## 0. Kurum politikası (Alp, 2026-10-24)
@@ -15,8 +16,10 @@ between IdM and AD* (önkoşullar, DNS, portlar, trust kurulumu), *Managing cert
 - IdM alanı AD alanının alt alanı: AD `<ad-alan>` → IdM `idm.<ad-alan>` (Red Hat bu düzeni destekler: "example.com for AD and idm.example.com
   for IdM"; Kerberos realm = alanın büyük harfi, ör. `IDM.<AD-ALAN>`).
 - **Tüm sunucular DNS ve NTP'yi MS AD'den alır** → IdM **entegre DNS'siz** kurulur; DNS kayıtlarını Alp listeler, **AD yöneticileri AD DNS'e girer**.
-- **Sertifika:** https ve ldaps için kurum sertifikası talep edilir; kurumda **MSCA**; güvenlik birimi **PFX** üretir → key/cert PEM'e ayrılıp
-  yüklenir. Sertifika adı kalıbı (wildcard mı, sunucu FQDN'i mi) `[SAHA]` — §3.
+- **CA (Alp, 2026-10-25):** IdM **entegre CA ile** kurulur. Kurum (MSCA) sertifikası yalnız **https** (web arayüzü) ve **ldaps** için;
+  ldaps'e de MSCA takılıp takılmayacağı **Alp'in kararı** (§3 A/B). Güvenlik birimi key + sertifikayı **base64 PEM** verir, anahtar
+  **şifresiz** (PIN yok, PFX/keystore yok). Sertifika adı kalıbı (wildcard mı, sunucu FQDN'i mi) `[SAHA]` — §3.
+- MSCA'da kök aynı kalıp **yalnız subCA yenilenebilir**; eski subCA IdM'de **durabilir** (Alp, 2026-10-25) — §6.3.
 - Satellite'tan gelen VM'lerde kurum CA + subCA zaten güvenilir (Alp) — istemci tarafında CA dağıtma işi yok.
 - Kurulum dokümanı Alp'te var; kurum ayrıntısı gerekiyorsa sahada yerelde kaydettirilir (`kurum-bilgisi-yerelde`).
 
@@ -43,25 +46,31 @@ ssh root@<idm-aday> 'hostname; getent ahosts $(hostname) | cut -d" " -f1 | sort 
 - Alan `idm.<ad-alan>`, realm `IDM.<AD-ALAN>`, sunucu FQDN'leri (`<idm01>.idm.<ad-alan>` gibi) — kurulumdan sonra değişmez.
 - **NetBIOS adı** (trust): tek kelime, nokta yok, ≤ 15 karakter, AD'ninkinden **farklı** (genelde alanın ilk etiketi — IdM için `IDM`).
 
-## 3. Sertifika (CA'sız kurulum — kurum MSCA)
+## 3. Sertifika (CA'lı kurulum — https/ldaps'e kurum MSCA'sı)
 
-RH: CA'sız kurulumda LDAP ve Apache sertifikası + özel anahtar ve **tam CA zinciri** verilir (öz-imzalı 3. taraf sertifika kabul edilmez):
-`--dirsrv-cert-file`, `--dirsrv-pin`, `--http-cert-file`, `--http-pin`, gerekirse `--ca-cert-file`; PKINIT sertifikası yoksa `--no-pkinit`.
-Dosya biçimleri: PEM (birleşik olur), DER, PKCS#7, PKCS#8, **PKCS#12** (yani PFX doğrudan da verilebilir; PEM'e ayırmak şart değil — RH listesi).
-- PFX → PEM ayırma, zincir sırası, anahtar eşleşmesi: `rancher-sertifika` becerisinin PFX adımları; doğrulama `sertifika-kontrol.py` (kalan gün,
-  anahtar eşleşmesi, zincir, verify).
-- **Sertifika adı:** RH örnekleri her sunucu için kendi FQDN'ini SAN'a koyar (`subjectAltName = DNS:server.idm.example.com`); replica'ya **kendi**
-  sertifika dosyaları verilir (CA'sız replica: `ipa-replica-install --dirsrv-cert-file … --http-cert-file … --no-pkinit`). Wildcard sertifika
-  için RH belgesinde açık kural bulunamadı (2026-10-24) → **bilinmiyor**; sunucu başına FQDN'li sertifika iste (güvenli seçenek), wildcard
-  isteniyorsa önce test ortamında dene.
-- CA'sız kipte IdM ana makine/servis sertifikası vermez ve web/LDAP sertifikasını **kendisi yenilemez** → bitiş tarihini takvime koy (`sertifika-kontrol.py`).
+- CA'lı kurulumda IdM CA ana makine/servis sertifikalarını verir; **certmonger** bunları süresi dolmadan kendisi yeniler (RH *Managing
+  certificates*). Kurulumda sertifika bayrağı verilmez; MSCA sertifikası kurulumdan **sonra** takılır (§6.1 → §6.2).
+- Dış CA'nın imzaladığı web/LDAP sertifikasını IdM **yenilemez** — yenileme elle (§6), takibi §7.
+- **Seçenek A — yalnız https MSCA:** LDAP sertifikası IdM CA'dan gelir, certmonger yeniler; elle iş sunucu başına 1 sertifika. IdM'e
+  katılmamış ama ldaps'e bağlanan uygulama IdM CA'ya (`/etc/ipa/ca.crt`) güvenmeli (genel — katılmış istemcilere `ipa-client-install` /
+  `ipa-certupdate` dağıtır).
+- **Seçenek B — https + ldaps MSCA:** tüm VM'ler MSCA'ya zaten güvenir (Satellite); elle iş sunucu başına 2 sertifika; tümünde süresi
+  dolarsa §6.4'teki elle NSS adımları LDAP'ı da kapsar.
+- **Sertifika adı:** sunucu başına kendi FQDN'i SAN'da — RH: her IdM sunucusunun anahtar çifti ve subject'i farklıdır, ayrı yenilenir.
+  ACME açıksa web sertifikasında SAN `ipa-ca.<idm-alan>` şart (`ipa-server-certinstall(1)`). Wildcard için RH belgesinde açık kural
+  bulunamadı (2026-10-24) → **bilinmiyor**; FQDN'li iste, wildcard isteniyorsa önce test ortamında dene.
+- **Şifresiz anahtar:** `--pin ''` ya da PIN isteminde Enter — FreeIPA kaynağı: PEM `PRIVATE KEY` / `RSA PRIVATE KEY` boş PIN ile
+  parolasız okunur, parola yalnız `ENCRYPTED PRIVATE KEY` için. Kabul edilen biçimler: PEM, DER, PKCS#7, PKCS#8, ham anahtar, PKCS#12.
+- **Takmadan önce dosyaları denetle:** `sertifika-kontrol.py <crt> <key> <subca.pem> <kok.pem> --ad <fqdn>` (`rancher-sertifika`
+  becerisinde) — kalan gün, anahtar eşleşmesi, zincir, verify; özel anahtarı basmaz.
+- `ipa-server-certinstall` zinciri IdM'in CA deposunda arar; yoksa durur ("Please run ipa-cacert-manage install and ipa-certupdate",
+  FreeIPA kaynağı) → MSCA kök + subCA önce §6.1 ile eklenir.
 
 ## 4. Kurulum sırası (değişiklik — "kurulum yapacağım" + `sunucular:`)
 
 1. Paket: `dnf install ipa-server ipa-server-trust-ad` (Satellite reposundan; `dnf install --assumeno` ile önce dene).
-2. Sunucu (DNS'siz, CA'sız, NTP'ye dokunmadan): `umask 0022; ipa-server-install --domain idm.<ad-alan> --realm IDM.<AD-ALAN> --netbios-name <NB>
-   --dirsrv-cert-file <cert> --dirsrv-cert-file <key> --dirsrv-pin <pin> --http-cert-file <cert> --http-cert-file <key> --http-pin <pin>
-   --ca-cert-file <zincir> --no-pkinit --no-ntp` — `--no-ntp` chrony'ye dokunmaz (AD NTP'si kalır; RH NTP seçenekleri); parolalar etkileşimli
+2. Sunucu (DNS'siz, entegre CA'lı, NTP'ye dokunmadan): `umask 0022; ipa-server-install --domain idm.<ad-alan> --realm IDM.<AD-ALAN>
+   --netbios-name <NB> --no-ntp` — sertifika bayrağı yok (IdM CA kurulur); MSCA sertifikası kurulumdan sonra §6.1 → §6.2. `--no-ntp` chrony'ye dokunmaz (AD NTP'si kalır; RH NTP seçenekleri); parolalar etkileşimli
    girilsin, komut satırına/loga yazdırma. Bayrakları `ipa-server-install --help` ile doğrula (sürüme göre).
 3. Kurulum sonunda `/tmp/ipa.system.records.<rastgele>.db` dosyası basılır — "kayıtlar DNS'e eklenmeden kurulum **tamamlanmış sayılmaz**" (RH).
 4. **Trust hazırlığı:** `kinit admin` → `ipa-adtrust-install` (DNS'siz kurulumda eklenmesi gereken servis kayıtlarını listeler) — bunu yaptığın
@@ -79,7 +88,7 @@ Dosya biçimleri: PEM (birleşik olur), DER, PKCS#7, PKCS#8, **PKCS#12** (yani P
    hangisi olacağını AD'deki öznitelik durumuna göre **Alp karar verir**. Sonradan özel grup eşlemesi: `ipa idrange-mod --auto-private-groups=hybrid <range>` (RH).
 8. Doğrulama: `kinit <kullanıcı>@<AD-ALAN>` · `ipa trust-show <ad-alan>` · `ipa server-role-find --role 'AD trust controller'` ·
    `smbclient -L <idm01-fqdn> -U <kullanıcı> --use-kerberos=required` (RH) · `id <kullanıcı>@<ad-alan>` · `ipa-healthcheck --failures-only`.
-9. Replica (ikinci sunucu): aynı ön kontroller + kendi sertifikası; trust ajanı/denetleyicisi gerekiyorsa `ipa-adtrust-install --add-agents` (RH).
+9. Replica (ikinci sunucu): aynı ön kontroller; CA yedekliliği için `--setup-ca` (genel — RH replica bölümünden doğrula); kendi MSCA sertifikası §6.2; trust ajanı/denetleyicisi gerekiyorsa `ipa-adtrust-install --add-agents` (RH).
 
 ## 5. İstemci katılımı (kurum playbook'u `05-ipa` — `rhel-teslim`)
 
@@ -87,15 +96,56 @@ Dosya biçimleri: PEM (birleşik olur), DER, PKCS#7, PKCS#8, **PKCS#12** (yani P
 verilir (genel). Sonra `authselect current` (sssd profili beklenir) · `id <ad-kullanıcı>@<ad-alan>` · erişim kuralları → `idm-erisim`.
 CIS taramasından **önce** katıl (`rhel-cis` §3 authselect notu).
 
-## 6. Sertifika yenileme (CA'sız — elle)
+## 6. MSCA sertifika işleri (değişiklik — elle; IdM CA'nın verdiklerini certmonger yeniler)
 
-Diğer en az bir replikada sertifika hâlâ geçerliyken (RH ön koşulu): yeni CA farklıysa zincir **tek tek** `ipa-cacert-manage install <dosya>`
-(komut dosyadaki **yalnız ilk** sertifikayı okur) → `ipa-certupdate` (sunucu ve istemcilerde) → `ipa-server-certinstall -w --pin=… <key> <crt>`
-(web) ve `-d` (LDAP) → `systemctl restart httpd` ve `dirsrv@<REALM>` (RH). Hepsinin süresi geçtiyse RH'nin "expired in the whole deployment" yordamı.
+Her adım her IdM sunucusunda ayrı; Directory Manager parolası istenir (etkileşimli gir, komut satırına yazma). Servisler kendiliğinden
+yeniden başlamaz (`ipa-server-certinstall(1)`). Realm'in tireli biçimi: `dirsrv@IDM-<AD-ALAN>` (RH örneği `dirsrv@IDM-EXAMPLE-COM`).
+
+**6.1 MSCA kök + subCA'yı IdM'e tanıt** (ilk kurulumdan sonra bir kez; yeni subCA geldiğinde yeniden):
+`ipa-cacert-manage install kok.pem` · `ipa-cacert-manage install subca.pem` — dosya başına **tek** sertifika (komut yalnız ilkini okur, RH)
+→ `ipa-certupdate` **tüm IdM sunucularında ve istemcilerde** (man) → `ipa-cacert-manage list` (okuma). `install` IdM CA'yı değiştirmez,
+bilinen CA ekler (man).
+
+**6.2 Takma / süresi dolmadan yenileme** (RH §15; ön koşul: başka en az bir replikada sertifika geçerli):
+`ipa-server-certinstall -w --pin '' <key> <crt>` (web) · B seçeneğinde ayrıca `-d` (LDAP) → `systemctl restart httpd` (+ B'de
+`dirsrv@<REALM-TIRELI>`) → istemcilerde `ipa-certupdate` (RH) → §7 canlı uç kontrolü.
+
+**6.3 Yeni subCA (kök aynı):**
+1. Yeni subCA'yı 6.1 ile ekle ve `ipa-certupdate`'i her yerde çalıştır — yeni subCA'nın imzaladığı yaprağı **bundan önce takma**
+   (zincir denetimi durdurur).
+2. Yeni subCA aynı ada (subject) sahipse: man — aynı subject'li CA'lar birlikte durabilir, NSS takma adı aynı kalır; doğru zincir için
+   **AKID/SKID** uzantıları şart → `openssl x509 -noout -ext authorityKeyIdentifier,subjectKeyIdentifier -in subca.pem` (okuma).
+3. Yeni yaprakları 6.2 ile tak; §7 ile uçların yeni zinciri gönderdiğini doğrula.
+4. Eski subCA **durabilir** (Alp). Temizlik istenirse: `ipa-cacert-manage prune` süresi dolmuş CA'ları siler; tek tek
+   `ipa-cacert-manage delete <takma-ad>` (önce zincirin yaprak tarafı) → her yerde `ipa-certupdate` (man). Sürümde varlığını
+   `ipa-cacert-manage --help` ile doğrula.
+5. Satellite'tan gelen VM'lerin sistem güvenine yeni subCA'nın kimin tarafından eklendiği `[SAHA]` — uç ara CA'yı göndermiyorsa
+   (§7 uyarısı) bu belirleyici olur.
+
+**6.4 Süresi dolmuş:** tek sunucuda dolmuş, başka replikada geçerli → 6.2 yeter (RH §15 ön koşulu). **Tüm sunucularda** dolmuş → RH §16
+yordamı, adım adım belgeden: önce yedek (`/etc/dirsrv/slapd-<REALM-TIRELI>/`, `/etc/httpd/alias`, `/var/lib/certmonger`,
+`/var/lib/ipa/certs/`; isteğe bağlı `/var/lib/ipa/private`, `/var/lib/ipa/passwds`) → farklı CA ise 6.1 → web sertifikasını
+`/var/lib/ipa/certs/`'e kopyala → LDAP için NSS'e `certutil`/`pk12util` ile elle → httpd + dirsrv yeniden başlat → her sunucuda
+`ipa-server-certinstall -w/-d` ile kayda geçir (`--pin ''`). Tahmin (belgede yazmıyor): A seçeneğinde LDAP sertifikası IdM CA'dan
+geldiği ve certmonger yenilediği için §16'nın LDAP adımları gerekmeyebilir — uygulamadan önce `getcert list` ile LDAP sertifikasının
+durumuna bak.
+
+## 7. Sertifika takibi (okuma — süresi dolmadan yakala; kurum kararı: otomatik izleme yok, on-demand)
+
+- **Canlı uç:** `sertifika-kontrol.py --uc <fqdn>:443 --uc <fqdn>:636 kok.pem` — sunucunun gönderdiği zincir, kalan gün (❌ < 30,
+  ⚠ < 120; `--esik`), SAN, verify (kök dosyasıyla), "uç yalnız yaprağı gönderiyor" uyarısı. Her IdM sunucusu için.
+- `getcert list` — certmonger'ın takip ettiği sertifikalar (durum, bitiş). MSCA yapraklarının burada görünüp görünmediği bilinmiyor →
+  MSCA için esas kontrol canlı uç.
+- `ipa-healthcheck --source=ipahealthcheck.ipa.certs --failures-only` — certmonger süreleri (varsayılan bitişe 28 gün kala uyarı;
+  `/etc/ipahealthcheck/ipahealthcheck.conf` → `cert_expiration_days`) ve sertifika dosyaları (RH Healthcheck §10).
+- `ipa-cacert-manage list` — IdM'in tanıdığı CA'lar (yeni subCA eklenmiş mi).
+- Sonucu kalan güne göre sıralı bildir; ❌ olan sunucu için 6.2'yi öner, uygulamak değişikliktir.
 
 ## Yapmayacakların
 
 - IPv6 kapalı sunucuya kurulum; FQDN/realm'i "sonra düzeltiriz" diye geçici adla kurma.
 - Entegre DNS (`--setup-dns`) kurma — kurum DNS'i AD'de (Alp).
 - AD DNS'e kendin kayıt girme / AD'de değişiklik — listeyi AD yöneticilerine Alp iletir.
+- Yeni subCA'yı 6.1 + her yerde `ipa-certupdate` yapmadan o subCA'nın imzaladığı yaprağı takma.
+- MSCA yaprağı için `ipa-cacert-manage renew` — bu komut IdM CA'nın kendi sertifikası içindir (man); yaprak 6.2 ile değişir.
 - `allow_all` HBAC kuralını özel kurallar yazılmadan kapatma (herkesin erişimi kesilir) → `idm-erisim`.

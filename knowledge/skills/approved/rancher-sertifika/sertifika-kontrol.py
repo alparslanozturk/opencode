@@ -10,6 +10,9 @@
 #   sertifika-kontrol.py <dosya|dizin> [...] [--ad <hostname>] [--esik <gün>]        (yerel dosyalar; dizinde 1 alt düzey)
 #   ssh root@<h> 'cd <dizin> && for f in * */*; do [ -f "$f" ] && { echo "#DOSYA $f"; base64 -w0 "$f"; echo; }; done' | sertifika-kontrol.py - [--ad …]
 #   kubectl -n <ns> get secret <ad> -o json | sertifika-kontrol.py - --ad <hostname>   (secret'taki tls.crt/ca.crt/cacerts.pem; anahtar okunmaz)
+#   sertifika-kontrol.py --uc <host>:<port> [--uc …] [kök-ca.pem]   (CANLI uç: https 443, ldaps 636 — sunucunun GÖNDERDİĞİ zincir,
+#                       `openssl s_client -showcerts`; kök CA dosyası verilirse verify de yapılır; tek --uc'de --ad = host)
+#   openssl s_client -connect <h>:<p> -showcerts </dev/null | sertifika-kontrol.py -   (düz PEM de okunur)
 #   --ad   : SAN'da aranacak ad (Rancher hostname) · --esik : ❌ eşiği (varsayılan 30 gün; 120 gün altı ⚠)
 #   --ozet : sertifika başına tek satır, kalan güne göre sıralı (RKE2 server/tls dizini — rke2-denetim/-guvenlik)
 import base64
@@ -150,6 +153,8 @@ def girdileri_oku(argv):
                         if alan in (o.get("data") or {}):
                             dosyalar.append(("canlı:%s/%s/%s" % (md.get("namespace", "?"), md.get("name", "?"), alan),
                                              base64.b64decode(o["data"][alan])))
+            elif b"#DOSYA " not in metin and b"-----BEGIN" in metin:
+                dosyalar.append(("stdin", metin))  # düz PEM (ör. s_client -showcerts çıktısı)
             else:
                 ad = None
                 for s in metin.splitlines():
@@ -174,6 +179,20 @@ def girdileri_oku(argv):
         else:
             print("yok: %s" % a)
     return dosyalar
+
+
+def uc_oku(uc):
+    # Canlı uç (https/ldaps): sunucunun TLS el sıkışmasında gönderdiği zincir. Yalnız okur (bağlanır, veri göndermez).
+    host = uc.rsplit(":", 1)[0].strip("[]")
+    args = ["s_client", "-connect", uc, "-showcerts"]
+    if not re.match(r"^[0-9.]+$|:", host):
+        args += ["-servername", host]  # SNI (IP'ye verilmez)
+    rc, out, err = ossl(args, b"")
+    if b"-----BEGIN CERTIFICATE" not in out:
+        son = (err or out).decode(errors="replace").strip().splitlines()[-1:] or ["?"]
+        return None, son[0]
+    return b"".join(b"-----BEGIN CERTIFICATE-----%s-----END CERTIFICATE-----\n" % g for t, g in PEM_RE.findall(out)
+                    if t == b"CERTIFICATE"), ""
 
 
 def dogrula(yaprak, havuz):
@@ -217,8 +236,23 @@ def main(argv):
         return 0 if argv else 2
     ad = argv[argv.index("--ad") + 1] if "--ad" in argv else None
     esik = int(argv[argv.index("--esik") + 1]) if "--esik" in argv else 30
-    yollar = [a for i, a in enumerate(argv) if not a.startswith("--") and (i == 0 or argv[i - 1] not in ("--ad", "--esik"))]
+    ucler = [argv[i + 1] for i, a in enumerate(argv) if a == "--uc" and i + 1 < len(argv)]
+    yollar = [a for i, a in enumerate(argv) if not a.startswith("--") and (i == 0 or argv[i - 1] not in ("--ad", "--esik", "--uc"))]
     dosyalar = [dosya_coz(n, h) for n, h in girdileri_oku(yollar)]
+    for uc in ucler:
+        pem, hata = uc_oku(uc)
+        d = dosya_coz("canlı:uç/%s" % uc, pem or b"")
+        if pem is None:
+            d["tur"] = "❌ bağlanılamadı / sertifika alınamadı: %s" % hata
+            d["notlar"] = []
+        else:
+            d["tur"] = "canlı uç (sunucunun gönderdiği zincir)"
+            ss = [c for c in d["sertifikalar"] if "hata" not in c]
+            if len(ss) == 1 and not ss[0].get("kok"):
+                d["notlar"].append("⚠ uç yalnız yaprağı gönderiyor (ara CA yok) — ara CA'yı bilmeyen istemcide doğrulama düşer")
+        dosyalar.append(d)
+    if ad is None and len(ucler) == 1:
+        ad = ucler[0].rsplit(":", 1)[0].strip("[]")
     if "--ozet" in argv:
         return ozet_kipi(dosyalar, esik)
     bugun = simdi_utc().strftime("%Y-%m-%d")
@@ -305,7 +339,7 @@ def main(argv):
             satir.append("kalan %s gün" % c["kalan"])
             es = [k for _, _, k in anahtarlar if k["pub"] == c["pub"]]
             if c["yer"].startswith("canlı:"):
-                satir.append("anahtar — (canlı secret'ın anahtarı okunmaz)")
+                satir.append("anahtar — (canlı kaynağın anahtarı okunmaz)")
             else:
                 satir.append("anahtar %s" % ("✓" if es else ("❌ eşleşen yok" if anahtarlar else "— (anahtar dosyası verilmedi)")))
             satir.append("verify %s" % dogrula(c, havuz))

@@ -9,13 +9,14 @@
 #    sar-ozet      sadf sütun ADIYLA ortalama, sunucular arası birebir aynı değer uyarısı (G21, G22)
 #    disk-durum    OS diski sdb'deyken sda BOŞ ADAY (G38), /data LV KULLANIMDA, aynı boyut uyarısı
 #    sertifika     kalan gün, anahtar eşleşmesi, chain.pem'deki ESKİ yaprak (G86), verify, özel anahtar basılmaz
+#                  düz PEM stdin; --uc canlı uç (https/ldaps) zinciri — yalnız 127.0.0.1'de yerel s_server
 #    k8s-ozet      exit 2 = OOM DEĞİL (G59), OOMKilled, NotReady süre + lease, sürüm sapması
 #    cis-ozet      kurum kararı (SELinux/firewalld/root ssh/ip_forward) bulgu sayılmaz; oscap "Title\r\t" biçimi
 #    uyum          GPU Operator ↔ GPU modeli (B300 ≥ 25.10), Run:ai ↔ K8s ↔ GPU Operator
 #    python 3.6    (vermin varsa) betikler RHEL 8 platform-python ile uyumlu
 #
 #  Örnek veriler genel adlıdır (kurum verisi yok); sertifikalar ve JSON'lar test anında üretilir.
-#  Ağ yok, ssh yok, gerçek sisteme yazmaz (yalnız geçici dizin). Geliştirici testidir.
+#  Ağ yok (yalnız 127.0.0.1 döngü), ssh yok, gerçek sisteme yazmaz (yalnız geçici dizin). Geliştirici testidir.
 #
 #  Kullanim:  ./script/beceri-betik-test.sh
 #  Cikis:     0 = hepsi gecti · 1 = en az bir durum kaldi
@@ -250,6 +251,23 @@ if command -v openssl > /dev/null; then
   ( cd cert/certs && for f in * */*; do [ -f "$f" ] && { echo "#DOSYA $f"; base64 -w0 "$f"; echo; }; done ) \
     | python3 "$B/rancher-sertifika/sertifika-kontrol.py" - --ozet > sk2.txt 2>&1
   icerir "--ozet kalan güne göre (en yakın üstte)" <(sed -n 2p sk2.txt) "19 gün"
+  cat cert/yeni.pem cert/ara.pem | python3 "$B/rancher-sertifika/sertifika-kontrol.py" - > sk3.txt 2>&1
+  icerir "düz PEM stdin (s_client çıktısı) okunur" sk3.txt "== stdin · PEM · 2 sertifika"
+  # canlı uç (--uc): yalnız 127.0.0.1'de yerel s_server — https/ldaps ucunun GÖNDERDİĞİ zincir
+  P=$((20000 + RANDOM % 20000))
+  ( cd cert && exec openssl s_server -accept "127.0.0.1:$P" -cert yeni.pem -key yeni.key -cert_chain ara.pem -quiet ) \
+    > /dev/null 2>&1 &
+  SP=$!
+  for _ in 1 2 3 4 5 6 7 8 9 10; do  # s_server hazır olana dek (yoklama bağlantısı açmadan — betiğin kendisi dener)
+    sleep 0.3
+    python3 "$B/rancher-sertifika/sertifika-kontrol.py" --uc "127.0.0.1:$P" cert/kok.pem --ad rancher.ornek.local > sk4.txt 2>&1
+    grep -qF "canlı uç (" sk4.txt && break
+  done
+  kill "$SP" 2> /dev/null; wait "$SP" 2> /dev/null
+  icerir "--uc canlı uç zinciri okundu" sk4.txt "canlı uç (sunucunun gönderdiği zincir) · 2 sertifika"
+  icerir "--uc kök dosyasıyla verify + SAN" sk4.txt "SAN rancher.ornek.local ✓ · kalan 729 gün · anahtar — (canlı kaynağın anahtarı okunmaz) · verify OK"
+  python3 "$B/rancher-sertifika/sertifika-kontrol.py" --uc "127.0.0.1:1" > sk5.txt 2>&1
+  icerir "--uc kapalı uç açıkça ❌" sk5.txt "❌ bağlanılamadı"
 else
   kaldi "openssl yok — sertifika testleri atlandı"
 fi

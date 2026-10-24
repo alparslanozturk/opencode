@@ -28,7 +28,7 @@ betiktir; model ham veriyi betiğe **borular**, betiğin bastığı satırı **a
 | `filo-tablo.py` | `filo-kontrol` | çok sunucuda aynı komut → durum/sapma/tablo |
 | `sar-ozet.py` | `rhel-performans` | geçmiş kapasite (CPU/bellek/yük, gün tablosu, CSV) |
 | `disk-durum.py` | `rhel-depolama` | hangi disk OS / kullanımda / boş |
-| `sertifika-kontrol.py` | `rancher-sertifika` | sertifika dosyaları, kalan gün, anahtar, zincir, eski yaprak; RKE2 tls `--ozet` |
+| `sertifika-kontrol.py` | `rancher-sertifika` | sertifika dosyaları, kalan gün, anahtar, zincir, eski yaprak; RKE2 tls `--ozet`; canlı uç `--uc host:port` (https/ldaps — `idm-kurulum` §7) |
 | `k8s-ozet.py` | `k8s-sorun` | küme durumu: NotReady, restart sebebi, DaemonSet, olaylar |
 | `gpu-dagilim.py` | `rke2-gpu` | GPU dağılımı: pod başına GPU/Run:ai kesir, vLLM parametreleri, shm, NCCL |
 | `olay-penceresi.py` | `rhel-sorun` | olay saati → yerel/UTC pencere + hazır journalctl/sar/UTC grep komutları |

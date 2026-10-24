@@ -1,6 +1,6 @@
 ---
 name: rke2-gpu
-description: GPU kümesini (gpu-dtx, gpu-prod — H200/B300) denetlerken kullan — GPU dağılımı deterministik `gpu-dagilim.py` ile (pod başına GPU/Run:ai kesir/vLLM parametreleri/shm/NCCL); NVIDIA GPU Operator, sürücü/CUDA, vLLM pod limitleri ve shm, Run:ai, hostPath /models (RAID10/NVMe), GPU node işletim sistemi, ölçüm. "gpu", "gpu kümesi", "h200", "b300", "nvidia", "gpu operator", "vllm", "runai", "/models", "dcgm", "nvlink", "limitler doğru mu", "gpu-dtx", "gpu-prod" isteklerinde tetiklenir. Temel katmanlar (sürüm, control plane, node, Antrea) için önce `rke2-denetim`. Yalnız okur; değişiklik önerir, uygulamaz.
+description: GPU kümesini (gpu-dtx, gpu-prod — H200/B300) denetlerken kullan — GPU dağılımı deterministik `gpu-dagilim.py` ile (pod başına GPU/Run:ai kesir/vLLM parametreleri/shm/NCCL); NVIDIA GPU Operator, sürücü/CUDA, vLLM pod limitleri ve shm, Run:ai, hostPath /models (RAID10/NVMe), GPU node işletim sistemi, ölçüm. "gpu", "gpu kümesi", "h200", "b300", "nvidia", "gpu operator", "vllm", "runai", "/models", "dcgm", "nvlink", "limitler doğru mu", "gpu-dtx", "gpu-prod" isteklerinde tetiklenir. Temel katmanlar (sürüm, control plane, node, Antrea) için önce `rke2-denetim`. Sürücü kurulumu `rhel-gpu-surucu`, GPU Operator/containerd kurulumu `rke2-gpu-kurulum`, Run:ai sağlık/matris `rke2-runai`. Yalnız okur; değişiklik önerir, uygulamaz.
 ---
 
 # GPU kümesi denetimi
@@ -57,7 +57,8 @@ doğrulanmadı — raporda "öneri" olarak yaz, "kural" olarak değil.
 - **Run:ai olabilir:** kurum Qwen ucunun adı `runai.gpudtx.<kurum>` (saha `kur.sh kontrol`, 2026-10-15) — tahmin: `gpu-dtx`'te
   NVIDIA Run:ai kurulu. Doğrula: `kubectl get ns | grep -i runai`. Varsa iş yükleri Run:ai üzerinden zamanlanır (proje
   kotası, kesirli GPU) — §3'teki `nvidia.com/gpu` limiti tek kaynak olmayabilir; Run:ai nesnelerini de listele, yorumu
-  kullanıcıya sor.
+  kullanıcıya sor. Run:ai sürümü/sağlığı, rezervasyon pod'ları, Run:ai ↔ K8s ↔ GPU Operator matrisi → `rke2-runai`
+  (`uyum.py kontrol --rke2 … --gpu-operator … --runai … --gpu H200,L40S`).
 - Geçmişte vLLM pod'ları **OOMKilled** oldu; `/dev/shm` boyutu (8 GB olabilir) ve pod bellek limiti belirsiz — §3'te
   mutlaka incele.
 - OS ayarı örneği (Alp): `/tmp`'nin inode sayısı artırılıyor — kurumun hedef değeri `[SAHA]`.
@@ -113,10 +114,11 @@ kubectl describe node <gpu-node> | sed -n '/Taints/,/Events/p'   # taint, Alloca
   sütunlarında GPU node'u diğerlerinden farklıysa bunu ilk bulgu olarak ver (`rke2-denetim` §1, matris `surum-uyum`).
 
 - **Üretici matrisi — NVIDIA GPU Operator "Platform Support"** (sürüme özel sayfa:
-  `docs.nvidia.com/datacenter/cloud-native/gpu-operator/<sürüm>/platform-support.html`; operator sürümünü kümeden oku). **v25.3.4**
-  (indirme 2026-10-21, `uyum.py --gpu-operator`): RKE2 **1.29–1.33** ve Kubernetes 1.29–1.33 · RHEL **9.2, 9.4, 9.5, 9.6** ve 8.8, 8.10 ·
-  GPU listesinde **HGX H200 / DGX H200 / H200, H200 NVL** · varsayılan (önerilen) sürücü **580.82.07** (desteklenenler: 580.82.07,
-  580.65.06, 575.57.08, 570.172.08, 570.158.01, 570.148.08, 550.163.01, 535.261.03, 535.247.01); bilinen sorun: 570.124.06/570.133.20/
+  `docs.nvidia.com/datacenter/cloud-native/gpu-operator/<minor>/platform-support.html`; operator sürümünü kümeden oku). **v25.3.4**
+  (indirme 2026-10-24, `uyum.py --gpu-operator`): RKE2 **1.29–1.33** ve Kubernetes 1.29–1.33 · RHEL **9.2, 9.4, 9.5, 9.6** ve 8.8, 8.10 ·
+  GPU listesinde **HGX H200 / DGX H200 / H200, H200 NVL**, **HGX B300 yok** (25.10'dan itibaren var) · varsayılan sürücü **580.82.07** (D),
+  önerilen **580.126.16** (R — NVIDIA 2026-10-21'den sonra "recommended update" ekledi); tam sürücü listesi ve diğer operator sürümleri
+  **betikten** (`uyum.py kontrol --gpu-operator <v> --surucu <v> --gpu H200,B300`), buraya liste kopyalama; bilinen sorun: 570.124.06/570.133.20/
   570.148.08/570.158.01 sürücülerinde MIG + tam GPU karışık node'da pod Pending (NVIDIA/gpu-operator#1361). Listede olmayan
   (ör. RHEL 9.8, K8s 1.34) → "NVIDIA doğrulama listesinde yok — destek kapsamı dışı olabilir", çalışmaz demek değil.
 - **Sürümler küme üzerinden okunur, tahmin edilmez:** RKE2/Kubernetes → `get nodes` `VERSION` sütunu

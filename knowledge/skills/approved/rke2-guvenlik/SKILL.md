@@ -14,7 +14,7 @@ description: RKE2/Rancher kümesinin güvenlik sağlığını yalnız okuyarak d
 **CIS (Alp, 2026-10-17):** RHEL 10 şablonunda Satellite'tan SCAP ile **CIS Level 1** uygulanıyor (SELinux ve firewall kapsam dışı,
 politikaların çoğu uygulanmış); Kubernetes ve VMware CIS benchmark'ları da önemli ama kurumda **uygulanabilecek olanlar seçilecek**
 (hepsi zorunlu değil). Puan kartında CIS maddesini "uygulanmadı" diye bulgu yazma — kurumun seçtiği profil belli olana kadar
-"CIS: kurum profili [SAHA]" bilgi satırı. RHEL şablonları/SCAP profilleri yakında paylaşılacak.
+"CIS: kurum profili [SAHA]" bilgi satırı. **Kubernetes CIS ölçümü ve "uygulanabilir madde" hazırlığı → `rke2-cis`; node CIS → `rhel-cis`.**
 Okuma kısıtı yok (kapalı sistem): sır dosyası okunabilir ama **değerini ekrana basma** (anahtar/token içeriği yerine var/yok, sayı).
 
 Erişim kalıbı (`rke2-denetim` §0): `K="/var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml"` bir

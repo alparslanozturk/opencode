@@ -32,7 +32,7 @@ Sıra (2026-10-13 itibarıyla):
 02-dns-nmcli       DNS — önce gelir: NTP, Satellite kaydı ve IPA join adla çözmeye bağlı
 03-ntp
 04-subs            Satellite kaydı (kurumun abonelik playbook'u)
-05-ipa             IdM/IPA'ya katılım
+05-ipa             IdM/IPA'ya katılım (idm-kurulum §5; erişim kuralları idm-erisim)
 06-dnf             paket güncellemesi
 07-sep-install     SEP (Symantec Endpoint Protection)
 08-sep-sinirlama   SEP kaynak sınırı

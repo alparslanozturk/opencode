@@ -72,7 +72,7 @@ def main(argv):
     if sertifika:
         try:
             r = subprocess.run(["openssl", "x509", "-noout", "-subject", "-issuer", "-enddate", "-fingerprint", "-sha256"],
-                               input=metin.encode(), capture_output=True, timeout=10)
+                               input=metin.encode(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10)  # 3.6: capture_output yok
             if r.returncode != 0:
                 print("openssl sertifikayı okuyamadı — içerik bozuk olabilir, gömülmedi:\n" + r.stderr.decode(errors="replace"))
                 return 1

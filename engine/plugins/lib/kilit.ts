@@ -776,7 +776,7 @@ export const BILINEN_ARAC = new Set([
   "cpupower", "crictl", "vmware-toolbox-cmd", "etcdctl", "ctr", "containerd", "tuned-adm", "authselect", "rke2",
   "hammer", "sshd", "perf", "command", "chronyc", "localectl", "awk", "gawk", "showmount", "rpcinfo", "nfsstat",
   "sssctl", "oscap", "dkms", "ipactl", "ipa-healthcheck", "nvidia-ctk", "ipa-cacert-manage", "umask", // IdM / CIS / GPU (2026-10-24)
-  "getcert", // certmonger: list / list-cas okur; request/resubmit/start-tracking/stop-tracking değiştirir (2026-10-25)
+  "getcert", "ipa-crlgen-manage", // ipa-crlgen-manage: status okur; enable/disable değiştirir. certmonger: list / list-cas okur; request/resubmit/start-tracking/stop-tracking değiştirir (2026-10-25)
   // bilinen değiştiriciler
   "rm", "mv", "cp", "ln", "chmod", "chown", "chgrp", "mkdir", "rmdir", "touch", "tee", "dd", "truncate", "install",
   "shred", "unlink", "rsync", "scp", "tar", "unzip", "gzip", "gunzip", "xz", "bzip2", "zip", "patch",
@@ -1038,6 +1038,8 @@ export function saltOkunur(argv: string[]): boolean {
       return ilk === "list"
     case "getcert":
       return ilk === "list" || ilk === "list-cas"
+    case "ipa-crlgen-manage":
+      return ilk === "status"
     case "kubectl":
     case "oc":
       // --dry-run=client|server: istek doğrulanır, kalıcı değişiklik yapılmaz (=none ya da yalın --dry-run=false değil)
@@ -1228,6 +1230,7 @@ export function yerelDegisiklik(argv: string[], yazilan: string[], b: Baglam): s
     case "nvidia-ctk":
     case "ipa-cacert-manage":
     case "getcert":
+    case "ipa-crlgen-manage":
       return saltOkunur(argv) ? null : `${p} ${ilk}`
     case "docker":
     case "podman":

@@ -173,6 +173,31 @@ echo x > bo.one; python3 "$B/belge-oku/belge-oku.py" bo.one > bo3.txt 2>&1; echo
 icerir ".one: dışa aktarma yolu + çıkış 2" bo3.txt "Dışarı Aktar"
 icerir ".one çıkış 2" bo3.txt "rc=2"
 
+# --------------------------------------------------------------------------- manifest-uyarla
+baslik "manifest-uyarla.py (yöntem A: kopyala + değiştir; Alp 2026-10-26)"
+mkdir -p mu/test mu/production
+for k in test production; do
+  printf 'apiVersion: apps/v1\nkind: DaemonSet\nmetadata:\n  name: optic-agent\nspec:\n  template:\n    spec:\n      containers:\n        - name: agent\n          image: reg/optic:latest\n          env:\n            - name: CLUSTER_NAME\n              value: %s\n' "$k" > mu/$k/optic.yaml
+  printf 'apiVersion: storage.k8s.io/v1\nkind: StorageClass\nmetadata:\n  name: nfs\nprovisioner: nfs.csi.k8s.io\n' > mu/$k/sc.yaml
+done
+printf 'apiVersion: v1\nkind: Secret\nmetadata:\n  name: tw\n' > mu/test/tw-secret.yaml
+echo "test-nfs paylaşımı" > mu/test/not.md
+python3 "$B/rke2-manifest/manifest-uyarla.py" parametre mu/test mu/production > mu1.txt 2>&1
+icerir "parametre: küme adı alanı bulundu" mu1.txt "env[CLUSTER_NAME].value"
+icerir "parametre: ortak bileşen aynı" mu1.txt "aynı (bütün kümelerde)"
+python3 "$B/rke2-manifest/manifest-uyarla.py" kopyala mu/test mu/yeni --degis test=yeni > mu2.txt 2>&1; echo "rc=$?" >> mu2.txt
+icerir "kopyala: kuru — yazmaz" mu2.txt "plan: 3 dosya (yazılmadı)"
+icerir "kopyala: satır değişimi gösterilir" mu2.txt "+ value: yeni"
+icerir "kopyala: sır dosyası atlanır" mu2.txt "ATLANDI (sır"
+icermez "kopyala: 'latest' içindeki 'test' değişmez" mu2.txt "+ image: reg/optic:layeni"
+python3 "$B/rke2-manifest/manifest-uyarla.py" kopyala mu/test mu/yeni --degis test=yeni --yaz > mu3.txt 2>&1; echo "rc=$?" >> mu3.txt
+icerir "kopyala --yaz: yazar" mu3.txt "yazıldı: 3 dosya"
+icerir "kalan: birleşik ad (test-nfs) gösterilir" mu3.txt "KALAN 'test'  not.md:1"
+icermez "kalan: 'latest' sayılmaz" mu3.txt "optic:latest"
+icerir "kalan varsa çıkış 1" mu3.txt "rc=1"
+python3 "$B/rke2-manifest/manifest-uyarla.py" kopyala mu/test mu/yeni --degis test=yeni --yaz > mu4.txt 2>&1
+icerir "var olan hedefin üzerine yazmaz" mu4.txt "VAR (üzerine yazılmaz)"
+
 # --------------------------------------------------------------------------- filo-tablo
 baslik "filo-tablo.py (G22, G77)"
 mkdir -p tree

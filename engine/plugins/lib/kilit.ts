@@ -70,7 +70,7 @@ export interface YetkiSatiri {
 // sunucu BİÇİMLİ adlar (IP, FQDN, rakamlı ad) + bu satırların altındaki alt alta / maddeli liste. Güvenlik sınırları:
 // "hariç / dışında / değil" geçen satır listeye eklenmez (uyarı); KRİZ mesajında yalnız açık "sunucular:" satırı geçerli
 // (yapıştırılan mail kendiliğinden yetki açmaz — AGENTS kriz akışı).
-const CN_KIMLIK = /(?:^|[^A-Z0-9])((?:CHG|CRQ|RFC|CR)[-_]?\d{4,})(?![A-Z0-9])/g
+const CN_KIMLIK = /(?:^|[^A-Z0-9])((?:CHG|CRQ|RFC|CR|DN)[-_]?\d{4,})(?![A-Z0-9])/g
 const CN_CUMLE = /(?:^|[^A-Z0-9])(?:CN|CHANGE|DE[GĞ]I[SŞ]IKLIK)(?:\s+(?:NO|NR|ID|NUMBER|NUMARA[A-ZÇĞÖŞÜ]*|KAYD[A-ZÇĞÖŞÜ]*|KAYIT))*\s*[:#=]?\s*([A-Z]{0,4}[-_]?\d{4,})(?![A-Z0-9])/g
 const SUNUCU_SOZ = /(?:^|[^a-zçğıöşü])(?:sunucu|hedef|makine|host|node|server)/i
 const OLUMSUZ = /(?:^|[^A-Z])(?:HARI[CÇ]|DI[SŞ]INDA|EXCEPT|OLMADAN|DE[GĞ]IL)(?![A-Z])/

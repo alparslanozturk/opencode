@@ -54,6 +54,8 @@ Saha G77: "Antrea v2.3.0 + 1.33 ❌ KURAL DIŞI" yazıldı ve test kümesindeki 
    ürünü (VCN matrisi geçerli). Okunmadıysa iki matrisi de yaz, hangisinin geçerli olduğunu `[SAHA]` bırak.
 5. **Uyum durumu olay sebebi değildir:** "matris dışı" bir node donmasının, pod hatasının **kanıtı olamaz**. Olay sebebi yalnız olayın
    kendi kanıtıyla (log, çekirdek yığını, zaman çizelgesi) yazılır (`rke2-denetim` §4, `rke2-edr` §3).
+   Destek sonu (EOL) da öyle: EOL'ü geçmiş hatta (kurumda 1.33 — `rke2-yukseltme` §6) iş normal yapılır; EOL satırı bilgi olarak bir kez
+   söylenir, işi reddetme ya da her cevaba yükseltme önerisi ekleme sebebi değildir.
 
 ## Antrea — kurum durumu ve kanıtlar (2026-10-21)
 

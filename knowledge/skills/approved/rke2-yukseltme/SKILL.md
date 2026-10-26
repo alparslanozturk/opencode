@@ -115,6 +115,15 @@ Plan metni/ekranı gelince her maddeyi veriyle sına; eksikleri liste ile ver (s
   Antrea v2.3 + 1.33 ❌; RHEL 9.2/9.4 Rancher v2.14.3 listesinde ❌; Rancher 3 yama, RKE2 1 revizyon geride.
 - `yol` (hedef 1.35 / 2.15): Rancher → v2.14.6 · Antrea → v2.6.3 · RKE2 → 1.34 · Rancher → v2.15.2 · RKE2 → 1.35.
 - Danışman: Hepapi yükseltme çalışmalarını yürütüyor (Alp). Kararı Alp verir; bu beceri kontrol listesi üretir.
+- **Kurumda 1.33 ve üstü kümeler var (Alp, 2026-10-26: "bizde 1.33'ten itibaren sistemlerimiz var")** — 1.33, SUSE EOL'ünden
+  (2026-10-28) sonra da bir süre çalışacak. Sonuçları:
+  - 1.33 kümede iş (teşhis, denetim, node ekleme, sertifika) **normal yapılır**; EOL ❌ bilgi satırıdır, işi reddetme sebebi ya da olay
+    sebebi değildir (`surum-uyum` 5). Her cevaba "önce yükseltin" ekleme — yükseltme sorulursa bu beceri.
+  - **Rancher 2.15'e geçilemez** — kurumda tek bir 1.33 downstream küme kaldıkça: v2.15.x downstream hatları 1.34–1.36
+    (`uyum.py kontrol --rancher v2.15.2 --rke2 <1.33>` → ❌, kaynak rancher-v2-15-2.txt). Sıra: önce bütün 1.33 kümeler 1.34'e,
+    sonra Rancher. Hangi kümenin hangi sürümde olduğu → `kume-bul.py k8s` (Rancher local master'ından) ya da kullanıcı.
+  - 1.33 için yeni RKE2 yaması çıkmayacak (son: v1.33.13+rke2r3, `[rke2-yama]` 2026-10-26); güvenlik açığı çıkarsa hat düzeltilmez.
+  - Becerilerdeki 1.33 komutları/sürüm verisi silinmez (`surumler.txt` 1.33 satırları kalır).
 
 ## Antrea yükseltme notları (çevrimdışı — resmi CHANGELOG/versioning.md'den, Doktor 2026-10-17)
 

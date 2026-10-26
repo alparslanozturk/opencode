@@ -1232,3 +1232,23 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   §3c `-m raw` ilk yardım (yük, D-state sayısı/ad, `timeout 5 df -l`, inode; asılırsa `takildi`) + konsol yolu. `filo-tablo.py`,
   `disk-durum.py`, `sar-ozet.py`: `DİSK DOLU` durumu ("erişilemez" değil). AGENTS: `Command exceeded timeout` kuralı. Kilit
   ölçüldü: `ANSIBLE_*=… ansible-playbook --check` serbest, `--check`'siz (önekli, `--limit @retry` dahil) K1; raw okuma serbest.
+
+## 2026-10-26
+
+### G103 — vLLM/Qwen parametre denetimi (model kartıyla): çıktı 32768, örnekleme, sürüm şüphesi
+- Kaynak: G51/G52/G59/G70 saha verisi + Hugging Face `Qwen/Qwen3.6-35B-A3B-FP8` model kartı (okundu 2026-10-26).
+- Kart: `vllm>=0.19.0`; `--reasoning-parser qwen3`, `--enable-auto-tool-choice --tool-call-parser qwen3_coder`; çıktı ~32768
+  (karmaşık işte 81920'ye kadar); örnekleme düşünme-kod 0.6/0.95/20/min_p 0/presence 0; bağlam ≥128K; mimari 40 katman
+  (30 Gated DeltaNet + 10 Gated Attention, 2 KV head × 256).
+- Değerlendirme: (1) G51'de görülen `vllm-openai:v0.17.1` hangi pod'un olduğu bilinmiyor — qwen36 pod'uysa kart altı [SAHA].
+  (2) Çıktı 16384 kartın yarısı (düşünme açık). (3) opencode örnekleme göndermiyordu (vLLM varsayılanı). (4) Hesap (tahmin,
+  KV BF16 varsayımı): 10 tam dikkat katmanı × 2 KV × 256 × 2 × 2 B ≈ 20 KiB/token → 262K'da dizi başına ~5 GiB, 16 dizi
+  ~80 GiB; 0.92 × H200 − ~37 GB FP8 ağırlık içine sığar → `--max-num-seqs 16` ile `--max-model-len 262144` çelişmiyor.
+  Gerçek KV doluluğu ölçülmedi (`/metrics`).
+- Yapılan (Alp onayı "önerilerini yap"): kur.sh `VARSAYILAN_CIKTI=32768`; `engine/opencode.json` model `options` örnekleme
+  (agent düzeyi 2.x'te gövdeye gitmiyor — sahte uçla ölçüldü, NASIL-CALISTIRILIR); kur.sh kontrol sohbet satırı `reasoning`
+  alanını da tanır; duman testi t3 güncel davranışa çekildi (eski 4096 beklentisi G70'ten beri kalıyordu, 3 KALDI) + 262K ve
+  örnekleme denetimi (26/26). `rke2-gpu` §0 model kartı karşılaştırması.
+- Açık [SAHA]: qwen36 pod'unun imajı, tam `args` (parser'lar, prefix caching, `--language-model-only`), `/metrics` KV doluluğu,
+  `generation-config` (vLLM'in model varsayılanını mı kullandığı) — Alp ofiste salt-okunur bakacak.
+

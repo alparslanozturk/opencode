@@ -46,6 +46,14 @@ doğrulanmadı — raporda "öneri" olarak yaz, "kural" olarak değil.
   `/models/models--Qwen--Qwen36-35B-A3B-FP8`). **Kesinlikle dokunma** — yeniden başlarsa ajan işin ortasında cevapsız
   kalır. vLLM parametrelerini (`--max-model-len`, `--max-num-seqs`, `--gpu-memory-utilization`) ve Run:ai ayırmasını
   yaz; opencode tarafındaki değerler `./kur.sh kontrol` "ayar" satırında (bağlam / çıktı) ya da opencode `env`'inde.
+- **opencode modeli ↔ model kartı (Qwen3.6-35B-A3B-FP8, Hugging Face model kartı, okundu 2026-10-26):** kart
+  `vllm>=0.19.0` ister; önerilen bayraklar `--reasoning-parser qwen3`, araç çağrısı için `--enable-auto-tool-choice
+  --tool-call-parser qwen3_coder`; isteğe bağlı `--language-model-only` (görüntü kodlayıcısı yüklenmez, KV-cache'e yer —
+  opencode yalnız metin), MTP `--speculative-config '{"method":"qwen3_next_mtp","num_speculative_tokens":2}'`; bağlam
+  en az 128K tutulmalı (düşünme için). Saha: `--max-model-len 262144`, `--gpu-memory-utilization 0.92`, `--max-num-seqs 16`
+  (G52); imaj sürümü ve parser bayrakları bu pod için **bilinmiyor** — pod `image` ve `args`'tan oku, karttan düşükse
+  "model kartı altı" diye yaz (kural değil, DevOps'a öneri). Örnekleme opencode tarafında: `engine/opencode.json` model
+  `options` (0.6 / 0.95 / 20 / presence 0 — kartın "kod" satırı); vLLM'e dokunmaz.
 - **Run:ai (saha 2026-10-15, doğrulandı):** h200w1'de `runai-inference` pod'ları (qwen36-35b, qwen3-14b, qwen3-32b-vlm,
   qwen3-4b-embd) + `runai-reservation` ns'te 2 `gpu-reservation-<node>-…` pod'u + `vllm` ns'te 2 deployment
   (qwen3-235b: 2 GPU, qwen35-397b: 3 GPU). Kesirli GPU ayırması `nvidia.com/gpu` limitinde **görünmez** — pod

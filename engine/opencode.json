@@ -27,6 +27,12 @@
           "id": "MODEL_ID_YER_TUTUCU",
           "name": "Qwen3.6-35B-A3B-FP8 (kurum)",
           "tool_call": true,
+          "options": {
+            "temperature": 0.6,
+            "top_p": 0.95,
+            "top_k": 20,
+            "presence_penalty": 0
+          },
           "modalities": {
             "input": ["text"],
             "output": ["text"]

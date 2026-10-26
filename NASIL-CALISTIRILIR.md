@@ -575,9 +575,15 @@ bunu sırayla öğrenmeye çalışır ve **hangi basamağın kazandığını rap
 | 1 | `/v1/models` alanları (`max_output_tokens`, `max_completion_tokens`, `max_output_len`, `max_generated_tokens`, `max_tokens`, `output_limit`, `limit.output`) | `cikti 8192 (uc alani max_output_tokens)` |
 | 2 | **Probe:** tek bir istek, `max_tokens` bilerek aşırı büyük; uç reddedip sınırını hata mesajında söylerse oradan okunur | `cikti 8192 (uc probe)` |
 | 3 | `env` → `KURUM_MAX_OUTPUT=<token>` | `cikti 8192 (env KURUM_MAX_OUTPUT)` |
-| 4 | Hiçbiri → **kurum varsayılanı 16384** (Alp, 2026-10-17; pencerenin 1/4'ünü aşmaz — 16K pencerede 4096) | `cikti 16384 (kurum varsayilani 16384 (uc bildirmiyor))` |
+| 4 | Hiçbiri → **kurum varsayılanı 32768** (2026-10-17 16384 → 2026-10-26 32768, Alp; Qwen3.6 model kartı ~32768 önerir; pencerenin 1/4'ünü aşmaz — 32K pencerede 8192, 16K'da 4096) | `cikti 32768 (kurum varsayilani 32768 (uc bildirmiyor))` |
 
 Yani varsayılan **sessizce** kalmaz: raporun `ayar` satırı her zaman değerin nereden geldiğini söyler.
+
+**Örnekleme (2026-10-26):** `engine/opencode.json` → kurum modelinin `options`'unda `temperature 0.6, top_p 0.95, top_k 20,
+presence_penalty 0` (Qwen3.6 model kartı, "düşünme — kod" satırı). opencode 2.x'te OpenAI uyumlu sağlayıcı bilinmeyen model
+seçeneklerini istek gövdesine koyar (`packages/core/src/v1/config/provider-options.ts` `compatibleModel`). **Agent'a
+yazılan `temperature`/`top_p` 2.x'te isteğe gitmiyor** (ayrıştırılıyor, gövdeye uygulanmıyor — sahte uçla ölçüldü);
+bu yüzden model düzeyinde. Doğrulama: `script/duman-kontrol-rapor.sh` `t3-ornekleme`.
 Probe ucu yormaz — istek `stream: true` gider ve uç isteği kabul ederse akış ilk parçada kesilir,
 uçta uzun üretim başlamaz. Bulunan değer bağlam penceresini aşarsa ona kırpılır.
 

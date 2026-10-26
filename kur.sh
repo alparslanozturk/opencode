@@ -28,7 +28,7 @@
 #    ALP_DERLE=1 ikili güncel olsa da derle · ALP_DERLEME_YOK=1 hiç derleme ·
 #    ALP_TUM_BECERILER=1 tüm beceriler · ALP_KALINTI_GEC=1 git'te olmayan paket/beceri kalıntısını yok say ·
 #    ALP_DERLE_EK="--ignore-scripts" bun'a ek bayrak ·
-#    KURUM_MAX_CONTEXT/KURUM_MAX_OUTPUT (env) uç bildirmezse bağlam/çıktı sınırı (çıktı yoksa 16384) ·
+#    KURUM_MAX_CONTEXT/KURUM_MAX_OUTPUT (env) uç bildirmezse bağlam/çıktı sınırı (çıktı yoksa 32768) ·
 #    KISAYOL_DIZIN (varsayılan /usr/local/bin, yazılamıyorsa ~/.local/bin) ·
 #    BUN bun ikilisinin yolu · MODELS_DEV_API_JSON models.dev anlık görüntüsü ·
 #    OPENCODE_VERSION/OPENCODE_CHANNEL ürün sürümü/kanalı (varsayılan 1.0.0/main)
@@ -93,8 +93,9 @@ bilgi()   { printf '   %s\n' "$*" >&2; }
 
 PY=""
 if command -v python3 > /dev/null 2>&1; then PY="python3"; fi
-# Uç çıktı sınırı bildirmezse kullanılan değer (Alp, 2026-10-17: "16384 olsun"). env KURUM_MAX_OUTPUT önceliklidir.
-VARSAYILAN_CIKTI=16384
+# Uç çıktı sınırı bildirmezse kullanılan değer. env KURUM_MAX_OUTPUT önceliklidir. 2026-10-17 16384 (Alp) →
+# 2026-10-26 32768 (Alp onayı): Qwen3.6-35B-A3B model kartı "çoğu sorgu için ~32768 çıktı" öneriyor; düşünme açık.
+VARSAYILAN_CIKTI=32768
 
 # --- argümanlarla gelen durum (ana() doldurur) ---
 ALT_KOMUT=""
@@ -529,7 +530,7 @@ kisayol_kur() { # <ad>
 #  küçük istekle sorar — `max_tokens` bilerek aşırı büyük gönderilir, uç bunu
 #  reddedip sınırı hata mesajında söylerse sayı oradan okunur. İstek `stream:true`
 #  ve kısa zaman aşımıyla atılır: uç isteği KABUL ederse akış ilk parçada kesilir
-#  (uçta uzun üretim başlatmaz). Sınır okunamazsa boş döner — çağıran kurum varsayılanına (16384) düşer.
+#  (uçta uzun üretim başlatmaz). Sınır okunamazsa boş döner — çağıran kurum varsayılanına (VARSAYILAN_CIKTI) düşer.
 #  Bağlam penceresi mesajları (vLLM "maximum context length is N") BİLEREK
 #  eşleşmez: o sayı çıktı sınırı değildir.
 # ---------------------------------------------------------------------------
@@ -852,7 +853,7 @@ kur() {
   # -------------------------------------------------------------------------
   #  Bağlam penceresi + ÇIKTI SINIRI tespiti — uydurma değer yok, kurum uçtan
   #  öğrenilir (best-effort). Sıra (T3):
-  #    1) /v1/models alanları  2) küçük bir probe isteği  3) env  4) kurum varsayılanı 16384 (pencere/4'ü aşmaz)
+  #    1) /v1/models alanları  2) küçük bir probe isteği  3) env  4) kurum varsayılanı VARSAYILAN_CIKTI (pencere/4'ü aşmaz)
   #  Hangi basamağın kazandığı `kur-durum` künyesine yazılır; kontrol raporu
   #  "kurum varsayilani … (uc bildirmiyor)" ayrımını oradan basar (sessizce sabit kalmaz).
   # -------------------------------------------------------------------------
@@ -885,7 +886,7 @@ kur() {
     sari "    İstersen $KOK/env içine KURUM_MAX_CONTEXT=<token> ekleyip yeniden çalıştır."
   fi
 
-  # --- çıktı sınırı: alan yoksa probe, o da yoksa env, o da yoksa kurum varsayılanı (16384) ------
+  # --- çıktı sınırı: alan yoksa probe, o da yoksa env, o da yoksa kurum varsayılanı (VARSAYILAN_CIKTI) ---
   if [ -z "$CIKTI_SINIRI" ]; then
     case "$KURUM_URL" in
       ""|*KURUM_ENDPOINT*) ;;
@@ -914,7 +915,7 @@ kur() {
     yesil "  çıktı sınırı    : $CIKTI_SINIRI token (kaynak: $CIKTI_KAYNAK)"
   else
     # Kurum varsayılanı (Alp, 2026-10-17): kurum vLLM'i (Qwen3.6, --max-model-len 262144) çıktı sınırı bildirmiyor; eski
-    # 4096 düşünme blokları + uzun raporu kesebiliyordu → 16384. Küçük pencerede pencerenin 1/4'ünü aşmaz (16K → 4096).
+    # 4096 düşünme blokları + uzun raporu kesebiliyordu → 16384 → 32768 (model kartı). Pencerenin 1/4'ünü aşmaz (16K → 4096).
     CIKTI_SINIRI="$VARSAYILAN_CIKTI"
     if [ -n "$TESPIT_EDILEN_PENCERE" ] && [ $((TESPIT_EDILEN_PENCERE / 4)) -lt "$CIKTI_SINIRI" ]; then
       CIKTI_SINIRI=$((TESPIT_EDILEN_PENCERE / 4))
@@ -1232,8 +1233,11 @@ elif mod == "sohbet-cevabi":
     try:
         mesaj = data["choices"][0]["message"]
         icerik = mesaj.get("content") or ""
-        if not icerik and mesaj.get("reasoning_content"):
-            icerik = "(yalniz reasoning_content dondu)"
+        # vLLM düşünme metnini sürümüne göre `reasoning_content` ya da `reasoning` alanında döndürür
+        # (opencode ikisini de okur: packages/ai/src/protocols/openai-chat.ts OpenAIChatDelta).
+        for alan in ("reasoning_content", "reasoning"):
+            if not icerik and mesaj.get(alan):
+                icerik = "(yalniz %s dondu)" % alan
         print("icerik\t%s" % " ".join(str(icerik).split())[:120])
     except Exception:
         pass

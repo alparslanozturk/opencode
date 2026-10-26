@@ -345,6 +345,28 @@ derle() {
       return 1
     fi
   fi
+  # Saha 2026-10-26: PATH'teki bun 1.4.2, derleme betiği package.json `packageManager` (bun@1.4.4) ister →
+  # "This script requires bun@^1.4.4" ile düştü. BUN elle verilmediyse ve bulunan eskiyse repodaki paketten açılır.
+  local BUN_GEREKEN BUN_BULUNAN
+  BUN_GEREKEN="$(sed -n 's/.*"packageManager": *"bun@\([0-9.]*\)".*/\1/p' "$KOK/package.json" | head -1)"
+  BUN_BULUNAN="$("$BUN_YOL" --version 2>/dev/null)"
+  if [ -z "${BUN:-}" ] && [ -n "$BUN_GEREKEN" ] && [ -n "$BUN_BULUNAN" ] \
+    && [ "$(printf '%s\n%s\n' "$BUN_BULUNAN" "$BUN_GEREKEN" | sort -V | head -1)" != "$BUN_GEREKEN" ]; then
+    if [ -x "$KOK/bin/bun" ] && [ "$("$KOK/bin/bun" --version 2>/dev/null)" = "$BUN_GEREKEN" ]; then
+      echo "==> bun $BUN_BULUNAN eski (gereken $BUN_GEREKEN) — repodaki bin/bun kullaniliyor"
+      BUN_YOL="$KOK/bin/bun"
+    elif [ -f "$BUN_PAKET" ]; then
+      echo "==> bun $BUN_BULUNAN eski (gereken $BUN_GEREKEN) — repodaki paketten aciliyor: ${BUN_PAKET#"$KOK/"}"
+      if tar xzf "$BUN_PAKET" -O package/bin/bun > "$KOK/bin/bun.yeni" \
+        && chmod 755 "$KOK/bin/bun.yeni" && mv -f "$KOK/bin/bun.yeni" "$KOK/bin/bun"; then
+        BUN_YOL="$KOK/bin/bun"
+      else
+        rm -f "$KOK/bin/bun.yeni"; hata "bun paketi acilamadi: $BUN_PAKET — $BUN_YOL ($BUN_BULUNAN) ile deneniyor"
+      fi
+    else
+      hata "bun $BUN_BULUNAN eski (gereken $BUN_GEREKEN), repoda $BUN_PAKET yok — derleme düşebilir"
+    fi
+  fi
   PATH="$(dirname "$BUN_YOL"):$PATH"
   export PATH
   echo "==> bun: $BUN_YOL ($("$BUN_YOL" --version))"
@@ -1167,7 +1189,8 @@ son_log_hatasi() {
   local dosya
   dosya="$(son_log_dosyasi)"
   [ -n "$dosya" ] || return 0
-  grep -hE 'err_[0-9A-Za-z]{6,}|ERROR|FATAL' "$dosya" 2>/dev/null | tail -1
+  # Saha çevrimdışı: models.dev yenilemesi her açılışta düşer, katalog gömülü anlık görüntüden gelir (zararsız, 2026-10-26).
+  grep -hE 'err_[0-9A-Za-z]{6,}|ERROR|FATAL' "$dosya" 2>/dev/null | grep -v 'Failed to fetch models.dev' | tail -1
 }
 # log_ozet <satır> — logfmt satırından okunur özet: "13:27Z <message> (<error/err>)"; alan yoksa satırın kendisi.
 # Saha G76: "timestamp=… level=ERROR run=… message=" önekiyle 70 karakter dolduğu için hata metni hiç görünmüyordu.

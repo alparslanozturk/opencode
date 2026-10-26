@@ -1252,3 +1252,20 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Açık [SAHA]: qwen36 pod'unun imajı, tam `args` (parser'lar, prefix caching, `--language-model-only`), `/metrics` KV doluluğu,
   `generation-config` (vLLM'in model varsayılanını mı kullandığı) — Alp ofiste salt-okunur bakacak.
 
+### G104 — 3.0.0 (upstream 2.1.4) sahada: derleme bun 1.4.2'de düştü; TUI ilk mesajda çöktü; models.dev log uyarısı
+- Görülen (Alp ekranları, 2026-10-26 09:17-09:31): (1) `./kur.sh` → `This script requires bun@^1.4.4, but you are using
+  bun@1.4.2` (`/usr/local/bin/bun`), eski ikiliyle (ca51d1a093, 10-15) devam etti; Alp bun'ı repodaki tgz'den açtı → 2. koşu
+  derledi (43aa62dc0b). (2) Kontrol: hepsi ✓, `surum !` "derleme anında çalışma ağacı kirliydi", `log !` "Failed to fetch
+  models.dev". (3) TUI: "OpenCode crashed — e.replace is not a function (In 'e.replace(/^#/,"")')".
+- Kök (ölçüldü): (3) yerelde aynı satır:sütunla yeniden üretildi (sahte uç, tmux, ilk mesaj). `Dj` = opentui `hexToRgb`, `js` =
+  `tui/src/ui/spinner.ts` `deriveTrailColors`: `r instanceof RGBA` yanlış, çünkü bun izole kurulumu `@opentui/core@0.6.8`'i iki
+  örnek bağlıyor — `bun-ffi-structs`'ın `typescript ^5` peer'ı theme/plugin'de TS 6.0.2'ye, tui/cli'de 5.4.5'e çözülüyor; tema
+  RGBA'ları öbür kopyadan. Upstream 2.0.24 → 2.1.4 geçişinde geldi (eski ikili çökmüyordu). (1) kur.sh PATH'teki bun'ı sürümüne
+  bakmadan kullanıyordu. (2) models.dev: saha çevrimdışı, katalog gömülü anlık görüntüden — zararsız.
+- Yapılan: spinner + theme/resolve RGBA'yı biçimden tanır (ADR-0006 satırı) — yerel tekrar: 2 mesaj, çökme yok; tsgo tui 30 → 29
+  (kalanlar aynı iki-kopya tür uyuşmazlığı, önceden vardı). kur.sh derle: bun `packageManager`'dan eskiyse repodaki tgz'den
+  `bin/bun` (sahte 1.4.2 ile denendi: açtı, 1.4.4 ile derledi; 2. koşu mevcut bin/bun). Kontrol `log` satırı models.dev
+  hatasını saymaz. Duman 26/26.
+- Açık: (a) kirli ağaç — sahada hangi dosyalar [SAHA] (`git status --short`); tahmin: al.sh rsync kalıntısı (G1). (b) Kalıcı
+  çözüm: opentui tek kopya (typescript peer'ını eşitlemek) — Alp kararı / upstream'e bildirim.
+

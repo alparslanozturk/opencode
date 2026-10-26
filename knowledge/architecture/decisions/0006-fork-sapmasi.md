@@ -64,3 +64,4 @@
 | Pano sonucu dürüst bildirilir (A22) | `tui/src/clipboard.ts` + 6 TUI dosyası | upstream-uygun | "kopyalandı" yalanı |
 | İzin sınırı = açılış dizini, okuma komutları denetlenir | `project/instance-context.ts`, `tool/external-directory.ts`, `tool/shell.ts` | kurum-özel | Claude Code davranışı (Alp, 2026-09-28) |
 | models.dev offline yedek, `splitting:false` | `packages/opencode/script/*`, `build.ts` | kurum-özel | offline derleme, ikili çökmesi |
+| TUI renk: başka @opentui/core kopyasının RGBA'sı kabul edilir (2026-10-26) | `tui/src/ui/spinner.ts`, `tui/src/theme/resolve.ts` | upstream-uygun | bun izole kurulumu `@opentui/core`'u iki kez bağlıyor (`bun-ffi-structs` peer `typescript`: theme/plugin → 6.0.2, tui/cli → 5.4.5) → `instanceof RGBA` yanlış → `fromHex(nesne)` → ilk mesajda TUI çökmesi "e.replace is not a function" (saha + yerel yeniden üretildi). Kalıcı çözüm tek kopya; upstream `dev`'de düzeltme yok (2026-10-26) |

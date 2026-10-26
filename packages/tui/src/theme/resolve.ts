@@ -2,6 +2,11 @@ import { RGBA } from "@opentui/core"
 import { ansiToRgba } from "./color"
 import type { ColorValue, Theme, ThemeColor, ThemeV1Json } from "./v1"
 
+// RGBA from another @opentui/core copy fails `instanceof` (bun links two peer-dependent copies: theme/plugin vs tui —
+// field crash 2026-10-26), so RGBA is recognised by shape; {dark, light} variants have no `buffer`.
+const isRgba = (color: unknown): color is RGBA =>
+  color instanceof RGBA || (typeof color === "object" && color !== null && "buffer" in color && "r" in color)
+
 export function resolveThemeColors(
   theme: ThemeV1Json,
   mode: "dark" | "light",
@@ -9,7 +14,7 @@ export function resolveThemeColors(
 ) {
   const defs = theme.defs ?? {}
   function resolveColor(color: ColorValue, chain: string[] = []): RGBA {
-    if (color instanceof RGBA) return color
+    if (isRgba(color)) return color
     if (typeof color === "string") {
       if (color === "transparent" || color === "none") return RGBA.fromInts(0, 0, 0, 0)
 

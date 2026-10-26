@@ -1273,3 +1273,19 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Açık: (b) Kalıcı
   çözüm: opentui tek kopya (typescript peer'ını eşitlemek) — Alp kararı / upstream'e bildirim.
 
+### G105 — qwen36 pod'unun gerçek vLLM ayarları (opencode topladı, Alp ekranları 2026-10-26 11:19)
+- Görülen: pod `qwen36-35b-a3b-fp8-00001-deployment-…` sdlgpuh200w1, 4g21h, restart 0. İmaj etiketi **v0.17.1** (Run:ai submit
+  annotation'ı; açılış logu yok — log 10-24'ten başlıyor). Komut: `--gpu-memory-utilization=0.92 --tensor-parallel-size=1
+  --max-num-seqs=16 --max-model-len=262144 --max-num-batched-tokens=4096 --enable-chunked-prefill --trust-remote-code
+  --skip-mm-profiling --enable-auto-tool-choice --tool-call-parser=qwen3_coder --enable-prefix-caching --kv-cache-dtype=fp8
+  --reasoning-parser=qwen3 --root-path=/inference/qwen36-35b-a3b-fp8`. Run:ai **0.5 GPU, 75377 MiB** (G59'da 1 GPU / 150754 —
+  değişmiş), `runai/shared-gpu-configmap` var. CPU 4/8, RAM 8Gi/32Gi, /dev/shm emptyDir Memory sizeLimit yok, /tmp hostPath
+  `/models/inferencetemp/…`. Metrik: `cache_config_info` num_gpu_blocks 1478, block_size 2096, fp8, prefix caching True,
+  swap_space 4; ölçüm anında running/waiting 0, kv_cache_usage 0, preemptions_total 0 (`_created` = zaman damgası, sayı değil).
+- Değerlendirme: parser'lar ve prefix caching model kartıyla uyumlu ✅. Sürüm kart altı (≥0.19.0 isteniyor) ⚠️. KV: 1478 × 2096 ≈
+  3,1M token; hesap (tahmin) fp8'de ~10 KiB/token → ~30 GB = 0.92 × 75377 MiB − ~37 GB ağırlık ile tutarlı → vLLM yarım GPU'yu
+  görüyor. 262K × 16 dizi (~4,2M) tam doluluğa sığmaz, tek kullanıcı opencode için sorun değil (preemption 0). `--max-num-batched-tokens
+  4096`: uzun girdinin ilk işlenmesi 4096'lık parçalarla (genel) — prefix caching çoğu turda bunu azaltır; ölçülmedi.
+- Öneriler (DevOps'a, uygulanmadı): vLLM ≥0.19; yarım GPU'yu paylaşan iş yükü [SAHA]; büyük işte TTFT ölçülüp batched-tokens
+  8192/16384 denemesi; sürüm yükselince `--language-model-only`. Sürüm doğrulama: `curl http://<pod-ip>:8000/version`.
+

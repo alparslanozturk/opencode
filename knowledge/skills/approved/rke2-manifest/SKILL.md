@@ -1,6 +1,6 @@
 ---
 name: rke2-manifest
-description: Kümeye git'teki manifesti uygularken ya da küme ile git'i karşılaştırırken kullan — kurum "elle GitOps": her kümenin manifestleri (StorageClass, optic izleme, twistlock, commvault …) Azure DevOps kubernetes deposunda `rancher/<adres>/<küme>/`; otomatik senkron yok. Sıra: pull → hedef küme → `kubectl diff` (salt-okunur) → CN ile `apply` → doğrulama + uygulanan commit. "manifest uygula", "gitten yükle", "kümeye yükle", "optic", "twistlock", "storage class", "storageclass", "commvault", "yeni kümeye standart bileşenler", "git ile küme aynı mı", "drift", "kayma" isteklerinde tetiklenir. Depo/klon/kimlik `git`, küme bulma `kume-bul`.
+description: Kümeye git'teki manifesti uygularken ya da küme ile git'i karşılaştırırken kullan — kurum "elle GitOps": her kümenin manifestleri (StorageClass, optic izleme, twistlock, commvault …) Azure DevOps kubernetes deposunda `rancher/<adres>/<küme>/`; otomatik senkron yok. Sıra: pull → hedef küme → `kubectl diff` (salt-okunur) → CN ile `apply` → doğrulama + uygulanan commit. "manifest uygula", "gitten yükle", "kümeye yükle", "optic", "twistlock", "storage class", "storageclass", "commvault", "yeni kümeye standart bileşenler", "git ile küme aynı mı", "drift", "kayma", "bu kümenin manifestlerini şu kümeye uyarla", "özelleştir", "yeni kümeye kopyala" isteklerinde tetiklenir. Depo/klon/kimlik `git`, küme bulma `kume-bul`.
 ---
 
 # Git'teki manifesti kümeye uygulama — elle GitOps
@@ -55,6 +55,28 @@ done
 
 Tablo: dosya · 0 aynı / 1 fark / >1 hata. Fark olanın ayrıntısı ayrı `diff` ile. Hangisinin doğru olduğuna kullanıcı karar verir:
 kümedeki elle değişiklik doğruysa **önce git'e işlenir** (`git` §4), sonra gerekirse uygulanır; git doğruysa §1.5.
+
+## 2b. Yeni kümeye uyarlama — yöntem A: kopyala + değiştir (Alp, 2026-10-26)
+
+Alp: "önce bir kümenin bütün gerekli manifestlerini kuracağım, sonra 'bu kümenin manifestlerini şu kümeye özelleştir' diyeceğim —
+cluster name, isimler, parametreler değişecek." Klasör kopyalanır, düz YAML kalır (Kustomize değil — Alp seçimi). Betik:
+`python3 /root/ai/opencode/knowledge/skills/approved/rke2-manifest/manifest-uyarla.py` (aşağıda **`MU`**).
+
+1. **Neyin değişeceğini bul — tahmin etme, depodan çıkar:**
+   `MU parametre git/kubernetes/rancher/<adres>/<kaynak-küme> git/kubernetes/rancher/<adres>/<başka-küme>` → aynı adlı dosyalarda
+   kümeler arasında **farklı olan** alanlar (ör. `DaemonSet/optic-agent … env[CLUSTER_NAME].value  test=test · production=production`)
+   + "değiştirme adayı" listesi. Tek küme varsa: dosyalarda küme adı, Rancher adresi, IP, namespace, NFS sunucusu geçen satırları göster.
+   Hedef değerleri (yeni küme adı, adresi …) **kullanıcı** verir ya da `kume-bul`'dan gelir — uydurma.
+2. **Kuru plan:** `MU kopyala <kaynak-klasör> git/kubernetes/rancher/<adres>/<yeni-küme> --degis <eski>=<yeni> [--degis …]` →
+   değişecek her satır (`- eski` / `+ yeni`), atlanan sır dosyaları, kaynakta hiç geçmeyen `--degis` (yazım?). Değişim **bütün kelime**:
+   `test` → `latest` içinde değişmez; `test-nfs` gibi birleşik adlar değişmez, sonda **KALAN** olarak listelenir — her birini kullanıcıya sor.
+   Planı kullanıcıya göster, onay al.
+3. **Yaz:** aynı komut `--yaz` → dosyalar yazılır, YAML ayrıştırılır (bozulan söylenir), hedefte kaynaktan **kalan** değerler listelenir
+   (çıkış 1). Var olan hedef dosyanın üzerine yazmaz. Kalanları ya yeni `--degis` ile (yeni klasöre) ya da tek tek düzelt.
+4. **Sır dosyaları** (`kind: Secret`, özel anahtar, `*.key/.pfx`, `pass*`) varsayılan **kopyalanmaz** — kümeye özeldir (twistlock/defender
+   sertifikası konsoldan küme için üretilir). Yeni kümede kullanıcı üretir/verir; `--sirlar-dahil` yalnız kullanıcı açıkça isterse.
+5. **Git'e işle** (`git` §4: yalnız yeni klasör, `add` tek tek) → **kümeye uygula** §1 (diff → CN ile apply → doğrula).
+   Sıra: önce git, sonra küme — kümede olup git'te olmayan manifest bırakma.
 
 ## 3. Yapma
 

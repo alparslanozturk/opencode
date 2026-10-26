@@ -38,6 +38,7 @@ betiktir; model ham veriyi betiğe **borular**, betiğin bastığı satırı **a
 | `cis-ozet.py` | `rhel-cis` | oscap ekran çıktısı → CIS madde no + L1/L2, kurum kararı ayrı (veri: SSG kontrol dosyaları) |
 | `playbook-denetim.py` | `ansible` | playbook'u çalıştırmadan bilinen hata kalıpları (hosts all, ignore_errors, pipefail, sahte başarı, curl -f …) |
 | `envanter-fark.py` | `git` | aynı envanter bilgisi birden çok yerde: ansible INI ↔ ENVANTER.md / başka INI farkı |
+| `manifest-uyarla.py` | `rke2-manifest` | küme manifest klasörünü yeni kümeye: parametre bul (kümeler arası fark) · kuru plan · kopyala + değiştir · kalan değer; sır kopyalanmaz |
 | `belge-oku.py` | `belge-oku` | Excel/Word/PowerPoint/PDF/OneNote dışa aktarımı → yer bilgili metin (serbest metin: sır maskelenmez — kopyalama kuralı SKILL §3) |
 
 Betik yazarken:

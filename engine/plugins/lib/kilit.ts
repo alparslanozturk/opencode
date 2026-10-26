@@ -46,6 +46,10 @@ export interface Yetki {
   aday?: { sunucular: string[]; zaman: number }
 }
 export const YETKI_OMRU_MS = 12 * 60 * 60 * 1000
+// G107 (Alp, 2026-10-26: "yeni bir değişiklik numarası gerektiğinde yeni bir session açacağım … sonra o session'ı kapatırım"):
+// CN yetkisi oturum boyunca geçerli (iş günlere yayılabilir: sunucu sunucu açılır); KRİZ/KURULUM 12 saatte düşer.
+export const yetkiDustu = (y: { tur: YetkiTur | null; zaman: number }, now: number) =>
+  y.tur !== "CN" && now - y.zaman > YETKI_OMRU_MS
 // Kriz mesajında yetki satırları dışında en az bu kadar metin (yapıştırılmış mail/toplantı notu) olmalı.
 export const KRIZ_METNI_MIN = 120
 
@@ -284,7 +288,7 @@ export function normHost(h: string): string {
 
 export function yetkiAktif(y: Yetki | undefined, now: number): y is Yetki & { tur: YetkiTur } {
   if (!y || !y.tur || y.sunucular.length === 0) return false
-  if (now - y.zaman > YETKI_OMRU_MS) return false
+  if (yetkiDustu(y, now)) return false
   if (y.tur === "CN") return Boolean(y.cn)
   // G74 (Alp, 2026-10-20: "kriz cümlesi yeterli olsun"): KRİZ için mail/toplantı notu şartı kalktı; krizMetni yalnız kayıt.
   return true
@@ -1892,7 +1896,7 @@ export function kilitDenetle(
         ? `${yetki.tur} verildi ama sunucu listesi yok — ajan hedefi bir önceki mesajında tek satır "sunucular: <ad>" ile önerip kullanıcıdan yalnız onay istemeli ("kriz var, evet" yeter; cümle dikte etme)`
         : yetki.tur === "CN" && !yetki.cn
           ? "CN numarası yok"
-          : "yetkinin süresi doldu (12 saat)"
+          : "yetkinin süresi doldu (KRİZ/KURULUM 12 saat)"
     return {
       kilit: "K1",
       mesaj: `[güvenlik kilidi K1] Bu komut değişiklik yapıyor (${nedenler}) → hedef: ${hedefler.join(", ")}. Çalıştırılmadı: ${eksik}.${yetki?.uyari ? ` Not: ${yetki.uyari}.` : ""}${diskNotu} ${YETKI_NASIL}`,

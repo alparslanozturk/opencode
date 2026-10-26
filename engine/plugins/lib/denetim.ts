@@ -2,12 +2,12 @@
 // (../guvenlik-v2.ts) kullanır; davranış 1.x adaptörüyle (../audit-log.ts) aynıdır.
 // Şema: ../../../knowledge/policy/AUDIT-FORMAT.md §2 (alanlar) + §3 (hash zinciri).
 // Bağımlılık yok: yalnız Node/Bun çekirdek modülleri.
-import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs"
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "fs"
 import { createHash, randomUUID } from "crypto"
 import { execFileSync } from "child_process"
 import { hostname, userInfo } from "os"
 import { dirname, join } from "path"
-import { KRIZ_METNI_MIN, YETKI_OMRU_MS, buyuk, yetkiAktif, yetkiOzeti, yetkiSatirlariniOku } from "./kilit"
+import { KRIZ_METNI_MIN, buyuk, yetkiDustu, yetkiAktif, yetkiOzeti, yetkiSatirlariniOku } from "./kilit"
 import { envanterOku, yetkiGenislet } from "./envanter"
 import type { Yetki } from "./kilit"
 
@@ -18,7 +18,7 @@ export const STALE_PENDING_MS = 5 * 60 * 1000
 export const auditYolu = () => process.env.OPS_AGENT_AUDIT_LOG ?? "/var/log/ops-agent/audit.jsonl"
 // G107 (Alp, 2026-10-26: "aynı session'dayım, niye yine change number soruyor? bu bir hata"): yetki yalnız bellekteydi →
 // opencode yeniden başlayınca (güncelleme, TUI kapanıp açılma) aynı oturumda CN yeniden soruluyordu. Kök oturumun yetkisi
-// audit dizininin yanında saklanır; bellekte yoksa buradan, ömrü (YETKI_OMRU_MS) dolmadıysa geri yüklenir.
+// audit dizininin yanında saklanır; bellekte yoksa buradan, düşmediyse (yetkiDustu) geri yüklenir.
 const yetkiDosyasi = (sessionID: string) =>
   /^[A-Za-z0-9_-]{1,128}$/.test(sessionID) ? join(process.env.OPS_AGENT_YETKI_DIZINI ?? join(dirname(auditYolu()), "yetki"), `${sessionID}.json`) : null
 
@@ -30,6 +30,11 @@ export function yetkiSakla(yetkiler: Map<string, Yetki>, sessionID: string) {
     if (!y) return rmSync(yol, { force: true })
     mkdirSync(dirname(yol), { recursive: true, mode: 0o700 })
     writeFileSync(yol, JSON.stringify(y), { mode: 0o600 })
+    // kapatılan oturumların dosyaları birikmesin: 30 gündür değişmeyen yetki dosyası silinir
+    for (const f of readdirSync(dirname(yol))) {
+      const eski = join(dirname(yol), f)
+      if (f.endsWith(".json") && Date.now() - statSync(eski).mtimeMs > 30 * 24 * 60 * 60 * 1000) rmSync(eski, { force: true })
+    }
   } catch (err) {
     console.error(`[guvenlik] yetki saklanamadı (${yol}):`, (err as Error).message)
   }
@@ -42,7 +47,7 @@ export function yetkiYukle(yetkiler: Map<string, Yetki>, sessionID: string, now 
   if (!yol || !existsSync(yol)) return undefined
   try {
     const y = JSON.parse(readFileSync(yol, "utf8")) as Yetki
-    if (typeof y?.zaman !== "number" || !Array.isArray(y.sunucular) || now - y.zaman > YETKI_OMRU_MS) return undefined
+    if (typeof y?.zaman !== "number" || !Array.isArray(y.sunucular) || yetkiDustu(y, now)) return undefined
     yetkiler.set(sessionID, y)
     return y
   } catch {
@@ -243,7 +248,7 @@ export function yetkiIsle(
     }
     // G100: beyan önceki mesajdaydı, sunucular bu mesajda (yalın liste ya da "şu sunucularda" cümlesi). Yalın liste beyanın
     // ömrü boyunca, cümledeki adlar yalnız beyandan sonraki AYRI_MESAJ_MS içinde — sonraki sıradan soru listeyi açmasın.
-    if (y?.tur && !y.sunucular.length && now - y.zaman <= YETKI_OMRU_MS) {
+    if (y?.tur && !y.sunucular.length && !yetkiDustu(y, now)) {
       const adlar = s.adaylar ?? (now - y.zaman <= AYRI_MESAJ_MS ? s.cumleAdlari : undefined)
       if (adlar?.length) {
         y.sunucular = adlar
@@ -269,7 +274,7 @@ export function yetkiIsle(
       : y && !y.tur && y.sunucular.length && now - y.zaman <= AYRI_MESAJ_MS
         ? y.sunucular
         : undefined
-  if (!y || now - y.zaman > YETKI_OMRU_MS || (s.tur && s.tur !== y.tur))
+  if (!y || yetkiDustu(y, now) || (s.tur && s.tur !== y.tur))
     y = { tur: s.tur ?? null, cn: null, krizMetni: false, sunucular: [], zaman: now }
   y.aday = undefined
   if (s.cn) {

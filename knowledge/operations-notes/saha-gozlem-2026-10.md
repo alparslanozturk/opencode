@@ -1314,4 +1314,7 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Düzeltme: kök oturumun yetkisi `<audit dizini>/yetki/<oturum>.json`'a (0600) yazılır, bellekte yoksa ömrü dolmadıysa geri yüklenir;
   "yetki kapat" dosyayı siler. `CN_KIMLIK`'e `DN` öneki. Test: kilit.test.ts 271/271, duman 26/26, beceri 84/84. Uçtan uca
   yeniden başlatma denemesi yapılmadı (birim test: boş bellekle yükleme).
-- Açık soru (Alp): 12 saatlik ömür çok günlük işlerde (bu iş 2026-10-22'de başladı) yetersiz olabilir — karar Alp'in.
+- Karar (Alp, 2026-10-26: "C seçeneği … yeni değişiklik numarası gerektiğinde yeni session açacağım … sonra o session'ı kapatırım"):
+  CN yetkisi **oturum boyunca** geçerli (12 saat yalnız KRİZ/KURULUM). (c)'nin "CN adlı iş envanterindeki her host yetkili" biçimi
+  uygulanmadı: o dosyayı ajan yazar (is-envanter.py) → ajan dosyaya host ekleyerek kendi yetkisini genişletebilirdi. Yetki yine
+  kullanıcının yazdığı liste (+ yetki anında dondurulan envanter eşlemesi, G74). 30 gündür değişmeyen yetki dosyası silinir.

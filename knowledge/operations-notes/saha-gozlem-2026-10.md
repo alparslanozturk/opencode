@@ -1318,3 +1318,11 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   CN yetkisi **oturum boyunca** geçerli (12 saat yalnız KRİZ/KURULUM). (c)'nin "CN adlı iş envanterindeki her host yetkili" biçimi
   uygulanmadı: o dosyayı ajan yazar (is-envanter.py) → ajan dosyaya host ekleyerek kendi yetkisini genişletebilirdi. Yetki yine
   kullanıcının yazdığı liste (+ yetki anında dondurulan envanter eşlemesi, G74). 30 gündür değişmeyen yetki dosyası silinir.
+
+### G108 — sertifika işi tamamlandı: 18/18 sunucu (Alp, 2026-10-26, ekran)
+- "Sertifika yükleme sunucu listesi" oturumu (G101 işi, CN dn29000): ajanın sonuç tablosu 18 sunucu, hepsi BAŞARILI — sdlaiworker01-03,
+  sdlaiworkergpu1, sdlaikube1-4, stlaiworker1-3, sxlaiworker1-3, splaiworker1-4. Ajanın özeti: "PAN-Captcha Root CA … anchors dizinine
+  kopyalandı, trust store güncellendi, Google CAPTCHA bağlantısı test edildi (HTTP 200)". 6m 22s, 150.8 tok/s.
+  Alp: "Bu işi çok güzel başardı … en sonunda yapıldı."
+- Küçük görüntü kusuru: TUI tablosunda "Durum" başlığı bir satır aşağı kaymış (son satır splaiworker4'ün yanı boş görünüyor); sayım
+  18 ad / 18 BAŞARILI tutarlı. Ajan özeti dışında ayrı doğrulama çıktısı ekranda yok.

@@ -858,3 +858,18 @@ describe("G107: yetki yeniden başlatmadan sonra aynı oturumda geri yüklenir; 
     expect(yetkiAktif(m.get("k"), Date.now() + 13 * 60 * 60 * 1000)).toBe(false)
   })
 })
+
+describe("G109: git'in kullanıcı ayar/kimlik dosyaları bu makinede K1 değil (Alp 2026-10-26)", () => {
+  const k = (c: string) => kilitDenetle("bash", { command: c }, workdir, undefined)
+  test("sahadaki komut: .git-credentials'a ekle + helper store", () => {
+    expect(k(`echo "https://:X@ktdevops/tfs" >> ~/.git-credentials && git config --global credential.helper store && cat ~/.git-credentials`)).toBeNull()
+  })
+  test("~/.gitconfig ve ~/.config/git/ yazma serbest", () => {
+    expect(k("printf '[user]\\n' >> ~/.gitconfig")).toBeNull()
+    expect(k("mkdir -p ~/.config/git && echo x > ~/.config/git/credentials")).toBeNull()
+  })
+  test("başka ev dosyası ve uzak makinede aynı dosya hâlâ K1", () => {
+    expect(k("echo x >> ~/.bashrc")?.kilit).toBe("K1")
+    expect(k(`ssh root@ornekweb01 "echo x >> ~/.git-credentials"`)?.kilit).toBe("K1")
+  })
+})

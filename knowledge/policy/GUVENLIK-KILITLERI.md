@@ -119,6 +119,8 @@ kriz var, db01 ve wor07-08'de ödeme servisi durdu
   `10.0.0.127-134` açılır (her yetki türünde).
   Önerilen akış: mail yapıştırılır → ajan maildan etkilenen sunucuları çıkarıp **önerir** → sen
   `sunucular: …` yazınca iş başlar. Ajanın önerdiği liste sen yazana kadar geçersizdir.
+- Bu makinede git'in kullanıcı ayar/kimlik dosyaları (`~/.gitconfig`, `~/.git-credentials`, `~/.config/git/`, `~/.cache/git/`) K1 dışıdır —
+  kullanıcının araç ayarı (G109, Alp 2026-10-26). Uzak makinede aynı dosya yine K1.
 - **Bu makine** için listeye `localhost` yaz (örn. bu makinede `systemctl restart`, `/etc` düzenleme).
 - Liste her `sunucular:` satırında **yenilenir** (eklenmez). `YETKİ KAPAT` yetkiyi kaldırır.
   Yetki oturuma bağlıdır. **CN yetkisi oturum boyunca** geçerlidir (G107, Alp 2026-10-26: bir CN = bir oturum; iş bitince

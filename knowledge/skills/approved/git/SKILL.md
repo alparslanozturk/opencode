@@ -70,8 +70,9 @@ opencode                              # bu kabuktan başlat — ajanın git komu
   ölçüldü (yerel iki HTTP sunucusu: hedefe `Authorization: Basic …`, ötekine yok). Diske yazılmaz; oturum kapanınca gider.
 - Ajan: yalnız `git -C git/<depo> pull/log/grep/clone <adres>` — başlık otomatik. `env`/`printenv`/`set` çıktısı **basma**
   (değer görünür). Çalışmıyorsa (opencode başka kabuktan açılmış arka plan servisine bağlanmış olabilir) kullanıcıya söyle; PAT isteme.
-- `~/.git-credentials` / `credential.helper store` **yazma** (PAT diske düz metin; G109'da kilit K1 durdurdu) — kullanıcı onay verse de;
-  kullanıcıya "sunucular: localhost" yazdırıp kilidi açtırma. Yol 1'i öner.
+- Git'in kullanıcı dosyaları (`~/.gitconfig`, `~/.git-credentials`, `~/.config/git/`) bu makinede kilit dışı (Alp, 2026-10-26: "git
+  config'i konfigüre edecek, helper — bunun kilidi mi olur?"). Önerilen yine `git-giris.sh` (bellek); kullanıcı kalıcı `store` isterse yap,
+  bir kez "PAT diske düz metin yazılır (`~/.git-credentials`)" de.
 - Kullanıcı PAT'i/parolayı sohbete yazarsa: **kullanma**, komuta/URL'ye koyma; "token sohbete düştü, iptal edip yenisini oluşturun,
   yukarıdaki yolla verin" de (G109: PAT URL'de ve `-c http.extraHeader` komutunda açık yazıldı).
 

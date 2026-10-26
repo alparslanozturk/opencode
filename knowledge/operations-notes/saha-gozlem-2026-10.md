@@ -1347,6 +1347,8 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Kök neden (Doktor, yerelde yeniden üretildi): sunucu yalnız Negotiate+NTLM önerince git NTLM seçiyor, PAT Basic gitmiyor; curl `-u`
   varsayılanı Basic olduğu için 200. `http.<url>.proactiveAuth=basic` + `credential.helper cache` ile ajan komutu parolasız geçti.
   `git` §1a Yol 1 buna göre; `.git-credentials`/store yasak satırı eklendi.
+- Karar (Alp, aynı akşam): "git config'i konfigüre edecek adam, helper — bunun kilidi mi olur? İzin ver diyorum, izin de vermiyor."
+  → kilit: bu makinede git'in kullanıcı dosyaları K1 dışı (`gitKullaniciDosyasi`, test 275/275); `git-giris.sh` tek komut giriş.
 - Açık: kalıcı çözüm adayı — `guvenlik-v2` kilidi komutta PAT/parola biçimi (URL'de `user:pass@`, `password=`, `Authorization: Basic`)
   görünce engellesin mi? Alp'e soruldu.
 

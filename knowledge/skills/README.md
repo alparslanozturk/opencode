@@ -36,6 +36,9 @@ betiktir; model ham veriyi betiğe **borular**, betiğin bastığı satırı **a
 | `uyum.py` | `surum-uyum` | sürüm uyumu, EOL, yükseltme yolu; GPU Operator/sürücü/GPU modeli, Run:ai ↔ K8s ↔ GPU Operator |
 | `leapp-rapor.py` | `rhel-yukseltme` | `leapp preupgrade` raporu (JSON) → ENGEL önce, önem sırası, çözüm; çok sunucu özeti |
 | `cis-ozet.py` | `rhel-cis` | oscap ekran çıktısı → CIS madde no + L1/L2, kurum kararı ayrı (veri: SSG kontrol dosyaları) |
+| `playbook-denetim.py` | `ansible` | playbook'u çalıştırmadan bilinen hata kalıpları (hosts all, ignore_errors, pipefail, sahte başarı, curl -f …) |
+| `envanter-fark.py` | `git` | aynı envanter bilgisi birden çok yerde: ansible INI ↔ ENVANTER.md / başka INI farkı |
+| `belge-oku.py` | `belge-oku` | Excel/Word/PowerPoint/PDF/OneNote dışa aktarımı → yer bilgili metin (serbest metin: sır maskelenmez — kopyalama kuralı SKILL §3) |
 
 Betik yazarken:
 - **Yalnız okur.** Uzak komut betiğin **içinde değil**, borunun başında (`ssh … "<okuma>" | python3 betik.py -` ya da
@@ -61,7 +64,7 @@ platformda bir iş**; ortak veri/araç tek yerde (`surum-uyum/uyum.py`), diğerl
 - **vcf-** (VMware VCF): veri gelince `vcf-denetim` · `vcf-yukseltme`
 - **rhel-**: `rhel-yonetim` · `rhel-guncelleme` · `rhel-guvenlik` · `rhel-cis` (CIS L1/L2, OpenSCAP) · `rhel-gpu-surucu` (NVIDIA sürücü/CUDA/FM) · `rhel-depolama` · `rhel-performans` · `rhel-sorun` · `rhel-teslim` · `rhel-yukseltme` (Leapp 8 → 9 → 10, Satellite CV)
 - **idm-** (Red Hat IdM + AD trust): `idm-kurulum` · `idm-erisim` (HBAC, sudo, AD grup eşleme)
-- **genel**: `bankacilik-uyum` (BDDK/KVKK/PCI ↔ kanıt) · `ansible` · `filo-kontrol` · `kume-bul` (envanter + küme kimliği: ad/IP → küme/platform, Rancher haritası, sertifika — `kume-bul.py`) · `rapor` · `sep-paket`
+- **genel**: `bankacilik-uyum` (BDDK/KVKK/PCI ↔ kanıt) · `ansible` · `belge-oku` (kurum belgesi: Excel/Word/PDF/OneNote) · `git` · `filo-kontrol` · `kume-bul` (envanter + küme kimliği: ad/IP → küme/platform, Rancher haritası, sertifika — `kume-bul.py`) · `rapor` · `sep-paket`
 - **ortak**: `surum-uyum` (uyum.py + çevrimdışı matris/EOL verisi — tüm platformlar)
 
 Eski → yeni (2026-10-17): kume-denetim → rke2-denetim + rke2-gpu · rke2-ansible → rke2-kurulum + rke2-node-ekle (+ matris →

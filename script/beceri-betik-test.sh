@@ -137,6 +137,42 @@ icerir "INI: yalnız karşıda" ef.txt "yeniapp01 (ef2.ini:6) kaynak envanterde 
 icermez "INI: kısa ad = FQDN fark sayılmaz" ef.txt "ornekweb01.kurum.local (ef2.ini"
 icerir "fark varsa çıkış 1" ef.txt "rc=1"
 
+# --------------------------------------------------------------------------- belge-oku
+baslik "belge-oku.py (Excel/Word/PowerPoint/MHT; Alp 2026-10-26)"
+python3 - << 'E'
+import zipfile
+from email.mime.text import MIMEText
+S = '<?xml version="1.0"?>'
+with zipfile.ZipFile("bo.xlsx", "w") as z:
+    z.writestr("xl/workbook.xml", S + '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Sunucular" sheetId="1" r:id="rId1"/><sheet name="Eski" sheetId="2" state="hidden" r:id="rId2"/></sheets></workbook>')
+    z.writestr("xl/_rels/workbook.xml.rels", S + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Target="worksheets/sheet2.xml"/></Relationships>')
+    z.writestr("xl/sharedStrings.xml", S + '<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><si><t>ornekweb01</t></si><si><t>192.0.2.11</t></si></sst>')
+    z.writestr("xl/styles.xml", S + '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cellXfs><xf numFmtId="0"/><xf numFmtId="14"/><xf numFmtId="22"/></cellXfs></styleSheet>')
+    z.writestr("xl/worksheets/sheet1.xml", S + '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><dimension ref="A1:D2"/><sheetData><row r="2"><c r="A2" t="s"><v>0</v></c><c r="B2" t="s"><v>1</v></c><c r="C2" s="1"><v>46317</v></c><c r="D2" s="2"><v>46027.604166666664</v></c></row></sheetData><mergeCells><mergeCell ref="A5:D5"/></mergeCells></worksheet>')
+    z.writestr("xl/worksheets/sheet2.xml", S + '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>kapatıldı</t></is></c></row></sheetData></worksheet>')
+W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
+with zipfile.ZipFile("bo.docx", "w") as z:
+    z.writestr("word/document.xml", S + '<w:document %s><w:body><w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:t>DNS</w:t></w:r></w:p><w:tbl><w:tr><w:tc><w:p><w:r><w:t>dns01</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>192.0.2.53</w:t></w:r></w:p></w:tc></w:tr></w:tbl></w:body></w:document>' % W)
+A = 'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"'
+with zipfile.ZipFile("bo.pptx", "w") as z:
+    z.writestr("ppt/slides/slide10.xml", '<p:sld %s><a:p><a:r><a:t>Mimari</a:t></a:r></a:p></p:sld>' % A)
+open("bo.mht", "w").write(MIMEText("<html><body><h1>Rancher</h1><table><tr><td>test</td><td>v1.33.13</td></tr></table></body></html>", "html", "utf-8").as_string())
+E
+for f in bo.xlsx bo.docx bo.pptx bo.mht; do python3 "$B/belge-oku/belge-oku.py" "$f"; done > bo.txt 2>&1
+icerir "xlsx: paylaşılan dizge + yer" bo.txt "Sunucular!2  A2=ornekweb01 | B2=192.0.2.11"
+icerir "xlsx: tarih biçimli hücre" bo.txt "C2=2026-10-22"
+icerir "xlsx: saat yuvarlaması (14:30)" bo.txt "D2=2026-01-05 14:30"
+icerir "xlsx: gizli sayfa işaretli" bo.txt "Eski (gizli)"
+icerir "xlsx: birleşik hücre" bo.txt "A5:D5"
+icerir "docx: başlık + tablo" bo.txt "tablo1.satır1  dns01 | 192.0.2.53"
+icerir "pptx: slayt no" bo.txt "slayt10.1  Mimari"
+icerir "mht (OneNote dışa aktarımı): tablo" bo.txt "test | v1.33.13"
+python3 "$B/belge-oku/belge-oku.py" bo.xlsx --ara 'web01' > bo2.txt 2>&1
+icermez "--ara daraltır" bo2.txt "kapatıldı"
+echo x > bo.one; python3 "$B/belge-oku/belge-oku.py" bo.one > bo3.txt 2>&1; echo "rc=$?" >> bo3.txt
+icerir ".one: dışa aktarma yolu + çıkış 2" bo3.txt "Dışarı Aktar"
+icerir ".one çıkış 2" bo3.txt "rc=2"
+
 # --------------------------------------------------------------------------- filo-tablo
 baslik "filo-tablo.py (G22, G77)"
 mkdir -p tree

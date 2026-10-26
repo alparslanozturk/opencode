@@ -1,6 +1,6 @@
 ---
 name: git
-description: Kurum git depolarında çalışırken kullan — Azure DevOps Server (kurum içi, on-prem) depoları: ansible (playbook, iş envanteri), envanter, Kubernetes manifestleri, dokümanlar (MD). Depodan bilgi okuma, mükerrer bilgiyi karşılaştırma (ENVANTER.md ↔ ansible envanteri, `envanter-fark.py`), playbook/doküman ekleyip main'e push, parola sorma hatası, Semaphore'un okuyacağı düzen. "git", "repo", "depo", "commit", "push", "pull", "main", "envanter deposu", "azure devops", "tfs", "manifest deposu", "dokümanı depoya koy" isteklerinde tetiklenir. Playbook yazımı ve çalıştırma `ansible`.
+description: Kurum git depolarında çalışırken kullan — Azure DevOps Server (kurum içi, on-prem) depoları: ansible (playbook, iş envanteri), envanter, Kubernetes manifestleri, dokümanlar (MD). İlk klon (`git/<depo>`), kurum CA/TLS hatası, depodan bilgi okuma, mükerrer bilgiyi karşılaştırma (ENVANTER.md ↔ ansible envanteri, `envanter-fark.py`), playbook/doküman ekleyip main'e push, parola sorma hatası, Semaphore'un okuyacağı düzen. "git", "repo", "depo", "commit", "push", "pull", "main", "envanter deposu", "azure devops", "tfs", "manifest deposu", "dokümanı depoya koy" isteklerinde tetiklenir. Playbook yazımı ve çalıştırma `ansible`.
 ---
 
 Doğrulandı: git 2.52, 2026-10-23 (yerel ölçüm; sahadaki sürüm `git --version`)
@@ -34,6 +34,28 @@ git config --global credential.helper 'cache --timeout=28800'
 
 `cache` parolayı **yalnız bellekte** 8 saat tutar, diske yazmaz; o süre boyunca ajanın git komutları çalışır (ölçüldü: önbellekten
 `Authorization: Basic` gönderildi, diskte parola yok). Sunucu NTLM/Kerberos isterse davranış sahada doğrulanacak — farklıysa not düş.
+
+## 1b. İlk klon (Alp, 2026-10-26: "bulunduğum klasörde bir dizin aç git diye, repoları orada clone yaparsın")
+
+Depolar çalışma dizinindeki **`git/`** altına klonlanır: `git/<depo-adı>` (ör. `git/kubernetes`). Adres kullanıcıdan gelir
+(Azure DevOps "Clone → HTTPS"); uydurma. İlk klonda parola gerekir ve ajan parola giremez (§1) → **ilk klonu kullanıcı kendi
+terminalinde yapar**, sen komutu ver:
+
+```bash
+git config --global credential.helper 'cache --timeout=28800'   # bir kez; parola yalnız bellekte 8 saat
+mkdir -p git && git -C git clone <https adresi>                 # AD kullanıcı adı/parola kullanıcı girer
+```
+
+Sonra `git -C git/<depo> pull --ff-only` / `log` / `grep` sen çalıştırırsın (önbellek süresince). Önbellek düşerse yine §1.
+
+**Sertifika hatası** (genel — git'in https hatası; sahada ilk klonda görülürse not düş):
+`SSL certificate problem: unable to get local issuer certificate` ya da `server certificate verification failed` → sunucunun
+sertifikasını veren kurum CA'sı bu makinenin güven deposunda yok.
+- `http.sslVerify=false` / `GIT_SSL_NO_VERIFY` **yasak** (araya giren her sunucuya parola gider).
+- Doğru yol: kurum CA'sını güven deposuna eklemek (`/etc/pki/ca-trust/source/anchors/` + `update-ca-trust extract`) — makinede
+  değişiklik, kullanıcının kararı; CA dosyasını kullanıcı verir. Yalnız bu depo için geçici: `git -c http.sslCAInfo=<ca.pem> clone …`.
+- Hangi CA? `echo | openssl s_client -connect <sunucu>:443 -showcerts 2>/dev/null | openssl x509 -noout -issuer -subject -enddate`
+  (salt-okunur) → issuer satırını kullanıcıya göster.
 
 ## 2. Önce nerede olduğunu bil
 

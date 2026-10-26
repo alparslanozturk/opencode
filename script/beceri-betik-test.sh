@@ -80,6 +80,13 @@ icerir "yönetilen küme listelendi" kb3.txt "[uygulama] id=c-m-1"
 icerir "--kaydet dosya yazdı" kb3.txt "yazıldı ansible/inventories/rancher-rancher.ornek.local.ini"
 python3 "$B/kume-bul/kume-bul.py" ornekapp01 > kb4.txt 2>&1
 icerir "kaydedilen haritadan bağlanmadan bulundu" kb4.txt "rancher_kume_adi=uygulama"
+python3 "$B/kume-bul/kume-bul.py" uygulama > kb5.txt 2>&1
+icerir "küme adıyla (rancher_kume_adi) bulundu" kb5.txt "rancher_kume_adi=uygulama"
+icerir "küme adıyla üyeler listelendi" kb5.txt "üyeler (1): ornekapp01"
+python3 "$B/kume-bul/kume-bul.py" rke-ornek-test > kb6.txt 2>&1
+icerir "grup adıyla bulundu" kb6.txt "üyeler (3): ornekwor01 ornekwor02 ornekwor03"
+python3 "$B/kume-bul/kume-bul.py" ai-test > kb7.txt 2>&1
+icerir "olmayan küme adı hâlâ YOK der" kb7.txt "envanterde YOK"
 
 # --------------------------------------------------------------------------- filo-tablo
 baslik "filo-tablo.py (G22, G77)"

@@ -1289,3 +1289,15 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Öneriler (DevOps'a, uygulanmadı): vLLM ≥0.19; yarım GPU'yu paylaşan iş yükü [SAHA]; büyük işte TTFT ölçülüp batched-tokens
   8192/16384 denemesi; sürüm yükselince `--language-model-only`. Sürüm doğrulama: `curl http://<pod-ip>:8000/version`.
 
+
+### G106 — "ai-test kümesini kontrol eder misin?": küme adı envanterde aranamıyordu (Alp, 2026-10-26, ekran)
+- Model doğru başladı: `k8s-sorun` + `kume-bul` becerisi → `kume-bul.py ai-test` → "envanterde YOK". Betik yalnız host adı / kısa ad /
+  `ansible_host` eşliyordu; `ai-test` bir **küme adı** — grup adına ve kayıtlı Rancher haritasındaki `rancher_kume_adi`'ya bakılmıyordu
+  (kume-bul.py, düzeltme öncesi `esles` yalnız `ad`/`kisa`).
+- Sonra model betiği bırakıp elle arama yaptı: `grep -rl "ai-test" /root/ai/work/opencode/ /root/ai/ /etc/rancher/`, ardından
+  `for f in … 2>/dev/null; do` biçiminde bir döngü → bash "syntax error near unexpected token `2'" (çıkış 2; yönlendirme `for` listesinde
+  geçersiz). SKILL §0 "elle grep/awk zinciri kurma" kuralına aykırı.
+- Düzeltme: kume-bul.py host bulunamazsa grup adına (`-` → `_` dahil) ve `rancher_kume_adi=<ad>`'a bakar, üyeleri + `:vars`'ı basar;
+  SKILL §1'e "küme adıyla sorgu" maddesi. Test: beceri-betik-test.sh 84/84 (küme adı, grup adı, olmayan küme adı).
+- Sahada `ai-test` adı envanterde/haritada yoksa yine "YOK" çıkar (doğru) → bir kez Rancher local master'ından §3 `--kaydet`
+  gerekir. ai-test'in hangi Rancher'a bağlı olduğu [SAHA].

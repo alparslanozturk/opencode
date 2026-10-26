@@ -1266,6 +1266,10 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   (kalanlar aynı iki-kopya tür uyuşmazlığı, önceden vardı). kur.sh derle: bun `packageManager`'dan eskiyse repodaki tgz'den
   `bin/bun` (sahte 1.4.2 ile denendi: açtı, 1.4.4 ile derledi; 2. koşu mevcut bin/bun). Kontrol `log` satırı models.dev
   hatasını saymaz. Duman 26/26.
-- Açık: (a) kirli ağaç — sahada hangi dosyalar [SAHA] (`git status --short`); tahmin: al.sh rsync kalıntısı (G1). (b) Kalıcı
+- Kirli ağaç (Alp ekranı 11:05 sonrası `git status --short`): ` M bun.lock`, `?? bin/bun-linux-x64-baseline-1.4.2.tgz`,
+  `?? bun-linux-x64.zip` — Alp'in elle indirdiği bun dosyaları; repoda `bin/bun-linux-x64-baseline-1.4.4.tgz` 2026-10-23'ten beri
+  var (kur.sh artık eski bun'da onu kullanır). bun.lock değişikliği: yerelde bun 1.4.4 + aynı `--filter` kurulumu lock'u değiştirmiyor
+  ("no changes") → tahmin: ilk koşudaki bun 1.4.2 yazdı; Alp'ten geri alıp tekrar kurması istendi.
+- Açık: (b) Kalıcı
   çözüm: opentui tek kopya (typescript peer'ını eşitlemek) — Alp kararı / upstream'e bildirim.
 

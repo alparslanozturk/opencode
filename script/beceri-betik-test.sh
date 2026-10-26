@@ -88,6 +88,42 @@ icerir "grup adıyla bulundu" kb6.txt "üyeler (3): ornekwor01 ornekwor02 ornekw
 python3 "$B/kume-bul/kume-bul.py" ai-test > kb7.txt 2>&1
 icerir "olmayan küme adı hâlâ YOK der" kb7.txt "envanterde YOK"
 
+# --------------------------------------------------------------------------- playbook-denetim
+baslik "playbook-denetim.py (G26, G43, G93)"
+cat > pd-ekip.yml << 'E'
+- hosts: all
+  ignore_errors: yes
+  tasks:
+    #- copy: src=k.sh dest=/tmp/k.sh
+    - name: kur
+      shell: bash /tmp/k.sh
+    - name: eski kaldır
+      shell: rpm -e sep
+    - name: indir
+      shell: curl -s -o /root/x http://srv/x
+    - shell: dnf update -y --skip-broken | tail -5; echo Update complete.
+E
+cat > pd-temiz.yml << 'E'
+- hosts: google-captcha-cert
+  tasks:
+    - name: oku
+      ansible.builtin.command: rpm -q chrony
+      changed_when: false
+  handlers:
+    - name: yenile
+      ansible.builtin.command: update-ca-trust extract
+E
+printf -- '- hosts: x\n  tasks:\n    - debug:\n        msg: {{ x }}\n' > pd-bozuk.yml
+python3 "$B/ansible/playbook-denetim.py" pd-ekip.yml > pd1.txt 2>&1; echo "rc=$?" >> pd1.txt
+for k in hosts-all play-ignore yorumdaki-onkosul yikici-sira curl-fail pipefail sahte-basari skip-broken "rc=1"; do
+  icerir "ekip playbook'u: $k" pd1.txt "$k"
+done
+python3 "$B/ansible/playbook-denetim.py" pd-temiz.yml > pd2.txt 2>&1; echo "rc=$?" >> pd2.txt
+icerir "temiz playbook (okuma görevi + handler) bulgusuz" pd2.txt "bulgu yok"
+icerir "temiz çıkış 0" pd2.txt "rc=0"
+python3 "$B/ansible/playbook-denetim.py" pd-bozuk.yml > pd3.txt 2>&1; echo "rc=$?" >> pd3.txt
+icerir "bozuk YAML çıkış 2" pd3.txt "rc=2"
+
 # --------------------------------------------------------------------------- filo-tablo
 baslik "filo-tablo.py (G22, G77)"
 mkdir -p tree

@@ -1,6 +1,6 @@
 ---
 name: git
-description: Kurum git depolarında çalışırken kullan — Azure DevOps Server (kurum içi, on-prem) depoları: ansible (playbook, iş envanteri), envanter, Kubernetes manifestleri, dokümanlar (MD). Depodan bilgi okuma, playbook/doküman ekleyip main'e push, parola sorma hatası, Semaphore'un okuyacağı düzen. "git", "repo", "depo", "commit", "push", "pull", "main", "envanter deposu", "azure devops", "tfs", "manifest deposu", "dokümanı depoya koy" isteklerinde tetiklenir. Playbook yazımı ve çalıştırma `ansible`.
+description: Kurum git depolarında çalışırken kullan — Azure DevOps Server (kurum içi, on-prem) depoları: ansible (playbook, iş envanteri), envanter, Kubernetes manifestleri, dokümanlar (MD). Depodan bilgi okuma, mükerrer bilgiyi karşılaştırma (ENVANTER.md ↔ ansible envanteri, `envanter-fark.py`), playbook/doküman ekleyip main'e push, parola sorma hatası, Semaphore'un okuyacağı düzen. "git", "repo", "depo", "commit", "push", "pull", "main", "envanter deposu", "azure devops", "tfs", "manifest deposu", "dokümanı depoya koy" isteklerinde tetiklenir. Playbook yazımı ve çalıştırma `ansible`.
 ---
 
 Doğrulandı: git 2.52, 2026-10-23 (yerel ölçüm; sahadaki sürüm `git --version`)
@@ -76,6 +76,27 @@ git -C <depo> push origin main
   İki tarafı da okumadan çözme.
 - Parola/anahtar/token **depoya girmez** — Semaphore'da Key Store'a, playbook'ta değişken adı olarak (`ansible` §9).
 - Rapor: commit hash'i + "main'e push edildi" ya da "push edilmedi" — kullanıcı işin uzakta olduğunu sanmasın.
+
+## 6. Mükerrer bilgi — aynı sunucu birden çok yerde (Alp, 2026-10-26)
+
+Aynı bilgi birden çok depoda/dosyada tutulur: dokümandaki `ENVANTER.md`, ansible deposundaki INI envanteri, ayrı envanter
+çalışması. Pipeline/otomatik eşitleme **yok** (yalnız git) → zamanla ayrışır. Kural:
+
+- **Karşılaştır, karar verme.** Hangisinin doğru olduğunu betik de sen de bilmezsin — farkı göster, kullanıcı söyler:
+
+  ```bash
+  python3 /root/ai/opencode/knowledge/skills/approved/git/envanter-fark.py <ansible-depo>/inventories/hosts.ini \
+    --karsi <dokuman-depo>/ENVANTER.md --karsi <envanter-depo>/<dosya>.ini
+  ```
+
+  Çıktı: `ip-farkli` (aynı ad, farklı IP — `dosya:satır` iki taraf), `yalnız-kaynakta`, `yalnız-karşıda`. MD biçimi varsayılmaz
+  (INI'deki ad/IP metinde aranır); MD'de IP'siz yazılmış ve INI'de olmayan ad yakalanmaz — o satırları kullanıcı okur. İş envanterleri
+  (`hosts-<CN>-<tarih>.ini`) kaynak verme — bir işin kaydıdır, envanter değil (`ansible`).
+- Önce her depoda `pull --ff-only` (§3) — eski klonla karşılaştırma yanlış fark üretir.
+- Düzeltme ayrı iş: kullanıcı "şu doğru" deyince yalnız o dosyayı düzelt, §4 ile push et; commit mesajında karşı dosyayı an
+  ("ENVANTER.md: ornekweb02 IP'si ansible hosts.ini ile eşitlendi"). Bir taraftan ötekine **toplu kopyalama** yapma.
+- Bir sunucu eklendi/kaldırıldıysa (kurulum, iade) işi bitirirken kullanıcıya hangi yerlerin güncellenmesi gerektiğini tek satırla
+  hatırlat — kendiliğinden doküman deposuna yazma.
 
 ## 5. Yapma
 

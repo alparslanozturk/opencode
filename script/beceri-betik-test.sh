@@ -124,6 +124,19 @@ icerir "temiz çıkış 0" pd2.txt "rc=0"
 python3 "$B/ansible/playbook-denetim.py" pd-bozuk.yml > pd3.txt 2>&1; echo "rc=$?" >> pd3.txt
 icerir "bozuk YAML çıkış 2" pd3.txt "rc=2"
 
+# --------------------------------------------------------------------------- envanter-fark
+baslik "envanter-fark.py (mükerrer envanter, Alp 2026-10-26)"
+printf '[web]\nornekweb01 ansible_host=192.0.2.11\nornekweb02 ansible_host=192.0.2.12\n[db]\nornekdb[01:02].kurum.local\n' > ef.ini
+printf '| Sunucu | IP |\n|---|---|\n| ornekweb01 | 192.0.2.11 |\n| ornekweb02 | 192.0.2.99 |\n| ornekdb01 | - |\n| eskiweb03 | 192.0.2.13 |\n' > ef.md
+printf '[x]\nornekweb01.kurum.local ansible_host=192.0.2.11\nornekweb02 ansible_host=192.0.2.12\nornekdb01\nornekdb02.kurum.local\nyeniapp01 ansible_host=192.0.2.21\n' > ef2.ini
+python3 "$B/git/envanter-fark.py" ef.ini --karsi ef.md --karsi ef2.ini > ef.txt 2>&1; echo "rc=$?" >> ef.txt
+icerir "MD: aynı ad farklı IP" ef.txt "ornekweb02: kaynakta 192.0.2.12 (ef.ini:3) · ef.md:4'de 192.0.2.99"
+icerir "MD: aralıktan açılan host MD'de yok" ef.txt "ornekdb02.kurum.local (ef.ini:5) ef.md'de yok"
+icerir "MD: yalnız dokümanda olan IP" ef.txt "ef.md:6  192.0.2.13"
+icerir "INI: yalnız karşıda" ef.txt "yeniapp01 (ef2.ini:6) kaynak envanterde yok"
+icermez "INI: kısa ad = FQDN fark sayılmaz" ef.txt "ornekweb01.kurum.local (ef2.ini"
+icerir "fark varsa çıkış 1" ef.txt "rc=1"
+
 # --------------------------------------------------------------------------- filo-tablo
 baslik "filo-tablo.py (G22, G77)"
 mkdir -p tree

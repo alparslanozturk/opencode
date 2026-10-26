@@ -734,7 +734,20 @@ export function serbestYazmaAlani(abs: string, b: Baglam): boolean {
     abs.startsWith("/dev/fd/") ||
     abs.startsWith("/dev/tcp/") || // bash port testi (`echo > /dev/tcp/host/22`), dosya değil
     abs.startsWith("/dev/udp/") ||
-    abs.startsWith("/proc/self/")
+    abs.startsWith("/proc/self/") ||
+    gitKullaniciDosyasi(abs, b)
+  )
+}
+
+// Alp (2026-10-26, G109): "git config'i konfigüre edecek, helper — bunun kilidi mi olur?" Git'in KULLANICI ayar/kimlik dosyaları
+// (bu makinede, çalışan kullanıcının evinde) kullanıcının kendi araç ayarıdır, sunucu değişikliği değil → K1 dışı. Uzak makinede değil.
+export function gitKullaniciDosyasi(abs: string, b: Baglam): boolean {
+  if (b.uzak !== null) return false
+  return (
+    abs === join(b.home, ".gitconfig") ||
+    abs === join(b.home, ".git-credentials") ||
+    isInside(join(b.home, ".config", "git"), abs) ||
+    isInside(join(b.home, ".cache", "git"), abs)
   )
 }
 

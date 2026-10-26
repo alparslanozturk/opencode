@@ -42,16 +42,19 @@ Kurum Azure DevOps Server'ı `WWW-Authenticate: Negotiate, NTLM` döndürüyor; 
 Basic** kabul ediliyor. Sebep (yerelde yeniden üretildi, git 2.52): sunucu yalnız `Negotiate`/`NTLM` önerince git **NTLM seçer**, PAT'i
 hiç Basic göndermez. Çözüm git'in kendi ayarı `http.<url>.proactiveAuth=basic` (git ≥ 2.46).
 
-**Yol 1 (önerilen) — bellek önbelleği:** kullanıcı **kendi terminalinde** bir kez:
+**Yol 1 (önerilen) — `git-giris.sh`, herkes kendi PAT'iyle, kendi terminalinde:**
 
 ```bash
-git config --global credential.helper 'cache --timeout=28800'          # PAT yalnız bellekte, 8 saat
-git config --global 'http.https://<tfs-sunucu>/.proactiveAuth' basic   # yalnız bu sunucuya Basic
-git -C git clone https://<tfs-sunucu>/…/_git/<depo>                     # Username: boş bırak (Enter) · Password: PAT
+/root/ai/opencode/git-giris.sh https://<tfs-sunucu>/…/_git/<depo>    # ilk sefer: Kullanıcı → Enter, PAT → yapıştır → "✓ Bağlantı tamam"
+/root/ai/opencode/git-giris.sh                                       # sonraki günler (sunucu hatırlanır)
 ```
 
-Sonra ajanın `git -C git/<depo> pull/log/clone …` komutları önbellekten çalışır (ölçüldü: yerel sunucu Negotiate+NTLM önerirken
-ajan komutu parolasız, tek `Authorization: Basic` ile geçti). 8 saat dolunca kullanıcı bir kez `git -C git/<depo> pull` ile yeniler.
+Betik bu sunucu için bellek önbelleğini + `proactiveAuth=basic`'i ayarlar, PAT'i sorar (ekrana basılmaz), **yalnız belleğe** koyar
+(10 saat; makine yeniden başlayınca gider), depoyu dener; yanlış PAT'i bellekten siler. Ajan bunu **çalıştıramaz** (PAT sorar, tty yoksa
+çıkış 2). Sonra ajanın `git -C git/<depo> clone/pull/log …` komutları parolasız çalışır. Ölçüldü (yerelde: Negotiate+NTLM öneren,
+yalnız Basic PAT kabul eden `git http-backend` sunucusu): giriş → terminal kapandı → ajan clone + pull ✓; PAT diskte hiçbir dosyada yok.
+Ajan `Authentication failed` / `could not read Username` görürse **tek cümle**: "Kendi terminalinizde `/root/ai/opencode/git-giris.sh`
+çalıştırın (PAT sorar), sonra devam ederim." — PAT isteme, başka yol deneme.
 
 **Yol 2 — ortam değişkeni** (önbellek istenmezse): PAT kullanıcının kabuğunda, opencode'u açmadan önce; ajan PAT'i hiç görmez:
 

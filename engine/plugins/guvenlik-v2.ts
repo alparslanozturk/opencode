@@ -22,7 +22,7 @@ import { join } from "path"
 import { deriveTarget, truncate } from "./lib/maskele"
 import { kilitDenetle } from "./lib/kilit"
 import type { KilitKarari, Yetki } from "./lib/kilit"
-import { STALE_PENDING_MS, beceriCommit, denetimYazici, oneriyleTamamla, sha256, sonAsistanMetni, yetkiIsle } from "./lib/denetim"
+import { STALE_PENDING_MS, beceriCommit, denetimYazici, oneriyleTamamla, sha256, sonAsistanMetni, yetkiIsle, yetkiSakla, yetkiYukle } from "./lib/denetim"
 
 // --- 2.x eklenti bağlamının kullandığımız kadarı (@opencode/plugin promise API) ---
 interface AracOncesi {
@@ -151,8 +151,12 @@ export function guvenlikKur(ctx: Baglam) {
     ctx.session.hook("prompt", async (e) => {
       const k = await kok(e.sessionID)
       if (k !== e.sessionID) return // alt ajan oturumu: metni model yazdı, yetki sayılmaz
+      yetkiYukle(yetkiler, k)
       const ozet = yetkiIsle(yetkiler, k, e.prompt.text ?? "", Date.now(), calismaDizini)
-      if (ozet) yetkiKaydi(e.sessionID, ozet, yetkiler.get(k))
+      if (ozet) {
+        yetkiSakla(yetkiler, k)
+        yetkiKaydi(e.sessionID, ozet, yetkiler.get(k))
+      }
     }),
 
     // G98: kullanıcı kriz/CN + "evet/onu" ile ajanın önerdiği hedefi onayladıysa, onaydan hemen önceki ajan mesajındaki açık
@@ -160,9 +164,12 @@ export function guvenlikKur(ctx: Baglam) {
     ctx.session.hook("context", async (e) => {
       const k = await kok(e.sessionID)
       if (k !== e.sessionID) return
-      if (!yetkiler.get(k)?.oneriBekliyor) return
+      if (!yetkiYukle(yetkiler, k)?.oneriBekliyor) return
       const ozet = oneriyleTamamla(yetkiler, k, sonAsistanMetni(e.messages as Parameters<typeof sonAsistanMetni>[0]), Date.now(), calismaDizini)
-      if (ozet) yetkiKaydi(e.sessionID, ozet, yetkiler.get(k))
+      if (ozet) {
+        yetkiSakla(yetkiler, k)
+        yetkiKaydi(e.sessionID, ozet, yetkiler.get(k))
+      }
     }),
 
     ctx.tool.hook("execute.before", async (e) => {
@@ -170,7 +177,7 @@ export function guvenlikKur(ctx: Baglam) {
       const target = deriveTarget(args)
       const argsHash = sha256(JSON.stringify(e.input ?? {}))
       const k = await kok(e.sessionID)
-      const yetki = yetkiler.get(k)
+      const yetki = yetkiYukle(yetkiler, k)
       // K1/K5/K6 (ADR-0004). Code Mode ("execute") iç araçları da bu kancadan geçer.
       const kilit = kilitDenetle(tool, args, calismaDizini, yetki)
       kararlar.delete(`${e.sessionID}:${e.id}`) // aynı kimlik yeniden gelirse eski karar taşınmasın

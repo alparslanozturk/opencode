@@ -1301,3 +1301,17 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   SKILL §1'e "küme adıyla sorgu" maddesi. Test: beceri-betik-test.sh 84/84 (küme adı, grup adı, olmayan küme adı).
 - Sahada `ai-test` adı envanterde/haritada yoksa yine "YOK" çıkar (doğru) → bir kez Rancher local master'ından §3 `--kaydet`
   gerekir. ai-test'in hangi Rancher'a bağlı olduğu [SAHA].
+
+### G107 — aynı oturumda CN yeniden soruldu: yetki yalnız bellekteydi (Alp, 2026-10-26 15:29, ekran)
+- Görülen: "Sertifika yükleme sunucu listesi" oturumunda Alp kalan sunucuları yapıyor ("sdlaiworker01 açıldı"). Ajan ping'ledi, sonra
+  `ansible-playbook -i inventories/hosts-20261022-dn29000.ini playbooks/12-google-captcha-cert.yaml -l sdlaiworker01,sdlaiworker03,sxlaiworker2`
+  → `[güvenlik kilidi K1] … bu oturumda yetki yok`. Ekranın üstünde "Instructions updated: core/skill-guidance" (opencode yeniden açılmış).
+  Alp: "Mevcut aynı session'dayım … Niye yine bana change number soruyor? Bu bir hata."
+- Kök neden: `guvenlik-v2.ts` yetkiyi yalnız süreç belleğinde (`Map`) tutuyordu → opencode yeniden başlayınca aynı oturumun yetkisi
+  kayboluyordu. İkinci sınır: yetki ömrü `YETKI_OMRU_MS` = 12 saat (kilit.ts), son yetki mesajından sayılır — CN 12 saatten önce
+  verildiyse yeniden başlatma olmasa da sorulur. Bu oturumda hangisi olduğu ölçülmedi (audit kaydı sahada).
+- İkincil: kurumun CN biçimi `dn29000` (G101) yalnız başına CN sayılmıyordu — başında "CN"/"değişiklik" yoksa tanınmıyordu.
+- Düzeltme: kök oturumun yetkisi `<audit dizini>/yetki/<oturum>.json`'a (0600) yazılır, bellekte yoksa ömrü dolmadıysa geri yüklenir;
+  "yetki kapat" dosyayı siler. `CN_KIMLIK`'e `DN` öneki. Test: kilit.test.ts 271/271, duman 26/26, beceri 84/84. Uçtan uca
+  yeniden başlatma denemesi yapılmadı (birim test: boş bellekle yükleme).
+- Açık soru (Alp): 12 saatlik ömür çok günlük işlerde (bu iş 2026-10-22'de başladı) yetersiz olabilir — karar Alp'in.

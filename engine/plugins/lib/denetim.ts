@@ -2,7 +2,7 @@
 // (../guvenlik-v2.ts) kullanır; davranış 1.x adaptörüyle (../audit-log.ts) aynıdır.
 // Şema: ../../../knowledge/policy/AUDIT-FORMAT.md §2 (alanlar) + §3 (hash zinciri).
 // Bağımlılık yok: yalnız Node/Bun çekirdek modülleri.
-import { appendFileSync, existsSync, mkdirSync, readFileSync } from "fs"
+import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs"
 import { createHash, randomUUID } from "crypto"
 import { execFileSync } from "child_process"
 import { hostname, userInfo } from "os"
@@ -16,6 +16,40 @@ export const ZERO_HASH = "0".repeat(64)
 export const STALE_PENDING_MS = 5 * 60 * 1000
 
 export const auditYolu = () => process.env.OPS_AGENT_AUDIT_LOG ?? "/var/log/ops-agent/audit.jsonl"
+// G107 (Alp, 2026-10-26: "aynı session'dayım, niye yine change number soruyor? bu bir hata"): yetki yalnız bellekteydi →
+// opencode yeniden başlayınca (güncelleme, TUI kapanıp açılma) aynı oturumda CN yeniden soruluyordu. Kök oturumun yetkisi
+// audit dizininin yanında saklanır; bellekte yoksa buradan, ömrü (YETKI_OMRU_MS) dolmadıysa geri yüklenir.
+const yetkiDosyasi = (sessionID: string) =>
+  /^[A-Za-z0-9_-]{1,128}$/.test(sessionID) ? join(process.env.OPS_AGENT_YETKI_DIZINI ?? join(dirname(auditYolu()), "yetki"), `${sessionID}.json`) : null
+
+export function yetkiSakla(yetkiler: Map<string, Yetki>, sessionID: string) {
+  const yol = yetkiDosyasi(sessionID)
+  if (!yol) return
+  try {
+    const y = yetkiler.get(sessionID)
+    if (!y) return rmSync(yol, { force: true })
+    mkdirSync(dirname(yol), { recursive: true, mode: 0o700 })
+    writeFileSync(yol, JSON.stringify(y), { mode: 0o600 })
+  } catch (err) {
+    console.error(`[guvenlik] yetki saklanamadı (${yol}):`, (err as Error).message)
+  }
+}
+
+export function yetkiYukle(yetkiler: Map<string, Yetki>, sessionID: string, now = Date.now()): Yetki | undefined {
+  const bellek = yetkiler.get(sessionID)
+  if (bellek) return bellek
+  const yol = yetkiDosyasi(sessionID)
+  if (!yol || !existsSync(yol)) return undefined
+  try {
+    const y = JSON.parse(readFileSync(yol, "utf8")) as Yetki
+    if (typeof y?.zaman !== "number" || !Array.isArray(y.sunucular) || now - y.zaman > YETKI_OMRU_MS) return undefined
+    yetkiler.set(sessionID, y)
+    return y
+  } catch {
+    return undefined
+  }
+}
+
 export const sha256 = (input: string | Buffer): string => createHash("sha256").update(input).digest("hex")
 
 function safeExec(cmd: string, args: string[], cwd?: string): string | null {

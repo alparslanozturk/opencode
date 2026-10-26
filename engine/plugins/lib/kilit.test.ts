@@ -826,3 +826,26 @@ describe("G102: playbook zaman sınırı öneki ve raw ilk yardım", () => {
     expect(karar(`ansible g -i h.ini -m raw -a 'rm -rf /var/log/eski'`)?.kilit).toBe("K1")
   })
 })
+
+describe("G107: yetki yeniden başlatmadan sonra aynı oturumda geri yüklenir; dn CN biçimi", () => {
+  const d = require("./denetim") as typeof import("./denetim")
+  const dizin = require("fs").mkdtempSync(require("path").join(require("os").tmpdir(), "yetki-"))
+  process.env.OPS_AGENT_YETKI_DIZINI = dizin
+  test("yalın dn29000 CN sayılır", () => {
+    expect(yetkiSatirlariniOku("dn29000 sdlaiworker01, sdlaiworker03 sunucularında").cn).toBe("DN29000")
+  })
+  test("sakla → yeni süreç (boş bellek) → yükle; kapat dosyayı siler; ömrü dolan yüklenmez", () => {
+    const m = new Map<string, Yetki>()
+    d.yetkiIsle(m, "ses_1", "CN dn29000 sunucular: sdlaiworker01, sdlaiworker03", Date.now())
+    d.yetkiSakla(m, "ses_1")
+    const yeni = new Map<string, Yetki>()
+    const y = d.yetkiYukle(yeni, "ses_1")!
+    expect(y.cn).toBe("DN29000")
+    expect(kilitDenetle("bash", { command: "ssh root@sdlaiworker03 'systemctl restart x'" }, workdir, y)).toBeNull()
+    expect(d.yetkiYukle(new Map(), "ses_1", Date.now() + 13 * 60 * 60 * 1000)).toBeUndefined()
+    expect(d.yetkiYukle(new Map(), "../x")).toBeUndefined()
+    d.yetkiIsle(yeni, "ses_1", "yetki kapat", Date.now())
+    d.yetkiSakla(yeni, "ses_1")
+    expect(d.yetkiYukle(new Map(), "ses_1")).toBeUndefined()
+  })
+})

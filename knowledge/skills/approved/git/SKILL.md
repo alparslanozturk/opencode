@@ -39,7 +39,21 @@ git config --global credential.helper 'cache --timeout=28800'
 
 Kurum Azure DevOps Server'ı `WWW-Authenticate: Negotiate, NTLM` döndürüyor; git'in kullanıcı adı/PAT ile normal girişi
 (`credential.helper`, URL içinde) `Authentication failed` verdi, `curl -u ":<PAT>"` ise 200 döndü → PAT, **boş kullanıcı adıyla
-Basic başlık** olarak kabul ediliyor. PAT'i **kullanıcı kendi terminalinde, opencode'u açmadan önce** ortama koyar; ajan PAT'i hiç görmez:
+Basic** kabul ediliyor. Sebep (yerelde yeniden üretildi, git 2.52): sunucu yalnız `Negotiate`/`NTLM` önerince git **NTLM seçer**, PAT'i
+hiç Basic göndermez. Çözüm git'in kendi ayarı `http.<url>.proactiveAuth=basic` (git ≥ 2.46).
+
+**Yol 1 (önerilen) — bellek önbelleği:** kullanıcı **kendi terminalinde** bir kez:
+
+```bash
+git config --global credential.helper 'cache --timeout=28800'          # PAT yalnız bellekte, 8 saat
+git config --global 'http.https://<tfs-sunucu>/.proactiveAuth' basic   # yalnız bu sunucuya Basic
+git -C git clone https://<tfs-sunucu>/…/_git/<depo>                     # Username: boş bırak (Enter) · Password: PAT
+```
+
+Sonra ajanın `git -C git/<depo> pull/log/clone …` komutları önbellekten çalışır (ölçüldü: yerel sunucu Negotiate+NTLM önerirken
+ajan komutu parolasız, tek `Authorization: Basic` ile geçti). 8 saat dolunca kullanıcı bir kez `git -C git/<depo> pull` ile yeniler.
+
+**Yol 2 — ortam değişkeni** (önbellek istenmezse): PAT kullanıcının kabuğunda, opencode'u açmadan önce; ajan PAT'i hiç görmez:
 
 ```bash
 read -rsp 'PAT: ' KT_PAT; echo        # ekrana/geçmişe yazılmaz
@@ -53,6 +67,8 @@ opencode                              # bu kabuktan başlat — ajanın git komu
   ölçüldü (yerel iki HTTP sunucusu: hedefe `Authorization: Basic …`, ötekine yok). Diske yazılmaz; oturum kapanınca gider.
 - Ajan: yalnız `git -C git/<depo> pull/log/grep/clone <adres>` — başlık otomatik. `env`/`printenv`/`set` çıktısı **basma**
   (değer görünür). Çalışmıyorsa (opencode başka kabuktan açılmış arka plan servisine bağlanmış olabilir) kullanıcıya söyle; PAT isteme.
+- `~/.git-credentials` / `credential.helper store` **yazma** (PAT diske düz metin; G109'da kilit K1 durdurdu) — kullanıcı onay verse de;
+  kullanıcıya "sunucular: localhost" yazdırıp kilidi açtırma. Yol 1'i öner.
 - Kullanıcı PAT'i/parolayı sohbete yazarsa: **kullanma**, komuta/URL'ye koyma; "token sohbete düştü, iptal edip yenisini oluşturun,
   yukarıdaki yolla verin" de (G109: PAT URL'de ve `-c http.extraHeader` komutunda açık yazıldı).
 

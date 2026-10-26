@@ -1341,6 +1341,12 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   `certs/` (.pfx/.key) dosyalarını "riskli" diye işaretledi — depoda sır var (Alp'e söylendi, düzeltme ekibin kararı).
 - Aksiyon: Alp'e PAT'i iptal etmesi söylendi. `git` §1a: PAT kullanıcının kabuğunda `GIT_CONFIG_*` ortam değişkeniyle, adrese bağlı
   `http.<url>.extraHeader` (yerelde ölçüldü: başlık yalnız hedef sunucuya gider); ajan PAT görmez, sohbete yazılan PAT kullanılmaz.
+- Devamı (aynı akşam, 3 ekran): ajan `notlar` deposu için PAT'i yine helper/URL'de denedi (başarısız), sonra
+  `echo "https://:<PAT>@…" >> ~/.git-credentials && git config --global credential.helper store` → **kilit K1 durdurdu** (sistem dosyası,
+  localhost). Alp "onay veriyorum, başka hesap varsa silme" dedi; ajan "sunucular: localhost yaz" diye kilidi açtırmayı önerdi (yazılmadı).
+- Kök neden (Doktor, yerelde yeniden üretildi): sunucu yalnız Negotiate+NTLM önerince git NTLM seçiyor, PAT Basic gitmiyor; curl `-u`
+  varsayılanı Basic olduğu için 200. `http.<url>.proactiveAuth=basic` + `credential.helper cache` ile ajan komutu parolasız geçti.
+  `git` §1a Yol 1 buna göre; `.git-credentials`/store yasak satırı eklendi.
 - Açık: kalıcı çözüm adayı — `guvenlik-v2` kilidi komutta PAT/parola biçimi (URL'de `user:pass@`, `password=`, `Authorization: Basic`)
   görünce engellesin mi? Alp'e soruldu.
 

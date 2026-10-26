@@ -1343,3 +1343,11 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   `http.<url>.extraHeader` (yerelde ölçüldü: başlık yalnız hedef sunucuya gider); ajan PAT görmez, sohbete yazılan PAT kullanılmaz.
 - Açık: kalıcı çözüm adayı — `guvenlik-v2` kilidi komutta PAT/parola biçimi (URL'de `user:pass@`, `password=`, `Authorization: Basic`)
   görünce engellesin mi? Alp'e soruldu.
+
+### G110 — kubernetes deposu = kümelerin manifest kütüphanesi, elle GitOps (Alp, 2026-10-26, ekran)
+- Azure DevOps `kubernetes` deposu `rancher/` altında Rancher/platform adresi başına klasör (rancher-dtx, rancher-archi(-dtx), rancher-drc,
+  drc-k8s, rancher(-prod/-nonprod), rke-prod/nonprod; KT + KTBULUT), altında küme klasörü (`local` …) ve `optic.yaml`, twistlock,
+  `-sa.yaml`, nfs manifestleri + `.md` notları. Alp: "her küme için gerekli manifestler — storage class, optic, twistlock — git'te dursun,
+  oradan alıp yükleyeyim; bir nevi GitOps ama otomatik değil (Anthos Config Management gibi değil)."
+- Aksiyon: yeni beceri `rke2-manifest` — pull + temiz depo → hedef küme açık → `kubectl diff` (kilitte serbest, ölçüldü) → CN ile `apply`
+  (K1, ölçüldü) → doğrulama → uygulanan commit raporu; kayma taraması (diff çıkış 0/1/>1); depodaki sırları kopyalamama.

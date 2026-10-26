@@ -1,6 +1,6 @@
 ---
 name: ansible
-description: Ansible ile birden çok sunucuda iş yaparken kullan — proje düzeni kurma, CN/değişiklik numarasıyla iş envanteri (hosts-<CN>-<tarih>.ini) üretme, sertifika/ayar dosyasını playbook'a gömülü dağıtma, envanter doğrulama, tek sunucuya daraltma, ad-hoc komut, playbook çalıştırma, kuru çalıştırma. "ansible", "playbook", "hosts dosyası", "tüm sunucularda", "şu sunucuda çalıştır", "ansible-playbook" isteklerinde tetiklenir.
+description: Ansible ile birden çok sunucuda iş yaparken kullan — proje düzeni kurma, CN/değişiklik numarasıyla iş envanteri (hosts-<CN>-<tarih>.ini) üretme, sertifika/ayar dosyasını playbook'a gömülü dağıtma, envanter doğrulama, tek sunucuya daraltma, ad-hoc komut, playbook yazma ve hazır playbook'u inceleme (`playbook-denetim.py`), playbook çalıştırma, kuru çalıştırma. "ansible", "playbook", "hosts dosyası", "tüm sunucularda", "şu sunucuda çalıştır", "ansible-playbook" isteklerinde tetiklenir.
 ---
 
 Doğrulandı: ansible-core 2.16.16, AlmaLinux 10.2 — 2026-08-29
@@ -101,6 +101,33 @@ ssh root@<kaynak-sunucu> cat /tmp/pan-captcha.crt | python3 /root/ai/opencode/kn
 - `--yedek` eski dosyayı yanına saklar — `ca-trust/source/anchors` gibi dizindeki her dosyanın okunduğu yerde **verme**.
 - Sonra: `--syntax-check` → `--check --diff` (`-i` iş envanteri) → kullanıcı onayı → gerçek çalıştırma.
 
+## 1b. Playbook yazma — kurallar ve denetim (saha G26, G43, G93)
+
+Yazdığın her playbook'u ve çalıştırmadan önce okuduğun her hazır playbook'u denetimden geçir (ağ istemez, yalnız okur):
+
+```bash
+python3 /root/ai/opencode/knowledge/skills/approved/ansible/playbook-denetim.py ansible/playbooks/12-google-captcha-cert.yaml
+python3 /root/ai/opencode/knowledge/skills/approved/ansible/playbook-denetim.py ansible/playbooks/      # dizindeki hepsi
+```
+
+Çıktı `satır · ENGEL/UYARI/NOT · kod · neden`; çıkış 0 temiz, 1 uyarı, 2 YAML bozuk. Kendi yazdığında ENGEL/UYARI'yı düzelt,
+yeniden çalıştır; hazır (ekip) playbook'ta **düzeltme** — bulguları kullanıcıya tek liste ver (§8). Betik `--syntax-check`'in yerini
+tutmaz (Jinja/modül adı onun işi); ikisi birlikte.
+
+Yazarken (betiğin denetlediği kurallar):
+
+- **Modül önce:** `dnf`, `systemd_service`, `file`, `lineinfile`, `get_url`, `reboot` — shell yalnız modülü olmayan iş için.
+  Modül tekrar çalıştırılabilir ve `--check`'i destekler; shell ikisini de yapmaz.
+- **shell/command tekrar çalıştırılabilir olsun:** `creates:`/`removes:` ya da `changed_when:`; okuma görevi `changed_when: false`.
+- **Boru varsa** `set -o pipefail` (`executable: /bin/bash`); `| tail` çıkış kodunu yutar (G26).
+- **Başarıyı komut basmaz:** `echo "Update complete."` yok — `register:` + `failed_when:`/`assert` (G26, G12 sınıfı).
+- **İndirme:** `get_url` + `checksum:`; shell'de zorunluysa `curl -fsS` (G43). Yıkıcı sıra: indir → doğrula → kaldır → kur (G93).
+- `hosts:` iş grubunun adı (`google-captcha-cert`), `all` değil; play düzeyinde `ignore_errors` yok; `state: latest` yerine
+  sürüm ya da `present`; parola/token değişkenle (`no_log: true`), playbook'a değer yazma; `NOPASSWD: ALL` yazma (IdM — `rhel-yonetim`).
+- Her görevin `name:`'i olsun — rapordaki "web12 failed" satırı ancak adla okunur.
+- Dosya dağıtımı → aşağıdaki `gomulu-dosya.py` (içeriği sen yazma).
+- Dosya adı: dizindeki sıradaki numara (`13-…yaml`); var olan playbook'un üzerine yazma — yeni sürüm yeni numara.
+
 ## 2. Hangi ansible.cfg etkin
 
 `ansible.cfg` çalışılan dizinden okunur. Hangisi okundu, **varsayma**:
@@ -167,6 +194,7 @@ vermez, sessizce oraya çalışır. Gerçek çalıştırmadan önce her zaman
 ## 5. Çalıştırma sırası
 
 ```bash
+python3 /root/ai/opencode/knowledge/skills/approved/ansible/playbook-denetim.py site.yml   # bilinen hata kalıpları (§1b)
 ansible-playbook site.yml --syntax-check         # yazım
 ansible-playbook site.yml -l web01 --list-hosts  # kimi kapsıyor
 ansible-playbook site.yml -l web01 --check       # kuru çalıştırma
@@ -227,8 +255,9 @@ ansible-playbook <p>.yml     -l/--limit yoksa TÜM envanter
 
 ## 8. Hazır (kurum/arkadaş) playbook'u çalıştırmadan önce oku — kontrol listesi
 
-Kurumda ekiplerin hazır playbook'ları var (Splunk UF, SEP güncelleme, kullanıcı …). Çalıştırmadan önce dosyayı oku ve kullanıcıya
-bulduğunu **tek liste** halinde söyle (düzeltmek kullanıcının kararı; kendin düzenleme):
+Kurumda ekiplerin hazır playbook'ları var (Splunk UF, SEP güncelleme, kullanıcı …). Çalıştırmadan önce dosyayı oku, **`playbook-denetim.py`
+ile denetle** (§1b; aşağıdakilerin çoğunu satır numarasıyla bulur) ve kullanıcıya bulduğunu **tek liste** halinde söyle (düzeltmek
+kullanıcının kararı; kendin düzenleme):
 
 - `hosts: all` → `--limit` şart; `--list-hosts` ile kapsamı göster.
 - Play düzeyinde `ignore_errors: yes` → hatalar sessizce geçer, `PLAY RECAP` "ok" der ama iş yapılmamış olabilir; sonucu ayrı doğrula.

@@ -447,6 +447,14 @@ python3 "$B/surum-uyum/uyum.py" kontrol --rke2 v1.33.13+rke2r1 --gpu-operator v2
 icerir "Run:ai 2.26 ↔ 1.33 ❌ destek dışı" uy2.txt "❌ Run:ai 2.26 ↔ RKE2 1.33"
 icerir "uygun Run:ai listesi" uy2.txt "destekleyen Run:ai sürümleri (veride): 2.22, 2.23, 2.24"
 icerir "2.26 kaynağı kök sayfa" uy2.txt "run-ai-docs.nvidia.com/self-hosted/getting-started/installation/support-matrix.md"
+python3 "$B/surum-uyum/uyum.py" yol --rancher v2.14.3 --rke2 v1.33.13+rke2r1 --antrea v2.3.0 --hedef-rke2 1.36 --hedef-rancher 2.15 --tarih 2026-10-26 > uy3.txt 2>&1
+icerir "yol 1.33→1.36: Rancher önce son yamaya" uy3.txt "1. Rancher v2.14.3 → v2.14.6"
+icerir "yol: RKE2 1.33→1.34 Rancher 2.15'ten önce" uy3.txt "3. RKE2 1.33 → v1.34"
+icerir "yol: Rancher 2.15 ancak 1.34'ten sonra" uy3.txt "4. Rancher v2.14.6 → v2.15"
+icerir "yol: Antrea ikinci adım (garantili sürüm VKr'den önce)" uy3.txt "Antrea v2.6.3 → v2.7.0 (1.35: upstream garanti; 1.36: upstream garanti"
+icerir "yol: son durumda Antrea ↔ 1.36 garantili" uy3.txt "✅ Antrea v2.7.0 ↔ K8s 1.36"
+python3 "$B/surum-uyum/uyum.py" kontrol --rancher v2.15.2 --rke2 v1.33.13+rke2r3 --tarih 2026-10-26 > uy4.txt 2>&1
+icerir "Rancher 2.15 ↔ downstream 1.33 ❌" uy4.txt "❌ Rancher v2.15.2 ↔ downstream RKE2 1.33"
 
 # --------------------------------------------------------------------------- kilit
 baslik "Becerilerdeki sabit okuma komutları güvenlik kilidinden geçiyor (G67/G68)"

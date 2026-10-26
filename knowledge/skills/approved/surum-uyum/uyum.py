@@ -402,17 +402,25 @@ def yol(v, a, bugun):
             if d is None:
                 adimlar.append(f"❓ Rancher {rancher} matris verisi yok — {yeni} adımı doğrulanamadı")
                 sorun += 1
-            if not v.antrea_destekler(antrea, yeni):
+            adaylar = sorted(v.antrea, key=hat_t)
+            ileri = [m for m in adaylar if hat_t(m) > hat_t(antrea) and hat_t(m)[1] - hat_t(antrea)[1] <= ANTREA_ATLAMA]
+            # Upstream GARANTİ önce: mevcut sürüm yeni hattı garanti etmiyorsa, hem mevcut hem yeni hattı garanti eden sürüm
+            # varsa ona geç (VKr paketlemesi yalnız garantili sürüm yoksa yeterli sayılır). Hedefi de garanti eden en küçük
+            # minor; yoksa en ileri garantili minor (sonraki adımlarda yeniden bakılır).
+            garantili = [m for m in ileri if v.antrea_garanti(m, k8s) and v.antrea_garanti(m, yeni)]
+            secim = None
+            if not v.antrea_garanti(antrea, yeni) and garantili:
+                secim = ([m for m in garantili if v.antrea_garanti(m, hedef_k8s)] or garantili[-1:])[0]
+            elif not v.antrea_destekler(antrea, yeni):
                 # Kalan yolu (mevcut..hedef) kapsayan en küçük minor; yoksa mevcut+sonrakini kapsayan
-                adaylar = sorted(v.antrea, key=hat_t)
-                uygun = [m for m in adaylar if hat_t(m) > hat_t(antrea) and hat_t(m)[1] - hat_t(antrea)[1] <= ANTREA_ATLAMA
-                         and v.antrea_destekler(m, k8s)]
+                uygun = [m for m in ileri if v.antrea_destekler(m, k8s)]
                 kapsayan = [m for m in uygun if v.antrea_destekler(m, hedef_k8s)]
                 secim = (kapsayan or [m for m in uygun if v.antrea_destekler(m, yeni)] or [None])[0]
                 if not secim:
                     adimlar.append(f"❌ RKE2 {k8s}→{yeni} için hem {k8s} hem {yeni}'i destekleyen Antrea (≤{ANTREA_ATLAMA} minor atlama) yok")
                     sorun += 1
                     break
+            if secim:
                 adimlar.append(f"Antrea {antrea_ad} → {v.antrea[secim]['yama']} ({k8s}: {v.antrea_dayanak(secim, k8s)}; "
                                f"{yeni}: {v.antrea_dayanak(secim, yeni)}; önce controller sonra agent, node node)")
                 antrea, antrea_ad = secim, v.antrea[secim]["yama"]

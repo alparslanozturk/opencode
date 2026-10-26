@@ -56,6 +56,17 @@ Kaynak: `packages/tui/src/config/keybind.ts` (lider tuşu `ctrl+x`) ve `packages
   satır satır `ctrl+alt+y` (yukarı) / `ctrl+alt+e` (aşağı) · yarım sayfa `ctrl+alt+u` / `ctrl+alt+d` · sayfa `PageUp` / `PageDown`
   · en başa `Home` · en sona `End`. `shift+↑/↓` istem kutusunda seçim yapar, kaydırmaz.
 
+## Kurum git'i (Azure DevOps) — giriş: `./git-giris.sh`
+
+Herkes kendi terminalinde, kendi PAT'iyle (Azure DevOps → profil → Personal access tokens):
+
+```bash
+./git-giris.sh https://<sunucu>/tfs/<koleksiyon>/<proje>/_git/<depo>   # ilk sefer — Kullanıcı: Enter, PAT: yapıştır
+./git-giris.sh                                                         # sonraki günler (10 saatte bir)
+```
+
+PAT yalnız bellekte durur (diske yazılmaz, sohbete yazılmaz); sonra opencode'a "git/<depo>'yu klonla / çek" demek yeter.
+
 ## Bir şey çalışmıyorsa: `./kur.sh kontrol`
 TUI `Failed to send prompt` / `Unexpected server error` dediyse **tek satır**:
 ```bash

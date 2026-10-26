@@ -268,7 +268,7 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
 - **Değişiklik yapan işe başlamadan önce o konunun becerisini yükle** (disk/mount/fstab → `rhel-depolama`, kurulum/teslim →
   `rhel-teslim`, GPU → `rke2-denetim`, Rancher sertifikası → `rancher-sertifika`, node/IP → küme → `kume-bul`, NVIDIA sürücüsü →
   `rhel-gpu-surucu`, GPU Operator/containerd → `rke2-gpu-kurulum`, Run:ai → `rke2-runai`, CIS → `rhel-cis`/`rke2-cis`, IdM/AD trust →
-  `idm-kurulum`, HBAC/sudo → `idm-erisim`, Leapp/ana sürüm yükseltme → `rhel-yukseltme`, BDDK/KVKK/PCI → `bankacilik-uyum`, Excel/Word/PDF/OneNote belgesi → `belge-oku` …). Kullanıcı beceri adını söylemese de. Kanıt: saha G39 (2026-10-14) —
+  `idm-kurulum`, HBAC/sudo → `idm-erisim`, Leapp/ana sürüm yükseltme → `rhel-yukseltme`, BDDK/KVKK/PCI → `bankacilik-uyum`, Excel/Word/PDF/OneNote belgesi → `belge-oku`, git'teki manifesti kümeye uygulama → `rke2-manifest` …). Kullanıcı beceri adını söylemese de. Kanıt: saha G39 (2026-10-14) —
   beceri yüklenmeden diske LVM'siz `mkfs` + fstab'a `/dev/sdb` yazıldı; becerideki her kural bunu yasaklıyordu.
 - Beceriler talep üzerine yüklenir; konu kapanınca bırak. Kullanıcı "ansible işlerini bırak" dediyse
   o beceriyi tekrar yükleme.

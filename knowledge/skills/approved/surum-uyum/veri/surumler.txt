@@ -32,15 +32,17 @@ v2.15.2   1.34  1.36  1.34,1.35,1.36  8.10,9.6,9.8,10.0,10.2              ranche
 2.11  2025-04-24  2025-10-24  2026-10-24
 
 [rke2-yama]
-# RKE2 hattı → en son kararlı yama. Kaynak: github.com/rancher/rke2 releases (kurum rke2-ansible, üretim 2026-09-30).
+# RKE2 hattı → en son kararlı yama. Kaynak: api.github.com/repos/rancher/rke2/releases (prerelease/draft hariç), indirme 2026-10-26.
+# 1.30–1.32 son 100 sürümde yok (hat EOL) → 2026-09-30 verisi (kurum rke2-ansible üretimi) korundu.
 # HAT   EN_SON_YAMA
 1.30  v1.30.14+rke2r4
 1.31  v1.31.14+rke2r2
 1.32  v1.32.13+rke2r2
-1.33  v1.33.13+rke2r2
-1.34  v1.34.11+rke2r1
-1.35  v1.35.8+rke2r1
-1.36  v1.36.4+rke2r1
+1.33  v1.33.13+rke2r3
+1.34  v1.34.12+rke2r1
+1.35  v1.35.9+rke2r1
+1.36  v1.36.5+rke2r1
+1.37  v1.37.1+rke2r1
 
 [rke2-omur]
 # SUSE RKE2 yaşam döngüsü — suse.com/lifecycle (indirme 2026-10-17). Kurum için geçerli olan budur (satıcı desteği).

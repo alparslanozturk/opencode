@@ -151,11 +151,27 @@ cikti_durumu t3-probe 8192 "uc probe" \
 EK_ENV="KURUM_MAX_OUTPUT=6000"
 cikti_durumu t3-env 6000 "env KURUM_MAX_OUTPUT"
 EK_ENV=""
-cikti_durumu t3-varsayilan 4096 "uctan alinamadi"
+# uc bildirmiyor -> kurum varsayilani (kur.sh VARSAYILAN_CIKTI, 2026-10-26: 32768), pencerenin 1/4'unu asmaz:
+# 32768 pencerede 8192, 262144 pencerede (kurum vLLM'i, --max-model-len 262144) 32768.
+cikti_durumu t3-varsayilan 8192 "kurum varsayilani 8192 (uc bildirmiyor)"
+cikti_durumu t3-varsayilan-262k 32768 "kurum varsayilani 32768 (uc bildirmiyor)" SAHTE_CTX=262144
+# Qwen3.6 model karti ornekleme (kod/ajan): sablondaki model `options`'u kurulu config'e tasinmali — opencode 2.x
+# OpenAI uyumlu saglayicida bilinmeyen model secenegini istek govdesine koyar (agent temperature'u govdeye gitmiyor).
+ornekleme="$(python3 -c '
+import json, sys
+p = json.load(open(sys.argv[1], encoding="utf-8"))["provider"]["kurum"]
+o = next(iter(p["models"].values())).get("options") or {}
+print(" ".join("%s=%s" % (k, o.get(k)) for k in ("temperature", "top_p", "top_k", "presence_penalty")))' \
+  "$CALISMA/t3-varsayilan-262k/home/.config/opencode/opencode.json" 2> /dev/null)"
+if [ "$ornekleme" = "temperature=0.6 top_p=0.95 top_k=20 presence_penalty=0" ]; then
+  gecti "t3-ornekleme: kurulu config model options = $ornekleme"
+else
+  kaldi "t3-ornekleme: model options beklenen 0.6/0.95/20/0, bulunan '${ornekleme:-yok}'"
+fi
 
-# fallback durumunda rapor bunu SOYLEMELI (sessizce 4096 kalmasin)
-if grep -q 'uctan alinamadi' "$CALISMA/t3-varsayilan.log"; then
-  gecti "t3-varsayilan: rapor 'uctan alinamadi' diyor"
+# fallback durumunda rapor bunu SOYLEMELI (sessizce sabit kalmasin)
+if grep -q 'kurum varsayılanı — uç bildirmiyor' "$CALISMA/t3-varsayilan.log"; then
+  gecti "t3-varsayilan: rapor 'kurum varsayılanı — uç bildirmiyor' diyor"
 else
   kaldi "t3-varsayilan: rapor fallback'i belirtmiyor (log: $CALISMA/t3-varsayilan.log)"
 fi

@@ -35,11 +35,32 @@ git config --global credential.helper 'cache --timeout=28800'
 `cache` parolayı **yalnız bellekte** 8 saat tutar, diske yazmaz; o süre boyunca ajanın git komutları çalışır (ölçüldü: önbellekten
 `Authorization: Basic` gönderildi, diskte parola yok). Sunucu NTLM/Kerberos isterse davranış sahada doğrulanacak — farklıysa not düş.
 
+### 1a. Kurumda ölçülen: PAT + Basic başlığı (saha G109, 2026-10-26)
+
+Kurum Azure DevOps Server'ı `WWW-Authenticate: Negotiate, NTLM` döndürüyor; git'in kullanıcı adı/PAT ile normal girişi
+(`credential.helper`, URL içinde) `Authentication failed` verdi, `curl -u ":<PAT>"` ise 200 döndü → PAT, **boş kullanıcı adıyla
+Basic başlık** olarak kabul ediliyor. PAT'i **kullanıcı kendi terminalinde, opencode'u açmadan önce** ortama koyar; ajan PAT'i hiç görmez:
+
+```bash
+read -rsp 'PAT: ' KT_PAT; echo        # ekrana/geçmişe yazılmaz
+export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0='http.https://<tfs-sunucu>/.extraHeader' \
+       GIT_CONFIG_VALUE_0="Authorization: Basic $(printf ':%s' "$KT_PAT" | base64 -w0)"
+unset KT_PAT
+opencode                              # bu kabuktan başlat — ajanın git komutları başlığı ortamdan alır
+```
+
+- Anahtar **adrese bağlı** (`http.https://<tfs-sunucu>/.extraHeader`): başlık yalnız o sunucuya gider, GitHub'a (al.sh) gitmez —
+  ölçüldü (yerel iki HTTP sunucusu: hedefe `Authorization: Basic …`, ötekine yok). Diske yazılmaz; oturum kapanınca gider.
+- Ajan: yalnız `git -C git/<depo> pull/log/grep/clone <adres>` — başlık otomatik. `env`/`printenv`/`set` çıktısı **basma**
+  (değer görünür). Çalışmıyorsa (opencode başka kabuktan açılmış arka plan servisine bağlanmış olabilir) kullanıcıya söyle; PAT isteme.
+- Kullanıcı PAT'i/parolayı sohbete yazarsa: **kullanma**, komuta/URL'ye koyma; "token sohbete düştü, iptal edip yenisini oluşturun,
+  yukarıdaki yolla verin" de (G109: PAT URL'de ve `-c http.extraHeader` komutunda açık yazıldı).
+
 ## 1b. İlk klon (Alp, 2026-10-26: "bulunduğum klasörde bir dizin aç git diye, repoları orada clone yaparsın")
 
 Depolar çalışma dizinindeki **`git/`** altına klonlanır: `git/<depo-adı>` (ör. `git/kubernetes`). Adres kullanıcıdan gelir
 (Azure DevOps "Clone → HTTPS"); uydurma. İlk klonda parola gerekir ve ajan parola giremez (§1) → **ilk klonu kullanıcı kendi
-terminalinde yapar**, sen komutu ver:
+terminalinde yapar** (ya da §1a ortamı kurulmuşsa sen yaparsın), sen komutu ver:
 
 ```bash
 git config --global credential.helper 'cache --timeout=28800'   # bir kez; parola yalnız bellekte 8 saat

@@ -1326,3 +1326,20 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   Alp: "Bu işi çok güzel başardı … en sonunda yapıldı."
 - Küçük görüntü kusuru: TUI tablosunda "Durum" başlığı bir satır aşağı kaymış (son satır splaiworker4'ün yanı boş görünüyor); sayım
   18 ad / 18 BAŞARILI tutarlı. Ajan özeti dışında ayrı doğrulama çıktısı ekranda yok.
+
+### G109 — Azure DevOps kubernetes deposu klonlandı; PAT sohbete yazıldı, ajan URL'ye/komuta koydu (Alp, 2026-10-26 ~21:25, ekranlar)
+- Akış: Alp "git diye dizin aç, repoları orada clone yap" + adres. Ajan `git clone` → kimlik istendi (çıkış 128) → ajan "token mı, SSH mi,
+  NTLM mi?" diye sordu. Alp: token adı + kullanıcı + **PAT değeri sohbette** ("olmazsa domain parolasını veririm").
+- Ajan PAT'i önce URL'ye (`https://<kullanıcı>:<PAT>@…`), sonra `credential.helper='!f() { echo password=<PAT> …}'`, sonra
+  `http.extraHeader="Authorization: Basic $(echo -n ":<PAT>" | base64)"` ile komut satırına yazdı (her biri onay ekranında göründü).
+  `git` beceri §1 "parolayı komuta/URL'ye koyma" kuralına aykırı (o sırada sahadaki beceri sürümü bilinmiyor; §1b daha kurulmamıştı).
+- Ölçülen (ekran): sunucu `WWW-Authenticate: Negotiate` + `NTLM`, `X-Powered-By: ASP.NET`; `curl -u ":<PAT>" …/info/refs?service=git-upload-pack`
+  → 200; `curl -u "<alan>\\<kullanıcı>:<PAT>"` → 401; git kullanıcı adı/PAT (URL ve helper) → `Authentication failed`. Klon sonunda
+  başarılı — tahmin: Basic başlıkla (son onay ekranı o komuttu; başarı ekranında komut görünmüyor). Klon `git/` dizininin **kendisine**
+  yapıldı (`git clone … .`), `git/kubernetes` değil.
+- Depo içeriği (ajan özeti): Rancher/RKE2 platform tablosu (KT + KTBULUT, prod/nonprod kümeleri), manifestler; ajan `pass.txt` ve
+  `certs/` (.pfx/.key) dosyalarını "riskli" diye işaretledi — depoda sır var (Alp'e söylendi, düzeltme ekibin kararı).
+- Aksiyon: Alp'e PAT'i iptal etmesi söylendi. `git` §1a: PAT kullanıcının kabuğunda `GIT_CONFIG_*` ortam değişkeniyle, adrese bağlı
+  `http.<url>.extraHeader` (yerelde ölçüldü: başlık yalnız hedef sunucuya gider); ajan PAT görmez, sohbete yazılan PAT kullanılmaz.
+- Açık: kalıcı çözüm adayı — `guvenlik-v2` kilidi komutta PAT/parola biçimi (URL'de `user:pass@`, `password=`, `Authorization: Basic`)
+  görünce engellesin mi? Alp'e soruldu.

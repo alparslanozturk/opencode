@@ -188,9 +188,30 @@ def main(argv):
         ayni_ip = [k for k in kayitlar if k["ipler"] & ipler and k not in esles]
 
         print("\n== %s" % q)
+        if not esles and not ip_mi(q):
+            # küme/grup adı sorgusu (ör. "ai-test"): grup adı ya da kaydedilmiş Rancher haritasında rancher_kume_adi
+            gq = re.sub(r"[^a-z0-9_]+", "_", q).strip("_")
+            kume = sorted({a for a in gruplar if a[1] in (q, gq)} | {
+                a for a, satirlar in grup_vars.items()
+                if any(re.sub(r"\s+", "", s).lower() == "rancher_kume_adi=" + q for _, s in satirlar)})
+            if kume:
+                for anahtar in kume:
+                    uyeler = gruplar.get(anahtar, [])
+                    print("  küme/grup adı: [%s] %s · üyeler (%d): %s%s" % (
+                        anahtar[1], os.path.relpath(anahtar[0]), len(uyeler), " ".join(uyeler[:30]),
+                        " …" if len(uyeler) > 30 else ""))
+                    ust = ustler(anahtar[0], anahtar[1], cocuklar)
+                    for g in [anahtar[1]] + ust:
+                        for no, s in grup_vars.get((anahtar[0], g), [])[:15]:
+                            if GIZLI.search(s.split("=")[0]):
+                                s = s.split("=")[0] + "=***"
+                            print("  [%s:vars] %s:%d  %s" % (g, os.path.relpath(anahtar[0]), no, s))
+                    kapsama.setdefault(anahtar, set()).add(q)
+                print("  eşleşme türü: küme/grup adı")
+                continue
         if not esles:
             bulunamayan.append(q)
-            print("  envanterde YOK (ad, kısa ad, ansible_host). Sonraki adım: getent hosts %s → IP ile yeniden çalıştır;" % q)
+            print("  envanterde YOK (ad, kısa ad, ansible_host, grup/küme adı). Sonraki adım: getent hosts %s → IP ile yeniden çalıştır;" % q)
             print("  yine yoksa canlı yol (SKILL.md §2: master'dan kubectl JSON → kume-bul.py k8s).")
             continue
         kisaltilar = sorted({k["ad"] for k in esles})

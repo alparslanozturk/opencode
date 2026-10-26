@@ -28,6 +28,9 @@ farklı ad"**; tek sorguda grup üyeleri ve `[grup:vars]` (gizli alanlar `***`);
 
 - §3'teki Rancher haritası kaydedildiyse (`rancher-<adres>.ini`) cevap doğrudan oradadır: grup = küme, `:vars` = `rancher_url`,
   `rancher_kume_adi`, `rancher_kume_id`, `k8s_surum`, host satırında `rancher_rol`. Cevabı bu satırlarla ver (`dosya:satır`).
+- **Küme adıyla sorgu** (ör. `KB ai-test`, saha G106): host yoksa betik grup adına ve kayıtlı haritadaki `rancher_kume_adi`'ya
+  bakar, üyeleri + `:vars`'ı basar. Küme adı ancak §3 haritası kaydedildiyse ya da envanterde aynı adla bir grup varsa bulunur;
+  yoksa "YOK" doğru cevaptır → §2/§3 (Rancher local master'ından `--kaydet`), elle grep/for döngüsü kurma.
 - Yalnız düz bir listede (ör. `[production]`) ya da hiç yoksa: `getent hosts <ad>` → IP ile tekrar; yine yoksa §2.
 - Hangi dosyanın küme envanteri olduğunu dosya adından tahmin etme — betiğin bastığı grup/`:vars` ne diyorsa o.
 

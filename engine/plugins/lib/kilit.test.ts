@@ -842,10 +842,19 @@ describe("G107: yetki yeniden başlatmadan sonra aynı oturumda geri yüklenir; 
     const y = d.yetkiYukle(yeni, "ses_1")!
     expect(y.cn).toBe("DN29000")
     expect(kilitDenetle("bash", { command: "ssh root@sdlaiworker03 'systemctl restart x'" }, workdir, y)).toBeNull()
-    expect(d.yetkiYukle(new Map(), "ses_1", Date.now() + 13 * 60 * 60 * 1000)).toBeUndefined()
+    expect(d.yetkiYukle(new Map(), "ses_1", Date.now() + 5 * 24 * 60 * 60 * 1000)?.cn).toBe("DN29000") // CN oturum boyunca
     expect(d.yetkiYukle(new Map(), "../x")).toBeUndefined()
     d.yetkiIsle(yeni, "ses_1", "yetki kapat", Date.now())
     d.yetkiSakla(yeni, "ses_1")
     expect(d.yetkiYukle(new Map(), "ses_1")).toBeUndefined()
+  })
+  test("CN 5 gün sonra da geçer; KRİZ 12 saatte düşer", () => {
+    const m = new Map<string, Yetki>()
+    d.yetkiIsle(m, "c", "CN dn29000 sunucular: sdlaiworker01", Date.now())
+    const sonra = Date.now() + 5 * 24 * 60 * 60 * 1000
+    expect(yetkiAktif(m.get("c"), sonra)).toBe(true)
+    d.yetkiIsle(m, "k", "kriz var sunucular: sdlaiworker01", Date.now())
+    expect(yetkiAktif(m.get("k"), Date.now())).toBe(true)
+    expect(yetkiAktif(m.get("k"), Date.now() + 13 * 60 * 60 * 1000)).toBe(false)
   })
 })

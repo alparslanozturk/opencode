@@ -121,7 +121,9 @@ kriz var, db01 ve wor07-08'de ödeme servisi durdu
   `sunucular: …` yazınca iş başlar. Ajanın önerdiği liste sen yazana kadar geçersizdir.
 - **Bu makine** için listeye `localhost` yaz (örn. bu makinede `systemctl restart`, `/etc` düzenleme).
 - Liste her `sunucular:` satırında **yenilenir** (eklenmez). `YETKİ KAPAT` yetkiyi kaldırır.
-  Yetki oturuma bağlıdır ve 12 saat sonra düşer; opencode kapanınca biter.
+  Yetki oturuma bağlıdır. **CN yetkisi oturum boyunca** geçerlidir (G107, Alp 2026-10-26: bir CN = bir oturum; iş bitince
+  oturum kapatılır, yeni CN → yeni oturum); KRİZ ve KURULUM 12 saat sonra düşer. opencode yeniden başlasa da aynı oturumun
+  yetkisi korunur (audit dizininin yanında `yetki/<oturum>.json`, 0600).
 - Kısa ad eşleşir: listede `web01` varsa `web01.kurum.local` da geçer.
 - **Envanter eşlemesi (G74):** yetki verildiği anda çalışma dizinindeki `ansible/`, `inventories/` altındaki INI envanter(ler)
   okunur (`OPS_AGENT_ENVANTER=yol1:yol2` ile değiştirilebilir); listedeki her öğe ad, kısa ad (envanterde adı onunla biten

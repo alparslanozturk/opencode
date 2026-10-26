@@ -124,6 +124,10 @@ Plan metni/ekranı gelince her maddeyi veriyle sına; eksikleri liste ile ver (s
     sonra Rancher. Hangi kümenin hangi sürümde olduğu → `kume-bul.py k8s` (Rancher local master'ından) ya da kullanıcı.
   - 1.33 için yeni RKE2 yaması çıkmayacak (son: v1.33.13+rke2r3, `[rke2-yama]` 2026-10-26); güvenlik açığı çıkarsa hat düzeltilmez.
   - Becerilerdeki 1.33 komutları/sürüm verisi silinmez (`surumler.txt` 1.33 satırları kalır).
+- **Hedef RKE2 1.36** (Alp, 2026-10-26: "1.36'ya kadar çıkacak inşallah"). `uyum.py yol --rancher v2.14.3 --rke2 v1.33.13+rke2r1
+  --antrea v2.3.0 --hedef-rke2 1.36 --hedef-rancher 2.15` (veri 2026-10-26): Rancher → v2.14.6 · Antrea → v2.6.3 · RKE2 → 1.34 ·
+  Rancher → v2.15.2 · RKE2 → 1.35 · Antrea → v2.7.0 · RKE2 → 1.36 — son durum hepsi ✅ (1.36 SUSE EOL 2027-10-12). Sürümler
+  plan anında yeniden hesaplanır (yeni yama çıkar); 1.37 Rancher 2.15 listesinde yok.
 
 ## Antrea yükseltme notları (çevrimdışı — resmi CHANGELOG/versioning.md'den, Doktor 2026-10-17)
 

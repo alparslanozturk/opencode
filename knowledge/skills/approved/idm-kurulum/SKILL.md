@@ -22,6 +22,8 @@ between IdM and AD* (önkoşullar, DNS, portlar, trust kurulumu), *Managing cert
   **şifresiz** (PIN yok, PFX/keystore yok). Sertifika adı kalıbı (wildcard mı, sunucu FQDN'i mi) `[SAHA]` — §3.
 - MSCA'da kök aynı kalıp **yalnız subCA yenilenebilir**; eski subCA IdM'de **durabilir** (Alp, 2026-10-25) — §6.3.
 - Satellite'tan gelen VM'lerde kurum CA + subCA zaten güvenilir (Alp) — istemci tarafında CA dağıtma işi yok.
+- **Disk (Alp, 2026-10-27, saha G112):** IdM sunucularına **100 GB disk**; logrotate Red Hat varsayılanında kalır (krb5kdc aylık, 12 ay,
+  sıkıştırmasız — ~40 GB). Kurulumda ön kontrol §1'de disk boyutunu da oku; mevcut sunucular için büyütme `rhel-depolama` (değişiklik, K1).
 - Kurulum dokümanı Alp'te var; kurum ayrıntısı gerekiyorsa sahada yerelde kaydettirilir (`kurum-bilgisi-yerelde`).
 
 ## 1. Ön kontroller (okuma — her IdM sunucusu adayında)

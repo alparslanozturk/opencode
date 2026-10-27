@@ -1370,3 +1370,15 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   Doktor kontrolü: ekrandaki 10 IP (.77–.83, .96, .160, .161) paylaşım satırında var ✅; paylaşım satırı ekranda `10.13.10.16…` diye
   kesik — 166–168 değerleri ekrandan doğrulanamadı (bilinmiyor).
 - Aksiyon: AGENTS "Yalnız metni kontrol et, işlem yapma" bölümü (komut yok; canlı doğrulama sonda tek cümle öneri; kesik satırı söyle).
+
+### G112 — splidm01/02 disk %95–96: krb5kdc logları; ajan "debug yok" dedi ama yalnız conf'a baktı (Alp, 2026-10-27, 2 ekran)
+- Ajan özeti: kök 53 GB, 50 GB dolu (%95 / %96); `/var/log` ~41 GB; `krb5kdc.log` + 13 aylık döndürülmüş (2025-11 → 2026-10), dosya başına
+  2–6 GB; `lastlog` stat 429 GB / du 80K (sparse — doğru tespit). Debug: `/proc/cmdline`, `sssd.conf`, `sshd_config`'de yok → "debug açık değil".
+  Önerdiği: eski krb5kdc loglarını sil + `truncate -s 0 /var/log/lastlog`.
+- Alp elle (splidm02): `du -hs * | grep G` → krb5kdc.log 3.0G, -20251101 … -20261001 (2.3–5.8G); `rm -rf krb5kdc.log-2026*` → `df -h`: kök
+  53G / 22G kullanılan / %41.
+- Doktor değerlendirmesi: (1) aylık + 13 dosya + `.gz` yok → logrotate `monthly`/`rotate 12`/`compress` yok (tahmin — `logrotate.d/krb5kdc`
+  görülmedi); KDC'nin debug düzeyi yok, büyüklük = istek sayısı. (2) SSSD çalışırken açılan debug (`sssctl debug-level`) conf'ta görünmez —
+  ajanın kontrolü eksik. (3) `truncate lastlog` gereksiz (yer kaplamıyor, bilgi gider). (4) Silinen 2026 logları denetim kaydı olabilir —
+  saklama gereği [SAHA].
+- Aksiyon: yeni beceri `idm-bakim` (teşhis okuma, KDC'yi yoran istemci, logrotate/SSSD/dirsrv kalıcı çözüm, acil yer açma kuralları).

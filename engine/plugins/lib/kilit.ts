@@ -1028,7 +1028,12 @@ export function saltOkunur(argv: string[]): boolean {
         const ey = secenekDegeri(a, "-a", "--action") ?? (a.find((x) => x.startsWith("--action="))?.slice(9) ?? "acct")
         return ey === "acct"
       }
+      // debug-level argümansız = mevcut düzeyi okur; sayı verilirse değiştirir (G112: "SSSD debug açık kalmış mı?")
+      if (ilk === "debug-level") return a.filter(secenekDegil).length === 1
       return ["domain-list", "domain-status", "user-show", "group-show", "netgroup-show", "config-check", "cert-show", "analyze"].includes(ilk)
+    case "logrotate":
+      // -d/--debug: kuru çalıştırma (logrotate(8): "no changes will be made"); -f ile birlikte değil
+      return has("-d", "--debug") && !has("-f", "--force")
     case "oscap": {
       // tarama/rehber/düzeltme betiği stdout'a — --remediate sistemi değiştirir, rapor/sonuç bayrakları dosya yazar
       const [k1 = "", k2 = ""] = a.filter(secenekDegil)

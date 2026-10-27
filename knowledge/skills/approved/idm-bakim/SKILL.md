@@ -18,11 +18,20 @@ ssh root@<idm> 'sssctl debug-level 2>&1 | head -20; grep -rn debug_level /etc/ss
 ssh root@<idm> 'du -sh /var/log/dirsrv/slapd-*/* 2>/dev/null | sort -h | tail -8; grep -hE "^nsslapd-(accesslog|errorlog|auditlog)(-level|-maxlogsize|-logexpirationtime|-logmaxdiskspace|-logrotationtime)?:" /etc/dirsrv/slapd-*/dse.ldif'
 ```
 
+```bash
+ssh root@<idm> 'cat /etc/sysconfig/krb5kdc 2>/dev/null; systemctl show krb5kdc -p Environment -p EnvironmentFiles -p DropInPaths; ls /etc/krb5.conf.d/ /etc/systemd/system/krb5kdc.service.d/ 2>/dev/null'
+ssh root@<idm> 'tail -3 /var/log/krb5kdc.log; grep -c -E "AS_REQ|TGS_REQ" /var/log/krb5kdc.log; wc -l < /var/log/krb5kdc.log'
+```
+
 Okuma kuralları:
 - `ls -s` ilk sütun = **diskte gerçek yer**. `lastlog` yüzlerce GB görünüp ilk sütunu KB ise **sparse** — yer kaplamıyor, dokunma (G112).
 - Döndürülmüş dosya **sayısı ve aralığı** ayarı ele verir (aylık tarih + 13 dosya + `.gz` yok → `monthly`/`rotate 12`/`compress` yok —
   `logrotate.d/krb5kdc` çıktısıyla teyit et, tahmini olgu diye yazma).
-- **KDC'nin debug düzeyi yoktur** (genel): `krb5kdc.log` her AS/TGS isteğine satır yazar; büyüklük = istek sayısı. "Debug açık" değil, istek çok.
+- **KDC'nin `debug_level` ayarı yoktur** (genel, MIT krb5): `krb5.conf` `[logging]` yalnız dosya yeridir (saha G112: splidm02 `krb5.conf`'ta
+  debug yok — Alp). KDC'nin "debug"ı **`KRB5_TRACE`** ortam değişkenidir (`/etc/sysconfig/krb5kdc`, systemd drop-in) — açıksa her istek
+  ayrıntılı yazılır. Ayırt et: `AS_REQ|TGS_REQ` satır sayısı ≈ toplam satır → normal kayıt, büyüklük = istek sayısı (§2); çok azsa
+  (`[pid] <epoch>: Sending request…` gibi satırlar) trace açık. `includedir /etc/krb5.conf.d/` ek ayar getirebilir — oraya da bak.
+- Aylık dosya boyunda **sıçrama** (G112: 2026-02/03 5–6 GB, diğerleri 2.3–2.9 GB) = o dönem trace ya da istek seli — §2'yi o dosyada çalıştır.
 - **SSSD debug** iki yerden gelir: `sssd.conf`/`conf.d` içindeki `debug_level` (kalıcı) ve `sssctl debug-level <n>` (çalışırken; conf'ta
   **görünmez**, servis yeniden başlayana kadar kalır — "açılıyor kapanıyor" belirtisi). Kararı `sssctl debug-level` çıktısı verir;
   yalnız conf'a bakıp "debug kapalı" deme (G112'de böyle denmişti). SSSD varsayılanı (genel): `0x0070`; 6+ ayrıntılı, 9 en çok.

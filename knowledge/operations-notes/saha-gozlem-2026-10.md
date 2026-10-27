@@ -1382,3 +1382,6 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   ajanın kontrolü eksik. (3) `truncate lastlog` gereksiz (yer kaplamıyor, bilgi gider). (4) Silinen 2026 logları denetim kaydı olabilir —
   saklama gereği [SAHA].
 - Aksiyon: yeni beceri `idm-bakim` (teşhis okuma, KDC'yi yoran istemci, logrotate/SSSD/dirsrv kalıcı çözüm, acil yer açma kuralları).
+- Devamı (Alp, 2 ekran): splidm02 `history | grep krb` — 2023-07 `vi /etc/krb5.conf`, 2024-06-28/07-01 `tail -f krb5kdc.log` (sorun giderme
+  dönemi), 2026-10-27 `rm -rf krb5kdc.log-2026*`. `krb5.conf`: `[logging] kdc = FILE:/var/log/krb5kdc.log`, debug ayarı yok, `includedir
+  /etc/krb5.conf.d/`. Doktor: MIT KDC'de debug_level yok; trace = `KRB5_TRACE` (sysconfig/drop-in) — kontrol komutları `idm-bakim` §1'e eklendi.

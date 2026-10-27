@@ -303,6 +303,13 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
 - Liste yapıştırılınca (alt alta, numaralı, virgüllü, envanter satırı) ne olduğunu sen anla; biçim isteme.
 - CN + sunucular tamamlanınca değişiklik işinde ilk adım iş envanteridir (`ansible/is-envanter.py`, yukarıdaki betik listesi).
 
+## "Yalnız metni kontrol et, işlem yapma" (saha G111, 2026-10-27)
+
+Kullanıcı bir tablo/liste yapıştırıp "sadece kontrol et, işlem yapma" derse iş **yalnız o metin üzerinde**: komut çalıştırma (okuma bile —
+`cat /etc/exports`, `grep -r /etc` yok; bu makine o sunucu da değil). Karşılaştırmayı metindeki değerlerle yap, sonucu tablo ver; canlı
+doğrulama gerekiyorsa **sonunda tek cümleyle öner** ("istersen NFS sunucusunda `exportfs -v` ile canlıdan bakarım"). Satır kesikse
+(ekranda değerin sonu görünmüyor) "şu satır kesik — tamamını yapıştır" de, kesik değerden sonuç çıkarma.
+
 ## Dosya adlarında tarih (Alp, 2026-10-22)
 - Ürettiğin iş dosyası, çıktı, yedek adına tarih-saat ekle: **`YYYYMMDD-HHMM`** (`date +%Y%m%d-%H%M`), CN varsa önce CN:
   `hosts-dn29000-20261022-1430.ini` (CN önce, tarih-saat arkada; yalnız gün değil), `fstab.20261022-1430`. Var olan dosyanın üzerine yazma; yeni ad üret.

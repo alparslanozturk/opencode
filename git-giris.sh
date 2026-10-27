@@ -36,6 +36,14 @@ if ! [ -t 0 ]; then
   echo "Bu betik kullanıcının kendi terminalinde çalışır (PAT sorar) — ajan/otomasyon çalıştıramaz." >&2
   exit 2
 fi
+# Güvensiz global ayar (saha G109, 2026-10-27, ölçüldü): sunucuya bağlı OLMAYAN `http.proactiveAuth` + parolayı satır içi basan global
+# helper → PAT her sunucuya (GitHub dahil) gönderiliyordu. Bunları temizle; yerine aşağıda yalnız bu sunucuya bağlı ayar yazılır.
+if git config --global --get http.proactiveauth > /dev/null 2>&1; then
+  git config --global --unset-all http.proactiveauth && echo "temizlendi: global http.proactiveAuth (bütün sunuculara Basic gönderiyordu)"
+fi
+if git config --global --get-all credential.helper 2>/dev/null | grep -q "password="; then
+  git config --global --unset-all credential.helper && echo "temizlendi: global credential.helper (parola satır içiydi, her sunucuya veriyordu)"
+fi
 if [ "$KALICI" = 0 ] && git config --global --get-all credential.helper 2>/dev/null | grep -q store; then
   echo "UYARI: global credential.helper 'store' tanımlı — PAT diske düz metin yazılır. Kaldırın ya da bilerek kalıcı isteyin: --kalici" >&2
   echo "  git config --global --unset-all credential.helper" >&2

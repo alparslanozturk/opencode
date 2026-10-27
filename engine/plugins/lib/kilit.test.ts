@@ -873,3 +873,16 @@ describe("G109: git'in kullanıcı ayar/kimlik dosyaları bu makinede K1 değil 
     expect(k(`ssh root@ornekweb01 "echo x >> ~/.git-credentials"`)?.kilit).toBe("K1")
   })
 })
+
+describe("G112: IdM bakım okumaları — sssctl debug-level (argümansız), logrotate -d", () => {
+  const k = (c: string) => kilitDenetle("bash", { command: c }, workdir, undefined)
+  test("okuma serbest", () => {
+    expect(k("ssh root@splidm01 'sssctl debug-level 2>&1 | head -20'")).toBeNull()
+    expect(k("ssh root@splidm01 'logrotate -d /etc/logrotate.d/krb5kdc'")).toBeNull()
+  })
+  test("değiştiren biçimler K1", () => {
+    expect(k("ssh root@splidm01 'sssctl debug-level 9'")?.kilit).toBe("K1")
+    expect(k("ssh root@splidm01 'logrotate -f /etc/logrotate.d/krb5kdc'")?.kilit).toBe("K1")
+    expect(k("ssh root@splidm01 'logrotate -d -f /etc/logrotate.d/krb5kdc'")?.kilit).toBe("K1")
+  })
+})

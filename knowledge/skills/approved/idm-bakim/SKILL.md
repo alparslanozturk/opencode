@@ -25,6 +25,11 @@ ssh root@<idm> 'tail -3 /var/log/krb5kdc.log; grep -c -E "AS_REQ|TGS_REQ" /var/l
 
 Okuma kuralları:
 - `ls -s` ilk sütun = **diskte gerçek yer**. `lastlog` yüzlerce GB görünüp ilk sütunu KB ise **sparse** — yer kaplamıyor, dokunma (G112).
+- **Red Hat varsayılanı (ölçüldü, paketten):** `krb5-server-1.21.3-10.el10_2` → `/etc/logrotate.d/krb5kdc` = `monthly`, `rotate 12`,
+  `missingok`, `notifempty`, postrotate `systemctl reload krb5kdc.service`; **`compress` yok**. Global `/etc/logrotate.conf` (logrotate-3.22.0):
+  `weekly`, `rotate 4`, `create`, `dateext`, `#compress` (kapalı). Yani 12 ay + etkin dosya = 13 sıkıştırılmamış dosya (G112 ekranıyla aynı) —
+  "silmiyor" değil, 12 aydan eskisini siliyor. Başka sürüm/RHEL 8–9 için aynı mı: `rpm -qf /etc/logrotate.d/krb5kdc` + dosyanın kendisi
+  (sürüm farkını uydurma; G112'de ajan "bazı sürümlerde rotate 52" dedi — kaynaksız).
 - Döndürülmüş dosya **sayısı ve aralığı** ayarı ele verir (aylık tarih + 13 dosya + `.gz` yok → `monthly`/`rotate 12`/`compress` yok —
   `logrotate.d/krb5kdc` çıktısıyla teyit et, tahmini olgu diye yazma).
 - **KDC'nin `debug_level` ayarı yoktur** (genel, MIT krb5): `krb5.conf` `[logging]` yalnız dosya yeridir (saha G112: splidm02 `krb5.conf`'ta
@@ -45,6 +50,17 @@ ssh root@<idm> 'tail -n 200000 /var/log/krb5kdc.log | grep -oE "\}\) [0-9a-fA-F.
 Çıktı: `sayı  }) <istemci IP>: <sonuç>` (genel — KDC satır biçimi; sahada ilk koşuda doğrula, eşleşme yoksa `tail -3` ile satırı göster).
 `ISSUE` normal; aynı IP'den binlerce `PREAUTH_FAILED` / `CLIENT_NOT_FOUND` / `NEEDED_PREAUTH` → yanlış parolalı servis hesabı ya da bozuk
 keytab'lı istemci — log selinin asıl kaynağı. IP → sunucu adı `kume-bul <IP>`. Düzeltmesi o istemcide (keytab, servis parolası) — öner.
+
+## 2b. Log merkeze gidiyor mu? (okuma — saklama kararından önce)
+
+```bash
+ssh root@<idm> 'ls -d /opt/splunkforwarder /opt/splunk 2>/dev/null; grep -rln krb5kdc /opt/splunkforwarder/etc/ 2>/dev/null; grep -rn -i "krb5\|kdc" /etc/rsyslog.conf /etc/rsyslog.d/ 2>/dev/null'
+```
+
+Splunk UF `inputs.conf`'ta `krb5kdc.log` için `[monitor://…]` yoksa (G112: Alp "izlemiyormuş hiç") yereldeki dosya **tek kopyadır** →
+silmek kaydı yok eder. Önce merkeze gönderme (Splunk UF monitor girdisi — kurumda Splunk ekibi `[SAHA]`), sonra yerelde kısa tutma.
+Saklama süresi kuralı `bankacilik-uyum` m.13: kritik işlem ve **yetkisiz erişim denemesi** kayıtları asgari 5 yıl (BDDK BSEBHY); KDC
+logu başarısız kimlik doğrulamayı içerir. Hukuki yorum yapma — kullanıcıya bu satırı göster, karar onun.
 
 ## 3. Kalıcı çözüm (değişiklik — K1; iki IdM sunucusu birlikte, ansible ile)
 

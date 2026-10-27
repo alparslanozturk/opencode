@@ -1385,3 +1385,8 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Devamı (Alp, 2 ekran): splidm02 `history | grep krb` — 2023-07 `vi /etc/krb5.conf`, 2024-06-28/07-01 `tail -f krb5kdc.log` (sorun giderme
   dönemi), 2026-10-27 `rm -rf krb5kdc.log-2026*`. `krb5.conf`: `[logging] kdc = FILE:/var/log/krb5kdc.log`, debug ayarı yok, `includedir
   /etc/krb5.conf.d/`. Doktor: MIT KDC'de debug_level yok; trace = `KRB5_TRACE` (sysconfig/drop-in) — kontrol komutları `idm-bakim` §1'e eklendi.
+- Devamı 2 (ekran 11:10): Alp "Red Hat varsayılan olarak neden silmiyor?" → ajan: "rotate 12 (bazı sürümlerde 52)", "Red Hat yerelde 3–6 ay
+  tut der" — **kaynaksız** (52 ve 3–6 ay hiçbir yerden okunmadı). Doktor ölçtü (krb5-server-1.21.3-10.el10_2 RPM): monthly, rotate 12, compress yok;
+  global logrotate.conf `#compress`. Alp: "Splunk yüklü … izlemiyormuş hiç" → krb5kdc.log merkeze gitmiyor, yerel tek kopya.
+  Ajanın Splunk/rsyslog okuma komutu "Permission required" istedi: kilit değil (kilit serbest buldu), opencode `permission.bash "*": ask`
+  izin listesi (`which`, `for` listede yok). `idm-bakim` §1 varsayılan + §2b merkeze gidiyor mu.

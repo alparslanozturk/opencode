@@ -62,7 +62,13 @@ silmek kaydı yok eder. Önce merkeze gönderme (Splunk UF monitor girdisi — k
 Saklama süresi kuralı `bankacilik-uyum` m.13: kritik işlem ve **yetkisiz erişim denemesi** kayıtları asgari 5 yıl (BDDK BSEBHY); KDC
 logu başarısız kimlik doğrulamayı içerir. Hukuki yorum yapma — kullanıcıya bu satırı göster, karar onun.
 
-## 3. Kalıcı çözüm (değişiklik — K1; iki IdM sunucusu birlikte, ansible ile)
+## 2c. Kurum kararı (Alp, 2026-10-27)
+
+**IdM sunucularına 100 GB disk; logrotate varsayılanı değiştirilmez** (Alp: "vazgeçtim, IdM sunucularına 100 GB disk ekleyeceğim").
+Hesap (splidm02, G112): krb5kdc en dolu anında ~40 GB, yıllık büyüme ~%25 → ~47 GB; diğer kullanım ~14 GB; %80 sınırı → ~77 GB → 100 GB.
+§3'ü (compress/weekly) **önerme**; disk %80'i geçerse önce §1–§2 (istek seli / trace) — yine dolarsa kullanıcıya söyle.
+
+## 3. Kalıcı çözüm — yalnız kullanıcı isterse (kurum kararı §2c: varsayılan kalır; değişiklik — K1, iki sunucu birlikte, ansible ile)
 
 - **`/etc/logrotate.d/krb5kdc`:** `compress` + `delaycompress`, daha sık döndürme (`weekly`) ve `maxsize`, `rotate` = kurumun saklama süresi.
   Saklama süresini **sorma-uydurma**: kullanıcıya sor (kimlik doğrulama logu denetim kaydıdır — BDDK/bankacılık saklama; Splunk'a gidiyorsa

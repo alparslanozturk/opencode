@@ -1390,3 +1390,4 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   global logrotate.conf `#compress`. Alp: "Splunk yüklü … izlemiyormuş hiç" → krb5kdc.log merkeze gitmiyor, yerel tek kopya.
   Ajanın Splunk/rsyslog okuma komutu "Permission required" istedi: kilit değil (kilit serbest buldu), opencode `permission.bash "*": ask`
   izin listesi (`which`, `for` listede yok). `idm-bakim` §1 varsayılan + §2b merkeze gidiyor mu.
+- Karar (Alp): "Vazgeçtim. IdM sunucularına 100 GB disk ekleyeceğim" — logrotate varsayılanı kalır. Doktor hesabı: krb5kdc ~40 GB (en dolu), +%25/yıl → ~47 GB, diğer ~14 GB, %80 sınırı → ~77 GB. `idm-kurulum` §0 + `idm-bakim` §2c.

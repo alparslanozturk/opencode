@@ -1399,3 +1399,7 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   ntpd ile ölçülemedi: container'da ntpsec kendi ntpq'suna cevap vermedi), `solaris-ntp-noquery.yaml` (yalnız eksik noquery; ignore'a dokunmaz;
   4 ntp.conf örneğiyle localhost'ta ölçüldü, ikinci koşu changed=0), kilit: svcs/svcprop/ntpq okuma, svcadm/svccfg K1 (279/279).
   `playbook-denetim.py`: tırnak içindeki `|` artık kabuk işlemi sayılmıyor (yanlış ENGEL'di).
+- 2026-10-27 (ekran): bağlantı kuruldu, iki depo `pull` ✓. Ajanın özeti: `credential.helper` satır içi PAT + `http.proactiveAuth = basic` **global**.
+  Doktor ölçtü: bu biçimde PAT **her sunucuya** gidiyor (yerel iki sunucu: ikisi de `Authorization: Basic` aldı) → sahadan GitHub'a `git pull`
+  kurum PAT'ini GitHub'a gönderir. `git-giris.sh` güvensiz global ayarları temizleyip sunucuya bağlı yazacak şekilde düzeltildi (ölçüldü: temizlik
+  + ✓ + ajan clone ✓, başka sunucuya başlık gitmedi); git §1a yasak satırı.

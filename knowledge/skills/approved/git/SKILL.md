@@ -85,6 +85,10 @@ opencode                              # bu kabuktan başlat — ajanın git komu
 - Git'in kullanıcı dosyaları (`~/.gitconfig`, `~/.git-credentials`, `~/.config/git/`) bu makinede kilit dışı (Alp, 2026-10-26: "git
   config'i konfigüre edecek, helper — bunun kilidi mi olur?"). Önerilen yine `git-giris.sh` (bellek); kullanıcı kalıcı `store` isterse yap,
   bir kez "PAT diske düz metin yazılır (`~/.git-credentials`)" de.
+- **Global** `http.proactiveAuth` ya da parolayı satır içi basan **global** `credential.helper` (`!f() { … echo password=… }`) yazma —
+  ölçüldü (G109, 2026-10-27): sahadaki bu biçimde PAT **her sunucuya** (GitHub'a `git pull` dahil) Basic başlıkla gitti. Ayar yalnız
+  sunucuya bağlı olur (`http.https://<tfs-sunucu>/.…`, `credential.https://<tfs-sunucu>/.helper`) — `git-giris.sh` böyle yazar ve
+  eski güvensiz global ayarı kendisi temizler.
 - Kullanıcı PAT'i/parolayı sohbete yazarsa: **kullanma**, komuta/URL'ye koyma; "token sohbete düştü, iptal edip yenisini oluşturun,
   yukarıdaki yolla verin" de (G109: PAT URL'de ve `-c http.extraHeader` komutunda açık yazıldı).
 

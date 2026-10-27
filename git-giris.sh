@@ -54,7 +54,7 @@ git config --global "http.$taban.proactiveAuth" basic
 
 echo "Sunucu: $taban  ($nerede)"
 read -rp "Kullanıcı adı (PAT ile boş bırakılabilir, Enter): " kul
-read -rsp "PAT: " pat; echo
+read -rsp "PAT (domain parolası DEĞİL — Azure DevOps > Personal access tokens): " pat; echo
 if [ -z "$pat" ]; then echo "PAT boş — iptal." >&2; exit 2; fi
 # setsid: önbellek süreci bu terminalden ayrı oturumda başlar — terminal/sekme kapanınca ölmez (ölçüldü: setsid'siz SIGHUP ile gidiyordu)
 printf 'protocol=%s\nhost=%s\nusername=%s\npassword=%s\n\n' "$proto" "$host" "$kul" "$pat" | setsid -w git credential approve

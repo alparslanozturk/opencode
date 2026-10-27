@@ -1349,6 +1349,9 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   `git` §1a Yol 1 buna göre; `.git-credentials`/store yasak satırı eklendi.
 - Karar (Alp, aynı akşam): "git config'i konfigüre edecek adam, helper — bunun kilidi mi olur? İzin ver diyorum, izin de vermiyor."
   → kilit: bu makinede git'in kullanıcı dosyaları K1 dışı (`gitKullaniciDosyasi`, test 275/275); `git-giris.sh` tek komut giriş.
+- 2026-10-27 (4 ekran): ajan domain parolasını `~/.git-credentials`'a ve `.gitconfig` helper'ına yazdı, global `[http] proactiveAuth=basic`
+  + `emptyAuth` denedi → `Authentication failed` / `could not read Username`. Sebep: Basic'te yalnız PAT geçiyor (domain parolası NTLM ister).
+  Alp'e temizlik + `git-giris.sh --kalici` ile PAT verildi; git §1a "domain parolası Basic ile çalışmaz", betik istemi "PAT (domain parolası DEĞİL)".
 - Açık: kalıcı çözüm adayı — `guvenlik-v2` kilidi komutta PAT/parola biçimi (URL'de `user:pass@`, `password=`, `Authorization: Basic`)
   görünce engellesin mi? Alp'e soruldu.
 

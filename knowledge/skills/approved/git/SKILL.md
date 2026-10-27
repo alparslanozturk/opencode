@@ -42,6 +42,11 @@ Kurum Azure DevOps Server'ı `WWW-Authenticate: Negotiate, NTLM` döndürüyor; 
 Basic** kabul ediliyor. Sebep (yerelde yeniden üretildi, git 2.52): sunucu yalnız `Negotiate`/`NTLM` önerince git **NTLM seçer**, PAT'i
 hiç Basic göndermez. Çözüm git'in kendi ayarı `http.<url>.proactiveAuth=basic` (git ≥ 2.46).
 
+**Domain (AD) parolası Basic ile ÇALIŞMAZ** (saha G109, 2026-10-27: `proactiveAuth=basic` + `kuveytturk\<kullanıcı>:<domain parolası>` →
+`Authentication failed`; sahada `curl -u "<alan>\<kullanıcı>:…"` → 401, `curl -u ":<PAT>"` → 200). Basic'te geçen **yalnız PAT, boş kullanıcı adıyla**.
+Kullanıcı domain parolası verirse kullanma; "PAT gerekiyor — `git-giris.sh --kalici <adres>` ile siz girin" de. Global `[http] proactiveAuth`
+yazma (bütün sunuculara Basic) — yalnız `http.https://<tfs-sunucu>/.proactiveAuth` (betik böyle yapar).
+
 **Yol 1 (önerilen) — `git-giris.sh`, herkes kendi PAT'iyle, kendi terminalinde:**
 
 ```bash

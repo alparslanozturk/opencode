@@ -123,6 +123,11 @@ icerir "temiz playbook (okuma görevi + handler) bulgusuz" pd2.txt "bulgu yok"
 icerir "temiz çıkış 0" pd2.txt "rc=0"
 python3 "$B/ansible/playbook-denetim.py" pd-bozuk.yml > pd3.txt 2>&1; echo "rc=$?" >> pd3.txt
 icerir "bozuk YAML çıkış 2" pd3.txt "rc=2"
+printf -- '- hosts: x\n  tasks:\n    - name: oku\n      ansible.builtin.command: "grep -E '"'"'a|b'"'"' /etc/x"\n      changed_when: false\n' > pd-tirnak.yml
+python3 "$B/ansible/playbook-denetim.py" pd-tirnak.yml > pd4.txt 2>&1
+icermez "tırnak içindeki | kabuk işlemi sayılmaz" pd4.txt "command-kabuk"
+python3 "$B/ansible/playbook-denetim.py" "$B/solaris-ntp/solaris-ntp-noquery.yaml" > pd5.txt 2>&1; echo "rc=$?" >> pd5.txt
+icerir "solaris-ntp playbook'u denetimden temiz" pd5.txt "rc=0"
 
 # --------------------------------------------------------------------------- envanter-fark
 baslik "envanter-fark.py (mükerrer envanter, Alp 2026-10-26)"
@@ -197,6 +202,26 @@ icermez "kalan: 'latest' sayılmaz" mu3.txt "optic:latest"
 icerir "kalan varsa çıkış 1" mu3.txt "rc=1"
 python3 "$B/rke2-manifest/manifest-uyarla.py" kopyala mu/test mu/yeni --degis test=yeni --yaz > mu4.txt 2>&1
 icerir "var olan hedefin üzerine yazmaz" mu4.txt "VAR (üzerine yazılmaz)"
+
+# --------------------------------------------------------------------------- ntp-mode6
+baslik "ntp-mode6.py (Solaris NTP mode 6; 2026-10-27)"
+cat > nm-sunucu.py << 'E'
+import socket, struct
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.bind(("127.0.0.1", 0)); open("nm-port", "w").write(str(s.getsockname()[1]))
+s.settimeout(20)
+v, a = s.recvfrom(512)
+d = b'version="ntpd 4.2.8p15", system="SunOS/5.11"'
+s.sendto(struct.pack("!BBHHHHH", 0x16, 0x82, 1, 0, 0, 0, len(d)) + d, a)
+E
+python3 nm-sunucu.py > nm-sunucu.log 2>&1 &
+sleep 1
+sed "s/(hedef, 123,/(hedef, int(open('nm-port').read()),/" "$B/solaris-ntp/ntp-mode6.py" > nm.py
+python3 nm.py 127.0.0.1 > nm1.txt 2>&1; echo "rc=$?" >> nm1.txt
+icerir "mode 6 cevabı → AÇIK + sürüm" nm1.txt "AÇIK     127.0.0.1"
+icerir "AÇIK → çıkış 1" nm1.txt "rc=1"
+python3 nm.py 127.0.0.1 --zaman-asimi 1 > nm2.txt 2>&1; echo "rc=$?" >> nm2.txt
+icerir "cevap yok → KAPALI, çıkış 0" nm2.txt "rc=0"
+wait
 
 # --------------------------------------------------------------------------- filo-tablo
 baslik "filo-tablo.py (G22, G77)"

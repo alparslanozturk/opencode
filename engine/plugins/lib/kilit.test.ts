@@ -886,3 +886,17 @@ describe("G112: IdM bakım okumaları — sssctl debug-level (argümansız), log
     expect(k("ssh root@splidm01 'logrotate -d -f /etc/logrotate.d/krb5kdc'")?.kilit).toBe("K1")
   })
 })
+
+describe("Solaris SMF / NTP (2026-10-27): svcs/svcprop/ntpq okuma, svcadm/svccfg değişiklik", () => {
+  const k = (c: string) => kilitDenetle("bash", { command: c }, workdir, undefined)
+  test("okuma serbest", () => {
+    expect(k(`ssh root@splsol01 'svcs -l svc:/network/ntp:default; svcprop -p config svc:/network/ntp:default; ntpq -p'`)).toBeNull()
+    expect(k(`ssh root@splsol01 'svcs -xv ntp; ntpq -c "rv 0 version" 127.0.0.1'`)).toBeNull()
+  })
+  test("svcadm/svccfg/ntpq :config K1", () => {
+    expect(k("ssh root@splsol01 'svcadm restart svc:/network/ntp:default'")?.kilit).toBe("K1")
+    expect(k("ssh root@splsol01 'svcadm restart svc:/network/ntp:default'")?.sor).toBeFalsy()
+    expect(k("ssh root@splsol01 'svccfg -s ntp setprop config/x = true'")?.kilit).toBe("K1")
+    expect(k(`ssh root@splsol01 'ntpq -c ":config restrict default"'`)?.kilit).toBe("K1")
+  })
+})

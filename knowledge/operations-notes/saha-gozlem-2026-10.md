@@ -1391,3 +1391,11 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   Ajanın Splunk/rsyslog okuma komutu "Permission required" istedi: kilit değil (kilit serbest buldu), opencode `permission.bash "*": ask`
   izin listesi (`which`, `for` listede yok). `idm-bakim` §1 varsayılan + §2b merkeze gidiyor mu.
 - Karar (Alp): "Vazgeçtim. IdM sunucularına 100 GB disk ekleyeceğim" — logrotate varsayılanı kalır. Doktor hesabı: krb5kdc ~40 GB (en dolu), +%25/yıl → ~47 GB, diğer ~14 GB, %80 sınırı → ~77 GB. `idm-kurulum` §0 + `idm-bakim` §2c.
+
+### G113 — Solaris 11.4 SPARC "NTP mode 6" bulgusu: beceri isteği (Alp, 2026-10-27)
+- Alp: "Solaris 11.4 SPARC makinelerimizde NTP ayarlarında mod 6 diye bir bulgu bulundu; NTP ayarlarını düzeltip servisi restart edeceğiz. Yetenek
+  vardır zaten." Durum: tek Solaris becerisi `solaris-ldom` **parked** (sahaya gitmiyor), NTP içermiyordu; kilit `svcs`/`svcadm`'ı tanımıyordu (soruyordu).
+- Aksiyon: yeni `solaris-ntp` (approved) — `ntp-mode6.py` (dışarıdan mode 6 READVAR sınaması, ek araçsız; sahte cevaplayıcıyla ölçüldü — gerçek
+  ntpd ile ölçülemedi: container'da ntpsec kendi ntpq'suna cevap vermedi), `solaris-ntp-noquery.yaml` (yalnız eksik noquery; ignore'a dokunmaz;
+  4 ntp.conf örneğiyle localhost'ta ölçüldü, ikinci koşu changed=0), kilit: svcs/svcprop/ntpq okuma, svcadm/svccfg K1 (279/279).
+  `playbook-denetim.py`: tırnak içindeki `|` artık kabuk işlemi sayılmıyor (yanlış ENGEL'di).

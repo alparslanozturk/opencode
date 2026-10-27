@@ -1403,3 +1403,7 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   Doktor ölçtü: bu biçimde PAT **her sunucuya** gidiyor (yerel iki sunucu: ikisi de `Authorization: Basic` aldı) → sahadan GitHub'a `git pull`
   kurum PAT'ini GitHub'a gönderir. `git-giris.sh` güvensiz global ayarları temizleyip sunucuya bağlı yazacak şekilde düzeltildi (ölçüldü: temizlik
   + ✓ + ajan clone ✓, başka sunucuya başlık gitmedi); git §1a yasak satırı.
+- 2026-10-27 (ekran): Alp betiği ajana "çalıştır" dedi; ajan betiğin tty istediğini görüp **git-giris.sh'ı düzenlemeye** kalktı (kilit K1 durdurdu),
+  global satır içi helper'ın zaten çalıştığını söyleyip fetch denedi. Alp: "bir çalışma neden bu kadar uzar ve zor olur anlayamadım." Doktor: tasarım
+  hatası — PAT sahada zaten .gitconfig'teydi; `git-giris.sh --tasi` onu oradan alıp sunucuya bağlı 0600 dosyaya taşır, global ayarları siler, tty'siz
+  (ölçüldü: ekranda PAT yok, ajan clone ✓, başka sunucuya başlık yok, PAT yoksa çıkış 2). git §1a: ajan --tasi'yi kendisi çalıştırır, kit dosyasını düzenlemez.

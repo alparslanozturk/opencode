@@ -65,6 +65,7 @@ Herkes kendi terminalinde, kendi PAT'iyle (Azure DevOps → profil → Personal 
 ./git-giris.sh https://<sunucu>/tfs/<koleksiyon>/<proje>/_git/<depo>   # ilk sefer — Kullanıcı: Enter, PAT: yapıştır
 ./git-giris.sh                                                         # sonraki günler (10 saatte bir)
 ./git-giris.sh --kalici https://<sunucu>/…/_git/<depo>                 # bir kez, kalıcı (~/.git-credentials, 0600) — sonra ajan her şeyi yapar
+./git-giris.sh --tasi https://<sunucu>/…/_git/<depo>                   # PAT zaten .gitconfig'teyse güvenli yere taşır (ajan da çalıştırır)
 ```
 
 PAT yalnız bellekte durur (diske yazılmaz, sohbete yazılmaz); sonra opencode'a "git/<depo>'yu klonla / çek" demek yeter.

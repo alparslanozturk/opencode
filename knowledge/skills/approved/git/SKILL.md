@@ -85,6 +85,10 @@ opencode                              # bu kabuktan başlat — ajanın git komu
 - Git'in kullanıcı dosyaları (`~/.gitconfig`, `~/.git-credentials`, `~/.config/git/`) bu makinede kilit dışı (Alp, 2026-10-26: "git
   config'i konfigüre edecek, helper — bunun kilidi mi olur?"). Önerilen yine `git-giris.sh` (bellek); kullanıcı kalıcı `store` isterse yap,
   bir kez "PAT diske düz metin yazılır (`~/.git-credentials`)" de.
+- **Global .gitconfig'te satır içi PAT görürsen** (eski kurulum, G109): kendin çalıştır —
+  `/root/ai/opencode/git-giris.sh --tasi https://<tfs-sunucu>/…/_git/<depo>` (terminal/PAT gerekmez; PAT'i sunucuya bağlı ~/.git-credentials'a
+  taşır, global ayarları siler, dener; ölçüldü). Kitin dosyalarını (`git-giris.sh` vb.) **düzenleme** — G109'da ajan betiği değiştirmeye
+  çalıştı (kilit durdurdu); betik eksikse kullanıcıya söyle.
 - **Global** `http.proactiveAuth` ya da parolayı satır içi basan **global** `credential.helper` (`!f() { … echo password=… }`) yazma —
   ölçüldü (G109, 2026-10-27): sahadaki bu biçimde PAT **her sunucuya** (GitHub'a `git pull` dahil) Basic başlıkla gitti. Ayar yalnız
   sunucuya bağlı olur (`http.https://<tfs-sunucu>/.…`, `credential.https://<tfs-sunucu>/.helper`) — `git-giris.sh` böyle yazar ve

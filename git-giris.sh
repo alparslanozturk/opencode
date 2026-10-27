@@ -3,6 +3,7 @@
 #   ./git-giris.sh https://<sunucu>/tfs/<koleksiyon>/<proje>/_git/<depo>     ilk sefer (sunucu adresi depodan alınır)
 #   ./git-giris.sh                                                          sonraki seferler (daha önce kaydedilen sunucu)
 #   ./git-giris.sh --kalici <adres>                                         PAT dosyada (0600) — bir kez; sonra ajan her şeyi kendisi yapar
+#   ./git-giris.sh --tasi <adres>                                           PAT zaten global .gitconfig'teyse oradan güvenli yere taşı (ajan da çalıştırır)
 # Ne yapar: (1) bu sunucu için git'in bellek önbelleğini açar, (2) PAT'in gönderilmesi için Basic'i zorlar — sunucu yalnız
 # Negotiate/NTLM önerince git NTLM seçiyor ve PAT'i hiç göndermiyordu (saha G109, yerelde yeniden üretildi), (3) PAT'i sorar
 # (ekrana basılmaz), YALNIZ BELLEĞE koyar (diske yazılmaz; süre dolunca ya da makine yeniden başlayınca gider), (4) bağlantıyı dener.
@@ -11,7 +12,11 @@ set -uo pipefail
 
 SURE="${GIT_GIRIS_SURE:-36000}"   # saniye; varsayılan 10 saat (iş günü)
 KALICI=0
-if [ "${1:-}" = "--kalici" ]; then KALICI=1; shift; fi   # Alp (2026-10-27): bir kez gir, ajan gerisini yapsın — PAT ~/.git-credentials (0600)
+TASI=0
+if [ "${1:-}" = "--kalici" ]; then KALICI=1; shift; fi
+# --tasi (Alp, 2026-10-27: "bir çalışma neden bu kadar uzar"): PAT zaten global .gitconfig'te satır içi helper'daysa onu oradan alır,
+# yalnız bu sunucuya bağlı ~/.git-credentials'a (0600) taşır, güvensiz global ayarları siler. Terminal/PAT girişi gerekmez — ajan çalıştırabilir.
+if [ "${1:-}" = "--tasi" ]; then TASI=1; KALICI=1; shift; fi   # Alp (2026-10-27): bir kez gir, ajan gerisini yapsın — PAT ~/.git-credentials (0600)
 url="${1:-}"
 
 if [ -n "$url" ]; then
@@ -32,7 +37,16 @@ else
 fi
 taban="$proto://$host/"
 
-if ! [ -t 0 ]; then
+if [ "$TASI" = 1 ]; then
+  eski="$(git config --global --get-all credential.helper 2>/dev/null | grep 'password=' | head -1)"
+  pat="$(printf '%s' "$eski" | sed -n 's/.*password=\([^"\\;]*\).*/\1/p')"
+  kul="$(printf '%s' "$eski" | sed -n 's/.*username=\([^"\\;]*\).*/\1/p')"
+  if [ -z "$pat" ]; then
+    echo "Taşınacak PAT yok (global credential.helper'da password= bulunamadı) — ./git-giris.sh --kalici <adres> ile girin." >&2
+    exit 2
+  fi
+fi
+if [ "$TASI" = 0 ] && ! [ -t 0 ]; then
   echo "Bu betik kullanıcının kendi terminalinde çalışır (PAT sorar) — ajan/otomasyon çalıştıramaz." >&2
   exit 2
 fi
@@ -61,8 +75,12 @@ fi
 git config --global "http.$taban.proactiveAuth" basic
 
 echo "Sunucu: $taban  ($nerede)"
-read -rp "Kullanıcı adı (PAT ile boş bırakılabilir, Enter): " kul
-read -rsp "PAT (domain parolası DEĞİL — Azure DevOps > Personal access tokens): " pat; echo
+if [ "$TASI" = 0 ]; then
+  read -rp "Kullanıcı adı (PAT ile boş bırakılabilir, Enter): " kul
+  read -rsp "PAT (domain parolası DEĞİL — Azure DevOps > Personal access tokens): " pat; echo
+else
+  echo "PAT eski global ayardan alındı (ekrana basılmaz)."
+fi
 if [ -z "$pat" ]; then echo "PAT boş — iptal." >&2; exit 2; fi
 # setsid: önbellek süreci bu terminalden ayrı oturumda başlar — terminal/sekme kapanınca ölmez (ölçüldü: setsid'siz SIGHUP ile gidiyordu)
 printf 'protocol=%s\nhost=%s\nusername=%s\npassword=%s\n\n' "$proto" "$host" "$kul" "$pat" | setsid -w git credential approve

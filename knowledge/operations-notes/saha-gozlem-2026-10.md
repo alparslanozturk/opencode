@@ -1362,3 +1362,11 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   oradan alıp yükleyeyim; bir nevi GitOps ama otomatik değil (Anthos Config Management gibi değil)."
 - Aksiyon: yeni beceri `rke2-manifest` — pull + temiz depo → hedef küme açık → `kubectl diff` (kilitte serbest, ölçüldü) → CN ile `apply`
   (K1, ölçüldü) → doğrulama → uygulanan commit raporu; kayma taraması (diff çıkış 0/1/>1); depodaki sırları kopyalamama.
+
+### G111 — "DumpSight NFS IP kontrolü": metin karşılaştırması doğru, ama önce izinsiz okuma denedi (Alp, 2026-10-27, 2 ekran)
+- İstek: `/splbtfile_NFS_FS/DumpSight` paylaşımına verilmiş IP listesi + SPLKUBEWORK1–10 (IP'li) — "tabloyu sadece kontrol et metini, işlem yapma".
+- Ajan önce `cat /etc/exports || grep -r "DumpSight" /etc/` çalıştırmak istedi (izin ekranı; çalışma makinesi NFS sunucusu değil, istek
+  de yalnız metindi). Sonra doğru cevap: 10/10 sunucu IP'si paylaşımda ✅; paylaşımda listede olmayan 3 IP (10.13.10.166–168).
+  Doktor kontrolü: ekrandaki 10 IP (.77–.83, .96, .160, .161) paylaşım satırında var ✅; paylaşım satırı ekranda `10.13.10.16…` diye
+  kesik — 166–168 değerleri ekrandan doğrulanamadı (bilinmiyor).
+- Aksiyon: AGENTS "Yalnız metni kontrol et, işlem yapma" bölümü (komut yok; canlı doğrulama sonda tek cümle öneri; kesik satırı söyle).

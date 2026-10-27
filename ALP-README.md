@@ -1,6 +1,6 @@
 # opencode paketi — Alp (kurum içi)
 
-Aider fork'unda biriken tecrübeyi (**40 beceri** — 13 onaylı + 27 park edilmiş, bkz. aşağı — + çalışma kuralları) opencode'a taşıyan hazır paket.
+Kurum içi kodlama/operasyon ajanı paketi: opencode + kurum Qwen + **37 onaylı beceri** (deterministik betikleriyle) + güvenlik kilidi + çalışma kuralları.
 Kod geliştirme YOK — sadece ayar + içerik. Amaç: **önce denemek**, sonuç iyiyse sonra kod.
 
 **İki katman:** `engine/` = motor (opencode ayarı, güncellenebilir) · `knowledge/` = kurumsal bilgi deposu (kalıcı).
@@ -14,10 +14,11 @@ Kod geliştirme YOK — sadece ayar + içerik. Amaç: **önce denemek**, sonuç 
 | `engine/opencode.json` | Sağlayıcı ayarı: kurum Qwen'i OpenAI uyumlu uçtan bağlar · bağlam penceresi (`kur.sh` kurulum akışı otomatik tespit eder) · zaman aşımları · izin kuralları |
 | `engine/AGENTS.md` | Kurum kuralları: dil, envanter disiplini, güvenlik, beceri disiplini, pencere/endpoint notu |
 | `engine/plugins/` | Güvenlik + audit eklentisi: `guvenlik-v2.ts` (opencode 2.x) + motordan bağımsız çekirdek `lib/` (`audit-log.ts` 1.x dönemi, kurulmaz) |
-| `knowledge/skills/approved/` | **13 onaylı beceri** — opencode'un **okuduğu tek yer**, `kur.sh` hepsini kurar |
-| `knowledge/skills/parked/` | Kalan **28 beceri** (2026-09-16 sadeleştirmesi, Alp kararı) — varsayılan kurulumda kurulmaz, bkz. `parked/README.md` |
+| `knowledge/skills/approved/` | **37 onaylı beceri** (2026-10-27) — opencode'un **okuduğu tek yer**, `kur.sh` hepsini kurar; liste ve betik tablosu `knowledge/skills/README.md` |
+| `knowledge/skills/parked/` | **25 park edilmiş beceri** — varsayılan kurulumda kurulmaz, bkz. `parked/README.md` |
 | `knowledge/` | Kurumsal bilgi deposu: `skills` · `runbooks` · `incidents` · `lessons-learned` · `operations-notes` · `architecture` · `roadmap` |
 | `kur.sh` | **TEK BETİK.** Parametresiz çağrı (= `kur`) gerekirse derler, kurar, `opencode`+`oc` kısayollarını düzeltir ve en sonda kontrol raporunu basar. Alt komutlar: `kur` · `derle` · `kontrol` · `yardim` |
+| `git-giris.sh` | Kurum git'i (Azure DevOps) girişi — herkes kendi PAT'iyle bir kez; bellekte ya da `--kalici` (aşağıda) |
 | `kur.sh kontrol` | **Tek kontrol/teşhis.** Kurulum (ikili/sürüm-commit/env/ayar/beceri/`rg`/izin/kısayol) + kurum AI ucu (ağ/`/models`/sohbet/akış/araç çağrısı/bağlam+çıktı sınırı). Çıktı **her modda ≤29 satır**, sonda tek satır `SORUN:`; `env`'de `KURUM_URL_2` varsa iki ucu **iki sütunda** ölçüp "daha hızlı" karar satırını basar |
 | `NASIL-CALISTIRILIR.md` | **Adım adım çalıştırma + sorun giderme** (önce bunu oku) |
 | `DENEYIM-AKTARIM.md` | Aider'da öğrendiklerimizin opencode karşılığı — ne aktarıldı, ne aktarılamadı |

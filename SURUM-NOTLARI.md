@@ -6,6 +6,28 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-10-26 / 27 — saha haftası: git girişi, yeni beceriler, kilit düzeltmeleri (26 commit)
+
+Saha gözlemleri G103–G113 (Alp'in ekranları). Sahada: `git pull && ./kur.sh`, opencode'u yeniden aç.
+
+- **Kurum git'i:** `git-giris.sh` — kurum Azure DevOps Server yalnız Negotiate/NTLM öneriyor, git NTLM seçip PAT'i hiç göndermiyordu
+  (yerelde yeniden üretildi). Betik sunucuya özel `proactiveAuth=basic` + bellek önbelleği (10 saat, `setsid` ile terminal kapanınca
+  ölmez) ya da `--kalici` (`~/.git-credentials`, 0600); PAT yalnız kullanıcı tarafından girilir. Domain parolası Basic ile çalışmaz —
+  yalnız PAT (boş kullanıcı). Uçtan uca ölçüldü (NTLM öneren `git http-backend`).
+- **Yeni beceriler:** `belge-oku` (Excel/Word/PowerPoint/PDF/OneNote dışa aktarımı → yer bilgili metin), `rke2-manifest` (git'teki
+  manifesti kümeye: diff → CN ile apply; `manifest-uyarla.py` küme klasörünü yeni kümeye uyarlar — Alp yöntem A), `idm-bakim` (IdM log
+  şişmesi, KRB5_TRACE/SSSD debug, Red Hat logrotate varsayılanı paketten ölçüldü; kurum kararı 100 GB disk), `solaris-ntp` (NTP mode 6:
+  `ntp-mode6.py` + `solaris-ntp-noquery.yaml`).
+- **Betikler:** `playbook-denetim.py` (ansible — playbook'u çalıştırmadan bilinen hata kalıpları), `envanter-fark.py` (git — ENVANTER.md
+  ↔ ansible INI), `kume-bul.py` küme adıyla arama, `uyum.py yol` Antrea'da garantili sürümü önce seçer (1.33 → 1.36 yolu düzeldi);
+  RKE2 sürüm verisi 2026-10-26 (1.37 hattı). Kurum: 1.33 ve üstü kümeler; hedef 1.36; tek 1.33 küme kaldıkça Rancher 2.15'e geçilemez.
+- **Güvenlik kilidi:** CN yetkisi oturum boyunca ve diske yazılır (opencode yeniden başlayınca kaybolmaz; KRİZ/KURULUM 12 saat);
+  yalın `dn29000` CN sayılır; git'in kullanıcı dosyaları (`~/.gitconfig`, `~/.git-credentials`) bu makinede K1 dışı; okuma olarak
+  tanınanlar: `sssctl debug-level` (argümansız), `logrotate -d`, Solaris `svcs`/`svcprop`/`ntpq`; `svcadm`/`svccfg` K1. 279 test.
+- **Kurulum/TUI (G103–G104):** çıktı sınırı 32768, örnekleme 0.6/0.95/20 (Qwen3.6 model kartı, model `options`); `kur.sh` eski bun'da
+  repodaki 1.4.4'ü kullanır; TUI ilk mesaj çökmesi ("e.replace is not a function", iki `@opentui/core` kopyası) düzeltildi.
+- **Kurallar (AGENTS):** "yalnız metni kontrol et, işlem yapma" → komut yok; sohbete yazılan PAT/parola kullanılmaz.
+
 ## 2026-10-23 — beceri: `git` (Azure DevOps Server, on-prem) + `ansible` §9 Semaphore
 
 Park'taki genel `git-azuredevops` (bulut + `az` CLI varsayıyordu, sahada denenmemişti) kurum yapısına göre yeniden yazılıp

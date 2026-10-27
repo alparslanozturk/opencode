@@ -53,8 +53,15 @@ Betik bu sunucu için bellek önbelleğini + `proactiveAuth=basic`'i ayarlar, PA
 (10 saat; makine yeniden başlayınca gider), depoyu dener; yanlış PAT'i bellekten siler. Ajan bunu **çalıştıramaz** (PAT sorar, tty yoksa
 çıkış 2). Sonra ajanın `git -C git/<depo> clone/pull/log …` komutları parolasız çalışır. Ölçüldü (yerelde: Negotiate+NTLM öneren,
 yalnız Basic PAT kabul eden `git http-backend` sunucusu): giriş → terminal kapandı → ajan clone + pull ✓; PAT diskte hiçbir dosyada yok.
-Ajan `Authentication failed` / `could not read Username` görürse **tek cümle**: "Kendi terminalinizde `/root/ai/opencode/git-giris.sh`
-çalıştırın (PAT sorar), sonra devam ederim." — PAT isteme, başka yol deneme.
+**Kalıcı** (Alp, 2026-10-27: "bu yetenekleri verirsen o yapsa olmaz mı?"): `git-giris.sh --kalici <adres>` — PAT bir kez,
+`~/.git-credentials` (0600) içinde; PAT süresi dolana kadar bir daha sorulmaz (ölçüldü: önbelleksiz clone/fetch dosyadan geçti, yanlış PAT
+dosyadan silindi). Kullanıcının tek işi PAT'i bir kez yazmak; **gerisini sen yap:**
+- Depo adresinde kimlik kalmışsa (önceki denemelerden `https://<kullanıcı>:<…>@…`): `git -C git/<depo> remote get-url origin` → `@` varsa
+  `git -C git/<depo> remote set-url origin https://<tfs-sunucu>/…/_git/<depo>` (kimliksiz). Adresi okurken **değeri ekrana basma** —
+  `remote get-url origin | grep -c @` ile yalnız var/yok bak.
+- Sonra `pull --ff-only` / `clone` — parola sormadan çalışır.
+Ajan `Authentication failed` / `could not read Username` görürse **tek cümle**: "Kendi terminalinizde bir kez `/root/ai/opencode/git-giris.sh --kalici <depo adresi>`
+çalıştırın (PAT sorar), sonra gerisini ben yaparım." — PAT isteme, başka yol deneme.
 
 **Yol 2 — ortam değişkeni** (önbellek istenmezse): PAT kullanıcının kabuğunda, opencode'u açmadan önce; ajan PAT'i hiç görmez:
 

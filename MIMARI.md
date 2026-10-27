@@ -63,6 +63,24 @@ testleri çekirdeği sınamak için duruyor). 2.x geçişinde yalnız adaptör y
 
 ## Geliştirme (self-improvement) döngüsü
 
+Alp (2026-10-27): "Biz burada yapay zekanın yeteneklerini geliştiriyoruz; sahada opencode ile birlikte kullanıyoruz. Sahanın yetenekleri ve
+sahadan aldığın bilgilerle yetenekleri biraz daha geliştiriyorsun. Genel mimari bu."
+
+```
+ Doktor (Claude Code, bu depo)                    Saha (kurum, internetsiz)
+ beceri + betik + kilit + kural  ── git push ──▶  git pull && ./kur.sh  →  opencode + kurum Qwen (iç ağ)
+        ▲                                                                 │ işler: ansible, IdM, RKE2, Solaris …
+        └──── saha gözlemi (Alp'in ekranları → operations-notes G…) ◀─────┘
+```
+
+- **Geliştirme yeri tek:** bu depo. Saha yalnız çeker ve kurar; sahada beceri elle değiştirilmez.
+- **Saha → bilgi:** her ekran bir gözlem kaydına (`knowledge/operations-notes/saha-gozlem-*.md`, G-numarası) dönüşür; kaynak, görülen,
+  kök neden, aksiyon. Kural/beceri değişikliği G-numarasına atıf verir.
+- **Ağır iş betikte:** sahadaki 35B model metin kuralını her zaman uygulamıyor → tekrar eden, sayı/eşleme/biçim isteyen iş deterministik
+  betiğe (`knowledge/skills/README.md` betik tablosu); kural metni kısa kalır.
+- **Her değişiklik ölçülür:** `script/beceri-betik-test.sh` (betikler), `bun test engine/plugins/lib/kilit.test.ts` (kilit),
+  `script/duman-kontrol-rapor.sh` (kurulum + kurum ucu), Python 3.6 uyumu (vermin). Canlıda denenemeyen kısım "(genel)" etiketlenir.
+
 1. **Gözlem/hata** — saha kullanımında yakalanan eksik
 2. **Sınıfla** — kural mı (AGENTS.md) · bilgi mi (beceri) · yetenek mi (plugin/tool) · ayar mı (config)?
 3. **Yaz** — ilgili katmana

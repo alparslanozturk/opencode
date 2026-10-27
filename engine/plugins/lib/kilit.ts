@@ -790,6 +790,7 @@ export const BILINEN_ARAC = new Set([
   "date", "hostname", "hostnamectl", "timedatectl", "systemctl", "journalctl", "rpm", "dnf", "yum", "ip", "nmcli",
   "firewall-cmd", "iptables", "ip6tables", "nft", "sysctl", "mount", "swapon", "dmesg", "crontab", "sed", "find",
   "subscription-manager", "realm", "ipa", "kubectl", "oc", "helm", "docker", "podman", "nvidia-smi", "mdadm", "nvme",
+  "svcs", "svcprop", "ntpq", // Solaris SMF / NTP (saha, 2026-10-27)
   "cpupower", "crictl", "vmware-toolbox-cmd", "etcdctl", "ctr", "containerd", "tuned-adm", "authselect", "rke2",
   "hammer", "sshd", "perf", "command", "chronyc", "localectl", "awk", "gawk", "showmount", "rpcinfo", "nfsstat",
   "sssctl", "oscap", "dkms", "ipactl", "ipa-healthcheck", "nvidia-ctk", "ipa-cacert-manage", "umask", // IdM / CIS / GPU (2026-10-24)
@@ -812,6 +813,7 @@ export const BILINEN_ARAC = new Set([
   "chronyd", "sshd-keygen", "ssh-keygen", "htpasswd", "openssl", "curl", "wget",
   "ipa-server-install", "ipa-replica-install", "ipa-client-install", "ipa-adtrust-install", "ipa-server-certinstall",
   "ipa-ca-install", "ipa-dns-install", "ipa-server-upgrade", "ipa-restore", "ipa-backup", "ipa-certupdate", "autotailor",
+  "svcadm", "svccfg", // Solaris SMF: servis durdur/başlat/yapılandır — değişiklik (2026-10-27)
 ])
 
 export const secenekDegil = (x: string) => !x.startsWith("-")
@@ -1031,6 +1033,12 @@ export function saltOkunur(argv: string[]): boolean {
       // debug-level argümansız = mevcut düzeyi okur; sayı verilirse değiştirir (G112: "SSSD debug açık kalmış mı?")
       if (ilk === "debug-level") return a.filter(secenekDegil).length === 1
       return ["domain-list", "domain-status", "user-show", "group-show", "netgroup-show", "config-check", "cert-show", "analyze"].includes(ilk)
+    case "svcs":
+    case "svcprop":
+      return true // Solaris SMF durum/özellik okuma; yazan araçlar svcadm/svccfg (değişiklik listesinde)
+    case "ntpq":
+      // -p/-n/-c rv|peers|sysinfo okur; :config/config-from-file/keyid/passwd/writevar/addvars/clearvars sunucuyu değiştirebilir
+      return !a.some((x) => /(:config|config-from-file|keyid|passwd|writevar|addvars|rmvars|clearvars)/.test(x))
     case "logrotate":
       // -d/--debug: kuru çalıştırma (logrotate(8): "no changes will be made"); -f ile birlikte değil
       return has("-d", "--debug") && !has("-f", "--force")

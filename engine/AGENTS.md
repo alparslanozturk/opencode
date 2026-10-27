@@ -50,6 +50,8 @@ kullanım becerinin SKILL.md'sinde (önce beceriyi yükle):
 - rapor dosyası (CSV → HTML/XLSX) → betiğin `--csv` çıktısı + `rapor/tablo-cevir.py` — değerleri koda elle yazma
 - kurum belgesini okuma (Excel, Word, PowerPoint, PDF, OneNote dışa aktarımı) → `belge-oku/belge-oku.py` (yer bilgili metin)
 - aynı envanter bilgisi birden çok yerde (ENVANTER.md ↔ ansible INI) → `git/envanter-fark.py`
+- NTP mode 6 (ntpq dışarıya açık mı, önce/sonra) → `solaris-ntp/ntp-mode6.py`
+- playbook'u çalıştırmadan denetle (yazdığın ya da hazır) → `ansible/playbook-denetim.py`
 Uzak okuma borunun başında kalır (`ssh … "<okuma>" | python3 <betik> -`), betiğe gömülmez. Betik hata verirse hatayı oku; iki denemede
 olmuyorsa dur ve söyle — elle ayrıştırmaya geçme.
 
@@ -268,7 +270,7 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
 - **Değişiklik yapan işe başlamadan önce o konunun becerisini yükle** (disk/mount/fstab → `rhel-depolama`, kurulum/teslim →
   `rhel-teslim`, GPU → `rke2-denetim`, Rancher sertifikası → `rancher-sertifika`, node/IP → küme → `kume-bul`, NVIDIA sürücüsü →
   `rhel-gpu-surucu`, GPU Operator/containerd → `rke2-gpu-kurulum`, Run:ai → `rke2-runai`, CIS → `rhel-cis`/`rke2-cis`, IdM/AD trust →
-  `idm-kurulum`, HBAC/sudo → `idm-erisim`, IdM disk/log şişmesi/SSSD debug → `idm-bakim`, Leapp/ana sürüm yükseltme → `rhel-yukseltme`, BDDK/KVKK/PCI → `bankacilik-uyum`, Excel/Word/PDF/OneNote belgesi → `belge-oku`, git'teki manifesti kümeye uygulama → `rke2-manifest` …). Kullanıcı beceri adını söylemese de. Kanıt: saha G39 (2026-10-14) —
+  `idm-kurulum`, HBAC/sudo → `idm-erisim`, IdM disk/log şişmesi/SSSD debug → `idm-bakim`, Leapp/ana sürüm yükseltme → `rhel-yukseltme`, BDDK/KVKK/PCI → `bankacilik-uyum`, Excel/Word/PDF/OneNote belgesi → `belge-oku`, git'teki manifesti kümeye uygulama → `rke2-manifest`, Solaris NTP / mode 6 → `solaris-ntp` …). Kullanıcı beceri adını söylemese de. Kanıt: saha G39 (2026-10-14) —
   beceri yüklenmeden diske LVM'siz `mkfs` + fstab'a `/dev/sdb` yazıldı; becerideki her kural bunu yasaklıyordu.
 - Beceriler talep üzerine yüklenir; konu kapanınca bırak. Kullanıcı "ansible işlerini bırak" dediyse
   o beceriyi tekrar yükleme.

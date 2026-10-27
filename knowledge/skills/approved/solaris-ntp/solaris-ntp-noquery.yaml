@@ -1,0 +1,93 @@
+# solaris-ntp-noquery.yaml — NTP "mode 6" bulgusu: dışarıdan kontrol sorgusunu (ntpq) kapat, saat hizmeti sürer.
+# Solaris 11.4 (SPARC) — /etc/inet/ntp.conf, SMF svc:/network/ntp:default. Saha: Alp, 2026-10-27.
+# Mevcut "restrict default" satırına yalnız eksik 'noquery' eklenir (bayraklar korunur; 'ignore' varsa dokunulmaz — zaten daha sıkı).
+# Satır hiç yoksa önerilen tam satır eklenir. Yerel izleme için 127.0.0.1 / ::1 serbest kalır. Değişiklik varsa servis yeniden başlar.
+# Kullanım (iş envanteri + CN — ansible becerisi): ansible-playbook -i inventories/hosts-<CN>-<tarih>.ini <bu dosya> --check --diff
+- name: NTP mode 6 (noquery) — Solaris
+  hosts: solaris_ntp
+  become: true
+  vars:
+    ntp_conf: /etc/inet/ntp.conf
+    ntp_fmri: svc:/network/ntp:default
+    ntp_restart: true
+  tasks:
+    - name: ntp.conf var mı
+      ansible.builtin.stat:
+        path: "{{ ntp_conf }}"
+      register: ntp_st
+
+    - name: ntp.conf yoksa dur (NTP bu dosyadan yönetilmiyor olabilir — elle bak)
+      ansible.builtin.assert:
+        that: ntp_st.stat.exists
+        fail_msg: "{{ ntp_conf }} yok — svcprop -p config {{ ntp_fmri }} ile yapılandırma yerini oku"
+
+    - name: mevcut restrict default satırları (okuma)
+      ansible.builtin.command: "grep -E '^[[:space:]]*restrict[[:space:]]+(-4[[:space:]]+|-6[[:space:]]+)?default' {{ ntp_conf }}"
+      register: ntp_restrict
+      changed_when: false
+      failed_when: ntp_restrict.rc > 1
+
+    - name: IPv4 restrict default satırına noquery ekle (varsa, eksikse; ignore'a dokunma)
+      ansible.builtin.lineinfile:
+        path: "{{ ntp_conf }}"
+        regexp: '^(\s*restrict\s+(?:-4\s+)?default\b(?!.*\b(?:noquery|ignore)\b).*?)\s*$'
+        line: '\1 noquery'
+        backrefs: true
+        backup: true
+      notify: ntp yeniden başlat
+
+    - name: IPv6 restrict default satırına noquery ekle (varsa, eksikse; ignore'a dokunma)
+      ansible.builtin.lineinfile:
+        path: "{{ ntp_conf }}"
+        regexp: '^(\s*restrict\s+-6\s+default\b(?!.*\b(?:noquery|ignore)\b).*?)\s*$'
+        line: '\1 noquery'
+        backrefs: true
+        backup: true
+      notify: ntp yeniden başlat
+
+    - name: IPv4 restrict default hiç yoksa ekle
+      ansible.builtin.lineinfile:
+        path: "{{ ntp_conf }}"
+        line: restrict default kod nomodify notrap nopeer noquery
+        backup: true
+      when: ntp_restrict.stdout_lines | select('search', '^\s*restrict\s+(-4\s+)?default') | list | length == 0
+      notify: ntp yeniden başlat
+
+    - name: IPv6 restrict default hiç yoksa ekle
+      ansible.builtin.lineinfile:
+        path: "{{ ntp_conf }}"
+        line: restrict -6 default kod nomodify notrap nopeer noquery
+        backup: true
+      when: ntp_restrict.stdout_lines | select('search', '^\s*restrict\s+-6\s+default') | list | length == 0
+      notify: ntp yeniden başlat
+
+    - name: yerel izleme serbest (127.0.0.1)
+      ansible.builtin.lineinfile:
+        path: "{{ ntp_conf }}"
+        regexp: '^\s*restrict\s+127\.0\.0\.1\s*$'
+        line: restrict 127.0.0.1
+      notify: ntp yeniden başlat
+
+    - name: yerel izleme serbest (::1)
+      ansible.builtin.lineinfile:
+        path: "{{ ntp_conf }}"
+        regexp: '^\s*restrict\s+-6\s+::1\s*$'
+        line: restrict -6 ::1
+      notify: ntp yeniden başlat
+
+    - name: değişiklik varsa şimdi yeniden başlat
+      ansible.builtin.meta: flush_handlers
+
+    - name: servis online mı
+      ansible.builtin.command: "svcs -H -o state {{ ntp_fmri }}"
+      register: ntp_durum
+      changed_when: false
+      until: ntp_durum.stdout == "online"
+      retries: 5
+      delay: 3
+      when: ntp_restart | bool and not ansible_check_mode
+
+  handlers:
+    - name: ntp yeniden başlat
+      ansible.builtin.command: "svcadm restart {{ ntp_fmri }}"
+      when: ntp_restart | bool

@@ -153,10 +153,12 @@ def denetle(dosya):
                     or (isinstance(g.get("args"), dict) and (g["args"].get("creates") or g["args"].get("removes")))):
                 ekle(s, "UYARI", "tekrar", "%s: creates/removes/changed_when yok → her koşuda 'changed', ikinci çalıştırmada "
                      "yine yapar; okuma görevi ise changed_when: false" % kisa)
-            if kisa != "command" and "|" in re.sub(r"\|\|", "", metin) and "pipefail" not in metin:
+            if kisa != "command" and "|" in re.sub(r"\|\|", "", re.sub(r"'[^']*'|\"[^\"]*\"", "", metin)) and "pipefail" not in metin:
                 ekle(s, "UYARI", "pipefail", "boru (|) var, set -o pipefail yok → ilk komut düşse de görev başarılı görünür "
                      "(G26: `dnf … | tail`)")
-            if kisa == "command" and re.search(r"[|><;&]|\$\(", metin):
+            # tırnak içindeki | > ; (ör. grep -E 'a|b' deseni) command'a tek argüman olarak gider — kabuk işlemi değil
+            tirnaksiz = re.sub(r"'[^']*'|\"[^\"]*\"", "", metin)
+            if kisa == "command" and re.search(r"[|><;&]|\$\(", tirnaksiz):
                 ekle(s, "ENGEL", "command-kabuk", "command modülü kabuk işlemi (| > ; && $()) yapmaz → shell gerekir")
             if re.search(r"\becho\b[^\n|;&]*\b(complete|completed|done|success|tamam|başarılı|basarili|bitti|ok)\b", metin, re.I):
                 ekle(s, "UYARI", "sahte-basari", "komut içinde başarı yankısı → sonuçtan bağımsız basılır (G26); başarıyı "

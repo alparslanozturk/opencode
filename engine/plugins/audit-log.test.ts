@@ -336,9 +336,9 @@ describe("K1 degisiklik kilidi", () => {
     "git clone https://git.ornek.local/x.git /opt/x",
   ]
   for (const k of degisiklikler) {
-    test(`yetkisiz reddedilir: ${k.split("\n")[0]}`, async () => {
+    test(`yetkisiz onay mesajiyla durur (1.x adaptorunde onay ekrani yok): ${k.split("\n")[0]}`, async () => {
       const hooks = await freshPlugin()
-      await expect(bash(hooks, "s-k1-yok", k)).rejects.toThrow(/K1/)
+      await expect(bash(hooks, "s-k1-yok", k)).rejects.toThrow(/değişiklik yapıyor/)
     })
   }
 
@@ -384,11 +384,11 @@ describe("K1 degisiklik kilidi", () => {
   test("CN + sunucu listesi: listedeki hedef calisir, listede olmayan reddedilir", async () => {
     const before = readAllLines().length
     const hooks = await freshPlugin()
-    await expect(bash(hooks, "s-cn", "ansible-playbook 03-ipa.yml -l web01")).rejects.toThrow(/yetki yok/)
+    await expect(bash(hooks, "s-cn", "ansible-playbook 03-ipa.yml -l web01")).rejects.toThrow(/değişiklik yapıyor/)
     await kullanici(hooks, "s-cn", "CN: CHG0012345\nsunucular: web01, web02")
     await bash(hooks, "s-cn", "ansible-playbook 03-ipa.yml -l web01,web02")
     await bash(hooks, "s-cn", "ssh web02.ornek.local 'systemctl restart sshd'") // kısa ad eşleşir
-    await expect(bash(hooks, "s-cn", "ansible-playbook 03-ipa.yml -l web03")).rejects.toThrow(/listesinde yok: web03/)
+    await expect(bash(hooks, "s-cn", "ansible-playbook 03-ipa.yml -l web03")).rejects.toThrow(/listede yok: web03/)
     await expect(bash(hooks, "s-cn", "sudo systemctl restart chronyd")).rejects.toThrow(/localhost/)
     const lines = readAllLines().slice(before)
     expect(lines.some((l) => l.tool === "yetki" && l.target.includes("CN CHG0012345"))).toBe(true)
@@ -407,10 +407,10 @@ describe("K1 degisiklik kilidi", () => {
   test("sunucu listesi olmadan CN yetmez; CN olmadan liste yetmez", async () => {
     const hooks = await freshPlugin()
     await kullanici(hooks, "s-eksik", "CN: CHG0000003")
-    await expect(bash(hooks, "s-eksik", "ssh web01 'systemctl restart x'")).rejects.toThrow(/sunucu listesi yok/)
+    await expect(bash(hooks, "s-eksik", "ssh web01 'systemctl restart x'")).rejects.toThrow(/değişiklik yapıyor/)
     const hooks2 = await freshPlugin()
     await kullanici(hooks2, "s-eksik2", "sunucular: web01")
-    await expect(bash(hooks2, "s-eksik2", "ssh web01 'systemctl restart x'")).rejects.toThrow(/K1/)
+    await expect(bash(hooks2, "s-eksik2", "ssh web01 'systemctl restart x'")).rejects.toThrow(/değişiklik yapıyor/)
   })
 
   test("KURULUM + sunucular: CN gerekmez", async () => {
@@ -418,7 +418,7 @@ describe("K1 degisiklik kilidi", () => {
     await kullanici(hooks, "s-kur", "KURULUM\nsunucular: yeni01, yeni02")
     await bash(hooks, "s-kur", "ssh yeni01 'dnf -y install chrony && systemctl enable --now chronyd'")
     await bash(hooks, "s-kur", "ansible-playbook kurulum.yml -l yeni01,yeni02")
-    await expect(bash(hooks, "s-kur", "ssh eski01 'dnf -y update'")).rejects.toThrow(/listesinde yok/)
+    await expect(bash(hooks, "s-kur", "ssh eski01 'dnf -y update'")).rejects.toThrow(/listede yok: eski01/)
   })
 
   // T28 (Alp, 2026-09-30, saha ekran6): salt-okunur 01-ping.yaml bile KURULUM/CN istiyordu.
@@ -470,14 +470,12 @@ describe("K1 degisiklik kilidi", () => {
     ]) {
       test(`kilit devrede kalır: ${ad} — ${neden}`, async () => {
         const hooks = await freshPlugin()
-        await expect(bash(hooks, `s-t28-${ad}`, `ansible-playbook ${ad} -l yeni01`)).rejects.toThrow(/K1/)
+        await expect(bash(hooks, `s-t28-${ad}`, `ansible-playbook ${ad} -l yeni01`)).rejects.toThrow(/değişiklik yapıyor/)
       })
     }
-    test("K1 mesajı yeni kurulumda numara istemediğini söyler; 'YENİ KURULUM' yazımı da tanınır", async () => {
+    test("yeni kurulumda numara istenmez; 'YENİ KURULUM' yazımı da tanınır", async () => {
       const hooks = await freshPlugin()
-      await expect(bash(hooks, "s-t28y", "ansible-playbook kurar.yml -l rke2-workers-new")).rejects.toThrow(
-        /YENİ KURULUM \(yeni makineler\) için numara GEREKMEZ/,
-      )
+      await expect(bash(hooks, "s-t28y", "ansible-playbook kurar.yml -l rke2-workers-new")).rejects.toThrow(/değişiklik yapıyor/)
       await kullanici(hooks, "s-t28y", "yeni kurulum\nsunucular: rke2-workers-new")
       await bash(hooks, "s-t28y", "ansible-playbook kurar.yml -l rke2-workers-new")
     })
@@ -511,9 +509,9 @@ describe("K1 degisiklik kilidi", () => {
   test("yetki satiri dosyadan/eklerden (synthetic) gelemez, baska oturuma gecmez", async () => {
     const hooks = await freshPlugin()
     await kullanici(hooks, "s-sahte", "CN: CHG0000004\nsunucular: web01", true)
-    await expect(bash(hooks, "s-sahte", "ssh web01 'systemctl restart x'")).rejects.toThrow(/K1/)
+    await expect(bash(hooks, "s-sahte", "ssh web01 'systemctl restart x'")).rejects.toThrow(/değişiklik yapıyor/)
     await kullanici(hooks, "s-gercek", "CN: CHG0000004\nsunucular: web01")
-    await expect(bash(hooks, "s-sahte", "ssh web01 'systemctl restart x'")).rejects.toThrow(/K1/)
+    await expect(bash(hooks, "s-sahte", "ssh web01 'systemctl restart x'")).rejects.toThrow(/değişiklik yapıyor/)
   })
 
   test("YETKİ KAPAT sonrasi tekrar kilitli", async () => {
@@ -521,7 +519,7 @@ describe("K1 degisiklik kilidi", () => {
     await kullanici(hooks, "s-kapat", "CN: CHG0000005\nsunucular: web01")
     await bash(hooks, "s-kapat", "ssh web01 'systemctl restart x'")
     await kullanici(hooks, "s-kapat", "yetki kapat")
-    await expect(bash(hooks, "s-kapat", "ssh web01 'systemctl restart x'")).rejects.toThrow(/K1/)
+    await expect(bash(hooks, "s-kapat", "ssh web01 'systemctl restart x'")).rejects.toThrow(/değişiklik yapıyor/)
   })
 
   test("bu makine: listede localhost varsa yerel sistem degisikligi calisir", async () => {
@@ -535,7 +533,7 @@ describe("K1 degisiklik kilidi", () => {
     const hooks = await freshPlugin()
     await expect(
       hooks["tool.execute.before"]!({ tool: "edit", sessionID: "s-edit", callID: "e1" }, { args: { filePath: "/etc/chrony.conf" } }),
-    ).rejects.toThrow(/K1/)
+    ).rejects.toThrow(/değişiklik yapıyor/)
     await hooks["tool.execute.before"]!({ tool: "edit", sessionID: "s-edit", callID: "e2" }, { args: { filePath: "playbooks/x.yml" } })
   })
 })
@@ -661,8 +659,8 @@ describe("K1/K5 atlatma denemeleri", () => {
   })
   test("sshpass / ssh-copy-id / git -C push --force", async () => {
     const hooks = await freshPlugin()
-    await expect(bash(hooks, "s-atl", "sshpass -p gizli ssh web01 'reboot'")).rejects.toThrow(/K1/)
-    await expect(bash(hooks, "s-atl", "ssh-copy-id root@web01")).rejects.toThrow(/K1/)
+    await expect(bash(hooks, "s-atl", "sshpass -p gizli ssh web01 'reboot'")).rejects.toThrow(/değişiklik yapıyor/)
+    await expect(bash(hooks, "s-atl", "ssh-copy-id root@web01")).rejects.toThrow(/değişiklik yapıyor/)
     await expect(bash(hooks, "s-atl", "git -C repo push --force")).rejects.toThrow(/K5/)
   })
   test("modelin yazdigi betik icindeki komutlar da denetlenir", async () => {
@@ -670,8 +668,8 @@ describe("K1/K5 atlatma denemeleri", () => {
     writeFileSync(join(workDir, "temizle.sh"), "rm -rf /var/*\n")
     writeFileSync(join(workDir, "rapor.sh"), "#!/usr/bin/env bash\nssh web01 'df -h'\n")
     const hooks = await freshPlugin({ projectDir: workDir })
-    await expect(bash(hooks, "s-betik", "bash yeniden-baslat.sh")).rejects.toThrow(/K1/)
-    await expect(bash(hooks, "s-betik", "./yeniden-baslat.sh")).rejects.toThrow(/K1/)
+    await expect(bash(hooks, "s-betik", "bash yeniden-baslat.sh")).rejects.toThrow(/değişiklik yapıyor/)
+    await expect(bash(hooks, "s-betik", "./yeniden-baslat.sh")).rejects.toThrow(/değişiklik yapıyor/)
     await expect(bash(hooks, "s-betik", "sh temizle.sh")).rejects.toThrow(/K5/)
     await bash(hooks, "s-betik", "bash rapor.sh")
   })

@@ -20,7 +20,7 @@ import { readFileSync } from "fs"
 import { homedir } from "os"
 import { join } from "path"
 import { deriveTarget, truncate } from "./lib/maskele"
-import { kilitDenetle } from "./lib/kilit"
+import { kesinOkuma, kilitDenetle } from "./lib/kilit"
 import type { KilitKarari, Yetki } from "./lib/kilit"
 import { STALE_PENDING_MS, beceriCommit, denetimYazici, oneriyleTamamla, sha256, sonAsistanMetni, yetkiIsle, yetkiSakla, yetkiYukle } from "./lib/denetim"
 
@@ -44,6 +44,9 @@ interface IzinDegerlendirme {
 }
 interface Baglam {
   readonly location: { readonly directory: string; readonly project?: { readonly directory?: string } }
+  readonly event: {
+    subscribe(options?: { readonly signal?: AbortSignal }): AsyncIterable<unknown>
+  }
   readonly tool: {
     hook(ad: "execute.before", cb: (e: AracOncesi) => Promise<void> | void): Promise<unknown>
     hook(ad: "execute.after", cb: (e: AracSonrasi) => Promise<void> | void): Promise<unknown>
@@ -58,6 +61,14 @@ interface Baglam {
     ): Promise<unknown>
     get(input: { sessionID: string }): Promise<{ parentID?: string; model?: unknown } | undefined>
   }
+}
+
+function silinenOturum(event: unknown): string | undefined {
+  if (typeof event !== "object" || event === null) return
+  const value = event as { type?: unknown; data?: unknown }
+  if (value.type !== "session.deleted" || typeof value.data !== "object" || value.data === null) return
+  const data = value.data as { sessionID?: unknown }
+  return typeof data.sessionID === "string" ? data.sessionID : undefined
 }
 
 // 2.x araç adı/girdisi → çekirdeğin (1.x adları) beklediği biçim. Çekirdek tek kaynak kalsın diye burada çevrilir.
@@ -91,7 +102,7 @@ function varsayilanModel(): string | undefined {
   }
 }
 
-export function guvenlikKur(ctx: Baglam) {
+export async function guvenlikKur(ctx: Baglam) {
   const calismaDizini = ctx.location.directory
   const projeDizini = ctx.location.project?.directory
   // Varsayılan KİLİTLİ (K7). Gözlem modu yalnız insan bilerek OPS_AGENT_KAPI=GOZLEM ile başlatırsa.
@@ -106,6 +117,9 @@ export function guvenlikKur(ctx: Baglam) {
   // G68: kilidin tanımadığı (belirsiz) uzak komut — engel yok, kullanıcıya SORULUR. "Her zaman izin ver" kuralı da
   // bunu atlatamaz: evaluate kancası saved kurallardan SONRA çalışır (core permission.ts) ve effect'i yine "ask" yapar.
   const sorulanlar = new Map<string, KilitKarari>()
+  // Alp (2026-10-27): "değişiklik yapılmıyor ise komutlar çalıştırılabilir olması lazım" — kilidin kesin okuma saydığı bash komutu
+  // onay ekranına düşmez (yalnız "ask" → "allow"; yapılandırmadaki deny çekirdekte bu kancadan önce döner, değişmez).
+  const okumalar = new Set<string>()
   const bekleyen = new Map<string, { tool: string; sessionID: string; timestamp: string; startedAt: number; argsHash: string; target: string }>()
   const yaz = denetimYazici({ projeDizini, beceriler: () => [...beceriler.values()] })
 
@@ -147,7 +161,29 @@ export function guvenlikKur(ctx: Baglam) {
       yetki,
     })
 
-  return Promise.all([
+  const eventController = new AbortController()
+  void (async () => {
+    for await (const event of ctx.event.subscribe({ signal: eventController.signal })) {
+      const sessionID = silinenOturum(event)
+      if (!sessionID) continue
+      yetkiler.delete(sessionID)
+      yetkiSakla(yetkiler, sessionID)
+      for (const [id, root] of kokler) {
+        if (id === sessionID || root === sessionID) {
+          kokler.delete(id)
+          modeller.delete(id)
+        }
+      }
+      for (const id of kararlar.keys()) if (id.startsWith(`${sessionID}:`)) kararlar.delete(id)
+      for (const id of sorulanlar.keys()) if (id.startsWith(`${sessionID}:`)) sorulanlar.delete(id)
+      for (const id of okumalar) if (id.startsWith(`${sessionID}:`)) okumalar.delete(id)
+      for (const id of bekleyen.keys()) if (id.startsWith(`${sessionID}:`)) bekleyen.delete(id)
+    }
+  })().catch((error: unknown) => {
+    if (!eventController.signal.aborted) console.error("[guvenlik] oturum silinme olayları izlenemedi:", error)
+  })
+
+  await Promise.all([
     ctx.session.hook("prompt", async (e) => {
       const k = await kok(e.sessionID)
       if (k !== e.sessionID) return // alt ajan oturumu: metni model yazdı, yetki sayılmaz
@@ -182,6 +218,9 @@ export function guvenlikKur(ctx: Baglam) {
       const kilit = kilitDenetle(tool, args, calismaDizini, yetki)
       kararlar.delete(`${e.sessionID}:${e.id}`) // aynı kimlik yeniden gelirse eski karar taşınmasın
       sorulanlar.delete(`${e.sessionID}:${e.id}`)
+      okumalar.delete(`${e.sessionID}:${e.id}`)
+      if (!kilit && tool === "bash" && typeof args.command === "string" && kesinOkuma(args.command, calismaDizini))
+        okumalar.add(`${e.sessionID}:${e.id}`)
       if (kilit) {
         // "sor" yalnız izin soran araçta (shell) mümkün; başka araçta belirsiz karar da engeldir (şüphede kilit)
         const sor = Boolean(kilit.sor) && IZIN_SORAN.has(e.tool)
@@ -225,7 +264,10 @@ export function guvenlikKur(ctx: Baglam) {
         return
       }
       const soru = sorulanlar.get(`${e.sessionID}:${e.source.id}`)
-      if (!soru) return
+      if (!soru) {
+        if (e.effect === "ask" && okumalar.has(`${e.sessionID}:${e.source.id}`)) e.effect = "allow"
+        return
+      }
       e.effect = "ask" // kaydedilmiş "her zaman izin ver" kuralı "allow" yapmış olsa bile
       e.message = soru.mesaj
     }),
@@ -238,6 +280,7 @@ export function guvenlikKur(ctx: Baglam) {
       kararlar.delete(anahtar)
       const soru = sorulanlar.get(anahtar)
       sorulanlar.delete(anahtar)
+      okumalar.delete(anahtar)
       // Emniyet kemeri: kilitli çağrı yine de tamamlandıysa (izin değerlendirmesi atlandı — motor değişmiş olabilir)
       // bunu gizleme: audit'e ihlal yaz, stderr'e bas.
       if (karar && e.status === "completed") {
@@ -287,11 +330,12 @@ export function guvenlikKur(ctx: Baglam) {
       }
     }),
   ])
+  return () => eventController.abort()
 }
 
 export default {
   id: "kurum.guvenlik",
   setup: async (ctx: Baglam) => {
-    await guvenlikKur(ctx)
+    return await guvenlikKur(ctx)
   },
 }

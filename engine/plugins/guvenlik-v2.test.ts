@@ -13,6 +13,7 @@ function sahteBaglam(oturumlar: Record<string, { parentID?: string }> = {}) {
   const kancalar: Record<string, Kanca> = {}
   const ctx = {
     location: { directory: "/tmp/guvenlik-v2-proje", project: { directory: "/tmp/guvenlik-v2-proje" } },
+    event: { subscribe: () => (async function* () {})() },
     tool: { hook: async (ad: string, cb: Kanca) => void (kancalar[`tool.${ad}`] = cb) },
     permission: { hook: async (ad: string, cb: Kanca) => void (kancalar[`permission.${ad}`] = cb) },
     session: {
@@ -47,10 +48,11 @@ async function kur(oturumlar?: Record<string, { parentID?: string }>) {
     // before'daki throw ya da evaluate'te effect=deny olur; ikisi de "Error(mesaj)" olarak döndürülür.
     once: async (sessionID: string, tool: string, input: unknown, id = "c1") => {
       await k["tool.execute.before"]({ tool, sessionID, id, agent: "build", messageID: "m1", input })
-      if (!["shell", "edit", "write", "patch"].includes(tool)) return
+      if (!["shell", "edit", "write", "patch"].includes(tool)) return { effect: undefined, message: undefined }
       const olay = { sessionID, action: tool, resources: ["x"], source: { type: "tool", messageID: "m1", id }, effect: "ask" as string, message: undefined as string | undefined }
       await k["permission.evaluate"](olay)
       if (olay.effect === "deny") throw new Error(olay.message)
+      return { effect: olay.effect, message: olay.message }
     },
     sonra: (sessionID: string, tool: string, input: unknown, id = "c1") =>
       k["tool.execute.after"]({ tool, sessionID, id, agent: "build", messageID: "m1", input, status: "completed", result: { content: "tamam" } }),
@@ -74,13 +76,17 @@ describe("kilitler 2.x kancalarında", () => {
     expect(r.target).toStartWith("K5")
   })
 
-  test("K1: yetkisiz uzak değişiklik reddedilir; kullanıcı CN+sunucular verince geçer", async () => {
+  test("K1: yetkisiz uzak değişiklik onay ekranına düşer; CN+sunucular verince sorusuz geçer (2026-10-27)", async () => {
     const h = await kur()
     const komut = { command: "ssh web01 'systemctl restart chronyd'" }
-    await expect(h.once("s1", "shell", komut)).rejects.toThrow("K1")
+    const soru = await h.once("s1", "shell", komut)
+    expect(soru.effect).toBe("ask")
+    expect(soru.message).toContain("değişiklik yapıyor")
     await h.kullanici("s1", "CN: CHG0000100\nsunucular: web01")
     await h.once("s1", "shell", komut)
-    await expect(h.once("s1", "shell", { command: "ssh web02 'systemctl restart chronyd'" })).rejects.toThrow("web02")
+    const disi = await h.once("s1", "shell", { command: "ssh web02 'systemctl restart chronyd'" })
+    expect(disi.effect).toBe("ask")
+    expect(disi.message).toContain("listede yok: web02")
     expect(satirlar().some((r) => r.tool === "yetki" && r.cn === "CHG0000100")).toBe(true)
   })
 
@@ -88,7 +94,8 @@ describe("kilitler 2.x kancalarında", () => {
     const h = await kur({ cocuk: { parentID: "kok" }, torun: { parentID: "cocuk" } })
     const komut = { command: "ssh web01 'systemctl restart chronyd'" }
     await h.kullanici("cocuk", "CN: CHG0000999\nsunucular: web01")
-    await expect(h.once("cocuk", "shell", komut)).rejects.toThrow("K1")
+    const soru = await h.once("cocuk", "shell", komut)
+    expect(soru.effect).toBe("ask")
     await h.kullanici("kok", "CN: CHG0000100\nsunucular: web01")
     await h.once("torun", "shell", komut)
   })
@@ -111,10 +118,12 @@ describe("kilitler 2.x kancalarında", () => {
     expect(r[1].prev_hash).toBe(sha256(readFileSync(kayit, "utf8").split("\n")[0]))
   })
 
-  test("paralel çağrılar: her çağrı kendi kilit mesajını alır (2.0.23'te throw ile karışıyordu)", async () => {
+  test("paralel çağrılar: her çağrı kendi kilit kararını alır (2.0.23'te throw ile karışıyordu)", async () => {
     const h = await kur()
     await expect(h.once("s1", "shell", { command: "rm -rf /" }, "a")).rejects.toThrow("K5")
-    await expect(h.once("s1", "shell", { command: "ssh web01 'systemctl restart x'" }, "b")).rejects.toThrow("K1")
+    const b = await h.once("s1", "shell", { command: "ssh web01 'systemctl restart x'" }, "b")
+    expect(b.effect).toBe("ask")
+    expect(b.message).toContain("değişiklik yapıyor")
   })
 
   test("emniyet kemeri: kilitli çağrı yine de tamamlanırsa audit'e IHLAL yazılır", async () => {
@@ -154,13 +163,14 @@ describe("kilitler 2.x kancalarında", () => {
     expect(satirlar()[0].result_status).toBe("asked")
   })
 
-  test("yetki kapatılınca tekrar K1", async () => {
+  test("yetki kapatılınca değişiklik yeniden onay ekranına düşer", async () => {
     const h = await kur()
     const komut = { command: "ssh web01 'systemctl restart chronyd'" }
     await h.kullanici("s1", "CN: CHG0000100\nsunucular: web01")
     await h.once("s1", "shell", komut)
     await h.kullanici("s1", "yetki kapat")
-    await expect(h.once("s1", "shell", komut)).rejects.toThrow("K1")
+    const r = await h.once("s1", "shell", komut)
+    expect(r.effect).toBe("ask")
   })
 })
 
@@ -181,20 +191,21 @@ describe("G68: belirsiz komut adaptörde 'ask' olur; 'her zaman izin ver' atlata
     expect(r.some((x) => x.result_status === "ok" && String(x.target).startsWith("ONAY K1?"))).toBe(true)
     expect(r.some((x) => String(x.target).startsWith("IHLAL"))).toBe(false)
   })
-  test("bilinen değişiklik saved allow ile de deny kalır", async () => {
+  test("bilinen değişiklik saved allow ile de ask kalır (2026-10-27: K1 onay ekranı)", async () => {
     const s = sahteBaglam()
     await guvenlikKur(s.ctx)
     const k = s.kancalar
     await k["tool.execute.before"]({ tool: "shell", sessionID: "s1", id: "c8", agent: "build", messageID: "m1", input: { command: "ssh m1 'systemctl restart x'" } })
     const olay = { sessionID: "s1", action: "shell", resources: ["x"], source: { type: "tool", messageID: "m1", id: "c8" }, effect: "allow" as string, message: undefined as string | undefined }
     await k["permission.evaluate"](olay)
-    expect(olay.effect).toBe("deny")
+    expect(olay.effect).toBe("ask")
+    expect(olay.message).toContain("değişiklik yapıyor")
   })
 })
 
 
-describe("Disk yıkıcı komut adaptörde: yetkiyle 'ask' (saved allow atlatamaz), yetkisiz 'deny' (Alp, 2026-10-22)", () => {
-  test("CN + hedef → ask; yetkisiz → deny", async () => {
+describe("Disk yıkıcı komut adaptörde: her seferinde ONAY sorar, saved allow atlatamaz (Alp, 2026-10-22; 2026-10-27 yetkisiz de ask)", () => {
+  test("yetkisiz de ask; CN + hedef de ask (her komutta)", async () => {
     const s = sahteBaglam()
     await guvenlikKur(s.ctx)
     const k = s.kancalar
@@ -202,7 +213,8 @@ describe("Disk yıkıcı komut adaptörde: yetkiyle 'ask' (saved allow atlatamaz
     await k["tool.execute.before"]({ tool: "shell", sessionID: "s2", id: "d1", agent: "build", messageID: "m1", input })
     const yok = { sessionID: "s2", action: "shell", resources: ["x"], source: { type: "tool", messageID: "m1", id: "d1" }, effect: "allow" as string, message: undefined as string | undefined }
     await k["permission.evaluate"](yok)
-    expect(yok.effect).toBe("deny")
+    expect(yok.effect).toBe("ask")
+    expect(yok.message).toContain("YIKICI DİSK")
     await k["session.prompt"]({ sessionID: "s2", prompt: { text: "CHG0000001 ile web01 sunucusunda diski hazırla" } })
     await k["tool.execute.before"]({ tool: "shell", sessionID: "s2", id: "d2", agent: "build", messageID: "m1", input })
     const var_ = { sessionID: "s2", action: "shell", resources: ["x"], source: { type: "tool", messageID: "m1", id: "d2" }, effect: "allow" as string, message: undefined as string | undefined }

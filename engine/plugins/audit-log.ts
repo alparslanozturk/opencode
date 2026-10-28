@@ -10,7 +10,7 @@ import { execFileSync } from "child_process"
 import { hostname, userInfo } from "os"
 import { dirname, join } from "path"
 import { SCOPE_BURST_WINDOW_MS, SCOPE_TOOLS, SCOPE_WIDE_DIR_THRESHOLD, deriveTarget, isInside, resolveTargetDir, truncate } from "./lib/maskele"
-import { KRIZ_METNI_MIN, YETKI_OMRU_MS, kilitDenetle, yetkiAktif, yetkiOzeti, yetkiSatirlariniOku } from "./lib/kilit"
+import { KRIZ_METNI_MIN, kilitDenetle, yetkiAktif, yetkiOzeti, yetkiSatirlariniOku } from "./lib/kilit"
 import type { Yetki } from "./lib/kilit"
 import { envanterEsle } from "./lib/denetim"
 
@@ -298,7 +298,7 @@ export const AuditLogPlugin: Plugin = async ({ directory, project, worktree }) =
         }
         return
       }
-      if (!y || now - y.zaman > YETKI_OMRU_MS || (s.tur && s.tur !== y.tur))
+      if (!y || (s.tur && s.tur !== y.tur))
         y = { tur: s.tur ?? null, cn: null, krizMetni: false, sunucular: [], zaman: now }
       if (s.cn) {
         y.tur = "CN"

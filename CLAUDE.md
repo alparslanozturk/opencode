@@ -34,4 +34,10 @@ Global kural (`~/.claude/CLAUDE.md`) burada da geçerli. Projeye özel ekler:
 - **Değişiklik sırası:** önce `engine/opencode.json` → `engine/AGENTS.md` → `knowledge/skills/` →
   `engine/plugins/` → en son fork kodu (`MIMARI.md`).
 - **Beceriler:** `knowledge/skills/approved/` sahada okunan tek yer; `parked/` varsayılan kurulumda yok.
+- **Session yetkisi ve saha işi:** `engine/AGENTS.md` içindeki "Yetki oturum ömründedir" kuralı bu repo için zorunludur.
+  Kullanıcının CN ve hedefleri serbest metinden çıkar; özel satır biçimi isteme, aynı session'da tekrar tekrar yetki sorma.
+  Yetki `session.deleted` olana kadar saklanır; motoru yeniden başlatmak veya günler geçmesi yetkiyi düşürmez. Saha işlemlerinde
+  `knowledge/skills/approved/ansible/SKILL.md` akışını izle. Playbook çalıştı diye değişiklik tamamlandı deme: beklenen host'larda
+  remote postcondition'ı doğrula. Doğrulama mümkün değilse bunu sonuçta açıkça söyle. Session dışındaki beceri ve hazırlanmış
+  playbook bilgisi kurum deposunda kalıcıdır.
 - Commit: yazar `alpozturklive`, `tip(alan): özet` biçimi, AI atıf satırı yok.

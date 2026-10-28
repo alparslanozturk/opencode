@@ -267,9 +267,9 @@ describe("2026-10-24: IdM / CIS (OpenSCAP) / GPU sürücü okumaları serbest, k
     `ssh web01 "sudo -u ali rm -f /etc/x"`,
   ]
   for (const c of degistirir) test(`K1: ${c}`, () => expect(kilitDenetle("bash", { command: c }, workdir, undefined)?.kilit).toBe("K1"))
-  test("kurulum araçları bilinen değiştirici: sorulmaz, engellenir", () => {
+  test("kurulum araçları bilinen değiştirici: onay sorulur (2026-10-27: K1 = onay ekranı)", () => {
     for (const c of [`ssh idm01 "ipa-adtrust-install --netbios-name=IDM"`, `ssh idm01 "ipa-replica-install"`])
-      expect(kilitDenetle("bash", { command: c }, workdir, undefined)?.sor).toBeUndefined()
+      expect(kilitDenetle("bash", { command: c }, workdir, undefined)?.sor).toBe(true)
   })
 })
 
@@ -344,15 +344,15 @@ describe("G68: kilidin tanımadığı uzak komut engellenmez, kullanıcıya SORU
     expect(karar(`ssh m1 "/opt/kurum/bin/durum.sh"`)?.sor).toBe(true)
     expect(karar(`ssh m1 "python3 /opt/x/rapor.py"`)?.sor).toBe(true)
   })
-  test("bilinen değiştirici → sorulmaz, engellenir", () => {
+  test("bilinen değiştirici → onay sorulur (2026-10-27)", () => {
     for (const c of [`ssh m1 "systemctl restart x"`, `ssh m1 "rm -f /etc/x"`, `ssh m1 "dnf -y install x"`, `ssh m1 "kubectl delete pod x"`,
       `ssh m1 "chronyc makestep"`, `ssh m1 "localectl set-locale LANG=C"`, `ssh m1 "mkfs.xfs /dev/sdb"`])
-      expect(karar(c)?.sor).toBeUndefined()
+      expect(karar(c)?.sor).toBe(true)
   })
-  test("belirsiz + bilinen değişiklik aynı komutta → engel (sorulmaz)", () => {
+  test("belirsiz + bilinen değişiklik aynı komutta → onay (2026-10-27)", () => {
     const r = karar(`ssh m1 "durum-araci --x; systemctl restart y"`)
     expect(r?.kilit).toBe("K1")
-    expect(r?.sor).toBeUndefined()
+    expect(r?.sor).toBe(true)
   })
   test("yetki var ve hedef listede → belirsiz de serbest", () => {
     const y = yetkiVer("CN: CHG0000777\nsunucular: m1")
@@ -362,9 +362,9 @@ describe("G68: kilidin tanımadığı uzak komut engellenmez, kullanıcıya SORU
     const y = yetkiVer("CN: CHG0000777\nsunucular: m1")
     expect(karar(`ssh m2 "durum-araci --x"`, y)?.sor).toBe(true)
   })
-  test("K5 yıkıcı ve awk system() sorulmaz", () => {
+  test("K5 yıkıcı engel; awk system() onay sorar (2026-10-27)", () => {
     expect(karar("rm -rf /")?.kilit).toBe("K5")
-    expect(karar(`ssh m1 "awk 'BEGIN{system(\\"id\\")}'"`)?.sor).toBeUndefined()
+    expect(karar(`ssh m1 "awk 'BEGIN{system(\\"id\\")}'"`)?.sor).toBe(true)
     expect(karar(`ssh m1 "awk 'BEGIN{system(\\"id\\")}'"`)?.kilit).toBe("K1")
   })
   test("okuma biçimleri hâlâ serbest: awk yazdırma, chronyc tracking, localectl status", () => {
@@ -398,7 +398,7 @@ describe("G71: NFS/port teşhisi uzakta okuma — /dev/tcp soket yolu dosya değ
     ]) {
       const r = karar(c)
       expect(r?.kilit).toBe("K1")
-      expect(r?.sor).toBeUndefined()
+      expect(r?.sor).toBe(true)
     }
   })
 })
@@ -444,7 +444,7 @@ describe("G73: düz listeli for döngüsünde hedefler tek tek denetlenir", () =
   test("yetki listesi döngüdeki tüm hedefleri kapsıyorsa geçer, biri eksikse yalnız o söylenir", () => {
     expect(karar(dongu, yetkiVer("CN: CHG0000777\nsunucular: 10.0.0.7, 10.0.0.8"))).toBeNull()
     const r = karar(dongu, yetkiVer("CN: CHG0000777\nsunucular: 10.0.0.7"))
-    expect(r?.mesaj).toContain("listesinde yok: 10.0.0.8")
+    expect(r?.mesaj).toContain("listede yok: 10.0.0.8")
   })
   test("okuma döngüsü serbest; liste değişken/komut ikamesiyse hedef belirsiz kalır", () => {
     expect(karar(`for h in m1 m2; do ssh $h "uptime"; done`)).toBeNull()
@@ -570,7 +570,7 @@ describe("G78: 'kiriz' yazım hatası ve yalın '07-14' aralığı (Alp: 'kiriz 
   })
   test("K1 mesajı ajana atlatma denemesini yasaklar", () => {
     const y = ver("kriz var 07-08 arasında")
-    expect(karar(`ssh stlrancherwor09 "systemctl stop x"`, y)?.mesaj).toContain("kilit YALNIZ kullanıcının mesajını okur")
+    expect(karar(`ssh stlrancherwor09 "systemctl stop x"`, y)?.mesaj).toContain("başka yazımla deneme")
   })
 })
 
@@ -600,7 +600,7 @@ describe("G96: okuma çalışmalı — wipefs listeleme, $(( )) aritmetiği, cas
     expect(k(`wipefs --no-act -a /dev/sdb`)).toBeNull()
     expect(k(`ssh m1 'for d in $(lsblk -dn -o NAME); do wipefs -n /dev/$d; done'`)).toBeNull()
     for (const c of [`ssh m1 "wipefs -a /dev/sdb"`, `wipefs --all /dev/sdb`, `ssh m1 "wipefs -o 0x438 /dev/sdb"`, `ssh m1 "wipefs -af /dev/sdb"`])
-      expect(k(c)?.kilit).toBe("K1")
+      expect(k(c)?.kilit).toBe("K5")
   })
   test("$(( … )) aritmetik okuma; içindeki ikame yine denetlenir", () => {
     expect(k(`ssh m1 'echo s=$(( ($(date +%s) - $(stat -c %Y /etc/hosts)) / 3600 ))'`)).toBeNull()
@@ -681,10 +681,10 @@ describe("G98: 'kriz durumu evet sadece onu restart et' — ajanın önerdiği s
 describe("Disk yıkıcı (mkfs, wipefs -a, dd/> blok aygıt, blkdiscard, sgdisk --zap): yetki + her komutta onay (Alp, 2026-10-22)", () => {
   const y: Yetki = { tur: "CN", cn: "CHG0000001", krizMetni: false, sunucular: ["web01", "localhost"], zaman: Date.now() }
   const k = (c: string, yt?: Yetki) => kilitDenetle("bash", { command: c }, workdir, yt)
-  test("yetki yok → K1 engel (onay sorusu yok), mesajda yıkıcı disk notu", () => {
+  test("yetki yok → yıkıcı disk ONAYI (K5 sor, 2026-10-27)", () => {
     const r = k(`ssh web01 'mkfs.xfs /dev/sdb'`)
-    expect(r?.kilit).toBe("K1")
-    expect(r?.sor).toBeFalsy()
+    expect(r?.kilit).toBe("K5")
+    expect(r?.sor).toBe(true)
     expect(r?.mesaj).toContain("YIKICI DİSK")
   })
   test("yetki + hedef listede → engel değil, ONAY sorusu (her komutta)", () => {
@@ -696,10 +696,10 @@ describe("Disk yıkıcı (mkfs, wipefs -a, dd/> blok aygıt, blkdiscard, sgdisk 
       expect(r?.mesaj).toContain("ONAY: YIKICI DİSK")
     }
   })
-  test("hedef listede değil → K1 engel", () => {
+  test("hedef listede değil → yıkıcı disk ONAYI (2026-10-27)", () => {
     const r = k(`ssh web02 'mkfs.xfs /dev/sdb'`, y)
-    expect(r?.kilit).toBe("K1")
-    expect(r?.sor).toBeFalsy()
+    expect(r?.kilit).toBe("K5")
+    expect(r?.sor).toBe(true)
   })
   test("felaket sınıfı yetkiyle de K5 kalır (sorulmaz)", () => {
     for (const c of [`ssh web01 'rm -rf /'`, `kill -9 -1`, `git push --force origin main`, `ssh web01 'chmod -R 777 /'`]) {
@@ -747,18 +747,18 @@ describe("G100: CN ve sunucu listesi ayrı mesajlarda — 'bir cümlede ikisini 
     const y = m.get("s")!
     expect(kilitDenetle("bash", ssh("stlweb01"), workdir, y)).toBeNull()
   })
-  test("eski aday (30 dk+) uygulanmaz; cümle içi ad yalnız beyandan sonraki 30 dk'da", () => {
+  test("önceden verilen aday hedef, aynı session içinde daha sonra gelen yetkiye uygulanır", () => {
     const m = new Map<string, Yetki>()
     const t0 = Date.now()
     d.yetkiIsle(m, "s", "stlweb01\nstlweb02", t0)
     d.yetkiIsle(m, "s", "CN CHG0012345", t0 + 31 * 60_000)
-    expect(m.get("s")!.sunucular.length).toBe(0)
+    expect(m.get("s")!.sunucular).toEqual(["stlweb01", "stlweb02"])
     const m2 = new Map<string, Yetki>()
     d.yetkiIsle(m2, "s", "CN CHG0012345", t0)
     d.yetkiIsle(m2, "s", "stlweb05 sunucusunda disk dolu mu", t0 + 40 * 60_000)
-    expect(m2.get("s")!.sunucular.length).toBe(0)
+    expect(m2.get("s")!.sunucular).toEqual(["stlweb05"])
     d.yetkiIsle(m2, "s", "stlweb05\nstlweb06", t0 + 41 * 60_000)
-    expect(m2.get("s")!.sunucular).toEqual(["stlweb05", "stlweb06"])
+    expect(m2.get("s")!.sunucular).toEqual(["stlweb05"])
   })
   test("dolu yetkinin listesini yalın liste sessizce değiştirmez", () => {
     const m = new Map<string, Yetki>()
@@ -834,7 +834,7 @@ describe("G107: yetki yeniden başlatmadan sonra aynı oturumda geri yüklenir; 
   test("yalın dn29000 CN sayılır", () => {
     expect(yetkiSatirlariniOku("dn29000 sdlaiworker01, sdlaiworker03 sunucularında").cn).toBe("DN29000")
   })
-  test("sakla → yeni süreç (boş bellek) → yükle; kapat dosyayı siler; ömrü dolan yüklenmez", () => {
+  test("sakla → yeni süreç (boş bellek) → yükle; kapat dosyayı siler", () => {
     const m = new Map<string, Yetki>()
     d.yetkiIsle(m, "ses_1", "CN dn29000 sunucular: sdlaiworker01, sdlaiworker03", Date.now())
     d.yetkiSakla(m, "ses_1")
@@ -848,14 +848,14 @@ describe("G107: yetki yeniden başlatmadan sonra aynı oturumda geri yüklenir; 
     d.yetkiSakla(yeni, "ses_1")
     expect(d.yetkiYukle(new Map(), "ses_1")).toBeUndefined()
   })
-  test("CN 5 gün sonra da geçer; KRİZ 12 saatte düşer", () => {
+  test("CN, KRİZ ve KURULUM session boyunca geçerli kalır", () => {
     const m = new Map<string, Yetki>()
     d.yetkiIsle(m, "c", "CN dn29000 sunucular: sdlaiworker01", Date.now())
     const sonra = Date.now() + 5 * 24 * 60 * 60 * 1000
     expect(yetkiAktif(m.get("c"), sonra)).toBe(true)
     d.yetkiIsle(m, "k", "kriz var sunucular: sdlaiworker01", Date.now())
     expect(yetkiAktif(m.get("k"), Date.now())).toBe(true)
-    expect(yetkiAktif(m.get("k"), Date.now() + 13 * 60 * 60 * 1000)).toBe(false)
+    expect(yetkiAktif(m.get("k"), Date.now() + 13 * 60 * 60 * 1000)).toBe(true)
   })
 })
 
@@ -895,7 +895,7 @@ describe("Solaris SMF / NTP (2026-10-27): svcs/svcprop/ntpq okuma, svcadm/svccfg
   })
   test("svcadm/svccfg/ntpq :config K1", () => {
     expect(k("ssh root@splsol01 'svcadm restart svc:/network/ntp:default'")?.kilit).toBe("K1")
-    expect(k("ssh root@splsol01 'svcadm restart svc:/network/ntp:default'")?.sor).toBeFalsy()
+    expect(k("ssh root@splsol01 'svcadm restart svc:/network/ntp:default'")?.sor).toBe(true)
     expect(k("ssh root@splsol01 'svccfg -s ntp setprop config/x = true'")?.kilit).toBe("K1")
     expect(k(`ssh root@splsol01 'ntpq -c ":config restrict default"'`)?.kilit).toBe("K1")
   })

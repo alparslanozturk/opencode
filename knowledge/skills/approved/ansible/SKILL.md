@@ -101,6 +101,20 @@ ssh root@<kaynak-sunucu> cat /tmp/pan-captcha.crt | python3 /root/ai/opencode/kn
 - `--yedek` eski dosyayı yanına saklar — `ca-trust/source/anchors` gibi dizindeki her dosyanın okunduğu yerde **verme**.
 - Sonra: `--syntax-check` → `--check --diff` (`-i` iş envanteri) → kullanıcı onayı → gerçek çalıştırma.
 
+### Gerçek çalıştırma sonrası — başarıyı hedefte doğrula
+
+Playbook'un çıkış kodu veya ajanın "yüklendi" özeti tek başına sertifikanın sunucuya ulaştığını göstermez. Özellikle hazır
+`ansible/playbooks/12-*.yaml` dosyalarında:
+
+1. `--list-hosts` ile beklenen host listesini çalıştırmadan önce gör; sayı ve adlar iş envanteriyle uyuşmuyorsa dur.
+2. Gerçek çalıştırmadan sonra recap'te beklenen her host'un bulunduğunu, `unreachable=0` ve `failed=0` olduğunu doğrula.
+3. Her hedefte `/etc/pki/ca-trust/source/anchors/` altındaki dosyanın kaynakla aynı SHA-256 olduğunu ve `update-ca-trust extract`
+   adımının hatasız bittiğini doğrula. Sonra hedef sistemin trust store'unda beklenen sertifikanın bulunduğunu kontrol et.
+4. Bir host için bile bu kanıtlar yoksa işi "tamamlandı" diye raporlama; o host'u doğrulanmadı olarak ayır.
+
+`gomulu-dosya.py` ile üretilen playbook, içeriği `copy: content:` içine gömer ve uzak dosyanın SHA-256'sını assert eder. Hazır
+playbook'un bu betikten üretildiğini varsayma; içeriği ve gerçek host listesini çalıştırmadan önce incele.
+
 ## 1b. Playbook yazma — kurallar ve denetim (saha G26, G43, G93)
 
 Yazdığın her playbook'u ve çalıştırmadan önce okuduğun her hazır playbook'u denetimden geçir (ağ istemez, yalnız okur):

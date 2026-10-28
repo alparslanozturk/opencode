@@ -93,6 +93,11 @@ opencode                              # bu kabuktan başlat — ajanın git komu
   ölçüldü (G109, 2026-10-27): sahadaki bu biçimde PAT **her sunucuya** (GitHub'a `git pull` dahil) Basic başlıkla gitti. Ayar yalnız
   sunucuya bağlı olur (`http.https://<tfs-sunucu>/.…`, `credential.https://<tfs-sunucu>/.helper`) — `git-giris.sh` böyle yazar ve
   eski güvensiz global ayarı kendisi temizler.
+- **Var olan Git ayarını koru:** önce mevcut helper'ın adını ve kaynağını, gizli değerleri göstermeden belirle. Yalnız bu sunucu için
+  gereken ayarı ekle; genel `credential.helper` değerini `--global credential.helper <yeni>` ile ezme. Birden fazla helper davranışı
+  gerekiyorsa mevcut helper'ı koruyup host kapsamlı helper ekle. Kimlik doğrulamasını sınamadan önce/sonra remote URL ve ilgili config
+  anahtarlarının hâlâ beklenen kapsamda olduğunu kontrol et; `.git-credentials` içeriğini ekrana basma. `store` açık metin dosyadır,
+  yalnız kullanıcı kalıcı saklamayı açıkça seçtiğinde kullan; mümkünse sistemin güvenli credential manager'ını tercih et.
 - Kullanıcı PAT'i/parolayı sohbete yazarsa: **kullanma**, komuta/URL'ye koyma; "token sohbete düştü, iptal edip yenisini oluşturun,
   yukarıdaki yolla verin" de (G109: PAT URL'de ve `-c http.extraHeader` komutunda açık yazıldı).
 

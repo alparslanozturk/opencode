@@ -1,15 +1,20 @@
 # GÜVENLİK KİLİTLERİ — kural kitabı (K1–K7)
 
-> Karar: `../architecture/decisions/0004-guvenlik-kilitleri.md` · Kod: `engine/plugins/audit-log.ts`
-> ("güvenlik kilitleri" bölümü) + `engine/opencode.json` → `permission` · Testler:
-> `engine/plugins/audit-log.test.ts` (`cd engine/plugins && bun test ./audit-log.test.ts`).
+> Temel karar: `../architecture/decisions/0004-guvenlik-kilitleri.md` · Güncel 2.x kod: `engine/plugins/guvenlik-v2.ts` +
+> `engine/plugins/lib/kilit.ts` · Motor izinleri: `engine/opencode.json` → `permission`.
 > Kaynak: Alp, 2026-09-24 — "CN olmadan ve sunucu adları verilmeden değişiklik yapılmıyor…".
+
+> **Güncel session davranışı (Alp, 2026-10-28):** eski süre ve biçim kuralları yerine yetki doğal dilden, session konuşmasının
+> tamamından çıkarılır; özel satır biçimi istenmez. CN, KURULUM ve KRİZ yetkileri session silinene kadar sürer; motor/TUI yeniden
+> başlatması ve zaman aşımı yetkiyi düşürmez. Yetki dosyası `session.deleted` olayında silinir. Hedefi kapsayan session yetkisi varsa
+> tekrar CN/sunucu sorulmaz; kapsam yoksa değişiklik onay akışına gider. K5/K6 sert sınırları ve yıkıcı disk komutlarının her-komut
+> onayı korunur.
 
 ## Özet
 
 | # | Kilit | Ne yapar | Kim açabilir |
 |---|---|---|---|
-| **K1** | Değişiklik kilidi | Sunucuda/sistemde değişiklik ancak **yetki + hedef listede** ise çalışır | Yalnız kullanıcı, kendi mesajıyla |
+| **K1** | Değişiklik kilidi | Session yetkisi + hedef kapsamı varsa çalışır; yoksa işlem bazında kullanıcı onayı ister | Kullanıcı; session'a bağlı |
 | **K2** | Dizin dışı | Çalışma dizini dışına çıkan her okuma/yazma **onay sorar** | Kullanıcı (onay ekranı) |
 | **K3** | Okuma (A104/A105: kapsam tabanlı) | Çalışma dizini (kapsam) İÇİNDE okuma **istisnasız** serbest (A105 — `hosts*`/`env`/`*.key`/… denylist'i de dahil, kapsam içinde artık uygulanmaz); DIŞINA çıkan okuma K2'nin onayına düşer, denylist'e uyan kapsam-dışı dosyalar audit-log plugin'inde hâlâ reddedilir | Kullanıcı (K2 onay ekranı, "always" = o oturum boyunca) |
 | **K4** | İzin listesi | Sorusuz çalışan komutlar yalnız salt-okunur olanlar; `ss`≠`ssh`, `ps`≠`psql` vb. | — |
@@ -17,9 +22,8 @@
 | **K6** | Öz-koruma | Ajan kendi ayarını/eklentisini/audit log'unu değiştiremez, anahtar dosyasını okuyamaz, kilitsiz ikinci opencode başlatamaz | Kimse |
 | **K7** | Varsayılan kilitli | Kilitler her açılışta açık; gözlem modu yalnız bilerek | İnsan: `OPS_AGENT_KAPI=GOZLEM opencode` |
 
-**Neden eklentide?** opencode'da oturumda bir kez verilen "always" onayı ayar dosyasındaki yasakları
-ezer (ör. `rm a.txt` için "always" → `rm -rf …` de serbest kalır). K1/K5/K6 bu yüzden eklentide sert red
-olarak durur; onay ekranı bunları açamaz. K2/K3/K4 motorun onay sistemindedir (onay istemek için).
+**Neden eklentide?** K1 session yetkisini ve hedef kapsamını konuşmadan çıkarır; eksik kapsamı biçim dayatmadan onay akışına verir.
+K5/K6 eklentide sert red olarak kalır; sıradan onay bunları açamaz. K2/K3/K4 motorun onay sistemindedir.
 
 ## K1 — yetki nasıl verilir (sohbete yazılır)
 
@@ -48,15 +52,12 @@ Nasıl okunur (`engine/plugins/lib/kilit.ts` `yetkiSatirlariniOku`, testleri `ki
   **sunucu biçimli** adlar (IP, harfli FQDN, rakam içeren ad — düz sözcük, sürüm `v1.33.13`, dosya adı, `rke2`/`rhel9` gibi ürün
   adları alınmaz); bu satırların altındaki alt alta / maddeli liste (burada rakamsız ad da olur: `srvsatellite`).
 - **Güvenlik sınırları:** "hariç / dışında / değil" geçen satırdaki sunucular **eklenmez**, ajan uyarı görür (yanlış hedefe yetki
-  riski). Serbest adlar yalnız **aynı mesajda CN ya da KURULUM beyanı varsa** sayılır — sıradan bir soru ("web05 sunucusunda disk
-  dolu") açık yetkinin listesini değiştirmez. **KRİZ**'de kısa kriz cümlesindeki adlar ve açık `sunucular:` satırı geçerli;
-  mail yapıştırılan mesajda yalnız açık liste (yapıştırılan mail yetki açmaz — G73).
-- **Ayrı mesajlar (G100, Alp 2026-10-22: "bir cümlede hem sunucu listesi hem değişiklik numarası vermek zorunda mıyım?"):**
-  beyan (CN/KURULUM/KRİZ) sunucusuz geldiyse sonraki **yalın liste** mesajı (yalnız ad/IP/aralık satırları; "Sunucu listesi:"
-  başlığı, madde numarası, `ansible_host=` yapıştırması olabilir) yetkinin listesi olur — beyanın ömrü boyunca; "web05
-  sunucusunda …" gibi cümledeki adlar yalnız beyandan sonraki 30 dk içinde. Tersi: önce yalın liste, 30 dk içinde sunucusuz
-  beyan → listeye uygulanır (liste tek başına yetki değildir, `aday` olarak bekler). Listesi dolu yetkiyi yalın liste sessizce
-  **değiştirmez** (açık `sunucular:` satırı değiştirir). Testler `kilit.test.ts` "G100".
+  riski). CN ve hedefler aynı session'ın kullanıcı mesajlarından çıkarılır; sıradan bir soru ("web05 sunucusunda disk dolu") mevcut
+  yetki listesini değiştirmez. Yapıştırılan mail tek başına yetki açmaz; kullanıcının beyanı ve kastettiği hedefler belirleyicidir.
+- **Ayrı mesajlar:** CN/değişiklik numarası ve hedefler aynı cümlede olmak zorunda değildir. Session konuşmasındaki önceki
+  kullanıcı mesajlarını kullan; tekrar "nerede verdin?" deme. Yalın liste tek başına yetki vermez, ancak aynı session'da kullanıcının
+  yetki beyanıyla ilişkilendirilebilir. Yetki verildikten sonra session boyunca korunur; yeni CN/hedef açıkça verilirse kapsamı
+  güncelle ve anladığını özetle.
 - **İş envanteri eşlemeye girmez (G101):** `hosts-<x>-YYYYMMDD[-HHMM].ini` / `hosts-YYYYMMDD-<x>.ini` (ajanın yazdığı türetilmiş
   kopya) ad ↔ IP kaynağı değildir; içindeki iş grubu yetkiyi genişletmez — yetki kullanıcının verdiği adlarla.
 - **`--limit`'siz ansible-playbook (G101, Alp: "yeni dosyada sadece değişiklik yapılan sunucular var"):** hedef `-i` ile verilen INI
@@ -69,7 +70,7 @@ Nasıl okunur (`engine/plugins/lib/kilit.ts` `yetkiSatirlariniOku`, testleri `ki
 Uzak komut üç sınıftan birine düşer (`engine/plugins/lib/kilit.ts`):
 - **Bilinen okuma** (`saltOkunur`: ls, kubectl get, rke2 certificate check, hammer list …) → sorusuz çalışır.
 - **Bilinen değişiklik** (`BILINEN_ARAC` içinde ama okuma biçiminde değil: systemctl restart, dnf install, rm, chronyc
-  makestep …) → yetki (CN/KURULUM/KRİZ + hedef listede) yoksa **engel**.
+  makestep …) → hedefi kapsayan session yetkisi varsa çalışır; yoksa işlem için kullanıcı onayı istenir.
 - **Belirsiz** (kilidin hiç tanımadığı araç: kurum aracı, özel betik, `python3 x.py`) → engel yerine **kullanıcıya sorulur**
   (opencode onay ekranı); onaylarsa çalışır. "Her zaman izin ver" bunu atlatamaz: eklentinin `permission.evaluate` kancası
   kayıtlı kurallardan sonra çalışır ve effect'i yine "ask" yapar (core `permission.ts`). Aynı komutta bilinen değişiklik de
@@ -81,10 +82,10 @@ Kabuk sözdizimi komut sayılmaz: `$(( … ))` aritmetiği ve `case … in desen
 dal gövdeleri yine tek tek denetlenir (test: `kilit.test.ts` "G96"). Becerilerdeki sabit okuma satırlarının kilitten geçtiği
 `script/beceri-komut-kilit.ts` ile denetlenir.
 
-**Ajanın önerisini onaylamak (Alp, 2026-10-22 — G98):** ajan hedefi bir önceki mesajında tek satır `sunucular: <ad>` ile önerdiyse
-kullanıcının kriz/CN beyanı + onay ifadesi ("kriz durumu evet, sadece onu restart et") yeter; ad yeniden yazdırılmaz. Liste YALNIZ
-onaydan hemen önceki ajan mesajının açık `sunucular:` satırından alınır (metnin başka yerindeki ad yetki açmaz), 10 dk içinde
-kullanılmazsa düşer; eklenti `context` kancasında, araç çağrısından önce eşler (`denetim.ts` `oneriyleTamamla`).
+**Ajanın önerisini onaylamak:** kullanıcı hedefi tekrar yazmadan “evet, sadece onu restart et” diyorsa hedefi önceki kullanıcı
+mesajlarından ve aynı session'daki iş bağlamından çöz. Ajanın kendi yazdığı hedef listesi tek başına yetki oluşturmaz. Hedef
+bağlamdan tek anlamlı biçimde çıkmıyorsa yalnız belirsiz hedefi sor; özel satır biçimi dayatma. İşlem onayı K1'in session yetkisini
+genişletmez; kapsam dışındaki hedef için normal onay ekranı geçerlidir.
 **Ad ↔ IP:** envanterde yok ya da IP'siz ad için yetki verildiği anda `getent hosts` (/etc/hosts + DNS) ile IP eklenir (en çok
 20 ad, 2 sn zaman aşımı); envanter eşlemesi gibi o anda donar.
 
@@ -104,28 +105,25 @@ sunucular: yeni01, yeni02
 kriz var, db01 ve wor07-08'de ödeme servisi durdu
 ```
 
-- **CN**: numara + sunucu listesi ikisi de şart.
-- **KURULUM** (ya da `YENİ KURULUM`): yeni makinelerde kurulum — **değişiklik numarası (CN) istenmez**, yalnız
-  kurulacak sunucular (ya da `--limit` grubunun adı, ör. `rke2-workers-new`) yazılır. Ajan yeni kurulumda CN
-  önermez (T28 — Alp, 2026-09-30: "yeni kurulumda değişiklik numarasına ihtiyaç yok"). Beyan **harf duyarsız ve doğal
-  cümlede** de tanınır (T30): `kurulum yapacağım`, `Kurulum`, `bu makinelere kurulum yapacağım`. Ekli biçimler
-  (`kurulumu`, `kurulumda`) ve olumsuz cümle (`kurulum yapmayacağım`) beyan sayılmaz. Sunucu listesi yine şart.
-- **KRİZ**: kriz beyanı + sunucu listesi yeter (G74, Alp 2026-10-20: "kriz cümlesi yeterli olsun" — eskiden mail/toplantı
+- **CN**: numara ve hedef kapsamı session konuşmasından çıkarılır; özel format şartı yoktur. Hedef gerçekten belirsizse yalnız o
+  belirsizlik sorulur.
+- **KURULUM** (ya da `YENİ KURULUM`): yeni makinelerde kurulum — **değişiklik numarası (CN) istenmez**. Hedefler session
+  bağlamından anlaşılır; belirsizse yalnız eksik hedef açıklığa kavuşturulur. Ajan yeni kurulumda CN önermez (T28 — Alp,
+  2026-09-30: "yeni kurulumda değişiklik numarasına ihtiyaç yok"). Beyan harf duyarsız ve doğal cümlede tanınır.
+- **KRİZ**: kriz beyanı + hedef kapsamı yeter (G74, Alp 2026-10-20: "kriz cümlesi yeterli olsun" — eskiden mail/toplantı
   notu şarttı; yapıştırılırsa audit'e kaydedilir, şart değil).
   Beyan **cümle içinde** de tanınır (G73, Alp 2026-10-20): "kriz var", "krizdeyiz", "kriz durumundayız", "acil kriz",
   "KRİZ wor14 düştü"; "kriz yok/değil/bitti", "kriz mi?", "kriz raporunu incele" beyan değildir. Aynı mesajda CN varsa CN
   geçerlidir. Kısa kriz cümlesindeki sunucu adları ("kriz var, wor14 ve wor07'de …") ve altındaki alt alta liste geçer;
   mail yapıştırılan mesajda yalnız açık `sunucular:` satırı (yapıştırılan metin yetki açmaz). Aralık yazımı `wor07-14`,
   `10.0.0.127-134` açılır (her yetki türünde).
-  Önerilen akış: mail yapıştırılır → ajan maildan etkilenen sunucuları çıkarıp **önerir** → sen
-  `sunucular: …` yazınca iş başlar. Ajanın önerdiği liste sen yazana kadar geçersizdir.
+  Yapıştırılan mail hedefleri tek başına yetki sayılmaz; kullanıcının session içindeki beyanı ve serbest metindeki hedefleri esas alınır.
 - Bu makinede git'in kullanıcı ayar/kimlik dosyaları (`~/.gitconfig`, `~/.git-credentials`, `~/.config/git/`, `~/.cache/git/`) K1 dışıdır —
   kullanıcının araç ayarı (G109, Alp 2026-10-26). Uzak makinede aynı dosya yine K1.
 - **Bu makine** için listeye `localhost` yaz (örn. bu makinede `systemctl restart`, `/etc` düzenleme).
-- Liste her `sunucular:` satırında **yenilenir** (eklenmez). `YETKİ KAPAT` yetkiyi kaldırır.
-  Yetki oturuma bağlıdır. **CN yetkisi oturum boyunca** geçerlidir (G107, Alp 2026-10-26: bir CN = bir oturum; iş bitince
-  oturum kapatılır, yeni CN → yeni oturum); KRİZ ve KURULUM 12 saat sonra düşer. opencode yeniden başlasa da aynı oturumun
-  yetkisi korunur (audit dizininin yanında `yetki/<oturum>.json`, 0600).
+- Açıkça yeni hedef listesi verildiğinde kapsam güncellenir; `YETKİ KAPAT` yetkiyi kaldırır.
+  Yetki session'a bağlıdır; CN/KURULUM/KRİZ türünden bağımsız olarak session silinene kadar geçerlidir. Yeniden başlatma veya uzun
+  süre kullanılmama düşürmez (`yetki/<session>.json`, 0600); `session.deleted` olayı dosyayı siler.
 - Kısa ad eşleşir: listede `web01` varsa `web01.kurum.local` da geçer.
 - **Envanter eşlemesi (G74):** yetki verildiği anda çalışma dizinindeki `ansible/`, `inventories/` altındaki INI envanter(ler)
   okunur (`OPS_AGENT_ENVANTER=yol1:yol2` ile değiştirilebilir); listedeki her öğe ad, kısa ad (envanterde adı onunla biten

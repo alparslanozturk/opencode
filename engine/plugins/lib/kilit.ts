@@ -43,13 +43,9 @@ export interface Yetki {
   oneriden?: boolean
   // G100 (Alp, 2026-10-22: "bir cümlede hem sunucu listesi hem değişiklik numarası vermek zorunda mıyım? garabet"): beyandan
   // ÖNCE ayrı mesajla verilen yalın sunucu listesi — ardından gelen sunucusuz CN/KURULUM/KRİZ beyanı bu listeye uygulanır.
-  aday?: { sunucular: string[]; zaman: number }
+  aday?: { sunucular: string[] }
 }
-export const YETKI_OMRU_MS = 12 * 60 * 60 * 1000
-// G107 (Alp, 2026-10-26: "yeni bir değişiklik numarası gerektiğinde yeni bir session açacağım … sonra o session'ı kapatırım"):
-// CN yetkisi oturum boyunca geçerli (iş günlere yayılabilir: sunucu sunucu açılır); KRİZ/KURULUM 12 saatte düşer.
-export const yetkiDustu = (y: { tur: YetkiTur | null; zaman: number }, now: number) =>
-  y.tur !== "CN" && now - y.zaman > YETKI_OMRU_MS
+// Yetki oturum kapsamındadır; session.deleted gelene kadar türünden bağımsız olarak düşmez.
 // Kriz mesajında yetki satırları dışında en az bu kadar metin (yapıştırılmış mail/toplantı notu) olmalı.
 export const KRIZ_METNI_MIN = 120
 
@@ -286,9 +282,8 @@ export function normHost(h: string): string {
   return /[${}*]/.test(n) && !/^[a-z0-9._-]*\*[a-z0-9._-]*$/.test(n) ? "?" : n
 }
 
-export function yetkiAktif(y: Yetki | undefined, now: number): y is Yetki & { tur: YetkiTur } {
+export function yetkiAktif(y: Yetki | undefined, _now?: number): y is Yetki & { tur: YetkiTur } {
   if (!y || !y.tur || y.sunucular.length === 0) return false
-  if (yetkiDustu(y, now)) return false
   if (y.tur === "CN") return Boolean(y.cn)
   // G74 (Alp, 2026-10-20: "kriz cümlesi yeterli olsun"): KRİZ için mail/toplantı notu şartı kalktı; krizMetni yalnız kayıt.
   return true
@@ -1834,6 +1829,33 @@ export const YETKI_NASIL =
   'eşlenir. Bu makine için listeye localhost yazılır. Salt-okunur işlerle ' +
   "devam edebilirsin; kullanıcıya yalnız EKSİK olanı (numara mı, sunucu mu) tek cümleyle söyle."
 
+// Alp (2026-10-27, saha): "değişiklik yapılmıyor ise komutlar çalıştırılabilir olması lazım." Kilidin KESİN salt-okunur saydığı bash
+// komutu (yerel her parça saltOkunur, yalnız /dev/null|stdout|stderr'e yönlendirme, $(…) içleri de okuma; ssh içi komutIncele'den
+// bulgusuz) onay ekranına düşmez. Bilinmeyen/yazan/şüpheli her şey eskisi gibi sorulur ya da kilitlenir.
+export function kesinOkuma(command: string, workdir: string): boolean {
+  const b: Baglam = { workdir, cwd: workdir, home: userInfo().homedir, uzak: null, derinlik: 0 }
+  try {
+    const ic: string[] = []
+    const komutlar = ayristir(command, ic)
+    if (!komutlar.length) return false
+    for (const k of komutlar) {
+      if (k.yazilan.some((y) => !["/dev/null", "/dev/stdout", "/dev/stderr"].includes(y))) return false
+      const argv = sarmalayiciSoy(k.argv).argv
+      const ad = (argv[0] ?? "").split("/").pop() ?? ""
+      if (/^[A-Za-z_][A-Za-z0-9_]*=\$\(\.\.\.\)$/.test(argv[0] ?? "") && argv.length === 1) continue // x=$(…): iç komut aşağıda
+      if (ad !== "ssh" && !saltOkunur(argv)) return false
+    }
+    for (const i of ic) if (!kesinOkuma(i, workdir)) return false
+    // sır içeren dosyayı okuma (anahtar, parola, kimlik) onaysız geçmez — sorulur (kubectl --kubeconfig yolu okuma sayılmaz)
+    const temiz = command.replace(/--kubeconfig[= ]\S+|KUBECONFIG=\S+/g, "")
+    if (/(\.ssh\/id_|\/etc\/g?shadow|\.git-credentials|\.(key|pfx|p12|jks|keytab)\b|pass(word)?s?\.txt|rke2\.yaml|token|secret|parola|sifre)/i.test(temiz))
+      return false
+    return komutIncele(command, b).length === 0
+  } catch {
+    return false
+  }
+}
+
 export function kilitDenetle(
   tool: string,
   args: Record<string, unknown>,
@@ -1902,44 +1924,33 @@ export function kilitDenetle(
   if (!degisenler.length) return null
   const hedefler = [...new Set(degisenler.flatMap((x) => x.hedefler))]
   const nedenler = [...new Set(degisenler.map((x) => x.neden))].join("; ")
-  if (hedefler.includes("?") || hedefler.includes("__ansible__"))
-    return {
-      kilit: "K1",
-      mesaj: `[güvenlik kilidi K1] Değişiklik yapan komutun hedefi belirlenemedi (${nedenler}). ansible-playbook için hedefi --limit <sunucu,…> ile ya da -i ile yalnız işin sunucularını içeren iş envanteri (hosts-<CN>-<tarih>.ini) ile ver; toplu araç yerine sunucu başına komut kullan. ${YETKI_NASIL}`,
-    }
-  // G68: tüm değişiklik bulguları "belirsiz" (kilidin tanımadığı uzak komut) ise engel yerine kullanıcıya sor.
+  // Alp (2026-10-27): "Bu kilit mekanizması tamamen yanlış — sezgisel olarak anlaması lazım change yaptığımı; öyle formatta sunucuları
+  // ver, numarayı ver ne demek?" → K1 artık ENGEL DEĞİL, ONAY EKRANI (Claude Code gibi): değişiklik yapan komut kullanıcıya sorulur
+  // (Allow once / Reject). Kullanıcı mesajında CN/kurulum/kriz + sunucu verdiyse ve hedef listedeyse sormadan çalışır (toplu iş).
+  // K5 (yıkıcı) ve K6 (ajanın kendi alanı) değişmedi.
+  const onceden = yetkiAktif(yetki, Date.now()) &&
+    !hedefler.includes("?") && !hedefler.includes("__ansible__") &&
+    hedefler.every((h) => hostListede(h, yetki.esler ?? yetki.sunucular))
+  if (onceden && !diskler.length) return null
   const hepsiBelirsiz = degisenler.every((x) => x.belirsiz)
-  const sorKarari = (durum: string): KilitKarari => ({
-    kilit: "K1",
-    sor: true,
-    mesaj: `[kilit — ONAY] Kilit bu uzak komutu tanımıyor: ${nedenler} → hedef: ${hedefler.join(", ")} (${durum}). Salt-okunur olduğundan eminsen onayla, değilse reddet. (Ajan için: reddedilirse başka yazımla deneme.)`,
-  })
-  if (!yetkiAktif(yetki, Date.now())) {
-    if (hepsiBelirsiz) return sorKarari("bu oturumda geçerli yetki yok")
-    const eksik = !yetki || !yetki.tur
-      ? "bu oturumda yetki yok"
-      : yetki.sunucular.length === 0
-        ? `${yetki.tur} verildi ama sunucu listesi yok — ajan hedefi bir önceki mesajında tek satır "sunucular: <ad>" ile önerip kullanıcıdan yalnız onay istemeli ("kriz var, evet" yeter; cümle dikte etme)`
-        : yetki.tur === "CN" && !yetki.cn
-          ? "CN numarası yok"
-          : "yetkinin süresi doldu (KRİZ/KURULUM 12 saat)"
+  if (!diskler.length) {
+    const belirsizHedef = hedefler.includes("?") || hedefler.includes("__ansible__")
+    const disarida = yetkiAktif(yetki, Date.now()) ? hedefler.filter((h) => h !== "?" && h !== "__ansible__" && !hostListede(h, yetki.esler ?? yetki.sunucular)) : []
     return {
       kilit: "K1",
-      mesaj: `[güvenlik kilidi K1] Bu komut değişiklik yapıyor (${nedenler}) → hedef: ${hedefler.join(", ")}. Çalıştırılmadı: ${eksik}.${yetki?.uyari ? ` Not: ${yetki.uyari}.` : ""}${diskNotu} ${YETKI_NASIL}`,
+      sor: true,
+      mesaj: `[onay] Bu komut değişiklik yapıyor (${nedenler}) → hedef: ${belirsizHedef ? "hedefi belirlenemedi — envanterin tamamı olabilir (ansible-playbook'ta --limit ya da iş envanteri)" : hedefler.join(", ")}.` +
+        (hepsiBelirsiz ? " (Kilit bu komutu tanımıyor — salt-okunur olabilir.)" : "") +
+        (disarida.length ? ` Verdiğin listede yok: ${disarida.join(", ")} (${yetkiOzeti(yetki!)}).` : "") +
+        (yetki?.uyari ? ` Not: ${yetki.uyari}.` : "") +
+        " Onaylarsan çalışır. (Ajan için: reddedilirse başka yazımla deneme; kullanıcıya neden gerektiğini tek cümleyle söyle.)",
     }
   }
-  const disarida = hedefler.filter((h) => !hostListede(h, yetki.esler ?? yetki.sunucular))
-  if (disarida.length && hepsiBelirsiz) return sorKarari(`hedef yetki listesinde yok: ${disarida.join(", ")}`)
-  if (disarida.length)
-    return {
-      kilit: "K1",
-      mesaj: `[güvenlik kilidi K1] Hedef yetki listesinde yok: ${disarida.join(", ")} (geçerli yetki — ${yetkiOzeti(yetki)}).${yetki.uyari ? ` Not: ${yetki.uyari}.` : ""} Komut: ${nedenler}. Kullanıcı listeyi güncellemeli (serbest yazabilir; envanterdeki ad, kısa ad, IP, grup adı ve "07-14" aralığı eşleşir).${yetki.envanterNotu ? ` Envanter: ${yetki.envanterNotu}.` : ""} (Ajan için: kilit YALNIZ kullanıcının mesajını okur — komuta "kriz" yazmak ya da başka yazımla denemek yetki vermez; geçerli listeyi kullanıcıya aynen göster, eksik olanı sor. "Kilit çalışmıyor" deme.)${diskNotu}`,
-    }
   if (diskler.length)
     return {
       kilit: "K5",
       sor: true,
-      mesaj: `[kilit — ONAY: YIKICI DİSK KOMUTU] ${[...new Set(diskler.map((x) => x.neden))].join("; ")} → hedef: ${[...new Set(diskler.flatMap((x) => x.hedefler))].join(", ")} (yetki: ${yetkiOzeti(yetki)}). Diskteki veri GERİ GELMEZ. Onaylamadan önce bu aygıtın o sunucuda "BOŞ ADAY" olduğunu gör (rhel-depolama disk-durum.py — reboot sonrası harfler değişebilir). Emin değilsen reddet. (Ajan için: reddedilirse başka yazımla deneme.)`,
+      mesaj: `[kilit — ONAY: YIKICI DİSK KOMUTU] ${[...new Set(diskler.map((x) => x.neden))].join("; ")} → hedef: ${[...new Set(diskler.flatMap((x) => x.hedefler))].join(", ")}${yetki?.tur ? ` (yetki: ${yetkiOzeti(yetki)})` : ""}. Diskteki veri GERİ GELMEZ. Onaylamadan önce bu aygıtın o sunucuda "BOŞ ADAY" olduğunu gör (rhel-depolama disk-durum.py — reboot sonrası harfler değişebilir). Emin değilsen reddet. (Ajan için: reddedilirse başka yazımla deneme.)`,
     }
   return null
 }

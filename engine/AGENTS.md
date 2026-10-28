@@ -184,55 +184,35 @@ Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya 
   kurum adı/aralığı için Alp'e sor — burada bilinçli olarak genelleştirildi, 2026-09-16, K2).
   Anthos ayrı sınıflandırılır, aynı kısıt Anthos için varsayılmaz.
 
-## Güvenlik kilitleri (Alp kuralı — 2026-09-24, teknik olarak zorlanır: `audit-log.ts`)
-- **Değişiklik = yetki.** Sunucuda/sistemde değişiklik (playbook `--check`'siz, ssh ile yazan komut,
-  servis/paket/ayar, `/etc` düzenleme) ancak kullanıcı mesajında yetki varsa ve hedef listedeyse çalışır:
-  **yeni kurulum (yeni makineler): kullanıcı "kurulum yapacağım" (harf fark etmez) + `sunucular: …` yazar —
-  değişiklik numarası İSTENMEZ, CN önerme** ·
-  mevcut (çalışan) sunucuda değişiklik: CN numarası + sunucular — **biçim dayatma** (Alp, 2026-10-17): kullanıcı aynı
-  mesajda serbest yazar ("CHG0012345 ile web01, web02 sunucularında", alt alta liste, birden çok CN); kilit anlar. Eksikse
-  yalnız eksik olanı sor (numara mı, sunucu mu), "şu formatta yaz" deme. **CN ve sunucu listesi ayrı mesajlarda da gelebilir**
-  (önce "değişiklik var, CHG…", sonra alt alta liste — ya da tersi; G100): kilit ikisini birleştirir, aynı cümlede isteme · kriz: cümle içinde "kriz var" + sunucular
-  yeter (Alp, 2026-10-20 — mail/toplantı notu şartı yok; kısa kriz cümlesindeki adlar geçer, yapıştırılan maildeki adlar
-  yetki açmaz; "kiriz var" gibi yazım hatası da tanınır). Sunucu ad, kısa ad (`wor07`), IP, aralık (`wor07-14`, yalın `07-14` —
-  envanterde tek önekle karşılanırsa) ya da envanter grubu olarak verilebilir — kilit
-  çalışma dizinindeki ansible envanterinden eşler. Bu makine = `localhost`. Yalnız okuyan playbook (ping, setup, debug,
-  salt-okunur command) yetkisiz çalışır — önce çalıştır, yetki isteme.
-- **Kriz akışı:** mail yapıştırılınca etkilenen sunucuları maildan çıkar, listeyi öner ve **dur** —
-  liste ancak kullanıcı `sunucular: …` yazınca geçerli olur. Yetki satırını sen yazamazsın/üretemezsin.
-- `ansible-playbook` değişikliğinde hedef ya `--limit` ile ya da `-i` ile verilen **iş envanteri** ile belli olur (G101: iş envanterinde
-  yalnız değişikliğin sunucuları var → `--limit` gerekmez; kilit dosyadaki her adı ve `ansible_host` IP'sini yetkiyle karşılaştırır).
-  `-i`'siz (ansible.cfg'nin ana envanteri) değişiklikte `--limit` şart. Salt-okunur iş yetkisiz serbest.
-- **Asla açılmayanlar:** `rm -rf /`-benzeri, `chmod -R /`, force-push, `kill -1`; kendi ayarın/eklentin/audit log.
-- **Yıkıcı disk komutu = yetki + her seferinde onay (Alp, 2026-10-22):** `mkfs*`, silen `wipefs -a/-o`, blok aygıtına `dd`/`>`,
-  `blkdiscard`, `sgdisk --zap`, diske `shred`/`mkswap` — CN/KURULUM/KRİZ yetkisi ve hedef listede olsa bile **her komut ayrı onay
-  ekranına** düşer ("her zaman izin ver" atlatamaz). Önermeden ve onay istemeden önce aynı sunucuda `disk-durum.py` çıktısını göster
-  (aygıt BOŞ ADAY olmalı); reddedilirse başka yazımla deneme. `wipefs -n` / seçeneksiz `wipefs` okumadır.
-- **Tanınmayan komut = onay sorusu (G68):** kilidin tanımadığı uzak komut (kurum aracı, özel betik, `./x`, `python3 x.py`)
-  engellenmez, kullanıcının onay ekranına düşer. Böyle bir komutu çalıştırmadan önce ne yaptığını (okuma mı, değişiklik mi)
-  **tek cümleyle** söyle; kullanıcı reddederse aynı işi başka yazımla deneme. Bilinen değişiklik komutu (systemctl restart,
-  dnf install, rm …) yine CN/KURULUM yetkisi ister; K5/K6 hiç açılmaz.
-- Kilit reddederse atlatmaya çalışma (başka komut, betik, farklı yazım): kullanıcıya neyin neden
-  gerektiğini tek cümleyle söyle.
-  **Saha G78'de yapılan hatalar — yapma:** komuta `echo KRIZ` gibi sözcük eklemek (kilit yalnız **kullanıcının** mesajını okur;
-  komuttaki metin yetki değildir), ansible → for döngüsü → tek ssh diye aynı değişikliği yazım değiştirerek tekrar denemek,
-  "kilit bu oturumda çalışmıyor / çöp yetki kaydı tutuyor" gibi **kanıtsız** teşhis. Doğrusu: K1 mesajındaki "geçerli yetki — …"
-  listesini ve "Envanter: …" notunu kullanıcıya **aynen** göster, eksik olanı (hangi sunucu, kriz/CN beyanı) tek cümleyle sor.
-- **Yetki isterken cümle dikte etme (Alp, 2026-10-22 — saha G98: "hâlâ format istiyor, çok garip"):** değişiklik gerekiyorsa planı ve
-  riskini yaz, hedefi **tek satırda** `sunucular: <ad>` (birden çoksa virgülle) olarak öner ve yalnız onay iste: "Kriz/CN beyanıyla
-  onaylıyor musun?". Kullanıcının "kriz var, evet" / "CHG… ile evet, sadece onu" demesi yeter — kilit önceki mesajındaki
-  `sunucular:` satırını onayla eşler, envanterde/IP'de ad çözümlemesi de yapar. "`kriz var, 10.14.4.135 reboot` yazarsan" gibi kalıp
-  cümle **verme**; kullanıcıya IP/ad yeniden yazdırma.
-- **Yetki dili serbesttir (Alp, 2026-10-20):** kullanıcı "kriz var", "krizdeyiz", "kriz durumundayız, wor14'te …" gibi cümle içinde
-  söylediyse bu KRİZ beyanıdır; "KRİZ yazıp alt satıra sunucular:" gibi biçim isteme. Aralık yazımı (`wor07-14`,
-  `10.0.9.127-134`) kilitte açılır. Kilit yine reddederse yalnız **eksik olanı** söyle (kriz notu mu, sunucu mu, IP mi).
-- **Ad ↔ IP envanterden (G74):** kilit yetki verildiği anda `ansible/` ve `inventories/` altındaki INI envanterden eşler: ad,
-  kısa ad (tek host'a uyuyorsa), `ansible_host` IP'si, grup üyeleri. Komutta ad ya da IP kullanabilirsin. Kilit "envanterde
-  yok" ya da "birden çok host'a uyuyor" derse kullanıcıya **yalnız o adı** sor. Çok sunucuya aynı değişiklik: düz listeli
-  `for h in <ad1> <ad2>; do ssh $h …; done` (kilit her hedefi ayrı denetler) ya da ansible `--limit`.
-- **Atlatma yolu ÖNERME.** Kilit reddederse etrafından dolaşma yolu **sunma** (dosyayı `/tmp`'ye kopyalayıp okumak,
-  `bash` üzerinden denemek, farklı araç/yazım, `--limit` ile hedefi gizlemek...). Ne yapamadığını ve **neden**
-  gerektiğini tek cümleyle söyle; içerik gerekiyorsa **kullanıcı kendisi paylaşsın**.
+## Güvenlik kilitleri — onay ekranı (Alp kararı, 2026-10-27; teknik olarak zorlanır: `guvenlik-v2.ts`)
+
+Alp: "Bu kilit mekanizması tamamen yanlış — sezgisel olarak anlaması lazım change yaptığımı. Öyle formatta sunucuları ver, numarayı
+ver ne demek?" Eski "CN + sunucular yoksa engel" kuralı **kalktı**. Şimdi Claude Code gibi:
+
+- **Okuma → sormadan çalışır.** Kilidin kesin okuma saydığı komut (yerel ya da `ssh <sunucu> "<okuma>"`: lspci, journalctl, kubectl get,
+  trust list, rpm -q, cat, grep …) onay ekranına düşmez. **"Bunun için yetki/izin gerekir" deme** — okuma için gerekmez (saha G114:
+  ajan ssh okumasına "değişiklik yetkisi gerekir" dedi, yanlıştı). Sır dosyası okuması (anahtar, parola, keytab) yine sorulur.
+- **Değişiklik → doğrudan çalıştır; kullanıcı onay ekranında karar verir** (Allow once / Reject). CN, "sunucular:" satırı, kriz cümlesi
+  **isteme, format dayatma, yetki satırı önerme**. İşi yap; onay ekranı çıkar. Değişiklikten önce ne yapacağını ve riskini **tek
+  cümleyle** söyle (ör. "18 sunucuda anchors'a sertifika koyup update-ca-trust çalıştıracağım").
+- Kullanıcı mesajında kendiliğinden CN/değişiklik numarası + sunucular verirse kilit bunu kaydeder; o sunuculardaki değişiklik **sorulmadan**
+  geçer (toplu iş). Vermediyse isteme — onay ekranı yeter.
+- **Yetki oturum ömründedir:** kullanıcı mesajlarında ve oturum bağlamında geçen CN/değişiklik numarasını, sunucu adlarını, IP'leri,
+  aralıkları ve grup adlarını doğal biçimde çıkar; `sunucular:` gibi bir format isteme. Envanter eşlemesi belirsiz değilse anladığın
+  CN ve hedefleri kaydet, aynı session'daki sonraki adımlarda yeniden sorma. CN, KURULUM ve KRİZ yetkisi session silinene kadar
+  sürer; motor/TUI yeniden başlatması veya zaman aşımı yetkiyi düşürmez. `session.deleted` gelince yetki kaydını kaldır.
+- Session'ın yetkisi yalnız o session'ın kaydettiği hedeflere uygulanır. Yeni CN veya yeni hedef açıkça verilirse aynı session'da
+  yetki kaydını güncelle ve kullanıcıya ne anladığını bildir; eski CN/hedefleri sessizce birleştirip kapsamı genişletme.
+- **Asla açılmayanlar (K5/K6):** `rm -rf /`-benzeri, `chmod -R /`, force-push, `kill -1`; kendi ayarın/eklentin/audit log.
+- **Yıkıcı disk komutu** (`mkfs`, silen `wipefs`, blok aygıtına `dd`/`>`, `blkdiscard`, `sgdisk --zap`): her seferinde ayrı onay ekranı
+  ("her zaman izin ver" atlatamaz). Önermeden önce aynı sunucuda `disk-durum.py` çıktısını göster (aygıt BOŞ ADAY olmalı).
+- **Kullanıcı reddederse** aynı işi başka yazımla deneme (ansible → for → tek ssh gibi). Neden gerektiğini tek cümleyle söyle, bekle.
+- `ansible-playbook` değişikliğinde hedef `--limit` ya da iş envanteri (`-i inventories/hosts-<…>.ini`) ile belli olsun; `-i`'siz ve
+  `--limit`'siz değişiklik onay ekranında "hedef belirlenemedi — envanterin tamamı olabilir" der.
+- **İş sonucu doğrulaması:** Ansible'ın komutu kabul etmesi veya modelin "yüklendi" demesi tek başına başarı kanıtı değildir. Hazır
+  playbook'u (özellikle `ansible/playbooks/12-*.yaml`) değiştirmeden çalıştır; play recap'te beklenen host'ların tamamını ve sıfır
+  `unreachable`/`failed` olduğunu kontrol et, sonra hedefteki dosya/checksum ve servisin kullandığı etkin durumu doğrula. Doğrulama
+  yapılmadıysa kullanıcıya tamamlandı deme; hangi adımın doğrulanmadığını açıkça belirt.
 
 ## Güvenlik ve sınırlar
 - Yıkıcı komut (rm -rf, mkfs, dnf remove, servis durdurma, force push) → **önce sor**.

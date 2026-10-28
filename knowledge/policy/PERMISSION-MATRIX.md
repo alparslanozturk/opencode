@@ -211,29 +211,27 @@ ssh / ansible ad-hoc / playbook arasında hangisinin ne zaman kullanılacağı a
 ## 7. Güvenlik kilitleri (K1–K7)
 
 Bkz. `GUVENLIK-KILITLERI.md` (kullanım + sınırlar) ve `../architecture/decisions/0004-guvenlik-kilitleri.md`
-(karar). K1 değişiklik kilidi, K5 yıkıcı komut ve K6 öz-koruma `audit-log.ts`'te sert red; K2/K3/K4
-`engine/opencode.json` izin bloğunda (onaylanabilir).
+(karar). K1 değişiklik kilidi, K5 yıkıcı komut ve K6 öz-koruma `guvenlik-v2.ts` + `lib/kilit.ts`'te
+(K1 artık onay ekranı — Alp, 2026-10-27; K5/K6 sert red); K2/K3/K4 `engine/opencode.json` izin bloğunda
+(onaylanabilir).
 
 ## 8. Bileşik komutla `bash` allowlist aşımı (GOREV oc-T5 bulgu A, plan P1-1)
 
-`engine/opencode.json`'daki `bash` izinleri (`"ls *": "allow"` gibi) tüm komut DİZESİNE regex olarak
-uygulanır (`packages/core/src/util/wildcard.ts`) ve `permission.ts` son eşleşen kuralı kullanır
-(`findLast`). Bir "allow" kalıbı yalnız komutun BAŞINI tanır, gerisini `.*` olarak yutar — bu yüzden
-`ls foo; rm -rf /x` gibi bileşik bir komut `"ls *"` kalıbıyla TAMAMEN allow olabilir. K1/K5/K6
-(`audit-log.ts`/`lib/kilit.ts`) bunu kapsamaz: onlar sistem köklerini/uzak değişiklikleri korur,
-hedefsiz "rm -rf herhangi-bir-yol" gibi salt fiil tabanlı bir kapıyı hiç uygulamaz.
+**Durum (2.x):** sorun motor tarafından kapatıldı — 2.x shell izni alt komut **başına** değerlendirir:
+`packages/core/src/tool/plugin/shell.ts` komutu `ShellParse.scan` ile ayrıştırır (tree-sitter tabanlı;
+çözümlenemeyen komut/ikame "opaque" olur ve araç fail-closed davranır) ve `permission.assert`'e alt komut
+listesini kaynak olarak verir; `permission.ts` her kaynağı ayrı ayrı `evaluate` eder (findLast + wildcard),
+biri "deny" ise red, biri "ask" ise sorulur. Böylece `ls foo; rm -rf /x` için `"ls *"` kalıbı yalnız `ls`
+kısmını allow eder, `rm -rf /x` kendi kuralına düşer.
 
-`engine/plugins/guard.ts` (`tool.execute.before`, yalnız `bash`) bu boşluğu **daraltarak** kapatır —
-var olan izinleri genişletmez:
+1.x döneminde bu boşluğu `engine/plugins/guard.ts` (`tool.execute.before`, yalnız `bash`) dolduruyordu:
+bileşik komutu alt komutlara bölüp yıkıcı fiili (`rm -rf`, `systemctl stop`, `mkfs`, `dd`, `shutdown`,
+`reboot`) **deny**'liyor, `$(...)`/backtick'i **ask**'a düşürüyor, `find *-exec*/-execdir/-delete/-ok`'u
+her zaman ask yapıyordu; 2026-10-28'de 1.x adaptörleriyle birlikte kaldırıldı (işini 2.x çekirdeği yapar,
+bkz. `kur.sh` "plugin" adımı).
 
-- Komut `;`/`&&`/`\|`/`\|\|`/`$(...)`/backtick/yeni satırla bileşikse tüm-dize allowlist eşleşmesi
-  geçersiz sayılır: alt komutlardan biri yıkıcı bir fiilse (`rm -rf`, `systemctl stop`, `mkfs`, `dd`,
-  `shutdown`, `reboot`) → **deny**; hepsi ayrı ayrı daraltılmış allowlist'e uyuyorsa → motorun kendi
-  kararına bırakılır; aksi halde → **ask** (bugün throw ile uygulanır — interaktif `ask` motora henüz
-  bağlı değil, T7 kapsamı).
-- `find *-exec*/-execdir/-delete/-ok` her zaman **ask**.
 - `ps` allowlist'i `engine/opencode.json`'da `"ps"`, `"ps aux*"`, `"ps -ef*"`, `"ps -o*"`'a
-  daraltıldı (eski `"ps *"` boşlukla ayrılmış herhangi bir devamı kabul ediyordu; `psql` argv[0]
+  daraltılmıştır (eski `"ps *"` boşlukla ayrılmış herhangi bir devamı kabul ediyordu; `psql` argv[0]
   eşleşmesi zaten tutmuyordu ama devam eden argümanlar keyfi olabiliyordu).
-
-Test: `engine/plugins/guard.test.ts` (`bun test engine/plugins/guard.test.ts`).
+- İzin bloğunun motor wildcard eşlemesiyle tutarlılığı `engine/plugins/opencode-izin.test.ts` ile
+  doğrulanır.

@@ -8,7 +8,7 @@ opencode'a **yeni araç** eklemenin doğru yolu: **yerel TS/JS plugin** (offline
   **Dikkat:** `session.idle`/`session.compacted` gibi olaylar ayrı bir hook anahtarı DEĞİL — bunlar genel
   `event` hook'una gelen `Event.type` değerleridir (`event: async ({event}) => { if (event.type !== "...")
   return; ... }`). Üst seviyede `"session.idle": async () => {...}` gibi bir anahtar tanımlamak **derlenir
-  ama hiçbir zaman çağrılmaz** — bu proje bunu `audit-log.ts`'de canlı olarak yaşadı, bkz. aşağıdaki tablo.
+  ama hiçbir zaman çağrılmaz** — bu proje bunu 1.x `audit-log.ts`'de yaşadı (2026-10-28'de kaldırıldı), bkz. aşağıdaki tablo.
 - Ağırlıklı yükleme yok: opencode ayarı **açılışta bir kez** okur → plugin ekleyince kapat-aç.
 
 ⚠️ **npm plugin KULLANMA** — açılışta Bun ile npm'den çeker, kurum offline'ını bozar.
@@ -28,23 +28,11 @@ Yerel dosya plugin tercih edilir (gerekirse yanına `package.json` ile bağıml�
 | Dosya | Ne yapar | Durum |
 |---|---|---|
 | `lib/kilit.ts`, `lib/maskele.ts` | **Motordan bağımsız çekirdek** (ADR-0005): kilit kararları, yetki satırı okuma, maskeleme/denylist. Girdi → karar; motor kancası bilmez. `plugins/lib/` alt dizin olduğu için opencode bunları eklenti diye yüklemez. Test: `lib/kilit.test.ts` (kancasız). | Kodlandı |
-| `audit-log.ts` | **1.x adaptörü** — **Güvenlik kilitleri K1/K5/K6** (ADR-0004, `knowledge/policy/GUVENLIK-KILITLERI.md`): `tool.execute.before`'da sert red, yetki `chat.message`'tan (yalnız kullanıcı mesajı). Ayrıca: `tool.execute.before`/`after` + genel `event` hook'u (`session.idle` olayını filtreler) ile her araç çağrısını `AUDIT-FORMAT.md` §2 şemasına uyan, hash zincirli (§3) bir JSONL satırı olarak `/var/log/ops-agent/audit.jsonl`'a yazar. Bağımlılıksız (yalnız Node/Bun çekirdek modülleri: `fs`, `crypto`, `child_process`, `os`, `path`). **Faz 0'ın ilk gerçek plugin'i.** | Kodlandı, smoke-test ile doğrulandı (bkz. `notlar/FAZ0-YUZEYE-GETIRME-RAPORU.md`) |
 | `guard.ts` | **Bileşik komut allowlist aşımı kapısı** (GOREV oc-T5 bulgu A, plan P1-1): `engine/opencode.json`'daki `bash` izinleri tüm komut dizesine regex uygulanır (`"ls *"` gibi bir kalıp `ls foo; rm -rf /x`'in TAMAMINI allow edebilir — K1/K5/K6 farklı bir sorunu, sistem köklerini/uzak değişiklikleri, korur; hedefsiz "rm -rf herhangi-bir-yol" fiil tabanlı denylist'i kapsamaz). `tool.execute.before`'da yalnız `bash` aracı için: komut `;`/`&&`/`\|\|`/`\|`/`$(...)`/backtick/yeni satır ile bileşikse allowlist geçersiz sayılır — alt komutlardan biri yıkıcı bir fiilse (`rm -rf`, `systemctl stop`, `mkfs`, `dd`, `shutdown`, `reboot`) DENY, hepsi ayrı ayrı daraltılmış allowlist'e uyuyorsa müdahale yok, aksi halde ASK (throw — interaktif ask motora henüz bağlı değil, T7 kapsamı; güvenli taraf: engelle). `find *-exec*/-execdir/-delete/-ok` her zaman ASK. Bağımlılıksız (yalnız `./lib/kilit.ts`'in ayrıştırıcısını + Node/Bun çekirdeğini kullanır). Test: `guard.test.ts`. | Kodlandı |
 
-`audit-log.ts` ve `guard.ts`, `kur.sh` tarafından `~/.config/opencode/plugins/`'e kopyalanır (bkz. kur.sh kurulum akışındaki
-"plugin" adımı, `engine/plugins/*.ts` genel deseniyle) — auto-discovery mekanizmasıyla ek config'e gerek kalmadan yüklenir.
-
-### `audit-log.ts` bilinen sınırlar (Faz 0 sonrası ele alınacak — ayrıntı: `AUDIT-FORMAT.md` "Bilinen sınırlar")
-
-- `task_id`, `gen_ai.usage.input_tokens/output_tokens`, `gen_ai.request.model_digest`: opencode 1.18.30'da
-  `tool.execute.*` hook girdisinde bu bilgi yok; alanlar `null` yazılır (fabrikasyon yok).
-- `policy_decision`/`result_status`: bugün yalnız `ok`/`error` × `allow`/`deny` üretiliyor. `denied`/`asked`
-  tipte tanımlı ama `permission.ask`/`permission.replied` olaylarına henüz bağlanmadı (davranışları canlı
-  ortamda doğrulanmadan bağlamak yanlış audit satırı riski taşıyor) — Faz 1 adayı.
-- `before` olayı diske kalıcı yazılmıyor (yalnız bellek-içi `pending` Map) — süreç çökerse o çağrı için hiç
-  satır oluşmaz. `skills_loaded` sıfırlaması `session.idle` olayına (görev sınırı değil, yaklaşıklığı) bağlı.
-- Çok-oturumlu eşzamanlı yazımda tam dosya kilidi yok (v1 tek-yazar varsayımı, `THREAT-MODEL.md` "tek makine"
-  kapsamıyla uyumlu).
+`kur.sh`, `~/.config/opencode/plugins/`'e yalnız `*-v2.ts` + `plugins/lib/`'i kopyalar; 1.x adaptörleri (`audit-log.ts`,
+`guard.ts`) 2.x'te yüklenmez ve eski kurulumlardan silinir (bkz. kur.sh "plugin" adımı) — auto-discovery mekanizmasıyla
+ek config'e gerek kalmadan yüklenir.
 
 ## Aday araçlar (henüz kodlanmadı — öneri, önceliği deneme belirler)
 
@@ -53,6 +41,6 @@ Yerel dosya plugin tercih edilir (gerekirse yanına `package.json` ile bağıml�
 | `envanter-dogrula` | hosts.ini / CSV-XLSX ayrıştır, satır toplamlarını tek tek doğrula | Elle aritmetik hata yapıyor; deterministik olmalı |
 | `rapor` | Tablo → Markdown/Excel/PDF (font/kütüphane kontrolüyle) | Tekrarlı üretim, tutarlı biçim |
 | `kapsam-gate` | Kök dizin dışı erişimi reddet (plugin `tool.execute.before`) | `AGENTS.md` kuralı "rica"; tool "kapı" |
-| ~~`guvenlik-kapisi`~~ | **Yapıldı** (2026-09-24) — `audit-log.ts` içinde K5/K1 olarak; **bileşik komut aşımı** ise ayrıca `guard.ts` (GOREV oc-T5) | — |
+| ~~`guvenlik-kapisi`~~ | **Yapıldı** (2026-09-24) — 1.x'te `audit-log.ts` içinde K5/K1 (dosya 2026-10-28'de kaldırıldı; 2.x'te `guvenlik-v2.ts`); **bileşik komut aşımı** ise ayrıca `guard.ts` (GOREV oc-T5) | — |
 
 > Not: Bu liste **öneridir**. Gerçek öncelik, test-sunucu canlı denemesinde "canımızı yakan" noktaya göre belirlenir.

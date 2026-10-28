@@ -1,5 +1,5 @@
 // maskele.ts — motordan BAĞIMSIZ çekirdek: audit hedefi (target) ve arama kapsamı yardımcıları.
-// ADR-0005: opencode 1.x kanca adaptörü (../audit-log.ts) ve ileride 2.x adaptörü bu modülü paylaşır.
+// ADR-0005: opencode 2.x adaptörü (../guvenlik-v2.ts) bu modülü kullanır.
 // Bu dosya plugins/lib/ altındadır: opencode yalnız plugins/*.ts'i eklenti diye yükler, alt dizini değil.
 // 2026-09-28 (Alp): gizleme/maskeleme ve hassas dosya denylist'i KALDIRILDI — kurum içi offline sistem;
 // dosya adı tarihsel (içe aktarmalar kırılmasın diye korunuyor).

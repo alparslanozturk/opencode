@@ -13,7 +13,7 @@ Kod geliştirme YOK — sadece ayar + içerik. Amaç: **önce denemek**, sonuç 
 | `env` | **Gerçek değerlerin tek yeri** (git'te değil) — yoksa `kur.sh` önce `env.local`'den, o da yoksa `env.example` şablonundan otomatik oluşturur (izin 600; içerik ekrana basılmaz). Şablondan üretildiyse yer tutucular gerçek uç/anahtarla doldurulmalı |
 | `engine/opencode.json` | Sağlayıcı ayarı: kurum Qwen'i OpenAI uyumlu uçtan bağlar · bağlam penceresi (`kur.sh` kurulum akışı otomatik tespit eder) · zaman aşımları · izin kuralları |
 | `engine/AGENTS.md` | Kurum kuralları: dil, envanter disiplini, güvenlik, beceri disiplini, pencere/endpoint notu |
-| `engine/plugins/` | Güvenlik + audit eklentisi: `guvenlik-v2.ts` (opencode 2.x) + motordan bağımsız çekirdek `lib/` (`audit-log.ts` 1.x dönemi, kurulmaz) |
+| `engine/plugins/` | Güvenlik + audit eklentisi: `guvenlik-v2.ts` (opencode 2.x) + motordan bağımsız çekirdek `lib/` (`audit-log.ts` 1.x dönemi, 2026-10-28'de kaldırıldı) |
 | `knowledge/skills/approved/` | **37 onaylı beceri** (2026-10-27) — opencode'un **okuduğu tek yer**, `kur.sh` hepsini kurar; liste ve betik tablosu `knowledge/skills/README.md` |
 | `knowledge/skills/parked/` | **25 park edilmiş beceri** — varsayılan kurulumda kurulmaz, bkz. `parked/README.md` |
 | `knowledge/` | Kurumsal bilgi deposu: `skills` · `runbooks` · `incidents` · `lessons-learned` · `operations-notes` · `architecture` · `roadmap` |

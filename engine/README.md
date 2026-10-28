@@ -6,7 +6,7 @@ Motorun **ayar ve kural** katmanı. Kod değil; davranış ayarı.
 |---|---|
 | `AGENTS.md` | Kurum kuralları → `~/.config/opencode/AGENTS.md` |
 | `opencode.json` | Sağlayıcı + izin ayarları (`kur.sh`, kökteki `env`'den doldurur) |
-| `plugins/` | Araç (tool) katmanı — yerel TS plugin'ler; ilk plugin (`audit-log.ts`, Faz 0) kodlandı, bkz. `plugins/README.md` |
+| `plugins/` | Araç (tool) katmanı — yerel TS plugin'ler; ilk plugin (`audit-log.ts`, Faz 0; 2026-10-28'de kaldırıldı), güncel: `guvenlik-v2.ts`, bkz. `plugins/README.md` |
 
 `kur.sh` bunları `~/.config/opencode/` altına kurar; beceriler `../knowledge/skills/approved/`'dan gelir.
 

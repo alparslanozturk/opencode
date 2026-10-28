@@ -1,5 +1,5 @@
 // denetim.ts — motordan bağımsız audit + yetki yardımcıları (ADR-0005). opencode 2.x adaptörü
-// (../guvenlik-v2.ts) kullanır; davranış 1.x adaptörüyle (../audit-log.ts) aynıdır.
+// (../guvenlik-v2.ts) kullanır.
 // Şema: ../../../knowledge/policy/AUDIT-FORMAT.md §2 (alanlar) + §3 (hash zinciri).
 // Bağımlılık yok: yalnız Node/Bun çekirdek modülleri.
 import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs"

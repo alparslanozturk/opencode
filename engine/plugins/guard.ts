@@ -5,7 +5,7 @@
 // SON eşleşen kuralı kullanıyor. Bir "allow" kalıbı yalnız komutun BAŞINI tanır — geri kalanı `.*`
 // olarak yutulur. Bu yüzden "ls foo; rm -rf /x" gibi bileşik komutlar "ls *" kalıbıyla tamamen
 // ALLOW olabiliyor (doğrulandı: knowledge/'de kayıtlı değil, bkz. GOREV oc-T5 raporu). K1/K5/K6
-// kilitleri (./lib/kilit.ts, audit-log.ts) farklı bir sorunu çözüyor (sistem köklerini/uzak
+// kilitleri (./lib/kilit.ts, 2.x'te guvenlik-v2.ts) farklı bir sorunu çözüyor (sistem köklerini/uzak
 // değişiklikleri korumak) — hedefsiz "rm -rf <herhangi bir yol>" gibi salt fiil tabanlı bir
 // deny-list'i KAPSAMAZ. guard.ts bu boşluğu dolduran, motordan bağımsız (ADR-0005 ruhuyla) AYRI
 // bir kilittir: yalnız DARALTIR, var olan izinleri genişletmez.
@@ -91,7 +91,7 @@ export function loadBashAllowPatterns(projectDir: string | undefined): string[] 
 }
 
 // packages/core/src/util/wildcard.ts ile BİLEREK aynı mantığın küçük bir kopyası: bu dizin
-// (audit-log.ts/kilit.ts gibi) çalışma zamanı workspace paketi bağımlılığı taşımaz — yalnız
+// (kilit.ts gibi) çalışma zamanı workspace paketi bağımlılığı taşımaz — yalnız
 // Node/Bun çekirdeği (bkz. README.md "npm plugin KULLANMA").
 export function wildcardMatch(input: string, pattern: string): boolean {
   const normalized = input.replaceAll("\\", "/")

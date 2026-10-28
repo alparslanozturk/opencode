@@ -1,4 +1,4 @@
-// guvenlik-v2.ts — opencode 2.x güvenlik + audit adaptörü (ADR-0005). 1.x karşılığı: audit-log.ts.
+// guvenlik-v2.ts — opencode 2.x güvenlik + audit adaptörü (ADR-0005). 1.x karşılığı audit-log.ts 2026-10-28'de kaldırıldı.
 // Çekirdek değişmedi: kilitler ./lib/kilit.ts (K1/K5/K6), audit/yetki ./lib/denetim.ts.
 //
 // 2.x kancaları (2026-10-05, opencode 2.0.23 ile deneyle doğrulandı):

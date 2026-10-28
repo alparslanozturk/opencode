@@ -16,7 +16,7 @@
 |---|---|---|---|
 | **K1** | Değişiklik kilidi | Session yetkisi + hedef kapsamı varsa çalışır; yoksa işlem bazında kullanıcı onayı ister | Kullanıcı; session'a bağlı |
 | **K2** | Dizin dışı | Çalışma dizini dışına çıkan her okuma/yazma **onay sorar** | Kullanıcı (onay ekranı) |
-| **K3** | Okuma (A104/A105: kapsam tabanlı) | Çalışma dizini (kapsam) İÇİNDE okuma **istisnasız** serbest (A105 — `hosts*`/`env`/`*.key`/… denylist'i de dahil, kapsam içinde artık uygulanmaz); DIŞINA çıkan okuma K2'nin onayına düşer, denylist'e uyan kapsam-dışı dosyalar audit-log plugin'inde hâlâ reddedilir | Kullanıcı (K2 onay ekranı, "always" = o oturum boyunca) |
+| **K3** | Okuma (A104/A105: kapsam tabanlı) | Çalışma dizini (kapsam) İÇİNDE okuma **istisnasız** serbest (A105 — `hosts*`/`env`/`*.key`/… denylist'i de dahil, kapsam içinde artık uygulanmaz); DIŞINA çıkan okuma K2'nin onayına düşer, korunan yollar (anahtar/audit kaydı) K6 ile reddedilir | Kullanıcı (K2 onay ekranı, "always" = o oturum boyunca) |
 | **K4** | İzin listesi | Sorusuz çalışan komutlar yalnız salt-okunur olanlar; `ss`≠`ssh`, `ps`≠`psql` vb. | — |
 | **K5** | Yıkıcı komut | `rm -rf /`-benzeri, `chmod -R /`, force-push, `kill -9 -1` … **hiç çalışmaz**. **Disk yıkıcı** (`mkfs*`, `wipefs -a/-o`, blok aygıtına `dd`/`>`, `blkdiscard`, `sgdisk --zap`, diske `shred`/`mkswap`; ansible ad-hoc/playbook içinde de): K1 yetkisi (hedef listede) **+ her komutta onay ekranı** — "her zaman izin ver" atlatamaz (Alp, 2026-10-22) | Felaket: kimse · Disk: yetki + kullanıcının o komuta onayı |
 | **K6** | Öz-koruma | Ajan kendi ayarını/eklentisini/audit log'unu değiştiremez, anahtar dosyasını okuyamaz, kilitsiz ikinci opencode başlatamaz | Kimse |
@@ -164,12 +164,8 @@ uygulanır** (`rm -rf /` gibi yıkıcı komut, KURULUM/CN yetkisi olsa bile enge
 - Kayıtların sonradan silinmediğini/değiştirilmediğini `script/dogrula-audit-zinciri.sh` doğrular.
 - Gözlem modunda (`OPS_AGENT_KAPI=GOZLEM`) red yerine `result_status: "asked"`, `target: "K1 [GOZLEM] :: …"`.
 
-## Denylist artık `bash` aracına da uygulanır (A81/A92, 2026-09-25)
+## Denylist kaldırıldı (2026-09-28)
 
-Hassas dosya denylist'i (`hosts*`, `*.vault`, `*credential*`, `*secret*`, `env`, `*.key`, `*.pem`, `*token*`
-…) önceden yalnız `read`/`write`/`edit`/`list`/`glob`/`grep` araçlarının `filePath`/`path` alanına
-bakıyordu; `bash` üzerinden `cat hosts.ini` ya da `cp ansible/inventories/hosts.ini /tmp/x; cat /tmp/x`
-ile aynı içerik dolaylı okunup kilit aşılabiliyordu (sahada `ops-agent`'ın kendisi bu yolu önerdi). Artık
-`bash` komutunun tüm argümanları (alt kabuk, yazma hedefleri, modelin yazdığı yerel `.sh` betiğinin içeriği
-dahil) aynı desenlere karşı taranır — bkz. `engine/plugins/audit-log.ts` `bashDenylistHit()`. Ajan bypass
-**önermez**: kilit reddederse etrafından dolaşma yolu sunmaz (bkz. `engine/AGENTS.md` "Güvenlik kilitleri").
+A81/A92 ile `bash` aracına da uygulanan hassas dosya denylist'i (`hosts*`, `*.vault`, `*credential*`, …) 2026-09-28'de
+**tamamen kaldırıldı** (Alp: kurum içi offline sistem; bkz. `engine/plugins/lib/maskele.ts` başı). Kalan koruma K6'nın
+`korunanYol` listesidir (erişim anahtarı, audit kaydı — okuma kapalı).

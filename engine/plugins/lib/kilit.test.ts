@@ -1,6 +1,6 @@
 // kilit.test.ts — çekirdeğin MOTORDAN BAĞIMSIZ olduğunu gösterir (ADR-0005): opencode kancası, eklenti
 // yükleyicisi ya da audit dosyası yok; yalnız girdi → karar. 2.x adaptörü de aynı sözleşmeyi kullanacak.
-// Davranışın geniş testi ../audit-log.test.ts'te (1.x adaptörü üzerinden).
+// Davranışın 2.x adaptörü üzerinden geniş testi ../guvenlik-v2.test.ts'te.
 import { describe, expect, test } from "bun:test"
 import { aralikAc, kilitDenetle, yetkiAktif, yetkiSatirlariniOku, type Yetki } from "./kilit"
 

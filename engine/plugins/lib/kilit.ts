@@ -1,6 +1,6 @@
 // kilit.ts — motordan BAĞIMSIZ çekirdek: güvenlik kilitleri K1/K5/K6 (ADR-0004) + yetki satırı okuma.
 // ADR-0005: motor kancasına bağlı hiçbir şey yok — girdi (araç adı, argümanlar, çalışma dizini, yetki) alır,
-// karar döndürür. 1.x adaptörü: ../audit-log.ts (tool.execute.before + chat.message); 2.x: tool "execute.before"
+// karar döndürür. 2.x adaptörü: tool "execute.before"
 // + session "prompt" (+ istenirse permission "evaluate" ile "sor").
 import { readFileSync } from "fs"
 import { hostname, userInfo } from "os"
@@ -1818,16 +1818,6 @@ export interface KilitKarari {
   // kullanıcı verir; "her zaman izin ver" kuralı bunu atlatamaz (adaptör evaluate'te effect'i yine "ask" yapar).
   sor?: boolean
 }
-
-export const YETKI_NASIL =
-  'Yetkiyi YALNIZ kullanıcı kendi mesajıyla verir (sen yazamazsın). YENİ KURULUM (yeni makineler) için numara ' +
-  'GEREKMEZ: kullanıcı "kurulum yapacağım" (harf fark etmez) + "sunucular: <ad>, <ad>" (ya da --limit grubunun adı) ' +
-  'yazar — yeni kurulumda CN ' +
-  'önerme. Mevcut (çalışan) sunucuda değişiklik: CN numarası + sunucular — BİÇİM DAYATMA: kullanıcı aynı mesajda ' +
-  'serbest yazabilir ("CHG0012345 ile web01, web02 sunucularında", alt alta liste, birden çok CN, wor07-14 aralığı). Kriz: ' +
-  'cümle içinde de olur, kriz cümlesi yeter ("kriz var, wor14 ve wor07\'de …"). Ad, kısa ad, IP ya da grup adı envanterden ' +
-  'eşlenir. Bu makine için listeye localhost yazılır. Salt-okunur işlerle ' +
-  "devam edebilirsin; kullanıcıya yalnız EKSİK olanı (numara mı, sunucu mu) tek cümleyle söyle."
 
 // Alp (2026-10-27, saha): "değişiklik yapılmıyor ise komutlar çalıştırılabilir olması lazım." Kilidin KESİN salt-okunur saydığı bash
 // komutu (yerel her parça saltOkunur, yalnız /dev/null|stdout|stderr'e yönlendirme, $(…) içleri de okuma; ssh içi komutIncele'den

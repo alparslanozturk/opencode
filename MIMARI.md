@@ -111,7 +111,7 @@ engine/                  # MOTOR katmanı (güncellenebilir)
   AGENTS.md              #   kurallar
   opencode.json          #   sağlayıcı + izin
   plugins/               #   araç (tool) katmanı
-    audit-log.ts         #     1.x adaptörü: kancalar → çekirdek, audit zinciri (ADR-0005)
+    guvenlik-v2.ts       #     2.x adaptörü: kancalar → çekirdek, audit zinciri (ADR-0005)
     lib/                 #     motordan bağımsız çekirdek: kilit.ts (K1/K5/K6, ADR-0004), maskele.ts (ad tarihsel: hedef/kapsam yardımcıları)
 knowledge/               # BİLGİ katmanı (kalıcı, git tabanlı)
   skills/approved/*/SKILL.md   # 12 çekirdek beceri (opencode'un okuduğu TEK yer, kur.sh varsayılanı)

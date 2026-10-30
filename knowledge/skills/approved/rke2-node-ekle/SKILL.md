@@ -107,3 +107,12 @@ noexec YOK). Cihaz adını varsayma — boş olduğunu `rhel-depolama` B §1 `di
 `/etc/systemd/system/rke2-agent.service.d/diskler.conf` → `RequiresMountsFor=/var/lib/rancher/rke2 /var/lib/kubelet`
 (disk bağlanmazsa agent başlamaz, kök diski doldurmaz). Sonra NVIDIA GPU Operator; vLLM pod'ları `hostPath: /models`
 ile çalışır → namespace PSA istisnasında olmalı, pod GPU sunucusuna `nodeSelector` ile sabitlenmeli.
+
+**`/models` okuma performansı — öneri gelirse önce ölç** (Alp'in getirdiği genel AI önerisi değerlendirildi, 2026-10-31; kaynak: bu makinedeki
+man sayfaları, mdadm 4.4): `--chunk=512` mdadm'ın **varsayılanı** (man mdadm: "default when creating an array is 512KB") · `noatime` zaten
+`nodiratime`'ı kapsar (man mount) · XFS `logbufs=8` **varsayılan** (man xfs); `logbsize` metadata log'u — model okuma hızına etkisi beklenmez
+(tahmin) · SELinux kurumda kapalı → `semanage`/`container_file_t` adımları uygulanmaz · read-ahead (`blockdev --setra`), LPV, GDS gibi
+değişiklikler **ölçmeden** önerilmez. Önce oku: `blockdev --getra /dev/md<N> /dev/<vg>/lv_models` · `mdadm --detail /dev/md<N> | grep -i chunk`
+· `findmnt /models` (sahada `relatime` görüldü) · soğuk okuma testi `dd if=<büyük model dosyası> of=/dev/null bs=16M iflag=direct status=progress`
+(okuma). Model ilk yüklemeden sonra page cache'ten gelir — disk hızı yalnız soğuk açılışta belirleyici. Değişiklik (fstab, udev, setra) onay
+ekranı + önce/sonra aynı ölçüm.

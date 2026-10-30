@@ -900,3 +900,12 @@ describe("Solaris SMF / NTP (2026-10-27): svcs/svcprop/ntpq okuma, svcadm/svccfg
     expect(k(`ssh root@splsol01 'ntpq -c ":config restrict default"'`)?.kilit).toBe("K1")
   })
 })
+
+describe("2026-10-31: güncelleme akışı okumaları", () => {
+  test("dnf repoinfo okuma (yerel, uzak, ansible)", () => {
+    const k = (c: string) => kilitDenetle("bash", { command: c }, workdir, undefined)
+    expect(k("dnf -q repoinfo --enabled")).toBeNull()
+    expect(k(`ssh root@w1 "dnf -q repoinfo --enabled | grep -E '^Repo-(id|updated)'"`)).toBeNull()
+    expect(k(`ansible web -i hosts.ini -m shell -a 'dnf -q repoinfo --enabled 2>/dev/null | grep -E "^Repo-(id|updated)"' -t cikti/filo/repo`)).toBeNull()
+  })
+})

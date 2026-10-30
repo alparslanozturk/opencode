@@ -1,6 +1,6 @@
 ---
 name: rhel-guncelleme
-description: RHEL ailesinde paket güncellemesi, güvenlik yaması ve yeniden başlatma kararı için kullan — güncelleme durumu tablosu `filo-tablo.py --kv` ile (sürüm, çalışan/son kurulu çekirdek, reboot, dnf sürüyor mu). "güncelle", "güncel mi", "update", "upgrade", "yama", "dnf update", "güvenlik yaması", "reboot gerekiyor mu", "güncellendi mi", "hangi çekirdekte", "dnf bitti mi" isteklerinde tetiklenir. Devralma ve teslim akışı için `rhel-teslim`.
+description: RHEL ailesinde paket güncellemesi, güvenlik yaması ve yeniden başlatma kararı için kullan — güncelleme durumu tablosu `filo-tablo.py --kv` ile (sürüm, çalışan/son kurulu çekirdek, reboot, dnf sürüyor mu). "güncelle", "güncel mi", "update", "upgrade", "yama", "dnf update", "güvenlik yaması", "reboot gerekiyor mu", "güncellendi mi", "hangi çekirdekte", "dnf bitti mi", "upgrade akışı", "content view güncel mi", "satellite sync", "fstab kontrol", "mount -av" isteklerinde tetiklenir. Devralma ve teslim akışı için `rhel-teslim`.
 ---
 
 Doğrulandı: AlmaLinux 10.2, dnf 4.20.0 — 2026-08-29
@@ -57,6 +57,31 @@ ya da beklenmedikse önce kayıt durumuna bak (`subscription-manager status`); S
 dnf repolist                          # hangi depolar etkin
 subscription-manager status           # YALNIZCA RHEL, AlmaLinux/Rocky'de yok
 ```
+
+## Kurum güncelleme akışı (Alp, 2026-10-31)
+
+Alp: "mount -av ile fstab kontrol, 1. restart, sonra subscription kontrol, dnf update, 2. restart. Bundan önce Red Hat Satellite CV güncel
+olduğunu kontrol etmek lazım — bazen sync geriden gelebiliyor." Sıra bu; adımlar arasında sonucu **ölç** (AGENTS "yaptım = ölçüldü").
+
+0. **İçerik güncel mi (okuma — önce bu).** İstemciden, Satellite'ın sunduğu metadata'nın tarihi:
+   `ansible <grup> -i <env> -m shell -a 'dnf -q repoinfo --enabled 2>/dev/null | grep -E "^Repo-(id|updated)"' -t cikti/filo/repo` →
+   `Repo-updated` = CV'nin bu ortama son yayınlandığı/terfi ettirildiği an. Haftalarca eskiyse ya da sunucular arasında farklıysa (farklı
+   lifecycle environment/CV) güncellemeye başlamadan kullanıcıya söyle. Satellite'ta (genel — alan adlarını `hammer … --help` ile doğrula):
+   `hammer content-view version list --organization "<org>" --content-view "<cv>"` (son sürüm hangi ortamda) ·
+   `hammer repository info --organization "<org>" --product "<ürün>" --name "<repo>"` (son senkron) — senkron Red Hat'in gerisindeyse
+   CV yayınlamak/terfi kullanıcının (Satellite) işi; ajan önermekle kalır.
+1. **fstab sağlam mı (reboot'tan önce).** Bozuk fstab = sunucu emergency mode'da açılır. Okuma: `findmnt --verify --verbose`. Alp'in pratiği
+   `mount -av` (eksik bağlamaları da bağlar — değişiklik sayılır; hata veren satırı reboot'tan önce gösterir). Hata varsa dur, söyle.
+2. **1. reboot** (onay ekranı) — temiz başlangıç: sunucu yamadan önce sorunsuz açılıyor mu. Ansible: `ansible.builtin.reboot` (reboot_timeout).
+   Sonra `uptime`, `systemctl --failed`.
+3. **Kayıt / repo** (okuma): `subscription-manager status; subscription-manager release --show; dnf -q repolist` — Satellite repoları açık mı,
+   release kilidi beklenen mi.
+4. **Güncelleme**: önce `dnf -q check-update | wc -l` (kaç paket), sonra kurum playbook'u `06-dnf` (`rhel-teslim`) — elle ssh döngüsü değil (G26).
+   Uzun sürer → arka planda ve log'a (`ansible` §5b, `ANSIBLE_LOG_PATH=cikti/<iş>.log`). **"Şu an hangi sunucuda?"** sorusu = log'u okumak
+   (`grep -E "^TASK|changed:|ok:|fatal:" cikti/<iş>.log | tail`) — okuma, onay gerekmez, playbook'u durdurmaz.
+5. **2. reboot** (onay ekranı) — yeni çekirdek.
+6. **Ölç**: aşağıdaki durum tablosu — `cekirdek_calisan = cekirdek_son_kurulu`, `reboot_gerekli=hayir`, `systemctl --failed` boş. Sapan sunucuyu
+   ayrı listele; tablo dışı "hepsi tamam" yazma.
 
 ## Güncelleme durumu tablosu — tek sunucu ya da filo (saha G34/G36/G37)
 

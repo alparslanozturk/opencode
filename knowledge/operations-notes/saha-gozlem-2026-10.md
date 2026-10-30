@@ -1428,3 +1428,9 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   G108'deki "18/18 BAŞARILI" yalnız ajanın kendi tablosuydu (Doktor o gün "ajan özeti dışında doğrulama çıktısı yok" notunu düşmüştü ama
   "tamamlandı" başlığıyla kaydetti — yanlış). Sebep [SAHA]: ekranlar bekleniyor (tahmin: K1 gerçek çalıştırmayı durdurdu, ajan yine de
   başarı tablosu yazdı — doğrulanmadı).
+- Doktor (2026-10-31): `gomulu-dosya.py`'nin anchors playbook'u container'da (AlmaLinux 10, ansible-core 2.16) koşturuldu: **hedefte openssl CLI
+  yoksa `copy validate: openssl x509` FAIL → sertifika hiç konmuyor** ("No such file or directory: b'openssl'"). dn29000'deki sebep bu olabilir
+  (tahmin — saha ekranlarıyla teyit edilecek). Düzeltme: hedef validate kaldırıldı; anchors'ta extract + güven paketi kontrolü (yoksa extract, yine
+  yoksa FAIL) + `--dogrula-url` curl testi playbook'a girdi; yeni beceri `rhel-ca-guven` (`ca-dogrula.py` — sunucu başına TAMAM/EKSİK, karar
+  betikte). Ölçüldü: openssl'siz container'da ilk koşu ok, ikinci changed=0, "dosya var extract yok" kendini düzeltti, rc 60 URL FAIL, bağımsız
+  ölçüm TAMAM. AGENTS: "yaptım = hedefte ölçüldü".

@@ -957,7 +957,7 @@ export function saltOkunur(argv: string[]): boolean {
       return a.some((x) => /^-q|^--query|^-V|^--verify/.test(x)) && !a.some((x) => /^-[iUFe]|^--(install|upgrade|freshen|erase|import)/.test(x))
     case "dnf":
     case "yum":
-      return ["list", "info", "repolist", "search", "check-update", "repoquery", "provides", "whatprovides",
+      return ["list", "info", "repolist", "repoinfo", "search", "check-update", "repoquery", "provides", "whatprovides",
         "updateinfo", "--version", "deplist", "check", "nvidia-plugin"].includes(ilk) || (ilk === "history" && ["", "list", "info"].includes(a.filter(secenekDegil)[1] ?? "")) ||
         (ilk === "module" && ["list", "info", "provides"].includes(a.filter(secenekDegil)[1] ?? "")) ||
         (ilk === "versionlock" && ["", "list"].includes(a.filter(secenekDegil)[1] ?? "")) ||

@@ -30,8 +30,8 @@ tercih et (Rancher yükseltilince küme destek dışı kalmasın). Antrea bu K8s
 Seçimi kullanıcıya gerekçesiyle öner, kararı o verir.
 
 **4) Kur** — kurum fork'uyla: `airgap/indir.sh --rancher <rancher> --os rhel9 [--antrea v2.x]` → envanterde
-`rke2_install_version` = seçilen **tam** sürüm → `--check --diff` → gerçek koşu (K1: kullanıcı "kurulum yapacağım" +
-`sunucular:` yazar; numara istenmez).
+`rke2_install_version` = seçilen **tam** sürüm → `--check --diff` → gerçek koşu (onay ekranı; hangi sunuculara kurulacağını
+kullanıcıya teyit ettir — numara istenmez).
 
 **Kurum durumu (saha ekranları, 2026-09-30):** Rancher **v2.14.3**; `local` ve downstream kümeler (peaka-poc, test,
 test-sasviya, vibecode-test) **v1.33.13+rke2r1** → hepsi ✅ (v2.14.3: upstream v1.33…v1.35, downstream 1.33/1.34/1.35,

@@ -60,7 +60,7 @@ Değerlendirme:
   < 30 gün ❌; 120 gün içinde ⚠️ bilgi (RKE2 yeniden başlatmada kendisi yeniler — `rke2-yukseltme` §3).
 - audit.log yok ya da boş ⚠️ (kim ne yaptı izlenemez); `--anonymous-auth=true` ⚠️.
 - Doğrudan araç da serbest (saha G67): `/var/lib/rancher/rke2/bin/rke2 certificate check --output table`, `rke2 secrets-encrypt status`,
-  `rke2 etcd-snapshot list` — çıktısı daha net; `rotate`/`save`/`prune` değişikliktir (K1).
+  `rke2 etcd-snapshot list` — çıktısı daha net; `rotate`/`save`/`prune` değişikliktir (onay ekranı).
 
 ## 3. Yetki ve iş yükü (kubectl)
 

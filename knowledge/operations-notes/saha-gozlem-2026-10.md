@@ -1407,3 +1407,24 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   global satır içi helper'ın zaten çalıştığını söyleyip fetch denedi. Alp: "bir çalışma neden bu kadar uzar ve zor olur anlayamadım." Doktor: tasarım
   hatası — PAT sahada zaten .gitconfig'teydi; `git-giris.sh --tasi` onu oradan alıp sunucuya bağlı 0600 dosyaya taşır, global ayarları siler, tty'siz
   (ölçüldü: ekranda PAT yok, ajan clone ✓, başka sunucuya başlık yok, PAT yoksa çıkış 2). git §1a: ajan --tasi'yi kendisi çalıştırır, kit dosyasını düzenlemez.
+
+### G114 — Kilit tamamen yeniden: CN/sunucu zorunluluğu kalktı, okuma sormaz, değişiklik onay ekranı (Alp, 2026-10-27 / 31)
+- Ekran: ajan VM worker teşhisinde "bu ssh komutlarını çalıştırmak için değişiklik yetkisi gerekir" dedi (yanlış — kilit o komutların dördünü
+  de serbest buluyordu; ölçüldü), sonra ssh'ı kendi koyduğu 15 sn zaman aşımıyla (opencode varsayılanı 2 dk) çıktısız düşürdü.
+  Alp: "Bu kilit mekanizması tamamen yanlış — sezgisel olarak anlaması lazım change yaptığımı. Formatta sunucuları ver, numarayı ver ne demek?
+  … Kaldır. Bir zorunluluk olmasın. Gerekirse CN'yi ve sunucu listesini sorabilir, ben söylerim."
+- Yapılan: (1) `kesinOkuma()` — kilidin kesin okuma saydığı bash komutu (yerel/ssh) onay ekranına düşmez; sır dosyası okuması yine sorulur;
+  uçtan uca ölçüldü (3.0.0 ikilisi, sahte uç: `which ls; rpm -q bash` sormadan çalıştı, `touch` onaya düştü). (2) K1 engel değil **onay
+  ekranı**; CN+sunucu verilmişse hedefleri sormadan geçer. K5/K6 aynı; yıkıcı disk her seferinde onay. (3) `engine/opencode.json`: `kubectl
+  apply/delete`, `systemctl stop/restart`, `git branch -d/-m` sabit deny → ask (onaylanamıyordu; `rke2-manifest` ile çelişiyordu).
+  (4) AGENTS "Güvenlik kilitleri — onay ekranı": CN gerektiğinde sorulur, zorunlu değil; "yetki gerekir" denmez. Becerilerdeki "K1: CN +
+  sunucular" ifadeleri temizlendi. Test: kilit 279/279, beceri 135/135, duman 26/26.
+- Bulunan test altyapısı açığı: yereldeki `bin/opencode` 1.0.1 (2026-09-23) — duman testi ve önceki "ölçümler" eski ikiliyle; güncel
+  3.0.0 `packages/cli/dist/…`. 3.0.0'da eklenti 1.x ikilisinde yüklenmiyor ("must default export an object with server()"); araç adı `shell`;
+  `run` sabit servis portu (45430) kullanıyor. CLAUDE.md'deki `run --standalone` bayrağı bu sürümde yok.
+
+### G108 düzeltmesi — sertifika işi (dn29000) YAPILMAMIŞ (Alp, 2026-10-27)
+- Alp: "Bu sertifika yükleme çalışması Ansible hiç çalışmamış. Hiçbir sunucuya sertifika yüklenmemiş … yüklendi diye bana yanlış ifade veriyor."
+  G108'deki "18/18 BAŞARILI" yalnız ajanın kendi tablosuydu (Doktor o gün "ajan özeti dışında doğrulama çıktısı yok" notunu düşmüştü ama
+  "tamamlandı" başlığıyla kaydetti — yanlış). Sebep [SAHA]: ekranlar bekleniyor (tahmin: K1 gerçek çalıştırmayı durdurdu, ajan yine de
+  başarı tablosu yazdı — doğrulanmadı).

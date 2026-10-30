@@ -68,7 +68,7 @@ logu başarısız kimlik doğrulamayı içerir. Hukuki yorum yapma — kullanıc
 Hesap (splidm02, G112): krb5kdc en dolu anında ~40 GB, yıllık büyüme ~%25 → ~47 GB; diğer kullanım ~14 GB; %80 sınırı → ~77 GB → 100 GB.
 §3'ü (compress/weekly) **önerme**; disk %80'i geçerse önce §1–§2 (istek seli / trace) — yine dolarsa kullanıcıya söyle.
 
-## 3. Kalıcı çözüm — yalnız kullanıcı isterse (kurum kararı §2c: varsayılan kalır; değişiklik — K1, iki sunucu birlikte, ansible ile)
+## 3. Kalıcı çözüm — yalnız kullanıcı isterse (kurum kararı §2c: varsayılan kalır; değişiklik — onay ekranı, iki sunucu birlikte, ansible ile)
 
 - **`/etc/logrotate.d/krb5kdc`:** `compress` + `delaycompress`, daha sık döndürme (`weekly`) ve `maxsize`, `rotate` = kurumun saklama süresi.
   Saklama süresini **sorma-uydurma**: kullanıcıya sor (kimlik doğrulama logu denetim kaydıdır — BDDK/bankacılık saklama; Splunk'a gidiyorsa

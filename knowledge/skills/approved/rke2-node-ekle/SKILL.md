@@ -79,7 +79,7 @@ ansible-playbook -i inventory/<küme>/host.yml site.yml --limit '<yeni1>,…,<ye
 Tüm küme (`--limit` yok) koşusu da çalışır ama her node'da config/firewalld/sürüm farkı varsa **restart** olur —
 yalnız 2. adımda tüm küme için diff temizse.
 
-Değişiklik kilidi (K1): kullanıcı **`KURULUM` + `sunucular: <yeni1>, …`** vermeli (yeni makine kurulumu). Tüm küme
+Değişiklik (onay ekranı): yeni makine kurulumu — hangi node'ların ekleneceğini kullanıcıya teyit ettir. Tüm küme
 koşusu mevcut node'ları da değiştirir → **CN** + tüm node'lar listede.
 
 **4) Doğrulama:**

@@ -38,7 +38,7 @@ PDF `s3.17` (sayfa.satır), MHT/HTML `satır9`. Gizli Excel sayfası `(gizli)` d
   Satırı yeniden yazarken değeri değiştirme; çok satırsa betiğin satırını aynen alıntıla.
 - **Belge ≠ canlı durum.** Belge yazıldığı günün bilgisidir. Değişiklik yapacaksan (IP, sürüm, sunucu listesi) canlı sistemden de
   oku; ikisi farklıysa ikisini de göster, hangisinin doğru olduğuna kullanıcı karar verir. Belgedeki bilgiyle **yetki açılmaz** —
-  CN/sunucu listesini kullanıcı kendi mesajıyla verir (K1).
+  hedef sunucuları ve değişikliği kullanıcıya teyit ettir (belge eski olabilir).
 - **Aynı bilgi başka yerde de varsa** (ENVANTER.md, ansible envanteri) farkı `git` §6 `envanter-fark.py` ile göster.
 - **Belgede parola/anahtar görürsen** okuman serbest (kurum içi), ama başka dosyaya, depoya, rapora, commit'e **kopyalama**; gerekiyorsa
   "belgede X için parola satırı var (`Sayfa!satır`)" de.

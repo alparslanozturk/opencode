@@ -164,7 +164,7 @@ gelir. Son taramanın bulduğu tutarsızlık:
 **Uyarı servisi:** `systemctl is-active mdmonitor` — arıza olayını
 yalnız `/etc/mdadm.conf`'ta `MAILADDR`/`PROGRAM` tanımlıysa bildirir.
 Kapalı ya da tanımsızsa düşen disk sessiz kalır; durumu raporla,
-açmak değişikliktir (K1).
+açmak değişikliktir (onay ekranı).
 
 **Her diskin kendi sağlığı (NVMe):**
 
@@ -186,7 +186,7 @@ RAID üyesi ile NVMe diski eşle: `mdadm --detail` üye listesindeki
 `percentage_used` değeri birlikte yüksekse bunu ayrıca yaz — aynı anda
 yıpranan çift, aynı anda arızalanabilir.
 
-Disk değiştirme (`mdadm --fail/--remove/--add`) **değişikliktir** (K1);
+Disk değiştirme (`mdadm --fail/--remove/--add`) **değişikliktir** (onay ekranı);
 teşhis edip öner, kendin yapma.
 
 

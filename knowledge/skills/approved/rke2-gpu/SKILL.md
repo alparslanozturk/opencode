@@ -297,7 +297,7 @@ cat /var/lib/kubelet/cpu_manager_state 2>/dev/null
   değeri `[SAHA]` — tek başına "yanlış" deme, kullanıcıya hedefi sor.
 - **NUMA (genel):** `topo -m`'deki CPU yakınlığı ile pod'un çalıştığı CPU'lar örtüşüyor mu? kubelet
   `cpu-manager-policy=static` + `topology-manager-policy` (`kubelet-arg`) yoksa pod CPU'ları GPU'ya uzak NUMA'ya düşebilir
-  — öneri olarak yaz; değiştirmek kubelet yeniden başlatması ister (K1).
+  — öneri olarak yaz; değiştirmek kubelet yeniden başlatması ister (onay ekranı).
 
 **`/tmp` ve inode (Alp):**
 

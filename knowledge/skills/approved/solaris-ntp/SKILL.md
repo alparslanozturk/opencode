@@ -38,7 +38,7 @@ ssh root@<sunucu> 'uname -a; head -1 /etc/release; svcs -l svc:/network/ntp:defa
 - Yapılandırma dosyası `/etc/inet/ntp.conf` (genel). `svcprop -p config` çıktısında başka bir dosya yolu görürsen onu kullan, söyle.
 - `restrict` satırlarını **aynen** göster: `noquery` var mı, `ignore` var mı (ignore daha sıkıdır — zaten kapalıdır, dokunma).
 
-## 2. Düzelt (değişiklik — K1: CN + sunucu listesi kullanıcının mesajında)
+## 2. Düzelt (değişiklik — onay ekranı; CN'yi iş envanteri adı için sor, zorunlu değil)
 
 **Çok sunucu → ansible** (`ansible` becerisi: iş envanteri, `--check --diff`, onay, gerçek):
 

@@ -148,7 +148,7 @@ ls /sys/kernel/btf/vmlinux        # varsa bpftrace debuginfo'suz çalışır
 rpm -q bpftrace perf               # kurulu mu
 ```
 
-Kurulu değilse kurmak **değişikliktir** (K1: `CN:` + `sunucular:`); yetki
+Kurulu değilse kurmak **değişikliktir** (onay ekranı);
 yoksa öner ve dur.
 
 **bpftrace — hazır betikleri kullan, tek satırlık betik uydurma.** Paket
@@ -223,7 +223,7 @@ aracı; konferanslarda `cyclictest` + `clock_nanosleep` ile gösterilen
 çekirdek içi karşılığı. CPU başına IRQ ve iş parçacığı gecikmesini verir:
 
 ```bash
-rpm -q rtla                     # yoksa kurmak değişiklik (K1)
+rpm -q rtla                     # yoksa kurmak değişiklik (onay ekranı)
 rtla timerlat top --help        # sözdizimini kurulu sürümden oku, ezberden yazma
 ```
 
@@ -269,7 +269,7 @@ crash /usr/lib/debug/lib/modules/<sürüm>/vmlinux /var/crash/<dizin>/vmcore
 ```
 
 **kdump kapalıysa** sonraki çöküşte kanıt kalmaz. Açmak `crashkernel=` için
-bellek ayırır ve **reboot ister** → değişiklik (K1). Öner, kendin açma.
+bellek ayırır ve **reboot ister** → değişiklik (onay ekranı). Öner, kendin açma.
 `kdumpctl` RHEL 10'da `kdump-utils` paketindedir (AlmaLinux 10'da
 doğrulandı); RHEL 9'da `kexec-tools` içindedir — emin olmak için
 `rpm -qf $(command -v kdumpctl)`.

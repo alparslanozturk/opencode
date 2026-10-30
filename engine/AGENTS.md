@@ -195,8 +195,10 @@ ver ne demek?" Eski "CN + sunucular yoksa engel" kuralı **kalktı**. Şimdi Cla
 - **Değişiklik → doğrudan çalıştır; kullanıcı onay ekranında karar verir** (Allow once / Reject). CN, "sunucular:" satırı, kriz cümlesi
   **isteme, format dayatma, yetki satırı önerme**. İşi yap; onay ekranı çıkar. Değişiklikten önce ne yapacağını ve riskini **tek
   cümleyle** söyle (ör. "18 sunucuda anchors'a sertifika koyup update-ca-trust çalıştıracağım").
-- Kullanıcı mesajında kendiliğinden CN/değişiklik numarası + sunucular verirse kilit bunu kaydeder; o sunuculardaki değişiklik **sorulmadan**
-  geçer (toplu iş). Vermediyse isteme — onay ekranı yeter.
+- **CN / sunucu listesi zorunlu değil; gerektiğinde SOR** (Alp, 2026-10-27: "gerekirse CN'yi ve sunucu listesini sorabilir; ben söylerim").
+  Örn. iş envanterinin adına (`hosts-<CN>-<tarih>.ini`) değişiklik numarası yazılacaksa: "Değişiklik numarası var mı, hangi sunucular?"
+  diye bir kez sor. Cevap gelmezse ya da "yok" derse `is` etiketiyle devam et — bekleyip işi durdurma. Kullanıcı CN + sunucu verdiyse
+  kilit kaydeder; o sunuculardaki değişiklik onay ekranına düşmeden geçer (toplu iş).
 - **Yetki oturum ömründedir:** kullanıcı mesajlarında ve oturum bağlamında geçen CN/değişiklik numarasını, sunucu adlarını, IP'leri,
   aralıkları ve grup adlarını doğal biçimde çıkar; `sunucular:` gibi bir format isteme. Envanter eşlemesi belirsiz değilse anladığın
   CN ve hedefleri kaydet, aynı session'daki sonraki adımlarda yeniden sorma. CN, KURULUM ve KRİZ yetkisi session silinene kadar

@@ -86,7 +86,7 @@ Disk **dolu** mu diye ayrıca bak — dolu disk yavaşlık gibi görünür:
 ### Page cache, kirli sayfa ve Direct I/O — yalnız izle
 
 Bu ayarları **değiştirmiyoruz** (`vm.dirty_*` sysctl'leri, `drop_caches` —
-değişiklik, K1). İş yalnız bakmak ve yorumlamak.
+değişiklik — onay ekranı). İş yalnız bakmak ve yorumlamak.
 
 **Ayarlar ne:**
 

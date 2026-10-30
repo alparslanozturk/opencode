@@ -74,7 +74,8 @@ ansible/
   yazıldı, kullanıcıyla doğrula (kurulumda normal).
 - Çalıştırırken: `ansible-playbook -i inventories/hosts-<CN>-….ini <playbook>` — **`--limit` gerekmez** (Alp, G101: dosyada
   yalnız değişikliğin sunucuları var). Kilit hedefi bu dosyadan okur: her host adı ve `ansible_host` IP'si yetkide olmalı
-  (yetki: kullanıcının CN + sunucu listesi). Yetkide olmayan host varsa K1 — dosyayı genişletme, kullanıcıya o adı sor.
+  Değişiklikte opencode onay ekranı çıkar (kullanıcı onaylar). Dosya adındaki CN'yi bilmiyorsan kullanıcıya sor (zorunlu değil; yoksa
+  `hosts-is-<tarih>.ini`). Dosyaya kullanıcının vermediği host ekleme.
   `[grup:vars]` altında `ansible_host` yazma (kilit hedefi belirleyemez). `-i` vermeden (ansible.cfg'nin ana envanteri) değişiklik
   → `--limit` şart.
 - Ad ↔ IP eşlemesinde iş envanteri **kaynak sayılmaz** (desen `hosts-<x>-YYYYMMDD[-HHMM].ini` / `hosts-YYYYMMDD-<x>.ini`) — yetkiyi
@@ -240,7 +241,7 @@ ANSIBLE_TASK_TIMEOUT=120 ANSIBLE_RETRY_FILES_ENABLED=1 ANSIBLE_RETRY_FILES_SAVE_
   ile çalıştır — bitmiş sunuculara tekrar dokunulmaz. Retry dosyası yalnız playbook **sonuna kadar** koşarsa yazılır.
 - Sonuç raporu: `PLAY RECAP`'ten "N sunucu bitti, şu M sunucu düştü (sebep)" — düşen sunucuya `filo-kontrol` §3c `-m raw`
   ilk yardımla bak (disk dolu sunucuda normal modüller hiç çalışmaz).
-- Gerçek çalıştırma (`--check`'siz) yine K1 yetkisi ister; ortam değişkeni öneki kilidi değiştirmez.
+- Gerçek çalıştırma (`--check`'siz) onay ekranına düşer; kullanıcı onaylar.
 
 ## 6. Modül seçeneklerini ezberden yazma
 

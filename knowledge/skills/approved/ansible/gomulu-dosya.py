@@ -13,6 +13,7 @@ import sys
 KULLANIM = """kullanım:
   gomulu-dosya.py --kaynak <dosya|-> --hedef <uzak yol> --hosts <grup|ad,ad> --cikti <playbook.yml>
                   [--mod 0644] [--sahip root] [--grup root] [--sonra "<komut>"] [--ad "<görev adı>"] [--anahtar] [--yedek]
+                  [--dogrula-url https://… (tekrarlanabilir — CA anchors işinde URL'ye sertifika hatasız gidiliyor mu)]
   Uzaktaki dosyadan: ssh root@<kaynak-sunucu> cat <yol> | gomulu-dosya.py --kaynak - …
 --sonra: içerik DEĞİŞTİYSE çalışacak komut (handler), ör. "update-ca-trust extract", "systemctl reload nginx".
 --yedek: eski dosyayı yanına <ad>.<tarih>~ olarak saklar — /etc/pki/ca-trust/source/anchors gibi dizindeki HER dosyanın okunduğu
@@ -87,6 +88,11 @@ def main(argv):
         return 1
     sahip, grup = arg(argv, "--sahip", "root"), arg(argv, "--grup", "root")
     sonra = arg(argv, "--sonra")
+    anchors = hedef.startswith("/etc/pki/ca-trust/source/anchors/") and sertifika
+    if anchors and not sonra:
+        sonra = "update-ca-trust extract"
+        print("not: anchors hedefi — --sonra verilmedi, 'update-ca-trust extract' eklendi")
+    urller = [argv[i + 1] for i, x in enumerate(argv) if x == "--dogrula-url" and i + 1 < len(argv)]
     gorev = arg(argv, "--ad", "%s dağıt" % os.path.basename(hedef))
     simdi = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 
@@ -111,8 +117,9 @@ def main(argv):
     ]
     if "--yedek" in argv:
         y.append("        backup: true")
-    if sertifika:
-        y.append("        validate: openssl x509 -noout -in %s")
+    # validate: openssl … KALDIRILDI (2026-10-31): hedefte openssl CLI yoksa (minimal RHEL'de olmayabilir) copy FAIL olur ve sertifika
+    # hiç konmaz — container'da ölçüldü ("No such file or directory: b'openssl'"). Sertifika üretimde yerel openssl ile denetlenir,
+    # hedefte sha256 assert'i içeriği doğrular.
     y.append("        content: |")
     y += [("          " + s) if s else "" for s in metin.rstrip("\n").split("\n")]
     if anahtar:
@@ -132,6 +139,46 @@ def main(argv):
         "        quiet: true",
         "      when: not ansible_check_mode",
     ]
+    if anchors:
+        # Saha dn29000 (Alp, 2026-10-27): "yüklendi" denen sertifika hiçbir sunucuda güvende değildi. İnsanın yaptığı kontrol playbook'ta:
+        # güven paketinde mi → değilse extract → yeniden bak (yoksa FAIL) → URL'ler sertifika hatasız mı (değilse FAIL).
+        b64 = re.sub(r"\s+", "", metin.split("-----BEGIN CERTIFICATE-----", 1)[1].split("-----END CERTIFICATE-----", 1)[0])
+        parca = b64[len(b64) // 2 - 24:len(b64) // 2 + 24]
+        paket = "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem"
+        kontrol = "set -o pipefail; tr -d '\\n\\r' < %s | grep -c -F '%s' || true" % (paket, parca)
+        y += [
+            "",
+            "    - name: değiştiyse update-ca-trust şimdi",
+            "      ansible.builtin.meta: flush_handlers",
+            "    - name: güven paketinde mi (tls-ca-bundle.pem)",
+            "      ansible.builtin.shell: %s" % yaml_dize(kontrol),
+            "      args:",
+            "        executable: /bin/bash",
+            "      register: paket_ilk",
+            "      changed_when: false",
+            "      when: not ansible_check_mode",
+            "    - name: pakette yoksa update-ca-trust extract (dosya önceden konmuş ama extract edilmemiş olabilir)",
+            "      ansible.builtin.command: update-ca-trust extract",
+            "      changed_when: true",
+            "      when: not ansible_check_mode and paket_ilk.stdout | default('0') | trim == '0'",
+            "    - name: güven paketinde OLMALI — yoksa FAIL",
+            "      ansible.builtin.shell: %s" % yaml_dize(kontrol),
+            "      args:",
+            "        executable: /bin/bash",
+            "      register: paket_son",
+            "      changed_when: false",
+            "      failed_when: paket_son.stdout | trim == '0'",
+            "      when: not ansible_check_mode",
+        ]
+        for i, u in enumerate(urller, 1):
+            y += [
+                "    - name: URL %d sertifika hatasız erişiliyor mu (%s)" % (i, u),
+                "      ansible.builtin.command: %s" % yaml_dize("curl -fsS -o /dev/null -w '%%{http_code}' --max-time 15 %s" % u),
+                "      register: url_%d" % i,
+                "      changed_when: false",
+                "      failed_when: url_%d.rc != 0 or not (url_%d.stdout is match('^[23]'))" % (i, i),
+                "      when: not ansible_check_mode",
+            ]
     if sonra:
         y += [
             "",

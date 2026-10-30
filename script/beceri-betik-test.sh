@@ -223,6 +223,42 @@ python3 nm.py 127.0.0.1 --zaman-asimi 1 > nm2.txt 2>&1; echo "rc=$?" >> nm2.txt
 icerir "cevap yok → KAPALI, çıkış 0" nm2.txt "rc=0"
 wait
 
+# --------------------------------------------------------------------------- ca-dogrula / gomulu-dosya anchors
+baslik "rhel-ca-guven: ca-dogrula.py + gomulu-dosya anchors doğrulaması (G108 düzeltmesi, 2026-10-31)"
+openssl req -x509 -newkey rsa:2048 -nodes -keyout /dev/null -subj "/CN=Ornek Test CA" -days 30 -out ca.pem 2> /dev/null
+python3 "$B/rhel-ca-guven/ca-dogrula.py" komut --kaynak ca.pem --url https://a.ornek.local --grup g > cd0.txt 2>&1
+icerir "komut: salt-okunur ansible satırı" cd0.txt "-m shell -a"
+icerir "komut: güven paketi kontrolü" cd0.txt "tls-ca-bundle.pem"
+mkdir -p cd-agac
+python3 - << 'E'
+import json, re
+t = open("ca.pem").read()
+b = re.sub(r"\s+", "", t.split("-----")[2])
+import hashlib
+sha = hashlib.sha256(open("ca.pem", "rb").read()).hexdigest()[:16]
+tam = "dosya=var\nsha=%s\npaket=1\ntrust=1\nurl1_rc=0\nurl1=200\n" % sha
+json.dump({"rc": 0, "stdout": tam}, open("cd-agac/tamam01", "w"))
+json.dump({"rc": 0, "stdout": tam.replace("paket=1", "paket=0")}, open("cd-agac/extractsiz02", "w"))
+json.dump({"rc": 0, "stdout": "dosya=yok\npaket=0\ntrust=0\nurl1_rc=60\nurl1=000\n"}, open("cd-agac/yok03", "w"))
+json.dump({"rc": 0, "stdout": tam.replace("url1_rc=0", "url1_rc=7").replace("url1=200", "url1=000")}, open("cd-agac/ag04", "w"))
+json.dump({"unreachable": True, "msg": "ssh: connect timed out"}, open("cd-agac/eris05", "w"))
+E
+python3 "$B/rhel-ca-guven/ca-dogrula.py" tablo cd-agac --kaynak ca.pem --url https://a.ornek.local > cd1.txt 2>&1; echo "rc=$?" >> cd1.txt
+icerir "tamam sunucu TAMAM" cd1.txt "tamam01"
+grep "tamam01" cd1.txt | grep -q "TAMAM$" && gecti "tamam01 satırı TAMAM" || kaldi "tamam01 satırı TAMAM değil"
+icerir "dosya var ama extract yok → EKSİK" cd1.txt "güven paketinde yok"
+icerir "dosya yok + rc 60" cd1.txt "URL1 sertifika doğrulanamadı"
+icerir "rc 7 → ağ, sertifika değil" cd1.txt "ağ/DNS/zaman aşımı — sertifika değil"
+icerir "erişilemeyen TAMAM sayılmaz" cd1.txt "EKSİK: erişilemedi"
+icerir "özet ve çıkış 1" cd1.txt "TAMAM 1 · EKSİK 4"
+python3 "$B/ansible/gomulu-dosya.py" --kaynak ca.pem --hedef /etc/pki/ca-trust/source/anchors/ornek.crt --hosts g --cikti gd-ca.yml --dogrula-url https://a.ornek.local > gd0.txt 2>&1
+icerir "anchors: update-ca-trust otomatik" gd-ca.yml "update-ca-trust extract"
+icerir "anchors: güven paketi FAIL kontrolü" gd-ca.yml "güven paketinde OLMALI"
+icerir "anchors: URL testi" gd-ca.yml "curl -fsS"
+icermez "hedefte validate: openssl yok" gd-ca.yml "validate: openssl"
+python3 "$B/ansible/playbook-denetim.py" gd-ca.yml > gd1.txt 2>&1; echo "rc=$?" >> gd1.txt
+icerir "üretilen playbook denetimden UYARI'sız" gd1.txt "rc=0"
+
 # --------------------------------------------------------------------------- filo-tablo
 baslik "filo-tablo.py (G22, G77)"
 mkdir -p tree

@@ -96,8 +96,9 @@ ssh root@<kaynak-sunucu> cat /tmp/pan-captcha.crt | python3 /root/ai/opencode/kn
   --cikti ansible/playbooks/12-google-captcha-cert.yaml --sonra "update-ca-trust extract"
 ```
 
-- Sertifikada `openssl` denetimi (subject, issuer, notAfter, parmak izi — başlığa yazılır) + `validate:` + sha256 `assert`
-  görevi. Bozuk PEM → dosya yazılmaz. `--sonra` yalnız içerik değiştiyse çalışır (handler).
+- Sertifikada üretim anında yerel `openssl` denetimi (subject, issuer, notAfter, parmak izi — başlığa yazılır) + hedefte sha256 `assert`
+  (hedefte `validate: openssl` YOK — minimal sunucuda copy'yi düşürüyordu, ölçüldü). **CA anchors hedefinde** extract + güven paketi
+  kontrolü + `--dogrula-url` ile URL testi playbook'a girer; sonrası ölçüm `rhel-ca-guven` (`ca-dogrula.py`). Bozuk PEM → dosya yazılmaz. `--sonra` yalnız içerik değiştiyse çalışır (handler).
 - Özel anahtar yalnız `--anahtar` ile (0600, `no_log`); git'e commit'lenen dizine koyma. İkili dosya gömülmez (`src:` kullan).
 - `--yedek` eski dosyayı yanına saklar — `ca-trust/source/anchors` gibi dizindeki her dosyanın okunduğu yerde **verme**.
 - Sonra: `--syntax-check` → `--check --diff` (`-i` iş envanteri) → kullanıcı onayı → gerçek çalıştırma.

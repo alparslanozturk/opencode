@@ -39,6 +39,7 @@ betiktir; model ham veriyi betiğe **borular**, betiğin bastığı satırı **a
 | `playbook-denetim.py` | `ansible` | playbook'u çalıştırmadan bilinen hata kalıpları (hosts all, ignore_errors, pipefail, sahte başarı, curl -f …) |
 | `envanter-fark.py` | `git` | aynı envanter bilgisi birden çok yerde: ansible INI ↔ ENVANTER.md / başka INI farkı |
 | `manifest-uyarla.py` | `rke2-manifest` | küme manifest klasörünü yeni kümeye: parametre bul (kümeler arası fark) · kuru plan · kopyala + değiştir · kalan değer; sır kopyalanmaz |
+| `ca-dogrula.py` | `rhel-ca-guven` | CA sertifikası gerçekten yüklü mü: dosya + sha, güven paketi, trust list, URL'ler → sunucu başına TAMAM/EKSİK |
 | `ntp-mode6.py` | `solaris-ntp` | NTP mode 6 (ntpq kontrol sorgusu) dışarıya açık mı — tarama bulgusunu bu makineden, ek araçsız sınar (önce/sonra) |
 | `belge-oku.py` | `belge-oku` | Excel/Word/PowerPoint/PDF/OneNote dışa aktarımı → yer bilgili metin (serbest metin: sır maskelenmez — kopyalama kuralı SKILL §3) |
 
@@ -64,7 +65,7 @@ platformda bir iş**; ortak veri/araç tek yerde (`surum-uyum/uyum.py`), diğerl
   (Alp, 2026-10-17: genel olan `k8s-`, RKE2'ye özgü olan `rke2-`, GKE'leri yöneten Anthos `anthos-`)
 - **anthos-**: `anthos-erisim` (ileride `anthos-yukseltme`)
 - **vcf-** (VMware VCF): veri gelince `vcf-denetim` · `vcf-yukseltme`
-- **rhel-**: `rhel-yonetim` · `rhel-guncelleme` · `rhel-guvenlik` · `rhel-cis` (CIS L1/L2, OpenSCAP) · `rhel-gpu-surucu` (NVIDIA sürücü/CUDA/FM) · `rhel-depolama` · `rhel-performans` · `rhel-sorun` · `rhel-teslim` · `rhel-yukseltme` (Leapp 8 → 9 → 10, Satellite CV)
+- **rhel-**: `rhel-ca-guven` (CA yükle + kanıtla) · `rhel-yonetim` · `rhel-guncelleme` · `rhel-guvenlik` · `rhel-cis` (CIS L1/L2, OpenSCAP) · `rhel-gpu-surucu` (NVIDIA sürücü/CUDA/FM) · `rhel-depolama` · `rhel-performans` · `rhel-sorun` · `rhel-teslim` · `rhel-yukseltme` (Leapp 8 → 9 → 10, Satellite CV)
 - **solaris-**: `solaris-ntp` (mode 6 bulgusu: noquery + svcadm restart, playbook şablonu) · parked `solaris-ldom` (genel keşif)
 - **idm-** (Red Hat IdM + AD trust): `idm-kurulum` · `idm-erisim` (HBAC, sudo, AD grup eşleme) · `idm-bakim` (log şişmesi, logrotate, SSSD debug, KDC'yi yoran istemci)
 - **genel**: `bankacilik-uyum` (BDDK/KVKK/PCI ↔ kanıt) · `ansible` · `belge-oku` (kurum belgesi: Excel/Word/PDF/OneNote) · `git` · `filo-kontrol` · `kume-bul` (envanter + küme kimliği: ad/IP → küme/platform, Rancher haritası, sertifika — `kume-bul.py`) · `rapor` · `sep-paket`

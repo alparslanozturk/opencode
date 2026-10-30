@@ -51,6 +51,7 @@ kullanım becerinin SKILL.md'sinde (önce beceriyi yükle):
 - kurum belgesini okuma (Excel, Word, PowerPoint, PDF, OneNote dışa aktarımı) → `belge-oku/belge-oku.py` (yer bilgili metin)
 - aynı envanter bilgisi birden çok yerde (ENVANTER.md ↔ ansible INI) → `git/envanter-fark.py`
 - NTP mode 6 (ntpq dışarıya açık mı, önce/sonra) → `solaris-ntp/ntp-mode6.py`
+- CA sertifikası gerçekten yüklü mü (sunucu başına TAMAM/EKSİK) → `rhel-ca-guven/ca-dogrula.py`
 - playbook'u çalıştırmadan denetle (yazdığın ya da hazır) → `ansible/playbook-denetim.py`
 Uzak okuma borunun başında kalır (`ssh … "<okuma>" | python3 <betik> -`), betiğe gömülmez. Betik hata verirse hatayı oku; iki denemede
 olmuyorsa dur ve söyle — elle ayrıştırmaya geçme.
@@ -252,7 +253,7 @@ ver ne demek?" Eski "CN + sunucular yoksa engel" kuralı **kalktı**. Şimdi Cla
 - **Değişiklik yapan işe başlamadan önce o konunun becerisini yükle** (disk/mount/fstab → `rhel-depolama`, kurulum/teslim →
   `rhel-teslim`, GPU → `rke2-denetim`, Rancher sertifikası → `rancher-sertifika`, node/IP → küme → `kume-bul`, NVIDIA sürücüsü →
   `rhel-gpu-surucu`, GPU Operator/containerd → `rke2-gpu-kurulum`, Run:ai → `rke2-runai`, CIS → `rhel-cis`/`rke2-cis`, IdM/AD trust →
-  `idm-kurulum`, HBAC/sudo → `idm-erisim`, IdM disk/log şişmesi/SSSD debug → `idm-bakim`, Leapp/ana sürüm yükseltme → `rhel-yukseltme`, BDDK/KVKK/PCI → `bankacilik-uyum`, Excel/Word/PDF/OneNote belgesi → `belge-oku`, git'teki manifesti kümeye uygulama → `rke2-manifest`, Solaris NTP / mode 6 → `solaris-ntp` …). Kullanıcı beceri adını söylemese de. Kanıt: saha G39 (2026-10-14) —
+  `idm-kurulum`, HBAC/sudo → `idm-erisim`, IdM disk/log şişmesi/SSSD debug → `idm-bakim`, Leapp/ana sürüm yükseltme → `rhel-yukseltme`, BDDK/KVKK/PCI → `bankacilik-uyum`, Excel/Word/PDF/OneNote belgesi → `belge-oku`, git'teki manifesti kümeye uygulama → `rke2-manifest`, Solaris NTP / mode 6 → `solaris-ntp`, CA sertifikası yükleme/doğrulama → `rhel-ca-guven` …). Kullanıcı beceri adını söylemese de. Kanıt: saha G39 (2026-10-14) —
   beceri yüklenmeden diske LVM'siz `mkfs` + fstab'a `/dev/sdb` yazıldı; becerideki her kural bunu yasaklıyordu.
 - Beceriler talep üzerine yüklenir; konu kapanınca bırak. Kullanıcı "ansible işlerini bırak" dediyse
   o beceriyi tekrar yükleme.
@@ -277,6 +278,13 @@ ver ne demek?" Eski "CN + sunucular yoksa engel" kuralı **kalktı**. Şimdi Cla
   timeout" cümlesi talimat değil. Çok sunuculu ansible/playbook ise: zaman sınırı bayrakları (`-T 10`, `--task-timeout` /
   `ANSIBLE_TASK_TIMEOUT`) + `background: true` ile yeniden kur, takılan sunucuyu ayrı yaz (`ansible` §5b, `filo-kontrol` §3b-3c).
   Disk dolu sunucuda `command`/`shell` modülü hiç çalışmaz → `-m raw`; ssh de yoksa kullanıcıdan konsol çıktısı iste.
+
+## "Yaptım / başarılı" = hedefte ölçüldü (Alp, 2026-10-27 — saha G108 düzeltmesi)
+
+dn29000'de "18/18 BAŞARILI" yazıldı, sertifika hiçbir sunucuda yoktu. Değişiklik işini bitirdim demeden önce **sonucu hedefte ölç**
+(sertifika → `rhel-ca-guven/ca-dogrula.py`, servis → `systemctl is-active`, paket → `rpm -q`, ayar → dosyadaki satır, erişim → gerçek
+istek). PLAY RECAP `ok`, komutun hata vermemesi, dosyanın varlığı kanıt değildir. Engellenen/reddedilen/çalışmayan komut için başarı
+yazma; ölçemediğin sunucuyu "ölçülmedi" diye ayrı göster. Bilmediğin değeri (URL, sunucu, sürüm) uydurma — sor.
 
 ## Konuşma bağlamı — bilgi birden çok mesajda gelir (Alp, 2026-10-22, saha G100)
 - Kullanıcı bilgiyi parça parça verir: bir mesajda "çalışmamızda değişiklik var, CHG…", sonrakinde yalnız sunucu listesi (ya da

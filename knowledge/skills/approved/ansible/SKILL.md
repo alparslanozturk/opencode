@@ -63,13 +63,14 @@ ansible/
   betik ana envanterden host satırını, grubunu, üst grubunu (`:children`) ve `[grup:vars]`'ı **aynen** alır; CN yazıldığı gibi kalır:
 
   ```bash
-  python3 /root/ai/opencode/knowledge/skills/approved/ansible/is-envanter.py dn29000 wor07-14 stlweb01 10.0.0.12 --grup google-captcha-cert
+  python3 /root/ai/opencode/knowledge/skills/approved/ansible/is-envanter.py dn29000 wor07-14 stlweb01 10.0.0.12 --grup google_captcha_cert
   printf '%s\n' "<kullanıcının yapıştırdığı liste>" | python3 …/is-envanter.py dn29000 - --grup <iş grubu>   # serbest biçim
   python3 …/is-envanter.py --liste      # önceki iş envanterleri (etiket, tarih, host sayısı)
   ```
 
   Ad, kısa ad (`wor07`), IP, aralık (`wor07-14`, `10.0.9.127-134`, yalın `07-14`) ve grup adı kabul edilir. `--grup` tüm
-  host'ları playbook'un `hosts:` grubuna koyar. Çıktıdaki tabloyu (ad · IP · `dosya:satır [grup]`) kullanıcıya **aynen**
+  host'ları playbook'un `hosts:` grubuna koyar (tire `_` olur — ansible tireli grup adında her komutta `[WARNING]: Invalid characters
+  were found in group names` basar; eski tireli envanterde uyarıyı `ansible.cfg` `[defaults]` `force_valid_group_names = ignore` kapatır, ölçüldü). Çıktıdaki tabloyu (ad · IP · `dosya:satır [grup]`) kullanıcıya **aynen**
   göster. `❓ birden çok host'a uyuyor` → dosya yazılmaz, yalnız o adı sor. `⚠️ envanterde yok` → `[is_ek]`'e olduğu gibi
   yazıldı, kullanıcıyla doğrula (kurulumda normal).
 - Çalıştırırken: `ansible-playbook -i inventories/hosts-<CN>-….ini <playbook>` — **`--limit` gerekmez** (Alp, G101: dosyada

@@ -661,5 +661,14 @@ else
   printf '  ATLANDI vermin yok (python3 -m venv v && v/bin/pip install vermin)\n'
 fi
 
+baslik "is-envanter --grup (tire → _, G116)"
+mkdir -p ie && printf '[web]\nweb01 ansible_host=10.0.0.1\n' > ie/ana.ini
+(cd ie && python3 "$B/ansible/is-envanter.py" dnt1 web01 --grup os-upgrade-29107 --dosya ana.ini >/dev/null 2>&1
+ python3 "$B/ansible/is-envanter.py" dnt2 web01 --grup 29107-x --dosya ana.ini >/dev/null 2>&1)
+cat ie/ansible/inventories/hosts-dnt1-*.ini > ie1.txt 2>/dev/null; cat ie/ansible/inventories/hosts-dnt2-*.ini > ie2.txt 2>/dev/null
+icerir "tireli grup adı _ ile" ie1.txt "[os_upgrade_29107]"
+icermez "tireli grup başlığı yok" ie1.txt "[os-upgrade-29107]"
+icerir "rakamla başlayan grup g_ önekli" ie2.txt "[g_29107_x]"
+
 printf '\nSonuç: %d geçti · %d kaldı\n' "$GECEN" "$KALAN"
 [ "$KALAN" -eq 0 ]

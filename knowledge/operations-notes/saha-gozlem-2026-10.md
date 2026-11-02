@@ -1485,6 +1485,14 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   ❌ ansible 2.16'da `-l` tek değerli, **sonuncusu** geçer (Doktor yerelde ölçtü: `--list-hosts` yalnız spd2ast*); kilit ise ilk `-l`'yi
   hedef sayıyordu (onay ekranı ≠ gerçek hedef). Aksiyon: kilit — değiştiren ansible/ansible-playbook komutunda birden çok `-l` K5 +
   "':' ile birleştir" gerekçesi (test 336/336); `ansible` §4 not. Alp: "hepsinde docker servisi otomatik çalışıyordur" (enabled ölçülmedi).
+- Devam (Alp, 3 ekran, 23:30–23:45): `dnf update -y | tail -20` ön planda (`-T 300` = bağlantı süresi, görev değil) → opencode
+  kabuğu ön plan komutunu 2 dk'da keser (`packages/core/src/tool/plugin/shell.ts:24`; ctrl+b ile arka plana alınınca süre kalkar,
+  satır 263-264) — tahmin: tablodaki "Timeout (tekrar gerekli)/Bilinmiyor/Çıktı kesildi" bundan; ajan aynı komutu yeniden istedi
+  (G102 tekrarı), ikinci istekte yine `-l splast* -l spd2ast*`. Tabloda "önceki/şu an kernel" (dnf çalışan çekirdeği değiştirmez;
+  `425` ↔ `425.19` kısaltma), splastreds03 `Connection reset by peer` varken "13/13 restart tamamlandı". Uyarı: `[WARNING]: Invalid
+  characters were found in group names but not replaced` — grup `os-upgrade-29107` (tire). Aksiyon: `is-envanter.py --grup` tire → `_`
+  (rakamla başlarsa `g_`), §1b'de eski envanter için `force_valid_group_names = ignore` (ölçüldü, 2.16); test 179/179. Açık: ön plan
+  2 dk kesmesi için kalıcı çözüm (kilit mi fork mu) — Alp'e soruldu.
 
 ### G117 — dtlmrestore Veeam restore "dosya ya da dizin bulunamadı"; ajan kanıtsız 6 servisi restart etti (Alp, 2026-11-02, 1 ekran)
 - Görülen: ajan `systemctl restart veeamservice && … veeamenvironment && … veeamdeployment && … veeamimmurepo` + status; "5 serviden 6'sı

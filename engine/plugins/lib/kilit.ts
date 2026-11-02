@@ -1174,6 +1174,15 @@ export function kubeFiil(a: string[]): string {
   return ""
 }
 
+// Saha G116 (2026-11-02): `ansible … -m reboot -l 'splast*' -l 'spd2ast*'` — ansible-core 2.16'da -l/--limit tek değerlidir, SONUNCUSU
+// geçer (ölçüldü: --list-hosts yalnız spd2ast*). secenekDegeri ilkini okuduğundan onay ekranındaki hedef gerçek hedeften farklıydı →
+// değiştiren ansible komutunda birden çok --limit engellenir; desenler tek -l içinde ':' ile birleştirilir.
+export const COKLU_LIMIT =
+  "ansible'da birden çok -l/--limit: yalnız SONUNCUSU uygulanır (öncekiler sessizce yok sayılır) — desenleri tek -l içinde ':' ile birleştir, ör. -l 'splast*:spd2ast*', önce --list-hosts ile doğrula"
+export function cokluLimit(a: string[]): boolean {
+  return a.filter((x) => x === "-l" || x === "--limit" || x.startsWith("--limit=") || (/^-l./.test(x) && !x.startsWith("--"))).length > 1
+}
+
 export function secenekDegeri(a: string[], ...adlar: string[]): string | null {
   for (let i = 0; i < a.length; i++) {
     for (const ad of adlar) {
@@ -1510,6 +1519,7 @@ export function tekKomut(k: Komut, b: Baglam): Bulgu[] {
         out.push(diskBulgu(`ansible-playbook içinde: ${[...new Set(diskIc.map((x) => x.neden))].join("; ")}`, lim ? limitHedefleri(lim) : envanterHedefleri(a, b)))
       } else if (kitaplar.length > 0 && kitaplar.every((k) => playbookSaltOkunur(yolCoz(k, b), b))) return out
     }
+    if (cokluLimit(a)) return [...out, sert(COKLU_LIMIT)]
     const limit = secenekDegeri(a, "-l", "--limit")
     const hedefler = limit ? limitHedefleri(limit) : envanterHedefleri(a, b)
     return [...out, degisiklik(`ansible-playbook ${a.filter(secenekDegil).find((x) => /\.ya?ml$/.test(x)) ?? ""} (--check yok)`.trim(), hedefler)]
@@ -1530,6 +1540,7 @@ export function tekKomut(k: Komut, b: Baglam): Bulgu[] {
         out.push(diskBulgu([...new Set(diskIc.map((x) => x.neden))].join("; "), limitHedefleri(secenekDegeri(a, "-l", "--limit") ?? oruntu)))
       degistirir = ic.some((x) => x.tur === "degisiklik" || x.tur === "disk")
     }
+    if (degistirir && cokluLimit(a)) return [...out, sert(COKLU_LIMIT)]
     const limit = secenekDegeri(a, "-l", "--limit")
     if (degistirir) out.push(degisiklik(`ansible -m ${modul}`, limitHedefleri(limit ?? oruntu)))
     return out

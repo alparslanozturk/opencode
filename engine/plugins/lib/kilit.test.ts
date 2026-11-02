@@ -969,3 +969,17 @@ describe("2026-11-02: ssh-keygen -l / update-crypto-policies --show okuma; anaht
   for (const c of [`ssh d "ssh-keygen -A"`, `ssh d "update-crypto-policies --set LEGACY"`, `ssh d "ssh-keygen -t ed25519 -f /etc/ssh/k"`])
     test(`K1: ${c}`, () => expect(kilitDenetle("bash", { command: c }, workdir, undefined)?.kilit).toBe("K1"))
 })
+
+describe("G116: birden çok --limit (ansible sonuncuyu uygular) — değiştiren komutta engel", () => {
+  const karar = (c: string) => kilitDenetle("bash", { command: c }, workdir, undefined)
+  test("reboot iki -l → K5, gerekçe ':' ile birleştir", () => {
+    const r = karar("ansible -i inventories/hosts-x.ini os-upgrade -m reboot -T 60 --forks 5 -l 'splast*' -l 'spd2ast*'")
+    expect(r?.kilit).toBe("K5")
+    expect(r?.mesaj ?? JSON.stringify(r)).toContain("':'")
+    expect(karar("ansible-playbook -i h.ini p.yml -l a --limit=b")?.kilit).toBe("K5")
+  })
+  test("tek -l ':' ile → K1 (normal onay); okuma iki -l ile serbest", () => {
+    expect(karar("ansible -i h.ini g -m reboot -l 'splast*:spd2ast*'")?.kilit).toBe("K1")
+    expect(karar("ansible -i h.ini g -m ping -l a -l b")).toBeNull()
+  })
+})

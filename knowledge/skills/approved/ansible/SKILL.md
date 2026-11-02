@@ -196,6 +196,10 @@ ansible -i hosts-uretim.ini web01 -m ping                  # ad-hoc
 Kullanıcı "şu sunucuda" dediğinde varsayılan yol budur; playbook'un `hosts:`
 satırını değiştirme, `-l` ile daralt.
 
+**`-l` tek kez yazılır** (ölçüldü, ansible-core 2.16): `-l 'splast*' -l 'spd2ast*'` → yalnız **sonuncusu** uygulanır, ilki sessizce
+düşer (saha G116: reboot komutu yarı filoyu atlayacaktı). Birden çok desen tek `-l` içinde `:` ile: `-l 'splast*:spd2ast*'`; değiştiren
+komuttan önce aynı `-i`/desenle `--list-hosts` koş, sayıyı kullanıcıya göster. Kilit, değiştiren komutta birden çok `-l`'yi engeller.
+
 Yazım hatası **sessizce geçmez** — ölçüldü, çıkış kodu 1 ile düşer:
 
 ```

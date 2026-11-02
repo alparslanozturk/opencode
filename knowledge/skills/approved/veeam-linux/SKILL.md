@@ -55,6 +55,12 @@ Restore session already closed`. VBR, Linux sunucunun SSH host anahtar parmak iz
 - "Restore session already closed" → sihirbaz önceki hatada oturumu kapatmış; düzelttikten sonra restore'u Explorer'dan **baştan** başlat.
 - Kripto politikası DEFAULT değilse ya da sshd'de AllowUsers/AllowGroups varsa betik NOT yazar (Veeam hesabı listede mi; algoritma uyuşmazlığı
   — tahmin, VBR logunda doğrula).
+- Bu doğrulama **VBR tarafında** (Windows, ExplorerManagementService) yapılır → Linux sunucunun loglarında görünmemesi beklenir, "logda yok"
+  karşı kanıt değildir (saha: ajan "failed to validate ssh logda yok" diye bu katmanı eledi). VBR sunucusunun Veeam logları (genel:
+  `C:\ProgramData\Veeam\Backup` altı) yedekçide.
+- **Zaman damgası eşleşmeli:** "kök neden" yalnız bu denemenin saatindeki satırla söylenir. Gece 03:50–05:10 transport kopmaları ya da
+  aylar önceki `vemdb…sock` satırı gündüzki restore'un sebebi değildir; ayrı yaz.
+- Kimlik bilgisi (parola) doğru olsa da parmak izi onaylanmadan bu adım geçmez — yedekçi parolayla birlikte §2b'deki onayı da yapsın.
 - Hatalar art arda değişebilir (önce "No such file", sonra parmak izi): her denemede **yeni** hata satırını ve saatini al; ajanın log yorumu
   ("RPC bağlantı hatası") ile Veeam'in ekrandaki hatası çelişirse ekrandaki/VBR logundaki metin esastır.
 

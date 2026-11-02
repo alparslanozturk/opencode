@@ -1495,3 +1495,6 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Doktor: ekrandaki metin esas; VBR Linux sunucunun SSH parmak izini saklar (Options → Security → Linux hosts authentication; Inventory →
   Untrusted; KB4524 aynı sınıf). Aksiyon: veeam-tani komutuna SSH host parmak izleri + anahtar dosya tarihleri, kripto politikası, sshd
   AllowUsers/AllowGroups/algoritma satırları; SKILL §2b; kilit: `ssh-keygen -l/-F`, `update-crypto-policies --show` okuma. Test 176/176, kilit 334/334.
+- Devamı: ajan "Ara MongoDB başlatılamadı — kök neden: socket oluşmuyor", "VBR ↔ agent RPC gece 03:50–05:10 kopuyor (yazılımla ilgili)",
+  "failed to validate ssh logda yok" dedi. Doktor: parmak izi doğrulaması VBR'de (Linux logunda görünmemesi beklenir); kök neden iddiası bu
+  denemenin saatine bağlanmadı; gece kopmaları ayrı olay. Ekip kimlik bilgisini kontrol edip yeniden deniyor. Aksiyon: SKILL §2b üç madde.

@@ -926,3 +926,32 @@ describe("2026-11-02: kitin okuyan beceri betikleri onaysız (tam yol), başkala
   ]
   for (const c of degil) test(`okuma sayılmaz: ${c}`, () => expect(kesinOkuma(c, workdir)).toBe(false))
 })
+
+describe("2026-11-02 saha: değişken atamalı okuma döngüsü onaysız, atama içinde değişiklik sorulur", () => {
+  const okur = [
+    `for ip in 10.0.2.114 10.0.2.115; do hostname=$(host $ip 2>&1 | grep 'has address' | head -1 | awk '{print $1}' | sed 's/x//'); ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=5 root@$ip "cat /etc/redhat-release 2>/dev/null; uname -r; df -h / | head -5; free -h | awk '/Mem:/{print \\$2}'; docker ps --format '{{.Names}}|{{.Status}}' 2>&1"; done`,
+    `x=$(uname -r); echo $x`,
+    `x=1; echo $x`,
+  ]
+  for (const c of okur) test(`kesin okuma: ${c.slice(0, 60)}`, () => expect(kesinOkuma(c, workdir)).toBe(true))
+  const degil = [
+    `x=$(rm -rf /tmp/a); echo $x`,
+    `x=1 rm /tmp/a`,
+    `for i in a; do x=1; rm /tmp/$i; done`,
+    `x=$(ssh h "reboot")`,
+    `for h in a; do x=$(ssh $h "systemctl restart sshd"); done`,
+  ]
+  for (const c of degil) test(`okuma sayılmaz: ${c}`, () => expect(kesinOkuma(c, workdir)).toBe(false))
+})
+
+describe("2026-11-02: ansible -a içinde {% raw %} ve continue okuma; içerideki değişiklik yine K1", () => {
+  const okur = [
+    `ansible g -i e -m shell -t cikti/k -a '{% raw %}for r in docker podman; do command -v $r >/dev/null 2>&1 || continue; echo "$r=$($r ps -a --format "{{.Names}}:{{.State}}")"; done{% endraw %}'`,
+  ]
+  for (const c of okur) test(`serbest: ${c.slice(0, 60)}`, () => expect(kilitDenetle("bash", { command: c }, workdir, undefined)).toBeNull())
+  const degistirir = [
+    `ansible g -i e -m shell -a '{% raw %}docker restart x{% endraw %}'`,
+    `ansible g -i e -m shell -a '{% raw %}for r in a; do continue; done; reboot{% endraw %}'`,
+  ]
+  for (const c of degistirir) test(`K1: ${c}`, () => expect(kilitDenetle("bash", { command: c }, workdir, undefined)?.kilit).toBe("K1"))
+})

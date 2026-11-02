@@ -611,6 +611,14 @@ if python3 "$IY" cekme - < iy-p.json > iy4.txt; then kaldi "cekme: hata varken �
 icerir "cekme: pod + sebep" iy4.txt "nfs/p1  registry.k8s.io/x:1  ImagePullBackOff"
 printf '{"items":[]}' | python3 "$IY" cekme - > iy5.txt && gecti "cekme: hata yok → çıkış 0" || kaldi "cekme boş liste"
 
+# --------------------------------------------------------------------------- filo-tablo --say
+baslik "filo-tablo.py --say (dağılım sayımı; 2026-11-02)"
+mkdir -p fs-d
+for x in "a:RHEL 8.7" "b:RHEL 8.7" "c:RHEL 9.8"; do printf '{"rc":0,"stdout":"surum=%s"}' "${x#*:}" > "fs-d/${x%%:*}"; done
+python3 "$B/filo-kontrol/filo-tablo.py" fs-d --kv --say surum > fs.txt 2>&1
+icerir "say: 8.7 iki sunucu, adlarıyla" fs.txt "RHEL 8.7                       ×2   a b"
+icerir "say: 9.8 bir sunucu" fs.txt "RHEL 9.8                       ×1   c"
+
 # --------------------------------------------------------------------------- kilit
 baslik "Becerilerdeki sabit okuma komutları güvenlik kilidinden geçiyor (G67/G68)"
 if command -v bun > /dev/null; then

@@ -9,6 +9,8 @@
 #   filo-tablo.py <tree-dizini> [--grup <g> [-i <envanter>]] [--kv] [--satir N]
 #   --kv     : komut "anahtar=değer" satırları basıyorsa sütunlu tablo; çoğunluktan farklı hücre "*" ile işaretlenir
 #   --satir N: grup başına gösterilecek çıktı satırı (varsayılan 6)
+#   --say <anahtar>: (--kv ile, tekrarlanabilir) değer başına sunucu sayısı + adları — "kaç sunucu 8.7'de" sorusunu elle toplama (saha
+#                  2026-11-02: model 13 sunucuyu "8.7 ×7, 9.7 ×4" diye yanlış saydı, 9.8'deki 3 sunucuyu hiç anmadı)
 #   --csv <dosya>: tabloyu CSV'ye yaz (utf-8-sig, ';' — Türkçe Excel); erişilemeyen/çıktısız sunucular da satır olarak, sapan
 #                  alanlar ayrı sütunda. HTML/XLSX için: rapor becerisi `tablo-cevir.py` (değerler elle yazılmaz)
 import csv
@@ -90,7 +92,7 @@ def main(argv):
     if not argv or argv[0] in ("-h", "--help"):
         print(open(__file__, encoding="utf-8").read().split("import json")[0])
         return 0 if argv else 2
-    dizin, grup, envanter, kv, satir, csv_yol = argv[0], None, None, False, 6, None
+    dizin, grup, envanter, kv, satir, csv_yol, sayilacak = argv[0], None, None, False, 6, None, []
     i = 1
     while i < len(argv):
         a = argv[i]
@@ -102,6 +104,8 @@ def main(argv):
             kv, i = True, i + 1
         elif a == "--satir":
             satir, i = int(argv[i + 1]), i + 2
+        elif a == "--say":
+            sayilacak, i = sayilacak + [argv[i + 1]], i + 2
         elif a == "--csv":
             csv_yol, i = argv[i + 1], i + 2
         else:
@@ -167,6 +171,13 @@ def main(argv):
                     isaret = "*" if cogunluk[a] is not None and tablo[h].get(a) != cogunluk[a] else ""
                     hucre.append((str(v) + isaret).ljust(gen[a]))
                 print("  %-28s %s" % (h, " ".join(hucre)))
+            for a in sayilacak:
+                gruplar = {}
+                for h in sorted(tablo):
+                    gruplar.setdefault(tablo[h].get(a, "-"), []).append(h)
+                print("\n== Dağılım: %s (%d sunucu; erişilemeyen/çıktısız sayılmadı)" % (a, len(tablo)))
+                for v, hs in sorted(gruplar.items(), key=lambda x: (-len(x[1]), x[0])):
+                    print("  %-30s ×%-3d %s" % (v, len(hs), " ".join(hs)))
             return 0 if not (sapma or eksik) else 1
 
     if csv_yol and not kv:

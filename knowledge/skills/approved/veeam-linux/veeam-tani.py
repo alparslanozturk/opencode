@@ -5,6 +5,7 @@
 # servisleri yeniden başlattı (kanıt toplamadan) ve "5 serviden 6'sı" yazdı.
 #
 #   veeam-tani.py komut            → sunucuda çalıştırılacak SALT-OKUNUR komutu basar (ssh root@<sunucu> '<komut>')
+#   veeam-tani.py mongo-komut      → MongoDB restore hedefi için ek SALT-OKUNUR komut (aynı `tani` ile okunur; ikisinin çıktısı birleştirilebilir)
 #   veeam-tani.py tani <dosya|->   → o komutun çıktısını okur, BULGU listesi + eksik kanıt. Çıkış 0 bulgu yok, 1 bulgu var, 2 hata.
 import re
 import sys
@@ -21,6 +22,23 @@ KOMUT = (
     'for s in ' + " ".join(SERVISLER) + '; do echo "servis_$s=$(systemctl is-active $s 2>/dev/null)/$(systemctl is-enabled $s 2>/dev/null)"; done; '
     'echo log_hata=$(grep -rhE "No such file or directory|Permission denied|Failed to (create|open|change)" /var/log/VeeamBackup /var/log/veeam 2>/dev/null '
     '| tail -8 | tr "\\n" "|" | cut -c1-900)'
+)
+
+# Veeam v13 MongoDB (Veeam Explorer for MongoDB / plug-in): resmi belge build 13.1.2.57 — mongo_plan_and_manage_requirements,
+# vemdb_how_restore_works, mongo_data_restore, vemdb_permissions (helpcenter.veeam.com/docs/vbr/userguide/…; 2026-11-02 okundu).
+MONGO_RHEL = ((8, 4), (9, 6))          # "RHEL 8.4 - 9.6"
+MONGO_SURUM = ("7.0", "8.0", "8.2", "8.3")
+MONGO_KOMUT = (
+    'echo os=$(cat /etc/redhat-release 2>/dev/null); '
+    'echo mongod_surum=$(mongod --version 2>/dev/null | head -1); '
+    'echo mongod_args=$(ps -o args= -C mongod 2>/dev/null | head -3 | tr "\n" "|"); '
+    'echo replset=$(cat /etc/mongod*.conf 2>/dev/null | grep -A2 "^replication" | grep -i replSetName | tr -d " "; '
+    'ps -o args= -C mongod 2>/dev/null | grep -oE "[-]{2}replSet[= ][^ ]*" | head -1); '
+    'echo fuse=$(test -c /dev/fuse && echo var || echo YOK); '
+    'echo run_media=$(findmnt -rn -o TARGET,FSTYPE 2>/dev/null | grep "^/run/media" | tr "\n" "|"); '
+    'echo vemdb_log=$(grep -rlE "vemdb" /var/log /opt/veeam 2>/dev/null | head -5 | tr "\n" " "); '
+    'echo vemdb_hata=$(grep -rhE "vemdb|mongod" /var/log/VeeamBackup /opt/veeam 2>/dev/null | grep -iE "error|fail|exit|No such file|featureCompatibility|version" '
+    '| tail -8 | tr "\n" "|" | cut -c1-900)'
 )
 
 
@@ -59,6 +77,8 @@ def tani(kv):
             notlar.append("veeamnetfsmount %s — koşullu servis (ExecCondition -checkserver); NFS bağlantısı yoksa çalışmaması normal" % d)
         elif aktif != "active" and d.split("/")[-1] == "enabled":
             bulgular.append(("%s %s" % (s, d), "etkin ama çalışmıyor — journalctl -u %s -n 50" % s, "systemd"))
+    if "os" in kv or "mongod_surum" in kv:
+        mongo_tani(kv, bulgular, notlar, eksik)
     if not log:
         eksik.append("sunucu logunda bu hatalardan satır yok → asıl hata VBR tarafında: yedekçiden iş (restore session) logunun TAM hata "
                      "satırı + restore türü (dosya/dizin geri yükleme, tam VM, Instant) + hedef yol")
@@ -67,9 +87,39 @@ def tani(kv):
     return bulgular, notlar, eksik
 
 
+def mongo_tani(kv, bulgular, notlar, eksik):
+    m = re.search(r"release (\d+)\.(\d+)", kv.get("os", ""))
+    if m and not (MONGO_RHEL[0] <= (int(m.group(1)), int(m.group(2))) <= MONGO_RHEL[1]):
+        bulgular.append(("işletim sistemi %s.%s — Veeam v13 MongoDB destek listesi RHEL 8.4–9.6" % (m.group(1), m.group(2)),
+                         "desteklenmeyen OS'ta restore ajanı/geçici instance başarısız olabilir (OS yaması sonrası ilk restore mu?) — "
+                         "yedekçiyle Veeam'in güncel destek listesine bak", "Veeam v13 User Guide: MongoDB System Requirements"))
+    v = re.search(r"v(\d+\.\d+)\.\d+", kv.get("mongod_surum", ""))
+    if v and v.group(1) not in MONGO_SURUM:
+        bulgular.append(("mongod %s — desteklenen 7.0/8.0/8.2/8.3" % v.group(0), "sürüm dışı", "Veeam v13 MongoDB System Requirements"))
+    if ("mongod_args" in kv and kv["mongod_args"].strip("|") and not kv.get("replset", "").strip()):
+        bulgular.append(("replica set görünmüyor (conf'ta replSetName yok, --replSet yok)", "Veeam: tek başına (standalone) MongoDB desteklenmez; "
+                         "koleksiyon restore'u replica set'in primary node'una yapılır — conf başka yerdeyse `mongosh --eval rs.status()` ile doğrula",
+                         "Veeam v13 MongoDB System Requirements · How Restore Works"))
+    if kv.get("fuse") == "YOK":
+        bulgular.append(("/dev/fuse yok", "Veeam Mount Service yedeği FUSE ile /run/media altına bağlar; FUSE yoksa geçici instance açılamaz",
+                         "Veeam v13 How Restore Works"))
+    hata = kv.get("vemdb_hata", "")
+    if "vemdb" in hata and "No such file" in hata:
+        notlar.append("geçici instance soketi (/var/tmp/vemdb*.sock — tahmin: Veeam'in yedekten açtığı GEÇİCİ mongod'un soketi, sunucudaki "
+                      "üretim mongod'u değil) yok → geçici mongod başlamamış olabilir; sebebi aynı zaman damgalı log satırlarında "
+                      "(featureCompatibilityVersion / sürüm / disk / izin). Yedeğin alındığı kaynak mongod sürümü hedefle aynı mı?")
+    eksik.append("Mongo: yedeği alan Veeam Plug-in build'i ≤ restore eden build olmalı (build numarası dahil) — yedekçiden ikisini iste "
+                 "(Veeam v13 User Guide: Data Restore). Kaynak (yedeği alınan) mongod sürümü + hedef kullanıcının MongoDB 'root' rolü.")
+    if not kv.get("vemdb_log", "").strip():
+        eksik.append("vemdb geçen log bulunamadı (/var/log, /opt/veeam) — restore ajanı logunun yerini yedekçiye sor")
+
+
 def main(argv):
     if not argv or argv[0] in ("-h", "--help"):
         print(open(__file__, encoding="utf-8").read().split("import re")[0].replace("# ", "").replace("#!/usr/bin/env python3\n", ""))
+        return 0
+    if argv[0] == "mongo-komut":
+        print("ssh root@<sunucu> '%s'" % MONGO_KOMUT)
         return 0
     if argv[0] == "komut":
         print("ssh root@<sunucu> '%s'" % KOMUT)
@@ -80,8 +130,11 @@ def main(argv):
         if not kv:
             print("anahtar=değer satırı yok — `veeam-tani.py komut` çıktısındaki komutu çalıştır")
             return 2
-        print("Sunucu: açılış %s · paket %s · /tmp %s · /tmp boş %s" % (kv.get("acilis", "?"), kv.get("veeam_paket", "?").strip() or "yok",
+        if "acilis" in kv:
+            print("Sunucu: açılış %s · paket %s · /tmp %s · /tmp boş %s" % (kv.get("acilis", "?"), kv.get("veeam_paket", "?").strip() or "yok",
                                                                     kv.get("baglama_tmp", "?"), kv.get("tmp_bos", "?")))
+        if "os" in kv:
+            print("MongoDB hedefi: %s · %s · replica set: %s" % (kv.get("os"), kv.get("mongod_surum") or "mongod yok", kv.get("replset") or "görünmüyor"))
         bulgular, notlar, eksik = tani(kv)
         for i, (b, ne, kaynak) in enumerate(bulgular, 1):
             print("BULGU %d: %s\n    → %s\n    kaynak: %s" % (i, b, ne, kaynak))

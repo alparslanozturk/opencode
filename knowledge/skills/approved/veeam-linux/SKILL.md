@@ -1,6 +1,6 @@
 ---
 name: veeam-linux
-description: Veeam'in yönettiği Linux sunucuda (restore hedefi, repository, Linux mount/transport sunucusu) restore ya da iş hatası — "dosya ya da dizin bulunamadı", "No such file or directory", "Permission denied", veeamtransport/veeamservice/veeamdeployment/veeamimmurepo/veeamnetfsmount servisleri, /tmp noexec, reboot/OS yaması sonrası Veeam sunucusu offline. Deterministik `veeam-tani.py` (salt-okunur komut + bilinen sebep kararı, kaynaklı). "veeam", "restore hatası", "geri yükleme hatası", "veeamtransport", "veeam servisleri", "yedekçi", "backup restore", "file not found restore" isteklerinde tetiklenir.
+description: Veeam'in yönettiği Linux sunucuda (restore hedefi, repository, Linux mount/transport sunucusu) restore ya da iş hatası — "dosya ya da dizin bulunamadı", "No such file or directory", "Permission denied", veeamtransport/veeamservice/veeamdeployment/veeamimmurepo/veeamnetfsmount servisleri, /tmp noexec, reboot/OS yaması sonrası Veeam sunucusu offline. Deterministik `veeam-tani.py` (salt-okunur komut + bilinen sebep kararı, kaynaklı). "veeam", "mongodb restore", "vemdb", "veeam mongo", "restore hatası", "geri yükleme hatası", "veeamtransport", "veeam servisleri", "yedekçi", "backup restore", "file not found restore" isteklerinde tetiklenir.
 ---
 
 # Veeam — Linux sunucuda restore/iş hatası
@@ -42,6 +42,40 @@ Instant Recovery · Explorer) ve **hedef yol**. Bunu iste; hangi dosya/dizinin b
 
 Hiçbiri yoksa: karar VBR iş logundaki satırla verilir. "Servisleri restart ettim, düzeldi" kanıt değildir — restore'u yedekçi yeniden denesin,
 sonucu (başarılı/aynı hata) raporla.
+
+## 3. MongoDB restore (Veeam v13 — Veeam Explorer for MongoDB / plug-in)
+
+Saha (Alp, 2026-11-02): dtlmrestore, v13, MongoDB 7.0.15 (port 27023), CardCampaign → CardCampaignRest; "daha önce çok restore edilmiş".
+Ajan `/var/tmp/vemdb<guid>.sock` yok, üretim mongod'u `/tmp/mongodb-27023.sock`'ta diye "Veeam farklı soket bekliyor" dedi ve parolasız
+`mongodump … --out /tmp/…` denemek istedi — **ikisi de yanlış yol** (aşağıda).
+
+**Nasıl çalışır (resmi, v13 User Guide "How Restore Works", build 13.1.2.57):** Explorer → Mount Service → Explorers Recovery Service, hedef
+replica set'in **primary** node'una *Veeam MongoDB Restore Agent* koyar → ajan kullanıcı yetkisini ve **boş alanı** denetler → Mount Service
+yedeği **FUSE** ile `/run/media` altına bağlar → ajan bağlanan dosyalardan **geçici bir MongoDB instance** başlatır → `mongodump` (stdout) |
+`mongorestore` (stdin) ile koleksiyonları hedefe yazar → biter, geçici instance kapanır, ajan silinir, bağlama kalkar.
+Tahmin (belgede yok, adından): `/var/tmp/vemdb<guid>.sock` bu **geçici** instance'ın soketidir; üretim mongod'unun soketiyle ilgisi yok. Soket yoksa
+→ geçici mongod **başlamamış**; sebep aynı zaman damgalı log satırlarındadır. Eski tarihli "Removing file …vemdb….sock" satırı önceki başarılı
+restore'un temizliğidir — bugünkü denemenin saatine bak.
+
+**Koşullar (resmi):**
+- OS **RHEL 8.4 – 9.6** (x86_64) · MongoDB **7.0 / 8.0 / 8.2 / 8.3** · **standalone desteklenmez** (replica set), sharded desteklenmez.
+- Restore eden plug-in build'i, yedeği alan build'den **eşit ya da yeni** olmalı — build numarası dahil (ör. 13.0.1.1071 ile 13.0.1.2067'nin
+  yedeği açılmaz).
+- Hedef MongoDB kullanıcısı **root** rolünde; Linux tarafı root yetkili kullanıcı.
+
+"Daha önce çalışıyordu" → **neyin değiştiğine** bak: bugünkü OS yaması (9.6 üstü sürüm destek listesi dışı), VBR/plug-in yükseltmesi (build
+sırası), kaynak MongoDB'nin sürüm yükseltmesi (geçici instance hedefteki mongod ile açılamayabilir — tahmin, log ile doğrula).
+
+```bash
+python3 $B/veeam-tani.py mongo-komut       # basılan komutu <sunucu> ile çalıştır:
+ssh root@<sunucu> '<basılan komut>' | python3 $B/veeam-tani.py tani -
+```
+
+Betik: OS sürümü / mongod sürümü / replica set / `/dev/fuse` / vemdb geçen loglar ve hata satırları → BULGU + EKSİK KANIT. Yedekçiden:
+restore oturumunun tam hata satırı ve **zamanı**, yedeği alan ve restore eden plug-in build'leri, kaynak mongod sürümü.
+
+**Yapma:** tanı için `mongodump`/`mongorestore` çalıştırma (veri kopyalar, `-u` ile parola ister, `/tmp`'yi doldurur — Veeam'in hatasını
+göstermez); üretim mongod'unu yeniden başlatma; soket dosyası elle oluşturma.
 
 ## Yapmayacakların
 

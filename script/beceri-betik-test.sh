@@ -631,6 +631,14 @@ printf 'acilis=x\nbaglama_tmp=/ rw,relatime\nrun_veeamtransport=YOK\nservis_veea
 python3 "$VT" tani vt2.txt > vt2.out && gecti "veeam: temiz sunucu → çıkış 0" || kaldi "veeam temiz: $(cat vt2.out)"
 icerir "veeam: kanıt VBR tarafında" vt2.out "EKSİK KANIT: sunucu logunda"
 icermez "veeam: transport çalışıyorsa /run eksikliği bulgu değil" vt2.out "BULGU"
+printf 'os=Red Hat Enterprise Linux release 9.8 (Plow)\nmongod_surum=db version v7.0.15\nmongod_args=/usr/bin/mongod -f /etc/mongod.conf|\nreplset=\nfuse=var\nvemdb_log=/x.log\nvemdb_hata=vemdb1.sock No such file or directory|\n' > vm1.txt
+python3 "$VT" tani vm1.txt > vm1.out
+icerir "veeam mongo: RHEL 9.8 destek listesi dışı" vm1.out "işletim sistemi 9.8 — Veeam v13 MongoDB destek listesi RHEL 8.4–9.6"
+icerir "veeam mongo: standalone uyarısı" vm1.out "replica set görünmüyor"
+icerir "veeam mongo: geçici instance soketi notu" vm1.out "geçici mongod başlamamış olabilir"
+printf 'os=Red Hat Enterprise Linux release 9.4 (Plow)\nmongod_surum=db version v7.0.15\nmongod_args=/usr/bin/mongod --replSet rs0|\nreplset=--replSetrs0\nfuse=var\nvemdb_log=/x.log\nvemdb_hata=\n' > vm2.txt
+python3 "$VT" tani vm2.txt > vm2.out
+icermez "veeam mongo: 9.4 + replica set → bulgu yok" vm2.out "BULGU"
 
 # --------------------------------------------------------------------------- kilit
 baslik "Becerilerdeki sabit okuma komutları güvenlik kilidinden geçiyor (G67/G68)"

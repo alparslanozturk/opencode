@@ -1481,3 +1481,11 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   V13'te OS yaması + reboot sonrası `/var/run/veeamtransport/veeamtransport.pid` "No such file or directory"; forum t=86837 — Explorer restore'da
   `/tmp/Veeam.Mount.FS.*` chown "No such file". Kurum RHEL 9 template'i CIS'li → /tmp noexec olası (dtlmrestore'da ölçülmedi).
 - Aksiyon: yeni beceri `veeam-linux` + `veeam-tani.py` (salt-okunur kanıt komutu + kaynaklı BULGU/EKSİK KANIT; kilitte onaysız); test 169/169.
+- Devamı (Alp, aynı gün, 1 ekran): v13, **MongoDB restore** (7.0.15, port 27023, CardCampaign → CardCampaignRest, restore agent 13.1.1.4);
+  "daha önce çok restore edilmiş". Ajan: `/var/tmp/vemdb<guid>.sock` yok, üretim mongod soketi `/tmp/mongodb-27023.sock` → "Veeam farklı soket
+  bekliyor" (yorum hatalı — tahmin: vemdb soketi Veeam'in yedekten açtığı geçici instance'ındır); gösterdiği log satırı 08.05.2026 tarihli
+  (eski restore'un temizliği). Sonra parolasız `mongodump … --out /tmp/…` istedi (onay ekranı) — tanıya katkısı yok.
+- Doktor (resmi v13 belgeleri, build 13.1.2.57): restore akışı (FUSE /run/media → geçici MongoDB instance → mongodump|mongorestore);
+  koşullar RHEL 8.4–9.6, MongoDB 7.0/8.0/8.2/8.3, standalone desteklenmez, plug-in build ≥ yedeği alan build, hedef kullanıcı root rolü.
+  Bugün OS yaması yapıldıysa dtlmrestore 9.6 üstüne çıkmış olabilir → destek listesi dışı (ölçülmedi).
+- Aksiyon: `veeam-linux` §3 MongoDB + `veeam-tani.py mongo-komut` (OS/mongod/replica set/FUSE/vemdb logları → BULGU); test 173/173.

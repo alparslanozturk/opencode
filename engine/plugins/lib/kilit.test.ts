@@ -983,3 +983,11 @@ describe("G116: birden çok --limit (ansible sonuncuyu uygular) — değiştiren
     expect(karar("ansible -i h.ini g -m ping -l a -l b")).toBeNull()
   })
 })
+
+describe("2026-11-03: nfs-tani okuma (G118)", () => {
+  test("nfs-tani komutu ssh ile + boru kesin okuma", () => {
+    const { execSync } = require("node:child_process")
+    const k = execSync("python3 /root/ai/opencode/knowledge/skills/approved/rhel-nfs/nfs-tani.py komut").toString().trim()
+    expect(kesinOkuma(`${k.replace("<sunucu>", "splastnginx01")} | python3 /root/ai/opencode/knowledge/skills/approved/rhel-nfs/nfs-tani.py tani -`, workdir)).toBe(true)
+  })
+})

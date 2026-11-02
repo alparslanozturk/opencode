@@ -620,6 +620,30 @@ icerir "say: 8.7 iki sunucu, adlarıyla" fs.txt "RHEL 8.7                       
 icerir "say: 9.8 bir sunucu" fs.txt "RHEL 9.8                       ×1   c"
 
 # --------------------------------------------------------------------------- veeam-tani
+baslik "nfs-tani.py (NFS açılış sırası; 2026-11-03, G118)"
+cat > nfs1.txt <<'EOF2'
+acilis=1793660000
+nfs__ab=hedef:/ab|kaynak:splbtfile:/x|fstab:rw,nofail,vers=4.1|etkin:rw,vers=4.1,rsize=262144|ilk_baglama:1793660090|baglama_sayisi:2|hata:|readahead:128
+nfs_cekirdek=
+motor_docker=after_remote_fs:0|requires_mounts:|baslangic:1793660030
+konteyner_docker_abc123=/janus|basladi:1793660040|baglar:/ab/kayit>/kayit:rprivate
+konteyner_docker_def456=/nginx|basladi:1793660200|baglar:/ab>/usr/share/nginx/ab:rprivate
+konteyner_docker_aaa111=/abc|basladi:1793660001|baglar:/abc>/x:rprivate
+EOF2
+python3 "$B/rhel-nfs/nfs-tani.py" tani nfs1.txt > nfs1o.txt 2>&1; rc=$?
+[ "$rc" -eq 1 ] && gecti "nfs-tani bulgu → çıkış 1" || kaldi "nfs-tani çıkış $rc"
+icerir "nofail man kaynaklı" nfs1o.txt "man systemd.mount"
+icerir "NFS'ten önce başlayan konteyner" nfs1o.txt "janus konteyneri (docker) /ab kullanıyor: /ab/kayit>/kayit:rprivate — konteyner NFS bağlanmadan 50 sn ÖNCE başladı"
+icerir "yayılım iddiası tahmin işaretli" nfs1o.txt "tahmin: bağlama yayılımı"
+icerir "motor sırası RequiresMountsFor önerisi" nfs1o.txt "RequiresMountsFor=/ab"
+icerir "sonra başlayan konteyner NOT" nfs1o.txt "nginx konteyneri (docker) /ab kullanıyor"
+icermez "önek benzerliği /abc karışmaz" nfs1o.txt "abc konteyneri"
+icerir "kullanıcıya sorulacaklar EKSİK" nfs1o.txt "EKSİK KANIT: kullanıcıdan"
+printf 'acilis=1\nmotor_docker=after_remote_fs:1|requires_mounts:|baslangic:1\n' > nfs2.txt
+python3 "$B/rhel-nfs/nfs-tani.py" tani nfs2.txt > nfs2o.txt 2>&1; rc=$?
+[ "$rc" -eq 0 ] && gecti "NFS yok → bulgu yok, çıkış 0" || kaldi "nfs2 çıkış $rc"
+icerir "fstab'da NFS yok notu" nfs2o.txt "fstab'da NFS satırı yok"
+
 baslik "veeam-tani.py (Veeam restore hatası; 2026-11-02)"
 VT="$B/veeam-linux/veeam-tani.py"
 printf 'acilis=2026-11-02 15:40:11\nveeam_paket=veeamtransport-13.0.0\nbaglama_tmp=/tmp rw,nosuid,nodev,noexec,relatime\nrun_veeamtransport=YOK\nservis_veeamtransport=failed/enabled\nservis_veeamnetfsmount=inactive/enabled\nlog_hata=ERR |POSIX: Failed to create or open file [/var/run/veeamtransport/veeamtransport.pid].|No such file or directory|\n' > vt1.txt

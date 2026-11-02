@@ -53,6 +53,7 @@ kullanım becerinin SKILL.md'sinde (önce beceriyi yükle):
 - NTP mode 6 (ntpq dışarıya açık mı, önce/sonra) → `solaris-ntp/ntp-mode6.py`
 - CA sertifikası gerçekten yüklü mü (sunucu başına TAMAM/EKSİK) → `rhel-ca-guven/ca-dogrula.py`
 - Veeam restore/iş hatası Linux sunucuda (bilinen sebep: /tmp noexec, /run/veeamtransport; kaynaklı) → `veeam-linux/veeam-tani.py`
+- NFS açılışta dizin boş / yeniden mount ile geliyor / konteyner NFS'ten önce başladı (kaynaklı: man systemd.mount/unit) → `rhel-nfs/nfs-tani.py`
 - kümede imaj nereden çekilecek (düğümün registries.yaml aynaları) / kurulum sonrası çekme hatası → `kurum-registry/imaj-yol.py`
 - playbook'u çalıştırmadan denetle (yazdığın ya da hazır) → `ansible/playbook-denetim.py`
 Uzak okuma borunun başında kalır (`ssh … "<okuma>" | python3 <betik> -`), betiğe gömülmez. Betik hata verirse hatayı oku; iki denemede
@@ -288,7 +289,7 @@ ver ne demek?" Eski "CN + sunucular yoksa engel" kuralı **kalktı**. Şimdi Cla
 - **Değişiklik yapan işe başlamadan önce o konunun becerisini yükle** (disk/mount/fstab → `rhel-depolama`, kurulum/teslim →
   `rhel-teslim`, GPU → `rke2-denetim`, Rancher sertifikası → `rancher-sertifika`, node/IP → küme → `kume-bul`, NVIDIA sürücüsü →
   `rhel-gpu-surucu`, GPU Operator/containerd → `rke2-gpu-kurulum`, Run:ai → `rke2-runai`, CIS → `rhel-cis`/`rke2-cis`, IdM/AD trust →
-  `idm-kurulum`, HBAC/sudo → `idm-erisim`, IdM disk/log şişmesi/SSSD debug → `idm-bakim`, Leapp/ana sürüm yükseltme → `rhel-yukseltme`, BDDK/KVKK/PCI → `bankacilik-uyum`, Excel/Word/PDF/OneNote belgesi → `belge-oku`, git'teki manifesti kümeye uygulama → `rke2-manifest`, Solaris NTP / mode 6 → `solaris-ntp`, CA sertifikası yükleme/doğrulama → `rhel-ca-guven`, imaj/registry/ImagePullBackOff/helm kurulumu → `kurum-registry`, Veeam restore/servis hatası → `veeam-linux` …). Kullanıcı beceri adını söylemese de. Kanıt: saha G39 (2026-10-14) —
+  `idm-kurulum`, HBAC/sudo → `idm-erisim`, IdM disk/log şişmesi/SSSD debug → `idm-bakim`, Leapp/ana sürüm yükseltme → `rhel-yukseltme`, BDDK/KVKK/PCI → `bankacilik-uyum`, Excel/Word/PDF/OneNote belgesi → `belge-oku`, git'teki manifesti kümeye uygulama → `rke2-manifest`, Solaris NTP / mode 6 → `solaris-ntp`, CA sertifikası yükleme/doğrulama → `rhel-ca-guven`, imaj/registry/ImagePullBackOff/helm kurulumu → `kurum-registry`, Veeam restore/servis hatası → `veeam-linux`, NFS açılışta dizin boş/yeniden mount/yavaş → `rhel-nfs` …). Kullanıcı beceri adını söylemese de. Kanıt: saha G39 (2026-10-14) —
   beceri yüklenmeden diske LVM'siz `mkfs` + fstab'a `/dev/sdb` yazıldı; becerideki her kural bunu yasaklıyordu.
 - Beceriler talep üzerine yüklenir; konu kapanınca bırak. Kullanıcı "ansible işlerini bırak" dediyse
   o beceriyi tekrar yükleme.

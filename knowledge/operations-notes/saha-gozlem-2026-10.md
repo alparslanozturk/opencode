@@ -1472,6 +1472,13 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   "sadece bilsem yeterli, müdahale edecek kadar bilgiye gerek yok". Kritik: fstab sağlığı (reboot sonrası açılmayabiliyor); önce restart,
   sonra upgrade. Aksiyon: `rhel-guncelleme` 1 — filo fstab komutu (`findmnt --verify` rc/özet/hedef:hata + fstab'da olup bağlı olmayan;
   yerelde sağlam + bozuk örnekle ölçüldü, kilit serbest); 1b "bilgi amaçlı, analiz/düzeltme yok".
+- Devam (Alp, 2 ekran): ajan 13 SPL/SPD sunucusunda "nasıl başlatılmış" araştırdı — root `bash_history` (splastnginx01-03'te
+  `docker compose down -v && docker compose up -d`, spd2astcoturn03'te `up -d`), kullanıcı sorusuyla docker kullanıcısı/grup üyeliği,
+  systemd/cron; tablo: nginx/rabbit/coturn `unless-stopped`, astreds `no`, graylg `always` (graylog) + `no` (es/mongo). Alp: "bu bilgiler
+  pek işime yaramayacak". ❌ "root docker group üyesi değil, başka user" (root'un grup üyeliği gerekmez); history yokluğundan çıkarım;
+  host başına `ssh -o StrictHostKeyChecking=accept-new` döngüsü. ✅ Kullanışlı olan yalnız restart politikası satırı (astreds ve graylg
+  ES/mongo reboot sonrası açılmaz — sahibine haber). Aksiyon: `rhel-guncelleme` 1b'ye "açılır mı = servis enabled + restart politikası"
+  ve "yapma" listesi (history/kullanıcı/grup araştırması, `down -v` tekrarı, ssh döngüsü).
 
 ### G117 — dtlmrestore Veeam restore "dosya ya da dizin bulunamadı"; ajan kanıtsız 6 servisi restart etti (Alp, 2026-11-02, 1 ekran)
 - Görülen: ajan `systemctl restart veeamservice && … veeamenvironment && … veeamdeployment && … veeamimmurepo` + status; "5 serviden 6'sı

@@ -1452,3 +1452,18 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   Tanımlama" kaydı (görevler, etkilenen sunucular, planlanan pencere, kesinti süresi, CAB). `splsonatype01` GitHub'dan pull yapabiliyor (push bilinmiyor).
 - Aksiyon (yapıldı): yeni beceri `kurum-registry` + `imaj-yol.py` (imajlar · yol · cekme); kilit: okuyan beceri betikleri tam yolla onaysız.
 - Sonraki (Alp): kurulum hepapi `rke2-node-addition` (srvsatellite'ta klon) + Alp'in 2.0 ansible yeniden yazımı — incelenecek, kullanım belirsiz.
+
+### G116 — Alt ortam OS güncellemesi (STL/SXL/SXD bitti, SPL/SPD bu akşam): sayım hatası, docker compose, gereksiz onay (Alp, 2026-11-02, 5 ekran)
+- Bağlam (Alp): değişiklik numarası ve sunucu listesi önceden girildi; iş 2 gündür sürüyor (Cuma test/prep STL+SXL; bu akşam prod ve DRC).
+  "Sunucuları analiz etmiyoruz; upgrade edip restart ediyoruz. Otomatik açılıp açılmaması uygulama ve sunucu sahibine ait — ama yeteneğin
+  olup anlayabilmen iyi olur."
+- Görülen ✅: ajan SPL 10 sunucu için IP/OS/çekirdek/disk/RAM/docker tablosu; splastgraylg disk %86 uyarısı; `host` ile SPD IP'leri.
+- ❌ Sayım: "RHEL 8.7 → 8.10 (7 sunucu), 9.7 → 9.8 (4 sunucu)" — ekrandaki tabloda 8.7 = 5 (3 nginx + 2 coturn), 9.7 = 3 (astreds), 9.8'deki
+  3 rabbit hiç anılmadı; hedef sürümler (9.8 / 8.10) ve "en güncel" ölçülmeden yazıldı.
+- ❌ Onay ekranı: salt-okuma döngüsü (`for ip …; do hostname=$(host $ip …); ssh … "cat /etc/redhat-release; uname -r; df; free; docker ps"`)
+  izin istedi. Kök neden (Doktor, yerelde): kilit `x=$(…)` atamasını `do` ile başlayan parçada tanımıyordu.
+- Görülen (Alp ekranı): astreds sunucularında redis + sentinel `docker-compose.yaml` ile, imaj `cr-test.<kurum>/assistbox.io/docker/bitnami/
+  redis:latest`, `restart:` yok (tahmin: politika `no` → reboot sonrası kendiliğinden açılmaz; sunucuda ölçülmedi).
+- Aksiyon (yapıldı): kilit — değişken ataması (döngü içinde de) okuma, `$()` içi yine denetlenir; ansible `-a` içindeki `{% raw %}` ve
+  `continue/break` okuma; `filo-tablo.py --say <anahtar>` dağılım sayımı; `rhel-guncelleme` 1b konteyner fotoğrafı (önce/sonra: ad, durum,
+  restart politikası, motor servisi — podman'da ölçüldü) + "sayı ve hedef sürüm uydurulmaz". Test kilit 325/325, beceri 162/162.

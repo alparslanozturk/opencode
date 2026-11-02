@@ -823,7 +823,7 @@ export const SALT_OKUNUR = new Set([
   "printenv", "pwd", "sestatus", "getenforce", "getsebool", "klist", "md5sum", "sha1sum", "sha256sum", "diff",
   "cmp", "sort", "uniq", "cut", "tr", "column", "jq", "yq", "xxd", "od", "strings", "readlink", "realpath",
   "basename", "dirname", "lscpu", "lsmem", "lspci", "lsusb", "lsmod", "modinfo", "dmidecode", "ping",
-  "traceroute", "tracepath", "dig", "nslookup", "host", "sleep", "tree", "getfacl", "lsattr", "atq",
+  "traceroute", "tracepath", "dig", "nslookup", "host", "sleep", "continue", "break", "tree", "getfacl", "lsattr", "atq",
   "systemd-analyze", "needs-restarting", "top", "vmstat", "iostat", "mpstat", "sar", "nproc", "arch",
   "locale", "ntpq", "nc", "curl", "wget", "openssl", "ansible", "cd", "xfs_info",
   "pidstat", "fincore", "sadf", "iotop", "slabtop", "numastat", "lsns", "lslocks", "lsipc",
@@ -1512,7 +1512,8 @@ export function tekKomut(k: Komut, b: Baglam): Bulgu[] {
     if (a.length === 0 || has(a, "--version", "--list-hosts", "--check", "-C")) return out
     const oruntu = ansibleOruntu(a)
     const modul = secenekDegeri(a, "-m", "--module-name") ?? "command"
-    const arg = secenekDegeri(a, "-a", "--args") ?? ""
+    // {% raw %} / {% endraw %} yalnız ansible'ın Jinja'sını kapatır (docker/podman Go şablonu {{.Names}} için) — komut değil (2026-11-02)
+    const arg = (secenekDegeri(a, "-a", "--args") ?? "").replace(/\{%-?\s*(end)?raw\s*-?%\}/g, " ")
     const okur = ["ping", "setup", "gather_facts", "stat", "find", "slurp", "service_facts", "package_facts", "debug", "getent", "command", "shell", "raw"]
     let degistirir = !okur.includes(taban(modul).replace(/^ansible\.(builtin|legacy)\./, ""))
     if (!degistirir && ["command", "shell", "raw"].includes(taban(modul).replace(/^ansible\.(builtin|legacy)\./, ""))) {
@@ -1837,9 +1838,11 @@ export function kesinOkuma(command: string, workdir: string): boolean {
     if (!komutlar.length) return false
     for (const k of komutlar) {
       if (k.yazilan.some((y) => !["/dev/null", "/dev/stdout", "/dev/stderr"].includes(y))) return false
+      // yalnız kabuk değişkeni atayan parça (`x=1`, `h=$(host …)`) değişiklik değil; $() içi aşağıda ayrıca denetlenir (saha 2026-11-02)
+      const govde = k.argv.slice(k.argv.findIndex((x) => !["do", "then", "else", "{", "!"].includes(x)))
+      if (govde.length > 0 && k.argv.some((x) => !["do", "then", "else", "{", "!"].includes(x)) && govde.every((x) => /^[A-Za-z_][A-Za-z0-9_]*=/.test(x))) continue
       const argv = sarmalayiciSoy(k.argv).argv
       const ad = (argv[0] ?? "").split("/").pop() ?? ""
-      if (/^[A-Za-z_][A-Za-z0-9_]*=\$\(\.\.\.\)$/.test(argv[0] ?? "") && argv.length === 1) continue // x=$(…): iç komut aşağıda
       if (ad !== "ssh" && !saltOkunur(argv)) return false
     }
     for (const i of ic) if (!kesinOkuma(i, workdir)) return false

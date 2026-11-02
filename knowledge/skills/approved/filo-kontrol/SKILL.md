@@ -130,6 +130,7 @@ Betik basar (ölçüldü, ansible-core 2.16):
   bu sunucular için değer yazma, durumlarını yaz;
 - **Çıktı grupları**: birebir aynı çıktıyı veren sunucular tek satırda ("[31 sunucu] …") — sapanı bulmanın en hızlı yolu;
 - `--kv`: komut `anahtar=değer` satırları basıyorsa sütunlu tablo, çoğunluktan farklı hücre `*` ile.
+- `--say <anahtar>` (`--kv` ile, tekrarlanabilir): değer başına sunucu sayısı + adları — "kaç sunucu hangi sürümde" sayımını elle yapma (saha 2026-11-02).
 
 `--kv` için komutu öyle kur — her değer kendi satırında, sayı olarak:
 

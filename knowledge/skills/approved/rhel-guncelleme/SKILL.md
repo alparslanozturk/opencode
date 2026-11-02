@@ -72,6 +72,16 @@ olduğunu kontrol etmek lazım — bazen sync geriden gelebiliyor." Sıra bu; ad
    CV yayınlamak/terfi kullanıcının (Satellite) işi; ajan önermekle kalır.
 1. **fstab sağlam mı (reboot'tan önce).** Bozuk fstab = sunucu emergency mode'da açılır. Okuma: `findmnt --verify --verbose`. Alp'in pratiği
    `mount -av` (eksik bağlamaları da bağlar — değişiklik sayılır; hata veren satırı reboot'tan önce gösterir). Hata varsa dur, söyle.
+1b. **Konteyner fotoğrafı (okuma, reboot'tan önce).** Sunucuda docker/podman ile çalışan uygulama varsa (saha 2026-11-02: astreds* redis +
+   sentinel docker compose ile) reboot sonrası açılıp açılmaması **uygulama sahibinin** işi (Alp) — ajan düzeltmez, ama önce/sonra farkını
+   raporlar. Hücre: `ad:durum:restart-politikası`. Politika `no` (compose'da `restart:` yok = `no`, genel) → reboot sonrası kendiliğinden
+   **açılmaz**; servis `disabled` → motor da açılmaz. Bunu reboot'tan ÖNCE kullanıcıya listele ("şu konteynerler açılmayacak, sahibine
+   haber"), sonra aynı komutu `-t cikti/filo/konteyner-sonra` ile koş ve iki tabloyu karşılaştır (`diff <(filo-tablo.py …once --kv) <(… sonra --kv)`).
+   ```bash
+   ansible <grup> -i <envanter> -m shell -f 20 -T 10 -t cikti/filo/konteyner-once -a '{% raw %}for r in docker podman; do command -v $r >/dev/null 2>&1 || continue; s=$(systemctl is-enabled $r 2>/dev/null); echo "${r}_servis=${s:-yok}"; echo "${r}_konteyner=$($r ps -a --format "{{.Names}}:{{.State}}" 2>/dev/null | while read k; do printf "%s:%s " "$k" "$($r inspect -f "{{.HostConfig.RestartPolicy.Name}}" "${k%%:*}" 2>/dev/null)"; done)"; done{% endraw %}'
+   python3 /root/ai/opencode/knowledge/skills/approved/filo-kontrol/filo-tablo.py cikti/filo/konteyner-once --kv
+   ```
+   (ölçüldü: podman 5, ansible-core 2.16, yalnız okuma; `{% raw %}` Go şablonlarını ansible'ın Jinja'sından korur. docker'da ilk koşuda teyit.)
 2. **1. reboot** (onay ekranı) — temiz başlangıç: sunucu yamadan önce sorunsuz açılıyor mu. Ansible: `ansible.builtin.reboot` (reboot_timeout).
    Sonra `uptime`, `systemctl --failed`.
 3. **Kayıt / repo** (okuma): `subscription-manager status; subscription-manager release --show; dnf -q repolist` — Satellite repoları açık mı,
@@ -80,10 +90,14 @@ olduğunu kontrol etmek lazım — bazen sync geriden gelebiliyor." Sıra bu; ad
    Uzun sürer → arka planda ve log'a (`ansible` §5b, `ANSIBLE_LOG_PATH=cikti/<iş>.log`). **"Şu an hangi sunucuda?"** sorusu = log'u okumak
    (`grep -E "^TASK|changed:|ok:|fatal:" cikti/<iş>.log | tail`) — okuma, onay gerekmez, playbook'u durdurmaz.
 5. **2. reboot** (onay ekranı) — yeni çekirdek.
-6. **Ölç**: aşağıdaki durum tablosu — `cekirdek_calisan = cekirdek_son_kurulu`, `reboot_gerekli=hayir`, `systemctl --failed` boş. Sapan sunucuyu
+6. **Ölç**: aşağıdaki durum tablosu (+ 1b'nin "sonra" fotoğrafı) — `cekirdek_calisan = cekirdek_son_kurulu`, `reboot_gerekli=hayir`, `systemctl --failed` boş. Sapan sunucuyu
    ayrı listele; tablo dışı "hepsi tamam" yazma.
 
 ## Güncelleme durumu tablosu — tek sunucu ya da filo (saha G34/G36/G37)
+
+**Sayı ve hedef sürüm uydurulmaz** (saha 2026-11-02: 13 sunucu "8.7 → 8.10 ×7, 9.7 → 9.8 ×4" diye yanlış toplandı, 9.8'deki 3 sunucu hiç
+anılmadı). Dağılım: `filo-tablo.py … --kv --say surum` (değer başına sayı + sunucu adları). Hedef sürüm = Satellite'ın sunduğu (`dnf -q
+check-update`, `release`) — "9.8'e çıkacak" yazmadan önce o sunucunun repolarından ölç; "en güncel" demek için `check-update` boş olmalı.
 
 "Güncellendi mi, reboot lazım mı, hangi sürümde, dnf bitti mi" sorusunun tamamı tek komut + `filo-tablo.py` (`filo-kontrol` §5).
 Tabloyu sen kurma — G36'da "Çekirdek" sütununa RHEL sürümü yazıldı, G34'te dnf'in yarım kalıp kalmadığı belirsiz kaldı:

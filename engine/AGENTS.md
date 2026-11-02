@@ -95,6 +95,39 @@ Bir ayar/limit/kaynak değişikliği ya da "bu neden böyle" sorusu geldiğinde 
 5. **Uygulama** yalnız yetkiyle (Güvenlik kilitleri); uyguladıktan sonra aynı komutla sonucu göster.
 Bilmediğin bir sınır/değer için sayı uydurma — ölç, dokümandan al ya da "ölçülmedi" de.
 
+## Düstur: her beceride önce sor, her şey kanıtlı (Alp, 2026-11-03 — saha G118)
+Alp: "İşini iyi yapabilmek için sorman gereken şeyi sor ve kanıtlı olsun her şey. Delilsiz, kanıtsız hiçbir şey olmamalı."
+"Her yetenek için genel anlamda böyle sorması ve kanıtlı olması gerekir." — **her beceri, her iş** için geçerli:
+1. **Önce sor:** beceriyi açtığında becerinin "Önce sor" listesine bak; listede olup kullanıcının vermediğini tek mesajda,
+   numaralı sor. Liste yoksa genel dört soru: amaç/belirti (tam olarak ne isteniyor/ne bozuk) · kapsam (hangi sunucu/küme, hepsi mi)
+   · zaman (ne zamandan beri, öncesinde değişiklik var mı) · kısıt (değişiklik penceresi, dokunulmayacak şey). Ölçebileceğin şeyi sorma
+   — ölç; cevap beklerken yalnız salt-okunur kanıt topla.
+2. **Kanıtla yaz:** her olgu, sebep, ayar ve öneri yanında kaynağıyla (komut çıktısı · `man`/`--help` satırı · beceri dosyası:satır ·
+   kullanıcının mesajı). Kaynağı yoksa `tahmin:` ya da `ölçülmedi` — kesin cümle kurulmaz.
+3. Kullanıcının isteğini önceki bağlamla daraltma/değiştirme (G116: "compose'a bak" → ajan Redis aradı); emin değilsen sor.
+
+### Ayar ve performans önerisi (bu düsturun en sık kırıldığı yer)
+Saha: NFS'te ajan `nfsidmap` satırlarını "yavaşlatıyor" diye kök neden yazdı (eşleme önbellekli: `man nfsidmap` → `-t` varsayılan
+600 sn; log aralıkları 10–15 dk) ve `RPCIDMAPD_ARGS="-g"` + `systemctl restart rpcidmapd nfs-client.target` önerdi — `-g` seçeneği
+`man idmapd`'de yok (seçenekler: -h -v -f -p -c -C -S; nfs-utils 2.8.3'te ölçüldü), önerilen `Domain` ise istemcinin zaten kullandığı
+değerdi.
+- **Performans işine başlamadan sor** (tek mesaj, numaralı): belirti ne (hangi işlem yavaş — okuma, yazma, dizin listeleme, açılış),
+  ne zamandan beri, bir değişiklikten (güncelleme, reboot) önce de var mıydı, hangi sunucularda (hepsi mi biri mi). Cevap gelmeden
+  "kök neden" yazma; salt-okunur ölçümü topla.
+- **Performans iddiası üç eksende ölçülür:** throughput (kB/s), IOPS (op/s), gecikme (ms). "Yavaşlatıyor / hızlandırır / etkisi yok"
+  cümlesi yalnız ölçümle (aynı komut, önce/sonra ya da sorunlu/sağlam sunucu karşılaştırması) ya da dokümandaki açık ifadeyle
+  yazılır; yoksa "etkisi ölçülmedi". NFS için ölçüm aracı `nfsiostat <aralık> <sayı> <bağlama>` (nfs-utils; sütunlar op/s, kB/s,
+  retrans, avg RTT, avg exe, errors — `man nfsiostat`) — yük üretmez.
+- **Önerdiğin her seçenek/ayar o makinenin dokümanında olmalı** ve öneride kanıt satırı (`man <x>` satırı / `--help` çıktısı)
+  gösterilir. Dokümanda yoksa önerme. Değerin şu anki hâlini önce oku: zaten aynı olan bir değeri "düzelt" diye önerme.
+- **Başka yapay zekanın cevabı kaynak değildir** (kullanıcı yapıştırsa da) — aynı iddiayı makinedeki doküman ya da ölçümle doğrula,
+  hangisinin doğrulandığını ayrı yaz.
+- Canlı servisin bağımlılığını (ör. `hard` bağlı NFS'ten sunan nginx) yeniden başlatma önerisi = risk satırı + kullanıcı kararı.
+- **Bağlama/ayar değerinin "etkin" hâli ile istenen hâli farklı olabilir:** NFS `rsize/wsize` istemci–sunucu arasında pazarlıkla
+  belirlenir, etkin değer `/proc/mounts`'ta (`man 5 nfs`: "client and server negotiate the largest rsize value that they can both
+  support"; Linux istemci üst sınırı 1048576). fstab'da değer yokken `/proc/mounts` 262144 gösteriyorsa sunucunun sınırı olabilir
+  (tahmin) — "1M yap" önerisi önce fstab satırı ve sunucu sınırıyla doğrulanır.
+
 ## Komut hata verirse ya da seçeneğinden emin değilsen: önce makinedeki doküman (Alp, 2026-10-05)
 - Bir komut/seçenek hata verdiyse **tahminle yeni değer deneme** — önce hata mesajını aynen oku, sonra o
   makinedeki dokümana bak, değeri dokümandan al ve kaynağını yaz. Her komut için geçerli.

@@ -21,6 +21,14 @@
 - Sayı uydurmak.
 - Doğrulanmamış bir kuralı dosyaya yazmak — önce doğrula; doğrulayamıyorsan yazma, boş bırak.
 
+- Başka yapay zekanın (Copilot vb.) cevabını kaynak saymak — makinedeki doküman/ölçümle doğrulanır (G118: `RPCIDMAPD_ARGS="-g"`
+  için iki ayrı yapay zeka iki farklı anlam yazdı; `man idmapd`'de `-g` yok).
+
+## Önce sor (Alp, 2026-11-03 düsturu)
+
+Kanıt yoksa ve kullanıcıdan gelmesi gerekiyorsa **sorulur** — her beceride, işe başlamadan: amaç/belirti, kapsam, zaman/önceki
+değişiklik, kısıt. Sormak serbest; eksik bilgiyi tahminle doldurmak yasak.
+
 ## Uygulama noktaları
 
 - `engine/AGENTS.md` → "Kaynak zorunluluğu — uydurma yasak" bölümü (sahada

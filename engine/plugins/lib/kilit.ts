@@ -1149,7 +1149,7 @@ export function saltOkunur(argv: string[]): boolean {
 
 // Dosya yazmayan, yalnız okuyup basan beceri betikleri (kaynağı denetlendi: open() yalnız okuma, subprocess yok/yalnız openssl okuma).
 export const OKUYAN_BECERI_BETIGI = new Set(
-  ["kurum-registry/imaj-yol.py", "rhel-ca-guven/ca-dogrula.py"].map((x) => "/root/ai/opencode/knowledge/skills/approved/" + x),
+  ["kurum-registry/imaj-yol.py", "rhel-ca-guven/ca-dogrula.py", "veeam-linux/veeam-tani.py"].map((x) => "/root/ai/opencode/knowledge/skills/approved/" + x),
 )
 
 export const KUBE_DEGERLI = new Set(["-n", "--namespace", "--context", "--kubeconfig", "--cluster", "--user", "-s",

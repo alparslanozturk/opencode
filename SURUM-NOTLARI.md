@@ -14,6 +14,9 @@ Sahada: `git pull && ./kur.sh`, opencode'u yeniden aç.
   (tam ad / `"*"`, rewrite) göre çözer — "aynada" / "ayna yok"; kurulumdan sonra `cekme` ile ErrImagePull/ImagePullBackOff taraması
   ("kuruldu" demenin kanıtı). Kurum registry'leri Alp'in ekranlarından: Nexus (`registry.<kurum>`, traefik yol → port tablosu, depolar),
   Harbor proxy cache proje kuralı. Bilinmeyenler `[SAHA]`. Test 160/160.
+- **Yeni beceri `veeam-linux` (G117):** Veeam restore "No such file or directory" — `veeam-tani.py` sunucudan kanıt toplar (/tmp noexec,
+  /run/veeamtransport, servisler, Veeam logları) ve bilinen sebepleri kaynağıyla sıralar (KB2099, Veeam forumu); asıl hatanın VBR iş logunda
+  olduğunu söyler. Kanıtsız servis restart'ı yok.
 - **OS güncelleme (G116):** `rhel-guncelleme` 1b konteyner fotoğrafı (reboot öncesi/sonrası ad · durum · restart politikası; açılmayacakları
   önceden listeler, düzeltmez); `filo-tablo.py --say surum` sürüm dağılımını sayar (elle toplama yok); kilit: `h=$(host …)` atamalı okuma
   döngüsü ve ansible `{% raw %}` artık onay sormaz.

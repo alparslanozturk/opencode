@@ -619,6 +619,19 @@ python3 "$B/filo-kontrol/filo-tablo.py" fs-d --kv --say surum > fs.txt 2>&1
 icerir "say: 8.7 iki sunucu, adlarıyla" fs.txt "RHEL 8.7                       ×2   a b"
 icerir "say: 9.8 bir sunucu" fs.txt "RHEL 9.8                       ×1   c"
 
+# --------------------------------------------------------------------------- veeam-tani
+baslik "veeam-tani.py (Veeam restore hatası; 2026-11-02)"
+VT="$B/veeam-linux/veeam-tani.py"
+printf 'acilis=2026-11-02 15:40:11\nveeam_paket=veeamtransport-13.0.0\nbaglama_tmp=/tmp rw,nosuid,nodev,noexec,relatime\nrun_veeamtransport=YOK\nservis_veeamtransport=failed/enabled\nservis_veeamnetfsmount=inactive/enabled\nlog_hata=ERR |POSIX: Failed to create or open file [/var/run/veeamtransport/veeamtransport.pid].|No such file or directory|\n' > vt1.txt
+if python3 "$VT" tani vt1.txt > vt1.out; then kaldi "veeam: bulgu varken çıkış 1 bekleniyordu"; else gecti "veeam: bulgu → çıkış 1"; fi
+icerir "veeam: /tmp noexec → KB2099" vt1.out "kaynak: Veeam KB2099"
+icerir "veeam: transport pid hatası" vt1.out "/run/veeamtransport yok — logda veeamtransport.pid hatası"
+icerir "veeam: netfsmount koşullu = not" vt1.out "NOT: veeamnetfsmount inactive/enabled"
+printf 'acilis=x\nbaglama_tmp=/ rw,relatime\nrun_veeamtransport=YOK\nservis_veeamtransport=active/enabled\nservis_veeamnetfsmount=inactive/enabled\nlog_hata=\n' > vt2.txt
+python3 "$VT" tani vt2.txt > vt2.out && gecti "veeam: temiz sunucu → çıkış 0" || kaldi "veeam temiz: $(cat vt2.out)"
+icerir "veeam: kanıt VBR tarafında" vt2.out "EKSİK KANIT: sunucu logunda"
+icermez "veeam: transport çalışıyorsa /run eksikliği bulgu değil" vt2.out "BULGU"
+
 # --------------------------------------------------------------------------- kilit
 baslik "Becerilerdeki sabit okuma komutları güvenlik kilidinden geçiyor (G67/G68)"
 if command -v bun > /dev/null; then

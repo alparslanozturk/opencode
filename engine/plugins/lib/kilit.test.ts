@@ -955,3 +955,8 @@ describe("2026-11-02: ansible -a içinde {% raw %} ve continue okuma; içerideki
   ]
   for (const c of degistirir) test(`K1: ${c}`, () => expect(kilitDenetle("bash", { command: c }, workdir, undefined)?.kilit).toBe("K1"))
 })
+
+describe("2026-11-02: veeam-tani okuma", () => {
+  test("veeam-tani borusu kesin okuma", () =>
+    expect(kesinOkuma(`ssh root@d 'echo acilis=$(uptime -s); systemctl is-active veeamtransport' | python3 /root/ai/opencode/knowledge/skills/approved/veeam-linux/veeam-tani.py tani -`, workdir)).toBe(true))
+})

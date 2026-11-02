@@ -1472,3 +1472,12 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   "sadece bilsem yeterli, müdahale edecek kadar bilgiye gerek yok". Kritik: fstab sağlığı (reboot sonrası açılmayabiliyor); önce restart,
   sonra upgrade. Aksiyon: `rhel-guncelleme` 1 — filo fstab komutu (`findmnt --verify` rc/özet/hedef:hata + fstab'da olup bağlı olmayan;
   yerelde sağlam + bozuk örnekle ölçüldü, kilit serbest); 1b "bilgi amaçlı, analiz/düzeltme yok".
+
+### G117 — dtlmrestore Veeam restore "dosya ya da dizin bulunamadı"; ajan kanıtsız 6 servisi restart etti (Alp, 2026-11-02, 1 ekran)
+- Görülen: ajan `systemctl restart veeamservice && … veeamenvironment && … veeamdeployment && … veeamimmurepo` + status; "5 serviden 6'sı
+  yeniden başlatıldı"; veeamnetfsmount inactive (koşullu — ExecCondition `-checkserver`, doğru yorumladı ✅). Restart öncesi hata kanıtı yok.
+- Alp: "Restore başlatınca yedekçi dosya ya da dizin bulunamadı hatası veriyor. Temp diziniyle mi alakalı? Derin araştır."
+- Doktor araştırması (web): KB2099 — Veeam Linux betiklerini /tmp'den çalıştırır, noexec engeller (VBR'de LinAgentFolder); forum t=100308 —
+  V13'te OS yaması + reboot sonrası `/var/run/veeamtransport/veeamtransport.pid` "No such file or directory"; forum t=86837 — Explorer restore'da
+  `/tmp/Veeam.Mount.FS.*` chown "No such file". Kurum RHEL 9 template'i CIS'li → /tmp noexec olası (dtlmrestore'da ölçülmedi).
+- Aksiyon: yeni beceri `veeam-linux` + `veeam-tani.py` (salt-okunur kanıt komutu + kaynaklı BULGU/EKSİK KANIT; kilitte onaysız); test 169/169.

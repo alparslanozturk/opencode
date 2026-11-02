@@ -1479,6 +1479,12 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   host başına `ssh -o StrictHostKeyChecking=accept-new` döngüsü. ✅ Kullanışlı olan yalnız restart politikası satırı (astreds ve graylg
   ES/mongo reboot sonrası açılmaz — sahibine haber). Aksiyon: `rhel-guncelleme` 1b'ye "açılır mı = servis enabled + restart politikası"
   ve "yapma" listesi (history/kullanıcı/grup araştırması, `down -v` tekrarı, ssh döngüsü).
+- Devam (Alp, 2 ekran — "önce fstab, sonra reboot, sonra güncelleme"): ajan fstab'ı host başına ssh döngüsüyle `cat /etc/fstab` +
+  `mount -av` ile kontrol etti ("13/13 OK"; `mount -av` bağlı olmayanı **bağlar** — değişiklik; zaten bağlı satır için "already mounted"
+  der). Reboot onayı: `ansible -i …hosts-20261030-dn29107.ini os-upgrade-29107 -m reboot -T 60 --forks 5 -l splast* -l spd2ast*` —
+  ❌ ansible 2.16'da `-l` tek değerli, **sonuncusu** geçer (Doktor yerelde ölçtü: `--list-hosts` yalnız spd2ast*); kilit ise ilk `-l`'yi
+  hedef sayıyordu (onay ekranı ≠ gerçek hedef). Aksiyon: kilit — değiştiren ansible/ansible-playbook komutunda birden çok `-l` K5 +
+  "':' ile birleştir" gerekçesi (test 336/336); `ansible` §4 not. Alp: "hepsinde docker servisi otomatik çalışıyordur" (enabled ölçülmedi).
 
 ### G117 — dtlmrestore Veeam restore "dosya ya da dizin bulunamadı"; ajan kanıtsız 6 servisi restart etti (Alp, 2026-11-02, 1 ekran)
 - Görülen: ajan `systemctl restart veeamservice && … veeamenvironment && … veeamdeployment && … veeamimmurepo` + status; "5 serviden 6'sı

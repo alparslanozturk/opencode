@@ -10,9 +10,13 @@ Kaynak etiketi: **(Alp)** kurum bilgisi · **(saha G…)** saha gözlemi · **(�
 
 ## 0. Kurum durumu
 
-- **Güncel (Alp, 2026-11-03):** "defender (twistlock) ve şu an kubernetes sunucularda xdr yok, sadece sep var"; RHEL makinelerde SEP'in
-  bazı istisnaları (exception) var — hangi yol/süreç olduğu `[SAHA]`. Not: aşağıdaki 2026-10-20 satırı "Twistlock kalacak" diyordu;
-  Twistlock'un kaldırılıp kaldırılmadığını sunucuda ölç (`systemctl list-units | grep -i -e twistlock -e defender`), çelişkiyi Alp'e sor.
+- **Güncel (Alp, 2026-11-03):** k8s node'larında OS üzerine **XDR kurulmadı**; **Twistlock (Prisma Cloud Defender)** OS'e kurulu değil,
+  kümede **DaemonSet** olarak çalışıyor — süreci OS'te `defender` diye görünür (bu yüzden `systemctl` listesinde servis olarak çıkmaz,
+  `ps`'te çıkar). Alp tahmini: "sanırım izleme modunda" — mod (alert / prevent-block) Prisma Console'daki runtime kuralındadır, node'dan
+  okunmaz → `[SAHA]`, güvenlik ekibine sor; "izleme modunda, etkisi yok" diye yazma. **SEP** OS'te kurulu; Alp'e göre Symantec'in
+  gerçek zamanlı AV taraması + IPS + IDS ürünü (Alp: "sanırım" — bileşenleri sunucuda ölç: `lsmod` `sisap`/`sisevt`, `sisidsdaemon`
+  süreci, §1). RHEL makinelerde SEP'in bazı istisnaları (exception) var — hangi yol/süreç `[SAHA]`.
+  Ölç (okuma): `kubectl get ds -A | grep -i -e defender -e twistlock` (1. master) · node'da `pgrep -a defender` · `lsmod | grep -i sis`.
   Aşağıdaki maddeler tarihseldir; ajan durumu her olayda §1 komutuyla ölçülür.
 
 - Test kümesi worker'larında üç ajan (Alp, saha G72, 2026-10-20): **SEP** (Symantec, `sisamdagent`; `sisap`/`sisevt` modülleri —

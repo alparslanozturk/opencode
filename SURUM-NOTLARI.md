@@ -6,6 +6,15 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-03 — gece değişikliği dersleri (G116, G118): kilit çift `-l`, compose fotoğrafı, düstur, `rhel-nfs`
+
+Sahada: `git pull && ./kur.sh`, opencode'u yeniden aç.
+- Kilit: değiştiren ansible komutunda birden çok `-l` engellenir (ansible yalnız sonuncuyu uygular); `ansible` §4 `-l 'a*:b*'`.
+- `is-envanter.py --grup` tireyi `_` yapar ("Invalid characters were found in group names" uyarısı biter).
+- `rhel-guncelleme` 1b: konteyner fotoğrafında compose dizini/dosyası (etiketten), "compose'a bak = bu komut".
+- `engine/AGENTS.md` **Düstur:** her beceride önce sor, her şey kanıtlı; performans üç eksende; önerilen seçenek man'de olmalı.
+- Yeni beceri **`rhel-nfs`** (`nfs-tani.py`): açılışta NFS bağlama zamanı ↔ konteyner başlama zamanı, `nofail`, motor sırası.
+
 ## 2026-11-02 — kurum registry becerisi (G115)
 
 Sahada: `git pull && ./kur.sh`, opencode'u yeniden aç.

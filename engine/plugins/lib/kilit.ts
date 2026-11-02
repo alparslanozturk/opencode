@@ -824,7 +824,7 @@ export const SALT_OKUNUR = new Set([
   "cmp", "sort", "uniq", "cut", "tr", "column", "jq", "yq", "xxd", "od", "strings", "readlink", "realpath",
   "basename", "dirname", "lscpu", "lsmem", "lspci", "lsusb", "lsmod", "modinfo", "dmidecode", "ping",
   "traceroute", "tracepath", "dig", "nslookup", "host", "sleep", "continue", "break", "tree", "getfacl", "lsattr", "atq",
-  "systemd-analyze", "needs-restarting", "top", "vmstat", "iostat", "mpstat", "sar", "nproc", "arch",
+  "systemd-analyze", "systemd-escape", "needs-restarting", "top", "vmstat", "iostat", "mpstat", "sar", "nproc", "arch",
   "locale", "ntpq", "nc", "curl", "wget", "openssl", "ansible", "cd", "xfs_info",
   "pidstat", "fincore", "sadf", "iotop", "slabtop", "numastat", "lsns", "lslocks", "lsipc",
   "mountpoint", "nfsiostat", "mountstats", // NFS/bağlama teşhisi (G71)
@@ -1155,7 +1155,7 @@ export function saltOkunur(argv: string[]): boolean {
 
 // Dosya yazmayan, yalnız okuyup basan beceri betikleri (kaynağı denetlendi: open() yalnız okuma, subprocess yok/yalnız openssl okuma).
 export const OKUYAN_BECERI_BETIGI = new Set(
-  ["kurum-registry/imaj-yol.py", "rhel-ca-guven/ca-dogrula.py", "veeam-linux/veeam-tani.py"].map((x) => "/root/ai/opencode/knowledge/skills/approved/" + x),
+  ["kurum-registry/imaj-yol.py", "rhel-ca-guven/ca-dogrula.py", "veeam-linux/veeam-tani.py", "rhel-nfs/nfs-tani.py"].map((x) => "/root/ai/opencode/knowledge/skills/approved/" + x),
 )
 
 export const KUBE_DEGERLI = new Set(["-n", "--namespace", "--context", "--kubeconfig", "--cluster", "--user", "-s",

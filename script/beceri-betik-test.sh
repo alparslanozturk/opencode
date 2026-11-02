@@ -591,6 +591,26 @@ icerir "yol: son durumda Antrea ↔ 1.36 garantili" uy3.txt "✅ Antrea v2.7.0 �
 python3 "$B/surum-uyum/uyum.py" kontrol --rancher v2.15.2 --rke2 v1.33.13+rke2r3 --tarih 2026-10-26 > uy4.txt 2>&1
 icerir "Rancher 2.15 ↔ downstream 1.33 ❌" uy4.txt "❌ Rancher v2.15.2 ↔ downstream RKE2 1.33"
 
+# --------------------------------------------------------------------------- imaj-yol
+baslik "imaj-yol.py (kurum registry aynaları; 2026-11-02)"
+IY="$B/kurum-registry/imaj-yol.py"
+printf 'mirrors:\n  "*":\n    endpoint: ["https://reg.ornek"]\n  registry.k8s.io:\n    endpoint: ["https://reg.ornek"]\n    rewrite:\n      "^(.*)$": "k8s/$1"\nconfigs:\n  reg.ornek:\n    auth: {username: u, password: GIZLI}\n' > iy-reg.yaml
+printf 'mirrors:\n  docker.io:\n    endpoint: ["https://cr.ornek"]\n' > iy-reg2.yaml
+printf 'kind: Deployment\nspec:\n  template:\n    spec:\n      initContainers: [{name: i, image: busybox}]\n      containers:\n      - name: a\n        image: registry.k8s.io/sig-storage/nfs-subdir-external-provisioner:v4.0.2\n---\nkind: Pod\nspec: {containers: [{name: d, image: "quay.io/x/y@sha256:abc"}]}\n' > iy-m.yaml
+python3 "$IY" imajlar iy-m.yaml > iy1.txt
+icerir "imajlar: initContainers dahil" iy1.txt "busybox"
+icerir "imajlar: çok belgeli YAML" iy1.txt "quay.io/x/y@sha256:abc"
+if python3 "$IY" yol --registries iy-reg.yaml --dosya iy-m.yaml > iy2.txt; then gecti "yol: hepsi aynada → çıkış 0"; else kaldi "yol çıkış 0 bekleniyordu: $(cat iy2.txt)"; fi
+icerir "yol: docker.io kısa ad + library/" iy2.txt "library/busybox"
+icerir "yol: rewrite uygulanır" iy2.txt "k8s/sig-storage/nfs-subdir-external-provisioner (rewrite)"
+icermez "yol: parola basılmaz" iy2.txt "GIZLI"
+if python3 "$IY" yol --registries iy-reg2.yaml --dosya iy-m.yaml > iy3.txt; then kaldi "yol: aynasız imajda çıkış 1 bekleniyordu"; else gecti "yol: aynasız → çıkış 1"; fi
+icerir "yol: aynasız imaj adı" iy3.txt "AYNA YOK → doğrudan registry.k8s.io adresine gider"
+printf '{"items":[{"metadata":{"namespace":"nfs","name":"p1"},"status":{"containerStatuses":[{"image":"registry.k8s.io/x:1","state":{"waiting":{"reason":"ImagePullBackOff","message":"Back-off pulling"}}}]}},{"metadata":{"namespace":"a","name":"ok"},"status":{"containerStatuses":[{"image":"a","state":{"running":{}}}]}}]}' > iy-p.json
+if python3 "$IY" cekme - < iy-p.json > iy4.txt; then kaldi "cekme: hata varken çıkış 1 bekleniyordu"; else gecti "cekme: hata → çıkış 1"; fi
+icerir "cekme: pod + sebep" iy4.txt "nfs/p1  registry.k8s.io/x:1  ImagePullBackOff"
+printf '{"items":[]}' | python3 "$IY" cekme - > iy5.txt && gecti "cekme: hata yok → çıkış 0" || kaldi "cekme boş liste"
+
 # --------------------------------------------------------------------------- kilit
 baslik "Becerilerdeki sabit okuma komutları güvenlik kilidinden geçiyor (G67/G68)"
 if command -v bun > /dev/null; then

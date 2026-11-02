@@ -2,7 +2,7 @@
 // yükleyicisi ya da audit dosyası yok; yalnız girdi → karar. 2.x adaptörü de aynı sözleşmeyi kullanacak.
 // Davranışın 2.x adaptörü üzerinden geniş testi ../guvenlik-v2.test.ts'te.
 import { describe, expect, test } from "bun:test"
-import { aralikAc, kilitDenetle, yetkiAktif, yetkiSatirlariniOku, type Yetki } from "./kilit"
+import { aralikAc, kesinOkuma, kilitDenetle, yetkiAktif, yetkiSatirlariniOku, type Yetki } from "./kilit"
 
 const workdir = "/tmp/kilit-cekirdek-proje"
 const yetkiVer = (metin: string): Yetki => {
@@ -908,4 +908,21 @@ describe("2026-10-31: güncelleme akışı okumaları", () => {
     expect(k(`ssh root@w1 "dnf -q repoinfo --enabled | grep -E '^Repo-(id|updated)'"`)).toBeNull()
     expect(k(`ansible web -i hosts.ini -m shell -a 'dnf -q repoinfo --enabled 2>/dev/null | grep -E "^Repo-(id|updated)"' -t cikti/filo/repo`)).toBeNull()
   })
+})
+
+describe("2026-11-02: kitin okuyan beceri betikleri onaysız (tam yol), başkaları sorulur", () => {
+  const B = "/root/ai/opencode/knowledge/skills/approved"
+  const okur = [
+    `ssh m1 "/var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml get pods -n nfs -o json" | python3 ${B}/kurum-registry/imaj-yol.py cekme -`,
+    `ssh n1 "cat /etc/rancher/rke2/registries.yaml" | python3 ${B}/kurum-registry/imaj-yol.py yol --registries - --dosya /tmp/a.yaml`,
+    `python3 ${B}/rhel-ca-guven/ca-dogrula.py tablo cikti/ca --kaynak kt.pem`,
+  ]
+  for (const c of okur) test(`kesin okuma: ${c}`, () => expect(kesinOkuma(c, workdir)).toBe(true))
+  const degil = [
+    `python3 /tmp/imaj-yol.py cekme -`,
+    `python3 imaj-yol.py cekme -`,
+    `python3 ${B}/kume-bul/kume-bul.py --kaydet x`,
+    `python3 ${B}/kurum-registry/imaj-yol.py imajlar a.yaml > /etc/x`,
+  ]
+  for (const c of degil) test(`okuma sayılmaz: ${c}`, () => expect(kesinOkuma(c, workdir)).toBe(false))
 })

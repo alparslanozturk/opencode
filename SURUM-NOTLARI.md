@@ -6,6 +6,16 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-02 — kurum registry becerisi (G115)
+
+Sahada: `git pull && ./kur.sh`, opencode'u yeniden aç.
+
+- **Yeni beceri `kurum-registry`** + `imaj-yol.py`: manifest/helm çıktısındaki imajları düğümün RKE2 `registries.yaml` aynalarına
+  (tam ad / `"*"`, rewrite) göre çözer — "aynada" / "ayna yok"; kurulumdan sonra `cekme` ile ErrImagePull/ImagePullBackOff taraması
+  ("kuruldu" demenin kanıtı). Kurum registry'leri Alp'in ekranlarından: Nexus (`registry.<kurum>`, traefik yol → port tablosu, depolar),
+  Harbor proxy cache proje kuralı. Bilinmeyenler `[SAHA]`. Test 160/160.
+- **Kilit:** kitin yalnız okuyan iki betiği (`imaj-yol.py`, `ca-dogrula.py`) tam yolla çağrılınca onaysız (kilit testi 287/287).
+
 ## 2026-10-26 / 27 — saha haftası: git girişi, yeni beceriler, kilit düzeltmeleri (26 commit)
 
 Saha gözlemleri G103–G113 (Alp'in ekranları). Sahada: `git pull && ./kur.sh`, opencode'u yeniden aç.

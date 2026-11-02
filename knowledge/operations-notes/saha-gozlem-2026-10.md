@@ -1445,3 +1445,10 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   tahmin: düğümlerde RKE2 `registries.yaml` `mirrors` tanımlı (doğrulanmadı; okuma komutu Alp'e önerildi).
 - Açık sorular (Alp'e): platform ↔ Rancher adresi ↔ nesil ↔ registry tablosu; Harbor'daki ad eşlemesi (`registry.k8s.io` → `registry.k8s.io_2`?
   ekranda cr vs cr-test farkı); yükleme helm ile mi; eski platformların kaldırılma zamanı ("1 yıl 6 yıl" — net değil).
+- Devamı (Alp, aynı gün, 7 ekran): Nexus sunucusu `splsonatype01` (`~/nexus/docker-compose.yml`: traefik v3.3.5 + nexus3 3.79.1; `registry.<kurum>`
+  yol → port: `/`→8081, `/v2`→8082 = `docker-group`, `/v2/hosted|quay|k8s|elk|twistlock|peaka` → 8083–8088), Nexus depo listesi, Harbor
+  `cr-test` proje listesi (proxy cache projeleri kaynak kayıt adıyla). Alp: "registry.<kurum> daha aktif kullanıyorum; diğerlerini kendin
+  çıkarabilirsin" → platform/ayna bilgisi düğümden okunur (soru listesi değil). Değişiklik yönetimi: haftalık toplantı, BOA "Sistem Değişikliği
+  Tanımlama" kaydı (görevler, etkilenen sunucular, planlanan pencere, kesinti süresi, CAB). `splsonatype01` GitHub'dan pull yapabiliyor (push bilinmiyor).
+- Aksiyon (yapıldı): yeni beceri `kurum-registry` + `imaj-yol.py` (imajlar · yol · cekme); kilit: okuyan beceri betikleri tam yolla onaysız.
+- Sonraki (Alp): kurulum hepapi `rke2-node-addition` (srvsatellite'ta klon) + Alp'in 2.0 ansible yeniden yazımı — incelenecek, kullanım belirsiz.

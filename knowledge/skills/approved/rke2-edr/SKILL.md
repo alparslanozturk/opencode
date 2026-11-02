@@ -1,6 +1,6 @@
 ---
 name: rke2-edr
-description: RKE2/Kubernetes node'larındaki güvenlik ajanlarının (EDR/AV — Symantec SEP, Palo Alto Cortex XDR/Traps, Prisma Cloud/Twistlock Defender) node takılmasına, antrea-ovs/containerd beklemesine, yüksek CPU/belleğe etkisini incelerken ve "ajanı kapattım, düzeldi mi" sorusunu doğrularken kullan. "edr", "xdr", "cortex", "traps", "traps_pmd", "pmd", "sep", "symantec", "sisamddaemon", "antivirüs", "av", "twistlock", "prisma", "defender", "güvenlik ajanı", "xdr kaldırdım", "sep kapat", "ajan kapatınca düzeldi" isteklerinde tetiklenir. Node takılmasının genel incelemesi `rke2-denetim` §4. Yalnız okur; ajanı durdurmak/kaldırmak/istisna eklemek kullanıcının ve güvenlik ekibinin işi.
+description: RKE2/Kubernetes node'larındaki ve RHEL sunuculardaki (SEP yüksek CPU, NFS taraması, istisnalar, donma — §2b) güvenlik ajanlarının (EDR/AV — Symantec SEP, Palo Alto Cortex XDR/Traps, Prisma Cloud/Twistlock Defender) node takılmasına, antrea-ovs/containerd beklemesine, yüksek CPU/belleğe etkisini incelerken ve "ajanı kapattım, düzeldi mi" sorusunu doğrularken kullan. "edr", "xdr", "cortex", "traps", "traps_pmd", "pmd", "sep", "symantec", "sisamddaemon", "antivirüs", "av", "twistlock", "prisma", "defender", "güvenlik ajanı", "xdr kaldırdım", "sep kapat", "ajan kapatınca düzeldi" isteklerinde tetiklenir. Node takılmasının genel incelemesi `rke2-denetim` §4. Yalnız okur; ajanı durdurmak/kaldırmak/istisna eklemek kullanıcının ve güvenlik ekibinin işi.
 ---
 
 # Güvenlik ajanları (EDR/AV) ve node takılması
@@ -20,7 +20,7 @@ Kaynak etiketi: **(Alp)** kurum bilgisi · **(saha G…)** saha gözlemi · **(�
   Aşağıdaki maddeler tarihseldir; ajan durumu her olayda §1 komutuyla ölçülür.
 
 - Test kümesi worker'larında üç ajan (Alp, saha G72, 2026-10-20): **SEP** (Symantec, `sisamdagent`; `sisap`/`sisevt` modülleri —
-  saha G44), **Cortex XDR** (Palo Alto, systemd `traps_pmd`, `/opt/traps`), **Twistlock** (Prisma Cloud Defender,
+  saha G44), **Cortex XDR** (Palo Alto Networks — eski adı Traps; systemd `traps_pmd`, `/opt/traps/bin/pmd`, sürüm `/opt/traps/version.txt`, araç `/opt/traps/bin/cytool` — Palo Alto Cortex XDR Agent belgesi), **Twistlock** (Prisma Cloud Defender,
   `/usr/local/bin/defender`). Kurum SEP kaynak sınırı: CPU %400, MemoryHigh 2G, Max 3G (saha G44, kaynak `08-sep-sinirlama` `[SAHA]`).
 - 2026-10-20 wor14: önce ssh zaman aşımı + `antrea-agent` liveness `connection refused`; Alp **XDR'ı kaldırdı** → Ready, antrea
   2/2 Running (ajan raporu). SEP belki kapatılacak; **Twistlock kalacak** (kaldırılamaz). wor14'te ağır iş yükü: Milvus.
@@ -78,6 +78,28 @@ ansible <grup> -i <envanter> -m shell -o -f 20 -T 10 --task-timeout 30 -a 'syste
 - SEP IDS bileşeni varsayılan olarak her sürece (konteynerler dahil) girer, çok sayıda `sisidsdaemon` görülebilir; çözüm
   `/opt/Symantec/sdcssagent/IDS/system/LocalAgent.ini` → `Enable Container Monitor=0` + reboot, 14.3 RU1 ve üstü (üretici:
   Broadcom KB 240470). Değişikliktir — SEP yöneticisi yapar.
+
+## 2b. SEP — yüksek CPU, donma, NFS: belgede ne var, ne yok (araştırma 2026-11-03, Alp sorusu)
+
+Soru (Alp): "Aşırı CPU kullanımından kaynaklı sunucu donması ve NFS performansını etkiliyor mu?" — RHEL sunucular için de geçerli.
+- **Yüksek CPU — belgeli:** "By default, Auto-Protect will scan any file that is accessed or modified… On busy servers, this activity can
+  cause high CPU / Memory usage" (Broadcom KB 237314; Linux Agent 14.3 RU1+). Hangi dosyaların tarandığı: `su - sisips -c
+  "./sisipsconfig.sh -approfile 10"` → `/var/log/sdcsslog/amdlog/profile.log` (yalnız "Completed" satırlar taranmıştır). `top`'taki CPU
+  tüm iş parçacıklarının toplamıdır — tek başına "aşırı" kanıtı değil.
+- **NFS (ağ dosyaları) — belgeli:** "For best performance, files should be scanned by the local host and not by remote clients" — SEPM'de
+  Policies → Virus and Spyware Protection → Linux Settings → Auto-Protect → Scan Details → Advanced Scanning and Monitoring → **"Scan files
+  on remote computers"** (Broadcom KB 162599; sürüm belirtilmemiş). Bu ayar sizde açık mı `[SAHA]` — SEP yöneticisi. Saha logu
+  `SISEVT … fopmap_check_entry: patched fop … (nfs4)` SEP modülünün NFS4 dosya işlemlerine bağlandığını gösterir; **etkisinin büyüklüğü
+  ölçülmedi** (ölçüm: `rhel-nfs` §4 `nfsiostat`, SEP'li ↔ SEP'siz ya da ayar önce ↔ sonra).
+- **İstisnalar çalışmıyor olabilir — belgeli:** ROOT/HOME/BIN/ETC/USR/OPT önek değişkeniyle yazılan Linux istisnası **geçersiz** olur →
+  sisamddaemon yüksek CPU; çözüm önek `[NONE]` + tam yol (Broadcom KB 250717; SEP/SES 14.3 RU1–RU5, SEPLINUX-1552). Kurumdaki RHEL
+  istisnalarının yazımı `[SAHA]` — SEP yöneticisine sorulacak ilk şey.
+- **Donma (hung task) — kısmen belgeli, SEP için doğrudan değil:** Red Hat 5201171 (RHEL 7.9–10): güvenlik ajanı fanotify izin
+  yanıtını beklerken, kendisi **NFSv4 ID eşleme upcall'ını** (`request-key` → `/usr/sbin/nfsidmap`) bekliyor → kilitlenme, "blocked for
+  more than 120 seconds", yığında `fanotify_handle_event`/`fsnotify`. Listede **Twistlock Defender** var; Symantec yalnız VMware vsep ile
+  birlikte anılıyor, SEP'in `sisap/sisevt` modülleri anılmıyor — SEP'in fanotify kullanıp kullanmadığı bilinmiyor. Red Hat 2302001: eski
+  Symantec CSP `sisfim` modülünde hung task (RHEL 6). Yani "SEP sunucuyu dondurur" **belgede yok**; kanıt yalnız olay anının yığını (§3.1).
+- **Sonuç yazımı:** "SEP yavaşlatıyor/donduruyor" ancak §3 kanıtıyla; yoksa "belgede mümkün gösterilen mekanizma şu, sizde ölçülmedi".
 
 ## 3. Kanıt — sebep ajan mı? (en güçlüden zayıfa)
 

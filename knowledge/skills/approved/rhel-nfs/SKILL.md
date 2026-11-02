@@ -63,6 +63,9 @@ ile host'ta `ls <hedef>`. Farklıysa konteyner yerel dizini görüyor.
   largest rsize value that they can both support"; Linux istemci üst sınırı 1048576). Etkin 262144 ve fstab'da değer yoksa sınır
   sunucuda olabilir (tahmin) — önce fstab satırına bak.
 - Başka yapay zekanın cevabı kaynak değildir (G118: `-g` için iki yapay zeka iki ayrı anlam yazdı).
+- **SEP ve NFS:** Auto-Protect'in ağ dosyalarını taraması ("Scan files on remote computers", Broadcom KB 162599), geçersiz istisna
+  (KB 250717) ve güvenlik ajanı + NFSv4 ID eşleme upcall kilitlenmesi (Red Hat 5201171) → `rke2-edr` §2b (RHEL için de geçerli). Donma
+  olursa ilk kanıt olay anının çekirdek yığını; nfsidmap satırları tek başına sebep değildir.
 
 ## 4. Performans — üç eksen (yalnız ölçümle)
 

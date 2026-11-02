@@ -1,6 +1,6 @@
 ---
 name: rke2-node-ekle
-description: Mevcut RKE2 kümesine yeni worker ya da sunucu (control-plane) eklerken kullan — firewall ve storage (NFSv3 IP izni) hatırlatması, rke2-ansible ile --limit'li ekleme, kayıt adresi (9345/6443), token, sürüm eşleşmesi, Antrea imajı, node adı, elle fiziksel GPU worker (H200) ve disk düzeni. "node ekle", "worker ekle", "sunucu ekle", "kümeye ekle", "yeni worker", "gpu worker ekle", "h200 ekle", "join", "nfs izni", "firewall izni", "storage izni" isteklerinde tetiklenir. Playbook temeli ve kurum kararları: `rke2-kurulum`.
+description: Mevcut RKE2 kümesine yeni worker ya da sunucu (control-plane) eklerken kullan — firewall ve storage (NFSv3 IP izni) hatırlatması, rke2-ansible ile --limit'li ekleme, sahada hepapi rke2-node-addition (add-nodes.sh), kayıt adresi (9345/6443), token, sürüm eşleşmesi, Antrea imajı, node adı, elle fiziksel GPU worker (H200) ve disk düzeni. "node ekle", "add-nodes", "rke2-node-addition", "worker ekle", "sunucu ekle", "kümeye ekle", "yeni worker", "gpu worker ekle", "h200 ekle", "join", "nfs izni", "firewall izni", "storage izni" isteklerinde tetiklenir. Playbook temeli ve kurum kararları: `rke2-kurulum`.
 ---
 
 # Kümeye node ekleme
@@ -65,6 +65,19 @@ kubectl -n kube-system get ds -o wide | grep -i antrea      # antrea-agent imaj�
 node-taint, node-ip) deseni neyse aynısı. `all.yml`'de `rke2_kubernetes_api_server_host` ve tarball yolu 1-2. tuzağa
 göre dolu olsun. Sunucu (control-plane) ekliyorsan `rke2_servers`'ın **sonuna**, toplam sunucu **tek** sayı.
 
+**1b) Sahada kullanılan yol — hepapi `rke2-node-addition`** (Alp, 2026-11-02: "yeni node eklediğimizde bu adresteki kodu kullanıyoruz";
+srvsatellite'ta klon, origin `github.com/hepapi/rke2-node-addition`). Aşağısı depodan okundu (commit `7a01dcd`, 2026-10-01):
+- Ayrı envanter: yalnız **yeni** makineler `rke2_additions` grubunda, her birinde `rke2_addition: true` + `rke2_node_role: rke2_agents`
+  (worker) ya da `rke2_servers` (sunucu), isteğe bağlı `node_name` (`inventory/new-nodes.yml.example`). Mevcut node'ları bu dosyaya yazma.
+- `./add-nodes.sh <küme envanteri dosyası|klasörü> inventory/new-nodes.yml [ansible-playbook seçenekleri]` → `add-nodes.yml`'yi küme
+  envanteri + yeni envanterle koşar; oyun yalnız `rke2_additions` host'larında, rol rke2-ansible'ın `roles/rke2`'si.
+- **Klasör verilirse içinde `hosts.yml` arar.** Küme envanteri `host.yml` adlıysa (yukarıdaki düzen) **dosyanın yolunu** ver.
+- rke2-ansible yeri varsayılan `/home/ubuntu/rke2-ansible` → sahada `RKE2_ANSIBLE_DIR=<rke2-ansible klonu>` ver (yol `[SAHA]`, `ls` ile bul;
+  betik `roles/rke2` yoksa çıkış 2 ile durur).
+- Küme envanteri klasöründe `files/registries.yaml` ve `files/audit-policy.yaml` varsa onları yeni node'a gönderir → önce bu
+  `registries.yaml`'ı çalışan bir node'unkiyle karşılaştır (`kurum-registry` §1); farklıysa yeni node imajı başka yerden çekmeye çalışır.
+- Sıra: `--list-hosts` (yalnız yeni host'lar görünmeli) → `--check --diff` → gerçek koşu → 4) doğrulama.
+
 **2) Kuru koşu** (değişiklik yapmaz; tarball/shell adımları check modda atlanabilir — amaç hedef listesi ve
 config.yaml diff'i):
 ```bash
@@ -88,6 +101,7 @@ kubectl get nodes -o wide                                            # yeni node
 kubectl get pods -A -o wide --field-selector spec.nodeName=<yeni1>   # antrea-agent, kube-proxy Running
 ssh <yeni1> 'systemctl is-active rke2-agent; journalctl -u rke2-agent -n 30 --no-pager'
 ```
+Çekme hatası kanıtı: `ssh <master> "/var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml get pods -A -o json --field-selector spec.nodeName=<yeni1>" | python3 /root/ai/opencode/knowledge/skills/approved/kurum-registry/imaj-yol.py cekme -`.
 NotReady ise sırayla: antrea-agent imaj çekme (ImagePullBackOff) → 9345/6443 erişimi → token/`server:` satırı →
 sürüm farkı.
 

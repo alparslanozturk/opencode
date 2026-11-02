@@ -51,6 +51,7 @@ betiktir; model ham veriyi betiğe **borular**, betiğin bastığı satırı **a
 | `ca-dogrula.py` | `rhel-ca-guven` | CA sertifikası gerçekten yüklü mü: dosya + sha, güven paketi, trust list, URL'ler → sunucu başına TAMAM/EKSİK |
 | `imaj-yol.py` | `kurum-registry` | Manifest/helm imajları düğümün RKE2 aynalarına (mirrors + rewrite) göre nereden çekilir; kurulum sonrası çekme hatası (ErrImagePull/ImagePullBackOff) |
 | `nfs-tani.py` | `rhel-nfs` | NFS istemcisi: açılışta bağlama zamanı/hatası, NFS'ten önce başlayan konteyner, motor servis sırası, nofail, readahead → BULGU (man kaynaklı) |
+| `sep-istisna.py` | `rke2-edr` | SEP Auto-Protect istisna adayları: sunucuda var olan yollardan tam yol + kaynak (Broadcom KB, MongoDB, RKE2), kurum kararı ve kaynaksız aday ayrı |
 | `veeam-tani.py` | `veeam-linux` | Veeam Linux sunucusunda restore/iş hatası: salt-okunur komut + bilinen sebep kararı (/tmp noexec KB2099, /run/veeamtransport, koşullu veeamnetfsmount) |
 | `ntp-mode6.py` | `solaris-ntp` | NTP mode 6 (ntpq kontrol sorgusu) dışarıya açık mı — tarama bulgusunu bu makineden, ek araçsız sınar (önce/sonra) |
 | `belge-oku.py` | `belge-oku` | Excel/Word/PowerPoint/PDF/OneNote dışa aktarımı → yer bilgili metin (serbest metin: sır maskelenmez — kopyalama kuralı SKILL §3) |

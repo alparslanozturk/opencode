@@ -991,3 +991,11 @@ describe("2026-11-03: nfs-tani okuma (G118)", () => {
     expect(kesinOkuma(`${k.replace("<sunucu>", "splastnginx01")} | python3 /root/ai/opencode/knowledge/skills/approved/rhel-nfs/nfs-tani.py tani -`, workdir)).toBe(true)
   })
 })
+
+describe("2026-11-03: sep-istisna okuma", () => {
+  test("sep-istisna komutu ssh ile + boru kesin okuma", () => {
+    const { execSync } = require("node:child_process")
+    const k = execSync("python3 /root/ai/opencode/knowledge/skills/approved/rke2-edr/sep-istisna.py komut").toString().trim()
+    expect(kesinOkuma(`${k.replace("<sunucu>", "splastnginx01")} | python3 /root/ai/opencode/knowledge/skills/approved/rke2-edr/sep-istisna.py liste -`, workdir)).toBe(true)
+  })
+})

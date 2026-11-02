@@ -644,6 +644,17 @@ python3 "$B/rhel-nfs/nfs-tani.py" tani nfs2.txt > nfs2o.txt 2>&1; rc=$?
 [ "$rc" -eq 0 ] && gecti "NFS yok → bulgu yok, çıkış 0" || kaldi "nfs2 çıkış $rc"
 icerir "fstab'da NFS yok notu" nfs2o.txt "fstab'da NFS satırı yok"
 
+baslik "sep-istisna.py (SEP istisna adayları; 2026-11-03)"
+printf 'sep_paket=sdcss-x \nvar=/proc /sys /data /var/lib/rancher \nnfs=/ab \nmongo_conf= dbPath: /data/mongo path: /var/log/mongodb/mongod.log \nmongo_args=\npg_data= -D /var/lib/pgsql/data \ndocker_root=/var/lib/docker\n' > si.txt
+python3 "$B/rke2-edr/sep-istisna.py" liste si.txt > sio.txt 2>&1
+icerir "KB 244505 kaynaklı /proc" sio.txt "[NONE] /proc"
+icerir "mongo log dizini (dosya değil)" sio.txt "[NONE] /var/log/mongodb "
+icerir "NFS bağlama KB 162599" sio.txt "KB 162599"
+icerir "/data kurum kararı" sio.txt "Alp, 2026-11-03"
+icerir "postgres kaynaksız aday" sio.txt "resmi PostgreSQL belgesi bulunamadı"
+icermez "sunucuda olmayan yol yok" sio.txt "/var/lib/kubelet"
+icerir "önek uyarısı" sio.txt "KB 250717"
+
 baslik "veeam-tani.py (Veeam restore hatası; 2026-11-02)"
 VT="$B/veeam-linux/veeam-tani.py"
 printf 'acilis=2026-11-02 15:40:11\nveeam_paket=veeamtransport-13.0.0\nbaglama_tmp=/tmp rw,nosuid,nodev,noexec,relatime\nrun_veeamtransport=YOK\nservis_veeamtransport=failed/enabled\nservis_veeamnetfsmount=inactive/enabled\nlog_hata=ERR |POSIX: Failed to create or open file [/var/run/veeamtransport/veeamtransport.pid].|No such file or directory|\n' > vt1.txt

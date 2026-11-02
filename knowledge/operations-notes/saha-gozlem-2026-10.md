@@ -1434,3 +1434,14 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   yoksa FAIL) + `--dogrula-url` curl testi playbook'a girdi; yeni beceri `rhel-ca-guven` (`ca-dogrula.py` — sunucu başına TAMAM/EKSİK, karar
   betikte). Ölçüldü: openssl'siz container'da ilk koşu ok, ikinci changed=0, "dosya var extract yok" kendini düzeltti, rc 60 URL FAIL, bağımsız
   ölçüm TAMAM. AGENTS: "yaptım = hedefte ölçüldü".
+
+### G115 — Platform nesilleri ve registry farkı: Harbor'da imaj yolu elle değişti, amiral gemisinde (Nexus) gerekmiyor (Alp, 2026-11-02, ekran)
+- Alp: kurumda 3 Rancher platformu var — eski nesil (RKE1) ve RKE2 nesilleri; "amiral gemisi" = in-place yükseltilen RKE2 platformu (prod +
+  nonprod). Eskiler ileride kaldırılacak; beceriler amiral gemisine odaklanmalı. Hangi Rancher adresinin hangi nesil olduğu [SAHA] (soruldu).
+- Ekran (amiral gemisinden bir önceki RKE2 platformu): ns `nfs-subdir-external-provisioner`, deployment `nfs-sc-nfs-subdir-external-provisioner`,
+  imaj `cr.<kurum>/registry.k8s.io_2/sig-storage/nfs-subdir-external-provisioner:v4.0.2`, 1/1, 5 gün. Harbor ekranı
+  `cr-test.<kurum>/harbor/projects/56` — proje `registry.k8s.io` (Proxy Cache). Kurulumdan sonra imaj yolu elle bu Harbor yoluna çevrilmiş.
+- Amiral gemisi: registry `registry.<kurum>` (Nexus); tam ad verilmese de imaj ilgili depodan (Docker Hub / registry.k8s.io aynası) çekiliyor —
+  tahmin: düğümlerde RKE2 `registries.yaml` `mirrors` tanımlı (doğrulanmadı; okuma komutu Alp'e önerildi).
+- Açık sorular (Alp'e): platform ↔ Rancher adresi ↔ nesil ↔ registry tablosu; Harbor'daki ad eşlemesi (`registry.k8s.io` → `registry.k8s.io_2`?
+  ekranda cr vs cr-test farkı); yükleme helm ile mi; eski platformların kaldırılma zamanı ("1 yıl 6 yıl" — net değil).

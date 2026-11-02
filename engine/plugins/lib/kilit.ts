@@ -789,7 +789,7 @@ export const BILINEN_ARAC = new Set([
   "cpupower", "crictl", "vmware-toolbox-cmd", "etcdctl", "ctr", "containerd", "tuned-adm", "authselect", "rke2",
   "hammer", "sshd", "perf", "command", "chronyc", "localectl", "awk", "gawk", "showmount", "rpcinfo", "nfsstat",
   "sssctl", "oscap", "dkms", "ipactl", "ipa-healthcheck", "nvidia-ctk", "ipa-cacert-manage", "umask", // IdM / CIS / GPU (2026-10-24)
-  "getcert", "ipa-crlgen-manage", "leapp", "fips-mode-setup", // leapp: yalnız --version/--help okur (preupgrade dahil değişiklik); fips-mode-setup --check okur. // ipa-crlgen-manage: status okur; enable/disable değiştirir. certmonger: list / list-cas okur; request/resubmit/start-tracking/stop-tracking değiştirir (2026-10-25)
+  "getcert", "ipa-crlgen-manage", "leapp", "fips-mode-setup", "ssh-keygen", "update-crypto-policies", // leapp: yalnız --version/--help okur (preupgrade dahil değişiklik); fips-mode-setup --check okur. // ipa-crlgen-manage: status okur; enable/disable değiştirir. certmonger: list / list-cas okur; request/resubmit/start-tracking/stop-tracking değiştirir (2026-10-25)
   // bilinen değiştiriciler
   "rm", "mv", "cp", "ln", "chmod", "chown", "chgrp", "mkdir", "rmdir", "touch", "tee", "dd", "truncate", "install",
   "shred", "unlink", "rsync", "scp", "tar", "unzip", "gzip", "gunzip", "xz", "bzip2", "zip", "patch",
@@ -1135,6 +1135,12 @@ export function saltOkunur(argv: string[]): boolean {
       if (a[0] === "-m" && a[1] === "json.tool" && a.slice(2).filter(secenekDegil).length === 0) return true
       // kitin yalnız okuyup yazdıran beceri betikleri — tam yol şart (aynı adlı başka dosya okuma sayılmaz). 2026-11-02
       return OKUYAN_BECERI_BETIGI.has(a[0] ?? "")
+    case "ssh-keygen":
+      // yalnız parmak izi gösterme (-l [-f dosya] [-E hash]) ve known_hosts'ta arama (-F ad); -A/-R/-t/-p vb. anahtar üretir/değiştirir
+      return a.every((x, i) => ["-l", "-lf", "-f", "-E", "-F", "-v"].includes(x) || ["-f", "-lf", "-E", "-F"].includes(a[i - 1] ?? "")) &&
+        (a.includes("-l") || a.includes("-lf") || a.includes("-F"))
+    case "update-crypto-policies":
+      return a.length > 0 && a.every((x) => ["--show", "--is-applied", "--check"].includes(x))
     case "tuned-adm":
       return ["active", "list", "recommend", "verify"].includes(ilk)
     case "authselect":

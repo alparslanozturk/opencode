@@ -13,13 +13,18 @@ import sys
 SERVISLER = ["veeamservice", "veeamtransport", "veeamdeployment", "veeamenvironment", "veeamimmurepo", "veeamnetfsmount"]
 
 KOMUT = (
-    'echo acilis=$(uptime -s); '
+    'echo acilis=$(uptime -s); echo bugun=$(date +%F); '
     'echo veeam_paket=$(rpm -qa "veeam*" --qf "%{NAME}-%{VERSION} " 2>/dev/null); '
     'for d in /tmp /var/tmp /opt; do echo "baglama$(echo $d | tr / _)=$(findmnt -n -o TARGET,OPTIONS --target $d | tr -s " " " ")"; done; '
     'echo tmp_bos=$(df -h --output=avail /tmp | tail -1 | tr -d " "); '
     'echo run_veeamtransport=$(test -d /run/veeamtransport && echo var || echo YOK); '
     'echo opt_veeam=$(test -d /opt/veeam && echo var || echo YOK); '
     'for s in ' + " ".join(SERVISLER) + '; do echo "servis_$s=$(systemctl is-active $s 2>/dev/null)/$(systemctl is-enabled $s 2>/dev/null)"; done; '
+    'echo ssh_anahtar=$(for f in /etc/ssh/ssh_host_*_key.pub; do printf "%s=%s@%s " "$(basename $f .pub)" "$(ssh-keygen -lf $f | cut -d" " -f2)" '
+    '"$(date -r $f +%F)"; done); '
+    'echo kripto=$(update-crypto-policies --show 2>/dev/null); '
+    'echo sshd_kisit=$(cat /etc/ssh/sshd_config /etc/ssh/sshd_config.d/*.conf 2>/dev/null | grep -iE "^(AllowUsers|AllowGroups|DenyUsers|DenyGroups|HostKeyAlgorithms|KexAlgorithms|Ciphers|MACs)" '
+    '| tr "\n" "|" | cut -c1-400); '
     'echo log_hata=$(grep -rhE "No such file or directory|Permission denied|Failed to (create|open|change)" /var/log/VeeamBackup /var/log/veeam 2>/dev/null '
     '| tail -8 | tr "\\n" "|" | cut -c1-900)'
 )
@@ -77,6 +82,24 @@ def tani(kv):
             notlar.append("veeamnetfsmount %s — koşullu servis (ExecCondition -checkserver); NFS bağlantısı yoksa çalışmaması normal" % d)
         elif aktif != "active" and d.split("/")[-1] == "enabled":
             bulgular.append(("%s %s" % (s, d), "etkin ama çalışmıyor — journalctl -u %s -n 50" % s, "systemd"))
+    bugun, acilis = kv.get("bugun", ""), kv.get("acilis", "")[:10]
+    anahtarlar = []
+    for parca in kv.get("ssh_anahtar", "").split():
+        ad, _, kalan = parca.partition("=")
+        iz, _, tarih = kalan.rpartition("@")
+        anahtarlar.append("%s %s (%s)" % (ad.replace("ssh_host_", "").replace("_key", ""), iz, tarih))
+        if tarih and ((bugun and tarih >= bugun) or (acilis and tarih >= acilis)):
+            bulgular.append(("SSH host anahtarı %s %s tarihli (bugün %s, son açılış %s) — yakın zamanda değişmiş" % (ad, tarih, bugun, acilis),
+                             "VBR'deki kayıtlı parmak iziyle uyuşmaz → 'Failed to validate ssh fingerprint' / 'Failed to check fingerprint'. "
+                             "Yedekçi: Backup Infrastructure → Managed servers → sunucuyu düzenle → yeni parmak izini onayla; ya da Inventory → "
+                             "Untrusted'tan güven (parmak izini önce `ssh-keygen -lf` çıktısıyla karşılaştır)", "Veeam KB4524 (benzer: parmak izi doğrulama)"))
+    if anahtarlar:
+        notlar.append("SSH host parmak izleri (VBR'nin gösterdiğiyle karşılaştır): " + " · ".join(anahtarlar))
+    if kv.get("kripto") and kv["kripto"] not in ("DEFAULT", "DEFAULT:SHA1"):
+        notlar.append("kripto politikası %s — Veeam'in SSH istemcisi anahtar/algoritma anlaşamazsa parmak izi doğrulanamaz (tahmin; VBR logunda "
+                      "'kex'/'algorithm' satırı ara)" % kv["kripto"])
+    if kv.get("sshd_kisit", "").strip("|"):
+        notlar.append("sshd kısıtı var: %s — Veeam hesabı (AllowUsers/AllowGroups) içinde mi?" % kv["sshd_kisit"].strip("|"))
     if "os" in kv or "mongod_surum" in kv:
         mongo_tani(kv, bulgular, notlar, eksik)
     if not log:

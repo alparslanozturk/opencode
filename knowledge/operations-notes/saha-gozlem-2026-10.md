@@ -1525,3 +1525,21 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Devamı: ajan "Ara MongoDB başlatılamadı — kök neden: socket oluşmuyor", "VBR ↔ agent RPC gece 03:50–05:10 kopuyor (yazılımla ilgili)",
   "failed to validate ssh logda yok" dedi. Doktor: parmak izi doğrulaması VBR'de (Linux logunda görünmemesi beklenir); kök neden iddiası bu
   denemenin saatine bağlanmadı; gece kopmaları ayrı olay. Ekip kimlik bilgisini kontrol edip yeniden deniyor. Aksiyon: SKILL §2b üç madde.
+
+### G118 — NFS "performans": ajan nfsidmap'i kök neden yazdı, kaynaksız ayar önerdi; Alp düsturu "önce sor, her şey kanıtlı" (Alp, 2026-11-03, 4 ekran)
+- Görülen: splastnginx01-03 `/ab` ← `splbtfile:/splbtfile_NFS_FS/Assistbox_PROD`, nfs4 vers=4.1, rsize/wsize=262144, hard, tcp,
+  timeo=600, retrans=2, sec=sys; nginx02 `10.0.10.115`, diğerleri `.114` (ajan "3'ü aynı" dedi). Log: `nfsidmap … 'root@localdomain'
+  does not map into domain 'kurum.local'` (00:30, 00:44, 00:55); `nfsrahead: setting /ab readahead to 128`; SEP `SISEVT … nfs4`.
+- ❌ "NFS sorununun kökü nfsidmap, her işlemde yavaşlatıyor" — eşleme önbellekli (`man nfsidmap`: `-t` varsayılan 600 sn), etkisi
+  sahiplik görünümü. ❌ Öneri istemcide `Domain = kurum.local` — zaten o (uyumsuz olan sunucunun `localdomain`'i). ❌
+  `RPCIDMAPD_ARGS="-g"` — `man idmapd` (nfs-utils 2.8.3) seçenekleri -h -v -f -p -c -C -S, `-g` yok; `nfs-idmapd.service`
+  `BindsTo=nfs-server.service` (sunucu tarafı). ❌ `systemctl restart rpcidmapd nfs-client.target` canlı `hard` bağlamada. ❌ "compose
+  down -v / up -d ile düzeldi". Copilot: "-g performansa etkisiz" (sonuç doğru) ama "-g grup→GID çevirmeyi kapatır" (kaynaksız);
+  `rsize=1048576` önerisi — `man 5 nfs`: değer pazarlıkla belirlenir, etkin hâli `/proc/mounts`'ta; fstab satırı görülmedi.
+- Alp: "Bu tür skillerin çok iyi olması gerekir, her bir parametre çok önemli… throughput, IOPS, latency üç dalda incelemesi iyi…
+  işini iyi yapabilmesi için sorması gereken bir şey varsa bana sorsun… delilsiz, kanıtsız hiçbir şey olmamalı… her yetenek için."
+- Aksiyon: `engine/AGENTS.md` "Düstur: her beceride önce sor, her şey kanıtlı" (genel dört soru + kanıt etiketi + bağlamla daraltma
+  yasağı) ve alt bölüm "Ayar ve performans önerisi" (üç eksen, `nfsiostat` — `man nfsiostat` sütunları; seçenek makinenin dokümanında
+  olmalı; etkin/istenen değer; başka yapay zeka kaynak değil); `skills/README.md` + `KAYNAK-ZORUNLULUGU.md` beceri şartı. Açık:
+  `nfs-performans` becerisi (Alp'in belirti cevabı bekleniyor); 40 becerinin "Önce sor" denetimi (yalnız 4'ünde var).
+

@@ -16,6 +16,15 @@ Dosya biçimi her üç dizinde aynı: `<ad>/SKILL.md`, frontmatter'da `name` + `
 **Kural (2026-09-28):** `approved/`'daki her beceri `./kur.sh` ile sahaya kurulur — ayrı bir liste yok,
 sayı hedefi yok (eski "6-10" hedefi kaldırıldı; şu an **33**). Kullanılmayan beceri silinmez, `parked/`'a taşınır.
 
+## Düstur: önce sor, her şey kanıtlı (Alp, 2026-11-03 — "her yetenek için genel anlamda böyle sorması ve kanıtlı olması gerekir")
+
+Her `approved/` becerisi şu iki şeyi taşır (yeni beceride zorunlu; eskiler dokunuldukça tamamlanır — G118):
+- **"Önce sor" listesi** — o işte cevabı sonucu değiştiren, kullanıcıdan gelmesi gereken bilgiler (belirti, kapsam, zaman/önceki
+  değişiklik, kısıt + işe özel olanlar). Ölçülebilen şey listeye girmez; betiğin `komut` adımı onu toplar.
+- **Kanıt etiketi** — her olgu/kural/ayar yanında kaynağı: `man <x>` · komut çıktısı (ölçüldü, sürümüyle) · üretici KB/belge ·
+  `(saha G…)` · `(Alp)`. Kaynaksız satır `tahmin:` ya da `[SAHA]` işaretlenir; doğrulanmamış kural yazılmaz. Başka yapay zekanın
+  cevabı kaynak sayılmaz. Ayrıntı: `engine/AGENTS.md` "Düstur" bölümü, `knowledge/policy/KAYNAK-ZORUNLULUGU.md`.
+
 ## Deterministik betik ilkesi (Alp, 2026-10-21 — saha G94: "yapay zekânın ortamda çözebilmesi için yetenek geliştir")
 
 Sahadaki model (offline, 35B-A3B) kural metnini her zaman uygulamıyor; en ağır hatalar **ham çıktıyı kafadan birleştirmekten**

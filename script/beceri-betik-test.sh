@@ -694,5 +694,9 @@ icerir "tireli grup adı _ ile" ie1.txt "[os_upgrade_29107]"
 icermez "tireli grup başlığı yok" ie1.txt "[os-upgrade-29107]"
 icerir "rakamla başlayan grup g_ önekli" ie2.txt "[g_29107_x]"
 
+# Düstur takibi (Alp, 2026-11-03): "Önce sor" listesi olan beceri sayısı — bilgi, testi düşürmez; hepsi tamamlanınca zorunlu yapılacak
+toplam=$(ls -d "$B"/*/SKILL.md | wc -l); sorlu=$(grep -liE "^## .*(önce sor|sorulacak)" "$B"/*/SKILL.md | wc -l)
+printf '\nBİLGİ: "Önce sor" bölümü olan beceri %d/%d — eksikler: %s\n' "$sorlu" "$toplam" \
+  "$(for f in "$B"/*/SKILL.md; do grep -qiE "^## .*(önce sor|sorulacak)" "$f" || printf '%s ' "$(basename "$(dirname "$f")")"; done)"
 printf '\nSonuç: %d geçti · %d kaldı\n' "$GECEN" "$KALAN"
 [ "$KALAN" -eq 0 ]

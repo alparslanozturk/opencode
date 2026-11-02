@@ -10,6 +10,11 @@ Kaynak etiketi: **(Alp)** kurum bilgisi · **(saha G…)** saha gözlemi · **(�
 
 ## 0. Kurum durumu
 
+- **Güncel (Alp, 2026-11-03):** "defender (twistlock) ve şu an kubernetes sunucularda xdr yok, sadece sep var"; RHEL makinelerde SEP'in
+  bazı istisnaları (exception) var — hangi yol/süreç olduğu `[SAHA]`. Not: aşağıdaki 2026-10-20 satırı "Twistlock kalacak" diyordu;
+  Twistlock'un kaldırılıp kaldırılmadığını sunucuda ölç (`systemctl list-units | grep -i -e twistlock -e defender`), çelişkiyi Alp'e sor.
+  Aşağıdaki maddeler tarihseldir; ajan durumu her olayda §1 komutuyla ölçülür.
+
 - Test kümesi worker'larında üç ajan (Alp, saha G72, 2026-10-20): **SEP** (Symantec, `sisamdagent`; `sisap`/`sisevt` modülleri —
   saha G44), **Cortex XDR** (Palo Alto, systemd `traps_pmd`, `/opt/traps`), **Twistlock** (Prisma Cloud Defender,
   `/usr/local/bin/defender`). Kurum SEP kaynak sınırı: CPU %400, MemoryHigh 2G, Max 3G (saha G44, kaynak `08-sep-sinirlama` `[SAHA]`).

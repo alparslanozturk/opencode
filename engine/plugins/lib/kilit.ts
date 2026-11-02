@@ -1132,7 +1132,9 @@ export function saltOkunur(argv: string[]): boolean {
     case "python":
     case "python3":
       // yalnız stdin'den okuyup biçimleyen json.tool (çıktı dosyası argümanı yok) — gerisi kod çalıştırır
-      return a[0] === "-m" && a[1] === "json.tool" && a.slice(2).filter(secenekDegil).length === 0
+      if (a[0] === "-m" && a[1] === "json.tool" && a.slice(2).filter(secenekDegil).length === 0) return true
+      // kitin yalnız okuyup yazdıran beceri betikleri — tam yol şart (aynı adlı başka dosya okuma sayılmaz). 2026-11-02
+      return OKUYAN_BECERI_BETIGI.has(a[0] ?? "")
     case "tuned-adm":
       return ["active", "list", "recommend", "verify"].includes(ilk)
     case "authselect":
@@ -1144,6 +1146,11 @@ export function saltOkunur(argv: string[]): boolean {
   }
   return SALT_OKUNUR.has(p) && !(p === "curl" && curlYazar(a)) && !(p === "wget" && wgetYazar(a))
 }
+
+// Dosya yazmayan, yalnız okuyup basan beceri betikleri (kaynağı denetlendi: open() yalnız okuma, subprocess yok/yalnız openssl okuma).
+export const OKUYAN_BECERI_BETIGI = new Set(
+  ["kurum-registry/imaj-yol.py", "rhel-ca-guven/ca-dogrula.py"].map((x) => "/root/ai/opencode/knowledge/skills/approved/" + x),
+)
 
 export const KUBE_DEGERLI = new Set(["-n", "--namespace", "--context", "--kubeconfig", "--cluster", "--user", "-s",
   "--server", "--token", "-l", "--selector", "-o", "--output", "-c", "--container", "--as", "--request-timeout"])

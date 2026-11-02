@@ -88,10 +88,18 @@ olduğunu kontrol etmek lazım — bazen sync geriden gelebiliyor." Sıra bu; ad
    **açılmaz**; servis `disabled` → motor da açılmaz. Bunu reboot'tan ÖNCE kullanıcıya listele ("şu konteynerler açılmayacak, sahibine
    haber"), sonra aynı komutu `-t cikti/filo/konteyner-sonra` ile koş ve iki tabloyu karşılaştır (`diff <(filo-tablo.py …once --kv) <(… sonra --kv)`).
    ```bash
-   ansible <grup> -i <envanter> -m shell -f 20 -T 10 -t cikti/filo/konteyner-once -a '{% raw %}for r in docker podman; do command -v $r >/dev/null 2>&1 || continue; s=$(systemctl is-enabled $r 2>/dev/null); echo "${r}_servis=${s:-yok}"; echo "${r}_konteyner=$($r ps -a --format "{{.Names}}:{{.State}}" 2>/dev/null | while read k; do printf "%s:%s " "$k" "$($r inspect -f "{{.HostConfig.RestartPolicy.Name}}" "${k%%:*}" 2>/dev/null)"; done)"; done{% endraw %}'
+   ansible <grup> -i <envanter> -m shell -f 20 -T 10 -t cikti/filo/konteyner-once -a '{% raw %}for r in docker podman; do command -v $r >/dev/null 2>&1 || continue; s=$(systemctl is-enabled $r 2>/dev/null); echo "${r}_servis=${s:-yok}"; echo "${r}_konteyner=$($r ps -a --format "{{.Names}}:{{.State}}" 2>/dev/null | while read k; do printf "%s:%s " "$k" "$($r inspect -f "{{.HostConfig.RestartPolicy.Name}}" "${k%%:*}" 2>/dev/null)"; done)"; echo "${r}_compose=$($r ps -aq 2>/dev/null | xargs -r $r inspect -f "{{index .Config.Labels \"com.docker.compose.project.working_dir\"}}|{{index .Config.Labels \"com.docker.compose.project.config_files\"}}" 2>/dev/null | grep -v "^|$" | sort | uniq -c | awk "{printf \"%s(%s) \", \$2, \$1}")"; done{% endraw %}'
    python3 /root/ai/opencode/knowledge/skills/approved/filo-kontrol/filo-tablo.py cikti/filo/konteyner-once --kv
    ```
-   (ölçüldü: podman 5, ansible-core 2.16, yalnız okuma; `{% raw %}` Go şablonlarını ansible'ın Jinja'sından korur. docker'da ilk koşuda teyit.)
+   (ölçüldü: podman 5 + podman-compose 1.5, ansible-core 2.16, yalnız okuma, kilit onay sormaz; `{% raw %}` Go şablonlarını ansible'ın
+   Jinja'sından korur. docker'da ilk koşuda teyit.) `<motor>_compose=<dizin>|<dosya>(konteyner sayısı)` — compose dosyasının yeri
+   konteynerin **kendi etiketinden** (`com.docker.compose.project.working_dir` / `config_files`) okunur.
+   **"Compose'a bak" = bu komut.** Saha G116 (Alp: "büyük bir hata"): kullanıcı "hepsinde docker-compose var, onlara bak" dedi; ajan
+   önceki konuşmadaki Redis'e takılıp 13 sunucuda `/usr/local/assistbox` altında "Redis/Sentinel var mı" aradı. Yapma: kullanıcının
+   istediğini önceki bağlamla **daraltma/değiştirme** (istenen compose yapısıydı, Redis değil); compose yolunu bir sunucudan öbürüne
+   **tahmin etme** (saha: `/usr/local/assistbox`, `/apps/…`, `coturn/` — her sunucuda farklı; yolu etiket verir); içerik/uygulama araması
+   yapma (kurum politikası). Tabloda her sunucu için: compose dizini/dosyası · konteyner:durum:politika · motor servisi. Bir dosyanın
+   içi istenirse yalnız o sunucuda, etiketteki yolu `cat` et.
    **Reboot sonrası açılır mı = yalnız iki alan:** motor servisi `enabled` + konteynerin restart politikası (genel, Docker belgesi: `always` →
    açılır; `unless-stopped` → reboot anında çalışıyorsa açılır, elle durdurulmuşsa açılmaz; `no` → açılmaz). Aynı compose'da bağımlılıklar
    farklıysa ayrıca yaz (saha: splastgraylg'de graylog `always`, ES/mongo `no` → graylog açılır ama bağımlılıkları açılmaz). **Yapma**

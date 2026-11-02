@@ -1493,6 +1493,12 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   characters were found in group names but not replaced` — grup `os-upgrade-29107` (tire). Aksiyon: `is-envanter.py --grup` tire → `_`
   (rakamla başlarsa `g_`), §1b'de eski envanter için `force_valid_group_names = ignore` (ölçüldü, 2.16); test 179/179. Açık: ön plan
   2 dk kesmesi için kalıcı çözüm (kilit mi fork mu) — Alp'e soruldu.
+- Devam (Alp, 1 ekran, 2026-11-03 gece): kullanıcı compose yapısını istedi; ajan 13 sunucuda `/usr/local/assistbox` içeriği +
+  "Redis/Sentinel var mı" tablosu yaptı ("Onlarda bir şey yapmaya gerek yok"). Alp: "tabiki redis yok tüm sunucularda ama hepsinde
+  docker-compose var, onlara bak demek istemiştim" — "Sunucularda bu yanlış, büyük bir hata". Kök: istek önceki bağlamla (astreds Redis)
+  daraltıldı; compose yolu bir sunucudan tahmin edildi (rabbit01/02, nginx03 "–" — dosya başka yerde). Aksiyon: `rhel-guncelleme` 1b
+  komutuna `<motor>_compose=<dizin>|<dosya>(n)` — yol konteyner etiketinden (`com.docker.compose.project.working_dir/config_files`;
+  podman-compose 1.5 + ansible 2.16'da ölçüldü, kilit serbest) + "compose'a bak = bu komut; daraltma, yol tahmini, içerik araması yok".
 
 ### G117 — dtlmrestore Veeam restore "dosya ya da dizin bulunamadı"; ajan kanıtsız 6 servisi restart etti (Alp, 2026-11-02, 1 ekran)
 - Görülen: ajan `systemctl restart veeamservice && … veeamenvironment && … veeamdeployment && … veeamimmurepo` + status; "5 serviden 6'sı

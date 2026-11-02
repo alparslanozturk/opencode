@@ -27,7 +27,7 @@ KULLANIM = """kullanım:
   is-envanter.py <ETIKET> -            # sunucular stdin'den (yapıştırılan liste, serbest biçim)
   is-envanter.py --liste               # ansible/inventories/ altındaki iş envanterleri
 ETIKET: CN numarası (dn29000, CHG0012345 — yazıldığı gibi) ya da kriz | kurulum | is (CN'siz iş).
---grup: tüm seçilen host'ları ayrıca bu gruba koyar (playbook "hosts: <grup>" için, ör. google-captcha-cert).
+--grup: tüm seçilen host'ları ayrıca bu gruba koyar (playbook "hosts: <grup>" için, ör. google_captcha_cert; tire → _).
 Aralık: wor07-14, 10.0.9.127-134, yalın 07-14 (envanterde tek önekle karşılanırsa).
 Çıktı: ansible/inventories/hosts-<ETIKET>-<YYYYMMDD-HHMM>.ini — ana envanter değişmez, üzerine yazılmaz."""
 
@@ -158,7 +158,10 @@ def main(argv):
             dosya_arg.append(argv[i + 1])
             i += 2
         elif argv[i] == "--grup" and i + 1 < len(argv):
-            is_grup = argv[i + 1].strip().lower()
+            # ansible grup adında yalnız harf/rakam/_ geçerli; tire uyarı bastırır ("Invalid characters were found in group names",
+            # saha G116 os-upgrade-29107, ölçüldü 2.16) → _ yap, rakamla başlıyorsa g_ öneki
+            is_grup = re.sub(r"\W", "_", argv[i + 1].strip().lower())
+            is_grup = "g_" + is_grup if is_grup[:1].isdigit() else is_grup
             i += 2
         elif argv[i] == "--not" and i + 1 < len(argv):
             notu = argv[i + 1]

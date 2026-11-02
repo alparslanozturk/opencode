@@ -92,6 +92,13 @@ olduğunu kontrol etmek lazım — bazen sync geriden gelebiliyor." Sıra bu; ad
    python3 /root/ai/opencode/knowledge/skills/approved/filo-kontrol/filo-tablo.py cikti/filo/konteyner-once --kv
    ```
    (ölçüldü: podman 5, ansible-core 2.16, yalnız okuma; `{% raw %}` Go şablonlarını ansible'ın Jinja'sından korur. docker'da ilk koşuda teyit.)
+   **Reboot sonrası açılır mı = yalnız iki alan:** motor servisi `enabled` + konteynerin restart politikası (genel, Docker belgesi: `always` →
+   açılır; `unless-stopped` → reboot anında çalışıyorsa açılır, elle durdurulmuşsa açılmaz; `no` → açılmaz). Aynı compose'da bağımlılıklar
+   farklıysa ayrıca yaz (saha: splastgraylg'de graylog `always`, ES/mongo `no` → graylog açılır ama bağımlılıkları açılmaz). **Yapma**
+   (saha G116, Alp: "pek işime yaramayacak"): "nasıl/kim başlatmış" araştırması — `bash_history`, docker kullanıcısı, grup üyeliği, cron
+   taraması (root docker grubuna üye olmadan da docker'ı kullanır; history ne silinmeyi ne başka kullanıcıyı kanıtlar); history'deki
+   komutu tekrar çalıştırmak/önermek (`docker compose down -v` adlı volume'ları **siler** — veri kaybı); host başına `ssh -o
+   StrictHostKeyChecking=accept-new` döngüsü (known_hosts'a yazar) — tek ansible komutu yeter.
 2. **1. reboot** (onay ekranı) — temiz başlangıç: sunucu yamadan önce sorunsuz açılıyor mu. Ansible: `ansible.builtin.reboot` (reboot_timeout).
    Sonra `uptime`, `systemctl --failed`.
 3. **Kayıt / repo** (okuma): `subscription-manager status; subscription-manager release --show; dnf -q repolist` — Satellite repoları açık mı,

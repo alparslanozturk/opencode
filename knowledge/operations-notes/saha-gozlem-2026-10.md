@@ -1467,3 +1467,8 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Aksiyon (yapıldı): kilit — değişken ataması (döngü içinde de) okuma, `$()` içi yine denetlenir; ansible `-a` içindeki `{% raw %}` ve
   `continue/break` okuma; `filo-tablo.py --say <anahtar>` dağılım sayımı; `rhel-guncelleme` 1b konteyner fotoğrafı (önce/sonra: ad, durum,
   restart politikası, motor servisi — podman'da ölçüldü) + "sayı ve hedef sürüm uydurulmaz". Test kilit 325/325, beceri 162/162.
+- Alp anlatımı (aynı gün, sözlü — yeni çalışma şekli: saha aktarımı zor, Alp anlatır, Doktor birleştirir): santral sisteminin alt/üst ortam
+  sunucuları güncelleniyor; alt ortamda içinde Redis çıktı. Kurum politikası: OS güncellemesinde sunucu içini analiz etme zorunluluğu yok —
+  "sadece bilsem yeterli, müdahale edecek kadar bilgiye gerek yok". Kritik: fstab sağlığı (reboot sonrası açılmayabiliyor); önce restart,
+  sonra upgrade. Aksiyon: `rhel-guncelleme` 1 — filo fstab komutu (`findmnt --verify` rc/özet/hedef:hata + fstab'da olup bağlı olmayan;
+  yerelde sağlam + bozuk örnekle ölçüldü, kilit serbest); 1b "bilgi amaçlı, analiz/düzeltme yok".

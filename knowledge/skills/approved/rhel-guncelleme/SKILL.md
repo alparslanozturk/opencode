@@ -70,11 +70,21 @@ olduğunu kontrol etmek lazım — bazen sync geriden gelebiliyor." Sıra bu; ad
    `hammer content-view version list --organization "<org>" --content-view "<cv>"` (son sürüm hangi ortamda) ·
    `hammer repository info --organization "<org>" --product "<ürün>" --name "<repo>"` (son senkron) — senkron Red Hat'in gerisindeyse
    CV yayınlamak/terfi kullanıcının (Satellite) işi; ajan önermekle kalır.
-1. **fstab sağlam mı (reboot'tan önce).** Bozuk fstab = sunucu emergency mode'da açılır. Okuma: `findmnt --verify --verbose`. Alp'in pratiği
-   `mount -av` (eksik bağlamaları da bağlar — değişiklik sayılır; hata veren satırı reboot'tan önce gösterir). Hata varsa dur, söyle.
-1b. **Konteyner fotoğrafı (okuma, reboot'tan önce).** Sunucuda docker/podman ile çalışan uygulama varsa (saha 2026-11-02: astreds* redis +
-   sentinel docker compose ile) reboot sonrası açılıp açılmaması **uygulama sahibinin** işi (Alp) — ajan düzeltmez, ama önce/sonra farkını
-   raporlar. Hücre: `ad:durum:restart-politikası`. Politika `no` (compose'da `restart:` yok = `no`, genel) → reboot sonrası kendiliğinden
+1. **fstab sağlam mı (reboot'tan önce — atlanmaz).** Alp: "reboot ettiğimizde açılmayabiliyor makineler." Bozuk fstab = sunucu emergency
+   mode'da açılır. Filo için tek komut (okuma, onay sormaz):
+   ```bash
+   ansible <grup> -i <envanter> -m shell -f 20 -T 10 -t cikti/filo/fstab -a 'o=$(findmnt --verify 2>&1); echo fstab_rc=$?; z=$(printf "%s\n" "$o" | grep -E "^(Success|[0-9]+ (parse error|error|warning))" | head -1); echo "fstab_ozet=${z:-OKUNAMADI: $(printf "%s" "$o" | head -1 | cut -c1-80)}"; echo fstab_hata=$(printf "%s\n" "$o" | awk "/parse error at/ {sub(/^.*: parse error/,\"parse error\"); printf \"%s; \", \$0} /^[^ ]/ && !/^(Success|[0-9]+ |findmnt:)/ {t=\$0} /\[E\]/ {sub(/^ *\[E\] */,\"\"); printf \"%s: %s; \", t, \$0}" | cut -c1-300); echo bagli_degil=$(findmnt --fstab -n -o TARGET,OPTIONS | awk "\$1 != \"none\" && \$1 != \"swap\" && \$2 !~ /noauto/ {print \$1}" | while read t; do findmnt -n "$t" >/dev/null || printf "%s " "$t"; done)'
+   python3 /root/ai/opencode/knowledge/skills/approved/filo-kontrol/filo-tablo.py cikti/filo/fstab --kv
+   ```
+   `fstab_rc` 0 + "Success" = temiz · `fstab_hata` = hedef: hata (`[E]` satırları; yok kaynak/UUID, yok bağlama dizini, parse hatası) →
+   **o sunucuyu reboot etme**, kullanıcıya göster · `bagli_degil` = fstab'da olup şu an bağlı olmayan (noauto/swap hariç) — açılışta
+   bağlanamayabilir, sor. `fstab_ozet=OKUNAMADI` → `findmnt --verify` yok (tahmin: RHEL 7, util-linux 2.23) → `mount -fav` ile bak.
+   (ölçüldü: util-linux 2.40 — sağlam fstab "Success", örnek bozuk dosyada parse hatası + yok UUID/dizin yakalandı.)
+   Alp'in pratiği `mount -av` (eksik bağlamaları da bağlar — değişiklik sayılır, onay ekranı).
+1b. **Konteyner fotoğrafı (okuma, reboot'tan önce — bilgi amaçlı).** Kurum politikası (Alp, 2026-11-02): OS güncellemesinde sunucunun
+   içini (uygulamayı) analiz etme zorunluluğu **yok**; upgrade + restart edilir, açılması uygulama/sunucu sahibinin işi — "sadece bilsem
+   yeterli". Ajan inceleme/düzeltme yapmaz; yalnız bu tek komutla ne çalıştığını ve önce/sonra farkını raporlar (saha: astreds* redis +
+   sentinel docker compose ile). Hücre: `ad:durum:restart-politikası`. Politika `no` (compose'da `restart:` yok = `no`, genel) → reboot sonrası kendiliğinden
    **açılmaz**; servis `disabled` → motor da açılmaz. Bunu reboot'tan ÖNCE kullanıcıya listele ("şu konteynerler açılmayacak, sahibine
    haber"), sonra aynı komutu `-t cikti/filo/konteyner-sonra` ile koş ve iki tabloyu karşılaştır (`diff <(filo-tablo.py …once --kv) <(… sonra --kv)`).
    ```bash

@@ -1,6 +1,6 @@
 ---
 name: veeam-linux
-description: Veeam'in yönettiği Linux sunucuda (restore hedefi, repository, Linux mount/transport sunucusu) restore ya da iş hatası — "dosya ya da dizin bulunamadı", "No such file or directory", "Permission denied", veeamtransport/veeamservice/veeamdeployment/veeamimmurepo/veeamnetfsmount servisleri, /tmp noexec, reboot/OS yaması sonrası Veeam sunucusu offline. Deterministik `veeam-tani.py` (salt-okunur komut + bilinen sebep kararı, kaynaklı). "veeam", "mongodb restore", "vemdb", "veeam mongo", "restore hatası", "geri yükleme hatası", "veeamtransport", "veeam servisleri", "yedekçi", "backup restore", "file not found restore" isteklerinde tetiklenir.
+description: Veeam'in yönettiği Linux sunucuda (restore hedefi, repository, Linux mount/transport sunucusu) restore ya da iş hatası — "dosya ya da dizin bulunamadı", "No such file or directory", "Permission denied", veeamtransport/veeamservice/veeamdeployment/veeamimmurepo/veeamnetfsmount servisleri, /tmp noexec, reboot/OS yaması sonrası Veeam sunucusu offline. Deterministik `veeam-tani.py` (salt-okunur komut + bilinen sebep kararı, kaynaklı). "veeam", "mongodb restore", "vemdb", "veeam mongo", "fingerprint", "parmak izi", "Failed to validate ssh fingerprint", "restore hatası", "geri yükleme hatası", "veeamtransport", "veeam servisleri", "yedekçi", "backup restore", "file not found restore" isteklerinde tetiklenir.
 ---
 
 # Veeam — Linux sunucuda restore/iş hatası
@@ -42,6 +42,21 @@ Instant Recovery · Explorer) ve **hedef yol**. Bunu iste; hangi dosya/dizinin b
 
 Hiçbiri yoksa: karar VBR iş logundaki satırla verilir. "Servisleri restart ettim, düzeldi" kanıt değildir — restore'u yedekçi yeniden denesin,
 sonucu (başarılı/aynı hata) raporla.
+
+## 2b. SSH parmak izi — "Failed to validate ssh fingerprint settings" (saha 2026-11-02)
+
+Restore sihirbazında (MongoDB primary node bağlantısı) `ExplorerManagementService: Failed to validate ssh fingerprint settings (sessionId = …),
+Restore session already closed`. VBR, Linux sunucunun SSH host anahtar parmak izini saklar ve her bağlantıda karşılaştırır.
+- Sunucunun gerçek parmak izleri ve anahtar dosya tarihleri `veeam-tani.py komut` çıktısında (NOT satırı) — yedekçinin VBR'de gördüğüyle
+  karşılaştırsın. Anahtar dosyası son açılıştan/bugünden yeniyse betik BULGU der (anahtar değişmiş).
+- VBR tarafı (yedekçi): **Options → Security → Linux hosts authentication** ("Add unknown hosts to the list manually" seçiliyse yeni/değişen
+  parmak izi **Inventory → Untrusted** altında onay bekler) · ya da Backup Infrastructure → Managed servers → sunucu → düzenle → parmak izini
+  yeniden onayla. KB4524 aynı sınıf hatayı (12.1 yükseltmesi sonrası boş parmak izi) bu yolla çözer.
+- "Restore session already closed" → sihirbaz önceki hatada oturumu kapatmış; düzelttikten sonra restore'u Explorer'dan **baştan** başlat.
+- Kripto politikası DEFAULT değilse ya da sshd'de AllowUsers/AllowGroups varsa betik NOT yazar (Veeam hesabı listede mi; algoritma uyuşmazlığı
+  — tahmin, VBR logunda doğrula).
+- Hatalar art arda değişebilir (önce "No such file", sonra parmak izi): her denemede **yeni** hata satırını ve saatini al; ajanın log yorumu
+  ("RPC bağlantı hatası") ile Veeam'in ekrandaki hatası çelişirse ekrandaki/VBR logundaki metin esastır.
 
 ## 3. MongoDB restore (Veeam v13 — Veeam Explorer for MongoDB / plug-in)
 

@@ -960,3 +960,12 @@ describe("2026-11-02: veeam-tani okuma", () => {
   test("veeam-tani borusu kesin okuma", () =>
     expect(kesinOkuma(`ssh root@d 'echo acilis=$(uptime -s); systemctl is-active veeamtransport' | python3 /root/ai/opencode/knowledge/skills/approved/veeam-linux/veeam-tani.py tani -`, workdir)).toBe(true))
 })
+
+describe("2026-11-02: ssh-keygen -l / update-crypto-policies --show okuma; anahtar üretimi K1", () => {
+  for (const c of [`ssh d 'ssh-keygen -lf /etc/ssh/ssh_host_rsa_key.pub'`, `ssh d 'ssh-keygen -l -E sha256 -f /etc/ssh/x.pub'`,
+    `ssh-keygen -F dtlmrestore.kurum.local`, `ssh d 'update-crypto-policies --show'`])
+    test(`okuma: ${c}`, () => expect(kesinOkuma(c, workdir)).toBe(true))
+  test("okuma sayılmaz: ssh-keygen -R (yerel known_hosts değişir)", () => expect(kesinOkuma(`ssh-keygen -R dtlmrestore`, workdir)).toBe(false))
+  for (const c of [`ssh d "ssh-keygen -A"`, `ssh d "update-crypto-policies --set LEGACY"`, `ssh d "ssh-keygen -t ed25519 -f /etc/ssh/k"`])
+    test(`K1: ${c}`, () => expect(kilitDenetle("bash", { command: c }, workdir, undefined)?.kilit).toBe("K1"))
+})

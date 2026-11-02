@@ -631,6 +631,11 @@ printf 'acilis=x\nbaglama_tmp=/ rw,relatime\nrun_veeamtransport=YOK\nservis_veea
 python3 "$VT" tani vt2.txt > vt2.out && gecti "veeam: temiz sunucu → çıkış 0" || kaldi "veeam temiz: $(cat vt2.out)"
 icerir "veeam: kanıt VBR tarafında" vt2.out "EKSİK KANIT: sunucu logunda"
 icermez "veeam: transport çalışıyorsa /run eksikliği bulgu değil" vt2.out "BULGU"
+printf 'acilis=2026-11-02 15:40:11\nbugun=2026-11-02\nssh_anahtar=ssh_host_ed25519_key=SHA256:abc/+d@2026-11-02 ssh_host_rsa_key=SHA256:eee@2025-11-14\nkripto=DEFAULT\nlog_hata=x\n' > vs1.txt
+python3 "$VT" tani vs1.txt > vs1.out
+icerir "veeam ssh: bugün değişen anahtar → bulgu" vs1.out "SSH host anahtarı ssh_host_ed25519_key 2026-11-02 tarihli"
+icerir "veeam ssh: parmak izi listesi (':' içeren iz bozulmaz)" vs1.out "ed25519 SHA256:abc/+d (2026-11-02) · rsa SHA256:eee (2025-11-14)"
+icermez "veeam ssh: eski anahtar bulgu değil" vs1.out "ssh_host_rsa_key 2025-11-14 tarihli"
 printf 'os=Red Hat Enterprise Linux release 9.8 (Plow)\nmongod_surum=db version v7.0.15\nmongod_args=/usr/bin/mongod -f /etc/mongod.conf|\nreplset=\nfuse=var\nvemdb_log=/x.log\nvemdb_hata=vemdb1.sock No such file or directory|\n' > vm1.txt
 python3 "$VT" tani vm1.txt > vm1.out
 icerir "veeam mongo: RHEL 9.8 destek listesi dışı" vm1.out "işletim sistemi 9.8 — Veeam v13 MongoDB destek listesi RHEL 8.4–9.6"

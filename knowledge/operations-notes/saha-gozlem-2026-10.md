@@ -1489,3 +1489,9 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   koşullar RHEL 8.4–9.6, MongoDB 7.0/8.0/8.2/8.3, standalone desteklenmez, plug-in build ≥ yedeği alan build, hedef kullanıcı root rolü.
   Bugün OS yaması yapıldıysa dtlmrestore 9.6 üstüne çıkmış olabilir → destek listesi dışı (ölçülmedi).
 - Aksiyon: `veeam-linux` §3 MongoDB + `veeam-tani.py mongo-komut` (OS/mongod/replica set/FUSE/vemdb logları → BULGU); test 173/173.
+- Devamı (Alp, aynı gün): hata değişti → restore sihirbazı (primary node bağlantısı, dtlmrestore:22, Veeam servis hesabı) "Failed to validate
+  access to the Linux server … ExplorerManagementService: Failed to validate ssh fingerprint settings (sessionId = …), Restore session already
+  closed. Validation failed." Ajan logları "VBR RPC bağlantı hatası" diye yorumlamış — Alp "hangisi doğru bilemiyorum".
+- Doktor: ekrandaki metin esas; VBR Linux sunucunun SSH parmak izini saklar (Options → Security → Linux hosts authentication; Inventory →
+  Untrusted; KB4524 aynı sınıf). Aksiyon: veeam-tani komutuna SSH host parmak izleri + anahtar dosya tarihleri, kripto politikası, sshd
+  AllowUsers/AllowGroups/algoritma satırları; SKILL §2b; kilit: `ssh-keygen -l/-F`, `update-crypto-policies --show` okuma. Test 176/176, kilit 334/334.

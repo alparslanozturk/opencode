@@ -100,6 +100,23 @@ Soru (Alp): "Aşırı CPU kullanımından kaynaklı sunucu donması ve NFS perfo
   birlikte anılıyor, SEP'in `sisap/sisevt` modülleri anılmıyor — SEP'in fanotify kullanıp kullanmadığı bilinmiyor. Red Hat 2302001: eski
   Symantec CSP `sisfim` modülünde hung task (RHEL 6). Yani "SEP sunucuyu dondurur" **belgede yok**; kanıt yalnız olay anının yığını (§3.1).
 - **Sonuç yazımı:** "SEP yavaşlatıyor/donduruyor" ancak §3 kanıtıyla; yoksa "belgede mümkün gösterilen mekanizma şu, sizde ölçülmedi".
+- **Kurum (Alp, 2026-11-03):** "Scan files on remote computers" sanırım **açık** `[SAHA]` — SEP yöneticisi doğrular; ajan sürümü "1.4 diye
+  duydum, 1.6 downgrade / 1.3 upgrade yapıyoruz galiba" `[SAHA]` → `sep-istisna.py komut` paket adını okur.
+
+### İstisna listesi — sunucudan, tam yol, kaynaklı (`sep-istisna.py`)
+
+```bash
+B=/root/ai/opencode/knowledge/skills/approved/rke2-edr
+python3 $B/sep-istisna.py komut           # basılan ssh komutunu <sunucu> ile çalıştır:
+ssh root@<sunucu> '<basılan komut>' | python3 $B/sep-istisna.py liste -
+```
+
+Yalnız sunucuda **var olan** yolları üç bölümde basar: **KAYNAKLI** (Broadcom KB 244505: /proc /sys /dev /var/spool /var/lib/rpm ·
+RKE2 yolları — UiPath Automation Suite belgesi, SUSE'nin resmi listesi yok · MongoDB Production Notes: dbPath + log yolu, mongod.conf/
+süreçten okunur · NFS bağlamaları — KB 162599, tercih politikada uzak taramayı kapatmak), **KURUM KARARI** (`/data` — Alp), **KAYNAKSIZ
+ADAY** (PostgreSQL veri dizini — resmi belge yok, topluluk görüşü; docker/podman deposu). Yazım: önek `[NONE]` + tam yol (önek değişkeni
+14.3 RU1–RU5'te geçersiz, KB 250717); 14.3 RU1'den beri alt dizinler her zaman dahil (Broadcom TechDocs). `/tmp`, `/var/run` bilinçli
+dışarıda (güvenlik ekibi). İstisnayı SEPM'de SEP yöneticisi uygular; sonra KB 237314 profiliyle CPU'nun düştüğü ölçülür.
 
 ## 3. Kanıt — sebep ajan mı? (en güçlüden zayıfa)
 

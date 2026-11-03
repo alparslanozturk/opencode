@@ -1583,3 +1583,6 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Aksiyon (kilit): kesin salt-okunur komutta K6 metin taraması yapılmaz (yazma yine K6); okuyan betik listesi kit yolu + kurulu kopya
   (`~`, `$HOME`, mutlak) ve denetlenen 6 betik eklendi (disk-durum, k8s-ozet, olay-penceresi, leapp-rapor, gpu-dagilim, uyum).
   Test: sahadaki komut iki yoldan da kilitsiz; kurulu alana yazma ve listede olmayan betik K6 kalır.
+- Alp (devam): yeni kurulan sunucularda CN istenmez — talebi sunucu sahibi iletti, "/data'yı kullanmıyorum" dedi; kullansaydı değişiklik
+  (CN) gerekirdi. Aksiyon: `rhel-depolama` B §3 Yol C (/data → /: CN kuralı, kullanılmadığının salt-okunur kanıtı, sıra, doğrulama);
+  `rhel-teslim` §0a CN maddesi.

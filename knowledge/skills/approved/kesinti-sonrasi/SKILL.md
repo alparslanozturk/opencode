@@ -31,7 +31,9 @@ Toplanan (sunucu başına, hepsi anlık — journal okunmaz): `acilis` (`uptime 
 açılış `crash` ile görünür; wtmp döndüyse `bilinmiyor`) · `yuk` (load / çekirdek) · `d_surec` (G/Ç bekleyen süreç) · `bagli_degil`
 (fstab'da olup bağlı olmayan; noauto/swap hariç).
 
-Komut yalnız okur (kilit onay sormaz — test edildi). **Olduğu gibi** kopyala; parça parça ya da `for h in …; do ssh` döngüsüyle çalıştırma
+**Tarama bir kez yapılır.** Özet betiği hata verirse (dizin yok, yanlış saat) yalnız özeti düzeltip yeniden çalıştır — taramayı tekrarlama
+(saha 2026-11-03: tarama `ansible/` altında bitmişti, özet üst dizinden çağrıldı, ajan 1235 sunucuyu baştan taradı ve takıldı). Dizini
+`-t` ile verdiğin yerden, mutlak yolla ver. Komut yalnız okur (kilit onay sormaz — test edildi). **Olduğu gibi** kopyala; parça parça ya da `for h in …; do ssh` döngüsüyle çalıştırma
 (`filo-kontrol` — sırayla çalışır, takılan sunucu hepsini düşürür). Saat bilinmiyorsa `--kesinti`'yi çıkar. `DİSK DOLU` görünen sunucu
 için aynı `-a '…'` ile `-m raw` (modül kopyalamaz — `filo-kontrol` §3c).
 

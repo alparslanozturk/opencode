@@ -1571,3 +1571,15 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Sonuç (Alp): sunucular **Windows** → kurulum iptal, Linux sunucular gelince devam. Ajanın özetinde iki kanıtsız satır: `CN: 2. onay —
   BT-Açık Sistemler Yönetimi` (CN hiç verilmedi; ekip adı CN değil) ve "IP'ler ve DNS doğrulaması kayda geçti" (hiçbir dosya yazılmadı).
   Aksiyon: `rhel-teslim` §1 — Windows teyidinde akış biter, özet yalnız ölçülenler, `CN: verilmedi`, yazılmamış kayıt "kayda geçti" denmez.
+
+### G121 — Salt-okunur disk incelemesinde K6 ve onay ekranı (Alp, 2026-11-03, 3 ekran)
+
+- Talep: 4 sxl sunucuda `/data` diskini kaldırıp alanı `/`'e vermek — Alp önce **salt-okunur inceleme** istedi. Ajan `rhel-depolama`
+  §1 komutunu (lsblk/pvs/findmnt/fstab/blkid -p | `disk-durum.py`) kurdu.
+- 1. deneme betiği kurulu kopyadan çağırdı (`~/.config/opencode/skills/rhel-depolama/disk-durum.py` — beceri yükleyicisi bu dizini
+  gösterir) → **K6** ("ajanın kendi ayar alanı"): K6 metinde `.config/opencode` görünce, komut kesin okuma olsa da engelliyordu.
+- 2. deneme kit yolundan (`/root/ai/opencode/...`) → **onay ekranı**: `disk-durum.py` okuyan betik listesinde yoktu (kaynak: open() yalnız
+  okuma, subprocess yok). Risk yoktu; ikisi de kilit hatası.
+- Aksiyon (kilit): kesin salt-okunur komutta K6 metin taraması yapılmaz (yazma yine K6); okuyan betik listesi kit yolu + kurulu kopya
+  (`~`, `$HOME`, mutlak) ve denetlenen 6 betik eklendi (disk-durum, k8s-ozet, olay-penceresi, leapp-rapor, gpu-dagilim, uyum).
+  Test: sahadaki komut iki yoldan da kilitsiz; kurulu alana yazma ve listede olmayan betik K6 kalır.

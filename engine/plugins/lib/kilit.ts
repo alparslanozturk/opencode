@@ -1154,8 +1154,17 @@ export function saltOkunur(argv: string[]): boolean {
 }
 
 // Dosya yazmayan, yalnız okuyup basan beceri betikleri (kaynağı denetlendi: open() yalnız okuma, subprocess yok/yalnız openssl okuma).
+// Kit yolu ve kur.sh'ın kurduğu kopya (~/.config/opencode/skills/<beceri>/ — beceri yükleyicisi modele bu dizini gösterir; saha G121:
+// ajan bu yolu kullandı, K6'ya takıldı). Kurulu kopyaya ajan yazamaz (K6), çalıştırmak okuma sayılır.
+const OKUYAN_BETIKLER = ["kurum-registry/imaj-yol.py", "rhel-ca-guven/ca-dogrula.py", "veeam-linux/veeam-tani.py", "rhel-nfs/nfs-tani.py",
+  "rke2-edr/sep-istisna.py", "rhel-depolama/disk-durum.py", "k8s-sorun/k8s-ozet.py", "rhel-sorun/olay-penceresi.py",
+  "rhel-yukseltme/leapp-rapor.py", "rke2-gpu/gpu-dagilim.py", "surum-uyum/uyum.py"]
 export const OKUYAN_BECERI_BETIGI = new Set(
-  ["kurum-registry/imaj-yol.py", "rhel-ca-guven/ca-dogrula.py", "veeam-linux/veeam-tani.py", "rhel-nfs/nfs-tani.py", "rke2-edr/sep-istisna.py"].map((x) => "/root/ai/opencode/knowledge/skills/approved/" + x),
+  OKUYAN_BETIKLER.flatMap((x) => {
+    const home = userInfo().homedir
+    const cfg = process.env.XDG_CONFIG_HOME ? join(process.env.XDG_CONFIG_HOME, "opencode") : join(home, ".config", "opencode")
+    return ["/root/ai/opencode/knowledge/skills/approved/" + x, join(cfg, "skills", x), "~/.config/opencode/skills/" + x, "$HOME/.config/opencode/skills/" + x]
+  }),
 )
 
 export const KUBE_DEGERLI = new Set(["-n", "--namespace", "--context", "--kubeconfig", "--cluster", "--user", "-s",
@@ -1901,7 +1910,8 @@ export function kilitDenetle(
     } catch {
       yalnizOkur = false
     }
-    const k6 = yalnizOkur ? null : korunanMetin(args.command)
+    // kesin salt-okunur komut (ssh içi dahil) korunan alanı okuyabilir — ör. kurulu beceri betiğini çalıştırmak (saha G121)
+    const k6 = yalnizOkur || kesinOkuma(args.command, workdir) ? null : korunanMetin(args.command)
     if (k6)
       return {
         kilit: "K6",

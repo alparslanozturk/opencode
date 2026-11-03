@@ -27,6 +27,7 @@ Oturum sonunda kullanıcı `/kaydet` der → kurumsal bilgi güncellenir.
 | güvenlik denetimi · puan kartı | — | `rhel-guvenlik` · `rke2-guvenlik` · `rke2-denetim` |
 | rke2 kur · node ekle · worker ekle | 4 ağ blokları | `rke2-kurulum` · `rke2-node-ekle` |
 | rke2 yükselt · rancher yükselt · antrea | — | `rke2-yukseltme` → `uyum` |
+| envanter çıkar · sunucu envanteri · ip blokları · ağ haritası · kaç domain · drc | 1 ağ · 2 DMZ · 4 ağ blokları | `kurum-envanter` → `envanter-harita` |
 | küme · namespace · ns kapasite · pod · node · rancher · kubectl · notready | 4 ağ blokları | `kume-bul` (master'ı bul) → `k8s-sorun` → `k8s-ozet` |
 | leapp · ana sürüm | — | `rhel-yukseltme` → `leapp-rapor` |
 | os upgrade · güncelle · dnf · yama · reboot · yeniden başlat | 7 servis davranışı | `rhel-guncelleme` → `filo-tablo` |

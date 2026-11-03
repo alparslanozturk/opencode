@@ -262,7 +262,9 @@ XFS **küçültülemez**.
 - **Plan** `disk-durum.py` + `vgs` + `lvs -o +devices` çıktısından: `/data` LV'si hangi VG'de, o VG'de başka LV var mı, `/` hangi VG/LV.
   Sıra: `umount /data` → fstab satırını kaldır (önce `cp /etc/fstab /etc/fstab.<YYYYMMDD-HHMM>`) → `lvremove /dev/<vg>/<lv>` → ayrı
   VG ise `vgremove <vg>` → diski kök VG'ye ekle `vgextend <kok-vg> /dev/<disk>` → `lvextend -r -l +100%FREE /dev/<kok-vg>/<kok-lv>`.
-  Her adım onay ekranına gelir; `/data` dizininin kalıp kalmayacağını sor.
+  **Her adım ayrı komut** — `umount && vgremove -f && … && sed -i` gibi tek satır, kullanıcının adım adım onayını tek onaya indirir
+  (Alp, 2026-11-03: "her bir komutu kontrol ederek çalıştırıyorum"). fstab yedeği `sed`'den önce ayrı komut. `/data` dizininin kalıp
+  kalmayacağını sor. Aynı iş birden çok sunucuda → playbook yolunu öner (ADR-0007 §6).
 - **Doğrula:** `df -h /` (yeni boyut) · `findmnt --verify` · `vgs` (VFree 0) · fstab'da `/data` yok — 4 sunucuda tek komutla
   (`filo-kontrol` §5).
 

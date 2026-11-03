@@ -1589,3 +1589,5 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Sonuç (ekran): sxlabinitiodata'da Yol C başarılı — `kt_rhel_vg` silindi, `/dev/sdb` `rhel` VG'ye eklendi, root LV 52.5G → 364.4G,
   XFS büyüdü, fstab'dan `/data` kalktı; kök kullanım %100 (53G/53G) → %15. Diğer üçünde ajanın planı: `/data` diski web ve meta'da
   **sda**, cntr'de **sdb** — disk harfi sunucudan sunucuya değişiyor; her sunucunun planı kendi `disk-durum.py` çıktısından (G38).
+- Bitti (ekran): dört sunucuda root 53G → 365G / 393G / 293G / 193G, kullanım %15 / %4 / %4 / %5 (3 dk 56 sn, bağlam %47). Alp: ad-hoc SSH
+  bu tür işte daha mantıklı → ADR-0007 §7. Not: sxlabinitiodata'da kök önce %100 doluydu (diğerleri değil) — ne doldurduğu ölçülmedi.

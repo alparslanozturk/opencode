@@ -121,8 +121,17 @@ def main(argv):
             print("bilinmeyen seçenek: %s" % argv[i])
             return 2
     if not os.path.isdir(dizin):
-        print("dizin yok: %s (kesinti-sonrasi §1 komutu -t %s ile üretir)" % (dizin, dizin))
-        return 2
+        # saha 2026-11-03: tarama ansible/ altında bitmişti (1235 dosya), özet üst dizinden çağrıldı → "dizin yok" → ajan 1235 sunucuyu
+        # BAŞTAN taradı ve takıldı. Göreli yolu bilinen yerlerde ara; bulunursa onu kullan, taramayı tekrarlatma.
+        adaylar = [os.path.join(k, dizin) for k in ("ansible", "..", os.path.expanduser("~/ai/work/opencode"),
+                                                    os.path.expanduser("~/ai/work/opencode/ansible"))]
+        bulunan = [a for a in adaylar if os.path.isdir(a)]
+        if not bulunan:
+            print("dizin yok: %s — aranan: %s. TARAMAYI TEKRARLAMA; önce `find ~/ai/work -type d -path '*%s'` ile bul" % (
+                dizin, ", ".join(adaylar), dizin))
+            return 2
+        print("not: %s bu dizinde yok, %s kullanıldı (tarama tekrarlanmadı)" % (dizin, os.path.abspath(bulunan[0])))
+        dizin = bulunan[0]
     ft = filo_tablo()
     veri = ft.oku(dizin)
     bek = ft.beklenen(grup, envanter) if grup else None

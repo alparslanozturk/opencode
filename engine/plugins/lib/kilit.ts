@@ -1129,6 +1129,8 @@ export function saltOkunur(argv: string[]): boolean {
       return a.length > 0 && a.every((x) => ["--version", "-v", "config", "dump"].includes(x)) && (a.includes("--version") || a.includes("-v") || (a[0] === "config" && a[1] === "dump"))
     case "wipefs":
       return wipefsOkur(a)
+    case "opencode":
+      return opencodeOturumOkur(a)
     case "python":
     case "python3":
       // yalnız stdin'den okuyup biçimleyen json.tool (çıktı dosyası argümanı yok) — gerisi kod çalıştırır
@@ -1158,7 +1160,7 @@ export function saltOkunur(argv: string[]): boolean {
 // ajan bu yolu kullandı, K6'ya takıldı). Kurulu kopyaya ajan yazamaz (K6), çalıştırmak okuma sayılır.
 const OKUYAN_BETIKLER = ["kurum-registry/imaj-yol.py", "rhel-ca-guven/ca-dogrula.py", "veeam-linux/veeam-tani.py", "rhel-nfs/nfs-tani.py",
   "rke2-edr/sep-istisna.py", "rhel-depolama/disk-durum.py", "k8s-sorun/k8s-ozet.py", "rhel-sorun/olay-penceresi.py",
-  "rhel-yukseltme/leapp-rapor.py", "rke2-gpu/gpu-dagilim.py", "surum-uyum/uyum.py"]
+  "rhel-yukseltme/leapp-rapor.py", "rke2-gpu/gpu-dagilim.py", "surum-uyum/uyum.py", "rapor/oturum-ozet.py"]
 export const OKUYAN_BECERI_BETIGI = new Set(
   OKUYAN_BETIKLER.flatMap((x) => {
     const home = userInfo().homedir
@@ -1177,6 +1179,12 @@ export const YEREL_KAYIT_BETIGI = new Set(
 )
 export function yerelKayitBetigi(argv: string[]): boolean {
   return ["python", "python3"].includes((argv[0] ?? "").split("/").pop() ?? "") && YEREL_KAYIT_BETIGI.has(argv[1] ?? "")
+}
+
+// `opencode session list|export` yalnız oturum kaydını okur, ajan başlatmaz (oturum özeti — Alp, 2026-11-03). import/delete ve diğer
+// alt komutlar K5'te kalır (kilitsiz ikinci ajan).
+export function opencodeOturumOkur(a: string[]): boolean {
+  return a[0] === "session" && ["list", "export"].includes(a[1] ?? "")
 }
 
 export const KUBE_DEGERLI = new Set(["-n", "--namespace", "--context", "--kubeconfig", "--cluster", "--user", "-s",
@@ -1441,7 +1449,7 @@ export function tekKomut(k: Komut, b: Baglam): Bulgu[] {
   }
 
   // K6: kilitsiz ikinci bir opencode başlatma
-  if (p === "opencode" && !a.every((x) => ["--version", "-v", "--help", "-h"].includes(x)))
+  if (p === "opencode" && !a.every((x) => ["--version", "-v", "--help", "-h"].includes(x)) && !opencodeOturumOkur(a))
     out.push(sert("opencode'u komut içinden başlatma (kilitsiz ikinci ajan)"))
 
   // K5: yıkıcı komutlar (yerel ya da uzak, yetkiyle bile açılmaz)

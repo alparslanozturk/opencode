@@ -1035,3 +1035,21 @@ describe("2026-11-03: iş kaydı betiği onaysız (ADR-0007 §6)", () => {
     expect(kesinOkuma(`python3 /root/x/is-kaydi.py ac x`, workdir)).toBe(false)
   })
 })
+
+describe("2026-11-03: /kaydet — oturum dökümü okuma, özet onaysız", () => {
+  const R = "/root/ai/opencode/knowledge/skills/approved/rapor"
+  const karar = (c: string) => kilitDenetle("bash", { command: c }, workdir, undefined)
+  for (const c of [
+    `opencode session export "$OPENCODE_SESSION_ID" | python3 ${R}/oturum-ozet.py - | python3 ${R}/is-kaydi.py ekle son oturum-ozet`,
+    `opencode session export "$OPENCODE_SESSION_ID" | python3 ${R}/is-kaydi.py ekle son oturum-dokum`,
+    `opencode session list`,
+  ]) test(`onaysız: ${c.slice(0, 60)}`, () => {
+    expect(kesinOkuma(c, workdir)).toBe(true)
+    expect(karar(c)).toBeNull()
+  })
+  test("opencode başka alt komut K5 kalır", () => {
+    expect(karar("opencode run 'x'")?.kilit).toBe("K5")
+    expect(karar("opencode session delete ses_1")?.kilit).toBe("K5")
+    expect(karar("opencode session import x.json")?.kilit).toBe("K5")
+  })
+})

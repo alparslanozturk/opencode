@@ -669,6 +669,31 @@ if python3 "$IK" ekle ../../etc x < /dev/null > ikx.txt 2>&1; then kaldi "kök d
 python3 "$IK" liste data > ikl.txt; icerir "liste sözcükle" ikl.txt "a,b"
 unset IS_KAYIT_KOK
 
+baslik "oturum-ozet.py (oturum kanıtlı özeti; 2026-11-03)"
+cat > oz.json << 'JSON'
+{"info":{"id":"ses_1","title":"disk"},"messages":[
+{"type":"user","id":"msg_1","text":"yeni sunucularda CN gerekmez, sahibi talebi iletti"},
+{"type":"assistant","id":"msg_2","content":[{"type":"reasoning","text":"GIZLI-DUSUNCE"},{"type":"text","text":"CN: 2. onay — ekip adı"},
+ {"type":"tool","name":"bash","state":{"status":"completed","input":{"command":"ssh root@a 'df -h /'"},"content":[{"type":"text","text":"/dev/mapper/rhel-root 365G"}]}},
+ {"type":"tool","name":"bash","state":{"status":"completed","input":{"command":"ssh root@a 'lvextend -r -l +100%FREE /dev/rhel/root'"},"content":[{"type":"text","text":"Logical volume rhel/root successfully resized"}]}},
+ {"type":"tool","name":"bash","state":{"status":"error","input":{"command":"ssh root@a 'vgremove x'"},"error":{"message":"[güvenlik kilidi K6] reddedildi"}}},
+ {"type":"tool","name":"bash","state":{"status":"completed","input":{"command":"ssh root@b 'ls /yok'"},"content":[{"type":"text","text":"ls: cannot access\nExited with code 2"}]}},
+ {"type":"tool","name":"skill","state":{"status":"completed","input":{"name":"rhel-depolama"},"content":[{"type":"text","text":"x"}]}}]},
+{"type":"user","id":"msg_3","text":"hayır, CN verilmedi; parola=Gizli123 sanırım 1.4 sürüm"}]}
+JSON
+python3 "$B/rapor/oturum-ozet.py" oz.json > oz.md 2>&1
+icerir "kullanıcı bilgisi #1" oz.md "#1: yeni sunucularda CN gerekmez"
+icerir "düzeltme: ajan sözü bilgi değil" oz.md "düzeltilen ajan sözü (bilgi DEĞİL, tekrarlama): CN: 2. onay"
+icerir "kullanıcı tahmini etiketli" oz.md "kullanıcı tahmini"
+icerir "değişiklik bölümünde lvextend" oz.md "lvextend -r"
+icerir "ölçülen df çıktısı" oz.md "rhel-root 365G"
+icerir "kilit reddi başarısızda" oz.md "güvenlik kilidi K6"
+icerir "çıkış kodu ≠0 başarısızda" oz.md "ls /yok"
+icerir "beceri listesi" oz.md "rhel-depolama"
+icermez "akıl yürütme özete girmez" oz.md "GIZLI-DUSUNCE"
+icermez "parola maskelenir" oz.md "Gizli123"
+if awk '/^## Ölçülen/{f=1;next} /^## /{f=0} f' oz.md | grep -q "ls /yok"; then kaldi "başarısız komut ölçülen bölümünde"; else gecti "başarısız komut ölçülene girmez"; fi
+
 baslik "veeam-tani.py (Veeam restore hatası; 2026-11-02)"
 VT="$B/veeam-linux/veeam-tani.py"
 printf 'acilis=2026-11-02 15:40:11\nveeam_paket=veeamtransport-13.0.0\nbaglama_tmp=/tmp rw,nosuid,nodev,noexec,relatime\nrun_veeamtransport=YOK\nservis_veeamtransport=failed/enabled\nservis_veeamnetfsmount=inactive/enabled\nlog_hata=ERR |POSIX: Failed to create or open file [/var/run/veeamtransport/veeamtransport.pid].|No such file or directory|\n' > vt1.txt

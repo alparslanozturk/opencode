@@ -199,5 +199,11 @@
     "task": "deny",
     "execute": "deny",
     "todowrite": "deny"
+  },
+  "commands": {
+    "kaydet": {
+      "description": "Oturumun kanıtlı özetini iş kaydına al (yalnız kullanıcı sözü + komut çıktısı; ajan metni ve hatalar bilgi değil)",
+      "template": "Bu oturumu iş kaydına al. YALNIZ şu adımları yap, kendi özetini yazma:\n1. Bu oturumda açılmış iş kaydı varsa onun dizin adını kullan; yoksa aç: `python3 /root/ai/opencode/knowledge/skills/approved/rapor/is-kaydi.py ac <kısa-etiket> --istek \"<kullanıcının ilk isteği>\"` (etiket: $ARGUMENTS verildiyse o).\n2. `opencode session export \"$OPENCODE_SESSION_ID\" | python3 /root/ai/opencode/knowledge/skills/approved/rapor/oturum-ozet.py - | python3 /root/ai/opencode/knowledge/skills/approved/rapor/is-kaydi.py ekle <kayıt> oturum-ozet`\n3. `opencode session export \"$OPENCODE_SESSION_ID\" | python3 /root/ai/opencode/knowledge/skills/approved/rapor/is-kaydi.py ekle <kayıt> oturum-dokum`\n4. Özet dosyasını `cat` ile göster.\n5. En fazla 5 ders adayı öner: her biri özetteki bir satırdan (#n ile) aynen alınır; \"Düzeltmeler\" ve \"Başarısız\" bölümleri ders değil, \"tekrarlama\" notudur. Özette olmayan hiçbir şeyi ekleme. Kullanıcı onaylarsa her birini `python3 /root/ai/opencode/knowledge/skills/approved/rapor/is-kaydi.py sonuc <kayıt> \"Ders: … (#n)\"` ile yaz."
+    }
   }
 }

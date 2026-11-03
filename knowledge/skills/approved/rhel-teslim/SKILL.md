@@ -118,6 +118,9 @@ for ip in <ip1> <ip2>; do echo "$ip ttl=$(ping -c1 -W2 $ip | sed -n 's/.*ttl=\([
   Windows için doğrulanmadı). Her yönlendirici 1 düşürür → 60'lar Linux'a, 120'ler Windows'a işaret eder — **tahmin**, kanıt değil.
 - 3389 (RDP) / 5985 (WinRM) açık, 22 kapalı → büyük olasılıkla Windows (tahmin); kullanıcıya söyle, talebi teyit ettir.
 - Hepsi kapalı → OS'i ve sshd'yi sanallaştırma ekibine/konsola sor (devralma eksiği, onlara geri gider). Sen düzeltmezsin.
+- Windows teyit edildiyse bu akış **biter** (saha G120: talep iptal). Özet yalnız ölçülenler: FQDN, IP (nslookup), ping, SSH sonucu,
+  iptal sebebi (kullanıcının sözü). Verilmeyen alanı doldurma: CN verilmediyse `CN: verilmedi` — ekip adı ya da "2. onay" CN değildir.
+  Dosyaya yazmadıysan "kayda geçti" deme.
 
 Sık çıkan eksikler ve kime ait:
 

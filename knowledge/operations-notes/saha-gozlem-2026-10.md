@@ -1568,3 +1568,6 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Ajan "muhtemelen: kurulmadı / firewall / sshd başlamadı" listeledi, ayıran ölçüm önermedi. Alp: "sunucular Windows bile olmayabilir".
 - Aksiyon: `rhel-teslim` §1 "Ping var, SSH refused" — TTL + 22/3389/5985 tek satır (bash /dev/tcp, kilitte okuma), TTL varsayılanları
   kaynaklı (Linux 64 ölçüldü; Windows 128 Microsoft eski belge), sonuç tahmin olarak söylenir; eksik sanallaştırma ekibine döner.
+- Sonuç (Alp): sunucular **Windows** → kurulum iptal, Linux sunucular gelince devam. Ajanın özetinde iki kanıtsız satır: `CN: 2. onay —
+  BT-Açık Sistemler Yönetimi` (CN hiç verilmedi; ekip adı CN değil) ve "IP'ler ve DNS doğrulaması kayda geçti" (hiçbir dosya yazılmadı).
+  Aksiyon: `rhel-teslim` §1 — Windows teyidinde akış biter, özet yalnız ölçülenler, `CN: verilmedi`, yazılmamış kayıt "kayda geçti" denmez.

@@ -1167,6 +1167,18 @@ export const OKUYAN_BECERI_BETIGI = new Set(
   }),
 )
 
+// Yalnız yerel iş kaydı köküne (~/ai/work/is-kayitlari) yazan betik (kaynağı denetlendi: kök dışına yazmaz, üstüne yazmaz) — sunucu
+// değişikliği değil, onay ekranına düşmez (Alp, 2026-11-03, ADR-0007 §6). Okuma sayılmaz; yalnız kesinOkuma'nın onaysız geçişinde kabul.
+export const YEREL_KAYIT_BETIGI = new Set(
+  ["rapor/is-kaydi.py"].flatMap((x) => {
+    const home = userInfo().homedir
+    return ["/root/ai/opencode/knowledge/skills/approved/" + x, join(home, ".config", "opencode", "skills", x), "~/.config/opencode/skills/" + x]
+  }),
+)
+export function yerelKayitBetigi(argv: string[]): boolean {
+  return ["python", "python3"].includes((argv[0] ?? "").split("/").pop() ?? "") && YEREL_KAYIT_BETIGI.has(argv[1] ?? "")
+}
+
 export const KUBE_DEGERLI = new Set(["-n", "--namespace", "--context", "--kubeconfig", "--cluster", "--user", "-s",
   "--server", "--token", "-l", "--selector", "-o", "--output", "-c", "--container", "--as", "--request-timeout"])
 export const KUBE_OKUR = new Set(["get", "describe", "logs", "top", "version", "api-resources", "api-versions", "explain",
@@ -1869,7 +1881,7 @@ export function kesinOkuma(command: string, workdir: string): boolean {
       if (govde.length > 0 && k.argv.some((x) => !["do", "then", "else", "{", "!"].includes(x)) && govde.every((x) => /^[A-Za-z_][A-Za-z0-9_]*=/.test(x))) continue
       const argv = sarmalayiciSoy(k.argv).argv
       const ad = (argv[0] ?? "").split("/").pop() ?? ""
-      if (ad !== "ssh" && !saltOkunur(argv)) return false
+      if (ad !== "ssh" && !saltOkunur(argv) && !yerelKayitBetigi(argv)) return false
     }
     for (const i of ic) if (!kesinOkuma(i, workdir)) return false
     // sır içeren dosyayı okuma (anahtar, parola, kimlik) onaysız geçmez — sorulur (kubectl --kubeconfig yolu okuma sayılmaz)

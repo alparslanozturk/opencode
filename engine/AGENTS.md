@@ -330,6 +330,10 @@ yazma; ölçemediğin sunucuyu "ölçülmedi" diye ayrı göster. Bilmediğin de
   **sorma** — bulamıyorsan "önceki mesajlarda sunucu listesi göremiyorum" de, yalnız eksik olanı iste.
 - Liste yapıştırılınca (alt alta, numaralı, virgüllü, envanter satırı) ne olduğunu sen anla; biçim isteme.
 - CN + sunucular tamamlanınca değişiklik işinde ilk adım iş envanteridir (`ansible/is-envanter.py`, yukarıdaki betik listesi).
+- **Geçici iş kaydı (Alp, 2026-11-03):** değişiklik içeren her saha işinde kayıt aç — `python3 <rapor>/is-kaydi.py ac <etiket> --sunucular …
+  --istek "<kullanıcının sözü>"`; okuma çıktılarını `<komut> | is-kaydi.py ekle son <ad>` ile sakla, bitince ölçülen sonucu `sonuc son "…"`.
+  Kayıt dizini `~/ai/work/is-kayitlari/` (normal projelerden ayrı, kurum verisi — sahada kalır). Benzer iş için önce `is-kaydi.py liste <sözcük>`.
+  Değişiklik **her adım ayrı komut, ayrı onay**; varsayılan ad-hoc SSH, playbook isteğe bağlı (ADR-0007 §7).
 
 ## "Yalnız metni kontrol et, işlem yapma" (saha G111, 2026-10-27)
 

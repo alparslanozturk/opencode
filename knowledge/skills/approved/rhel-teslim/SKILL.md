@@ -106,6 +106,19 @@ chronyc sources -v | head                    # kaynak var mı, '^*' satırı
 cat /etc/os-release | grep VERSION_ID        # beklenen sürüm mü
 ```
 
+**Ping var, SSH "Connection refused" (G120):** RST geldi = makine ayakta, 22'de dinleyen yok ya da araya giren REJECT ediyor
+(man 2 connect: ECONNREFUSED "No-one listening on the remote address"). "Henüz kurulmadı / firewall / sshd başlamadı" diye sıralama
+yapma — ayıran kanıtı topla (salt-okunur, aynı makineden):
+
+```bash
+for ip in <ip1> <ip2>; do echo "$ip ttl=$(ping -c1 -W2 $ip | sed -n 's/.*ttl=\([0-9]*\).*/\1/p')"; for p in 22 3389 5985; do timeout 3 bash -c "echo > /dev/tcp/$ip/$p" 2>/dev/null && echo "  $p acik" || echo "  $p kapali"; done; done
+```
+
+- TTL: Linux varsayılanı 64 (`net.ipv4.ip_default_ttl`, ölçüldü), Windows 128 (Microsoft'un Windows 2000/XP TCP/IP belgesi; güncel
+  Windows için doğrulanmadı). Her yönlendirici 1 düşürür → 60'lar Linux'a, 120'ler Windows'a işaret eder — **tahmin**, kanıt değil.
+- 3389 (RDP) / 5985 (WinRM) açık, 22 kapalı → büyük olasılıkla Windows (tahmin); kullanıcıya söyle, talebi teyit ettir.
+- Hepsi kapalı → OS'i ve sshd'yi sanallaştırma ekibine/konsola sor (devralma eksiği, onlara geri gider). Sen düzeltmezsin.
+
 Sık çıkan eksikler ve kime ait:
 
 | Eksik | Kime |

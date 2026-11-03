@@ -1560,3 +1560,11 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Aksiyon: `rhel-teslim` §0a "Önce sor" (adım seçimi, FQDN'den alan, alan adı uyuşmazlığı → sor, CN/envanter), baseline kapsam dışı,
   numara = katalog; iç ağ/DMZ iki değer seti dosyadan; çelişen değer = dur ve iki satırı göster; tetik sözcükleri ("2. onay", "açık
   sistem", "dmz", "ipa client", "xdr" …). `rke2-edr` §2b SAL/1.4 notu. Açık `[SAHA]`: DMZ IPA playbook'unun adı ve değerleri.
+
+### G120 — 2. onay devamı: IP DNS'ten bulundu, ping var, SSH "Connection refused"; ajan nedeni ölçmeden sıraladı (Alp, 2026-11-03, 3 ekran)
+
+- Ajan IP'yi kanıtla buldu: atlama makinesi `10.0.1.136` üzerinden `nslookup dpd1intsube{1,2}.kurum-dmz.local 10.0.60.1` →
+  `10.0.35.126/127` (iyi). Ping 3/3, `ssh root@…` → "Connection refused" (iki sunucu).
+- Ajan "muhtemelen: kurulmadı / firewall / sshd başlamadı" listeledi, ayıran ölçüm önermedi. Alp: "sunucular Windows bile olmayabilir".
+- Aksiyon: `rhel-teslim` §1 "Ping var, SSH refused" — TTL + 22/3389/5985 tek satır (bash /dev/tcp, kilitte okuma), TTL varsayılanları
+  kaynaklı (Linux 64 ölçüldü; Windows 128 Microsoft eski belge), sonuç tahmin olarak söylenir; eksik sanallaştırma ekibine döner.

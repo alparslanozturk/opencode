@@ -1,7 +1,7 @@
 # ADR-0007: Oku → planla → playbook'la değiştir → doğrula (mimari yeniden tasarım önerisi)
 
 - **Tarih:** 2026-11-03
-- **Durum:** önerildi — Alp kararı bekliyor (aşağıda "Açık sorular")
+- **Durum:** önerildi — Alp'in ilk cevapları işlendi (§6, 2026-11-03); dizin adı onayı bekliyor
 - **Bağlam:** Alp (2026-11-03): "Mimariyi genel olarak tekrar düşünüp tasarlayabilir misin?" — öncesinde: "böyle şeyler için Ansible
   playbook yazmak daha mantıklı … yakında playbook çalıştıran bir kontrol merkezi yapacağız."
 
@@ -103,3 +103,19 @@ Tekrarlayan sorunlar (kanıt):
 3. Baseline projesiyle ilişki: o proje de aynı katalog mu, ayrı mı kalacak?
 4. Onay modeli: "paket başına tek onay + playbook komutunda onay ekranı" yeterli mi, yoksa production'da ikinci kişi onayı mı?
 5. Geçiş sırası: tablodaki 1→6 mı, yoksa önce 2–3 (paket + ilk playbook) mu?
+
+## 6. Alp'in cevapları (2026-11-03) ve düzeltilmiş karar
+
+- **Kontrol merkezi:** kuruldu ama aktif değil → bu ADR'de **iş yok** (adım 6 rafta). **Baseline:** ilgisiz → kapsam dışı.
+- **İş paketi = kurum iş kaydı:** geçici işlerin planı/çıktısı/sonucu ayrı bir dizinde birikir, zamanla kurumun bilgi tabanı olur
+  ("database gibi"). Saha tarafında, normal projelerden ayrı: önerilen `~/ai/work/is-kayitlari/<YYYYMMDD-HHMM>-<etiket>/`
+  (`plan.md`, `hosts.ini`, `host_vars/`, `okuma/`, `sonuc.md`) — dizin adı Alp onayı bekliyor. Kurum verisi bu depoya gelmez; bu depo
+  yalnız biçimi ve üreten betiği taşır.
+- **Onay modeli — "tek onay" kalktı.** Alp her değişiklik komutunu tek tek görüp onaylıyor ve bunu değerli buluyor. Karar:
+  - **Ad-hoc yol (seyrek iş):** her değişiklik adımı **ayrı komut** — `&&` zinciriyle birden çok yıkıcı adım tek onaya sığdırılmaz
+    (2026-11-03 ekranı: `umount && vgremove -f && pvremove && vgextend && lvextend -r && sed -i fstab` tek satır, fstab yedeği yok).
+    Okuma komutları zincirlenebilir.
+  - **Playbook yolu (tekrarlanan iş — aynı adımlar ≥2 sunucuda ya da ikinci kez):** görünürlük üç yerden: (1) playbook dosyası ilk
+    kullanımda sohbette gösterilir ve bir kez gözden geçirilir; (2) `--list-tasks` + `--check --diff` çıktısı; (3) her sunucu ayrı `-l`
+    ile çalışır, görev görev çıktı ekranda. `--step` etkileşimli olduğu için ajan kabuğunda kullanılamaz (stdin yok).
+  - Seçim ajanın değil: ajan iki yolu önerir, Alp seçer. Varsayılan: tek sunucu/tek seferlik → ad-hoc adım adım; çok sunucu → playbook.

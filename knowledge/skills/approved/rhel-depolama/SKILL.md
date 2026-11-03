@@ -109,6 +109,30 @@ resize2fs /dev/<vg>/<lv>         # ext4
 XFS **küçültülemez**, yalnızca büyütülür. Bu geri alınamaz bir yön, karar
 verirken bunu hesaba kat.
 
+### 6b. Disk %100 dolu — önce yer aç, sonra LVM (saha 2026-11-03, Alp)
+
+Ölçülen (splelastic4/8, kök `/` 53G %100): disk tam doluyken `vgextend` **çalışmadı**; Alp önce elle yer açtı, sonra şu iki komut başarılı
+oldu (Alp'in kabuk geçmişi, 2026-11-03 23:06):
+```bash
+vgextend rhel /dev/sdd
+lvextend /dev/rhel/root /dev/sdd -r
+```
+tahmin (neden): LVM her değişiklikte `/etc/lvm/archive` ve `/etc/lvm/backup` altına meta veri yedeği yazar; kök dosya sistemi doluyken
+bu yazılamaz. Hata metni görülmedi [doğrula] — görürsen kullanıcıya göster, bu cümleyi ona göre düzelt.
+
+Sıra (her adım ayrı komut, ayrı onay — AGENTS):
+1. **Yeri kim yiyor** (okuma): §2 ve §4 — `du -xsh /var/log/* /root/* 2>/dev/null | sort -rh | head`. Saha: `/var/log/messages` tek dosya
+   37–40 GB (aynı serinin sağlam üyelerinde 130–150 MB) — logrotate o dosyayı döndürmemiş; nedeni ölçülmedi [doğrula].
+2. **Yer aç — neyi sileceğine kullanıcı karar verir.** Sahada işe yarayanlar (Alp): `/root` altında gereksiz `rpm` / `tar.gz`; `/var/log`
+   altında tarih ekli eski (dönmüş) log dosyaları. Her sunucuda farklıdır (Alp: "tabi her zaman öyle olmaz") — listeyi göster, sor.
+   - Açık tutulan aktif log'u (`/var/log/messages`) **silme**: süreç dosyayı açık tuttuğu için yer açılmaz (§3). Gerekirse içi boşaltılır —
+     değişiklik, onayla.
+   - `rm -rf` ile dizin silme yok; dosya dosya, adıyla.
+3. Birkaç yüz MB açılınca LVM: yukarıdaki `vgextend` → `vgs` (VFree arttı mı) → `lvextend … -r` → `df -h /`.
+4. Kalıcı: logrotate neden döndürmedi — `/etc/logrotate.d/` ve `logrotate -d /etc/logrotate.conf` (kuru çalıştırma, okuma). Düzeltme ayrı iş.
+
+Yapma: doluluk yüzdesine göre yöntem eşiği uydurma (saha: model "%100 → sil, %90–95 → vgextend" diye kural türetti — kaynağı yok).
+
 ### 7. Mount sorunları
 
 ```bash

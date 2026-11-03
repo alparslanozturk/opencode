@@ -31,6 +31,9 @@ playbook'larıyla yapılandırır (Alp, 2026-11-03). Kullanıcı vermediyse tek 
    2026-11-03). Kullanıcının yazdığı alan adı FQDN'deki ile aynı değilse (G119: mesajda `ktymd.local`, FQDN'de `ktdmz.local`) **sor**,
    birini seçme.
 3. **Değişiklik kaydı (CN)** ve envanter: sunucu ana envanterde yoksa iş envanteri (`ansible` §1b `is-envanter.py`) — kullanıcı seçer.
+4. **Talep formu (1. onay, "Sunucu Tanımlama")** değerleri: İşletim Sistemi, Lokal/DMZ, DNS (FQDN), CPU, RAM, Data Disk ve Sistem Disk
+   kapasitesi. OS formda yazar — Windows ise bu akış uygulanmaz (G120). Lokal/DMZ → IPA/DNS değer seti; Data Disk → `/data` adayı;
+   CPU/RAM/disk teslimde sunucudaki ölçümle karşılaştırılır. Alanlar: `knowledge/sunucu-isimlendirme.md` §2.2–2.3.
 Ölçülebilenleri sorma (OS sürümü, diskler, kayıt durumu → §1 ve `filo-kontrol`).
 
 **Bu akışta olmayanlar:** baseline (`site.yml`, CIS/banner/denetim rolleri) **ayrı projede** takip edilir — burada önerme, çalıştırma

@@ -7,7 +7,9 @@
 #   kesinti-ozet.py <tree-dizini> [--kesinti "YYYY-MM-DD HH:MM"] [--grup <g> [-i <envanter>]]
 #
 # Sınıflar (her biri kanıt alanıyla):
-#   ULAŞILAMADI    : ansible bağlanamadı / zaman aşımı / çıktı yok — kapalı ya da açılışta takılı olabilir (konsol: filo-kontrol §3c)
+#   YANIT VERMEDİ  : bağlandı ama komut süresinde bitmedi / disk dolu — sunucu AYAKTA; sebep yazılmaz, yalnız bunlar tekrar taranır
+#                    (saha 2026-11-03: sağlıklı sunucular ZAMAN AŞIMI'na düştü, ssh ile bağlanıldı — 'ulaşılamadı' yanlıştı)
+#   ULAŞILAMADI    : ssh bağlantısı yok / çıktı yok — kapalı ya da açılışta takılı olabilir (konsol: filo-kontrol §3c)
 #   KESİNTİDE KAPANDI : açılış (uptime -s) kesinti saatinden SONRA. önceki_kapanis=ANI → `last -x`'te kapanış kaydı yok (güç gitti);
 #                    temiz → kapatılarak inmiş (UPS/elle)
 #   KAPANMADI      : açılış kesintiden ÖNCE — bulunan sorun kesintiyle ilişkilendirilemez (ayrı yazılır)
@@ -54,6 +56,13 @@ def sorunlar(d):
         s.append("başarısız servis: " + d["basarisiz"])
     if d.get("bagli_degil"):
         s.append("fstab'da olup bağlı değil: " + d["bagli_degil"])
+    if d.get("hata") == "takildi":
+        s.append("journal 15 sn'de okunamadı (takıldı) — yük/G/Ç; sunucuda elle bak")
+    m = re.match(r"^([\d.]+) [\d.]+ [\d.]+/(\d+)$", d.get("yuk", ""))
+    if m and float(m.group(1)) > int(m.group(2)):
+        s.append("yük yüksek: %s (load 1dk / çekirdek)" % d["yuk"])
+    if d.get("d_surec", "0") not in ("0", ""):
+        s.append("G/Ç bekleyen (D-state) süreç: %s — NFS/depolama beklemesi olabilir (filo-kontrol §3c, dmesg)" % d["d_surec"])
     if d.get("fs_hata", "0") not in ("0", ""):
         s.append("çekirdekte disk/dosya sistemi hatası: %s satır (journalctl -b -k | grep -iE 'I/O error|XFS|EXT4')" % d["fs_hata"])
     if d.get("saat") and d["saat"] != "Normal":
@@ -96,7 +105,7 @@ def main(argv):
     veri = ft.oku(dizin)
     bek = ft.beklenen(grup, envanter) if grup else None
 
-    ulasilamadi, kapandi, kapanmadi, bilinmiyor = [], [], [], []
+    ulasilamadi, yanitsiz, kapandi, kapanmadi, bilinmiyor = [], [], [], [], []
     for h in sorted(set(veri) | set(bek or [])):
         if h not in veri:
             ulasilamadi.append((h, "ÇIKTI YOK", "tree'de dosya yok — komut bitmeden kesildi ya da hedef dışı"))
@@ -104,7 +113,7 @@ def main(argv):
         k, mesaj = ft.durum(veri[h])
         d = kv(veri[h].get("stdout"))
         if k != "ok" and "acilis" not in d:
-            ulasilamadi.append((h, k, mesaj))
+            (yanitsiz if k in ("ZAMAN AŞIMI", "DİSK DOLU") else ulasilamadi).append((h, k, mesaj))
             continue
         acilis = zaman(d.get("acilis", ""))
         satir = (h, d.get("acilis", "?"), d.get("onceki_kapanis", "?"), sorunlar(d), d.get("hata", "?"), d.get("hata_ilk", ""))
@@ -115,17 +124,23 @@ def main(argv):
         else:
             (kapandi if acilis >= kesinti else kapanmadi).append(satir)
 
-    toplam = len(ulasilamadi) + len(kapandi) + len(kapanmadi) + len(bilinmiyor)
+    toplam = len(ulasilamadi) + len(yanitsiz) + len(kapandi) + len(kapanmadi) + len(bilinmiyor)
     print("Kesinti taraması: %s · %d sunucu%s · kesinti: %s" % (
         dizin, toplam, " (beklenen: %s)" % grup if bek else "",
         kesinti.strftime("%Y-%m-%d %H:%M") if kesinti else "verilmedi — sınıf yalnız önceki_kapanis=ANI'ye göre"))
-    print("Sayım: ulaşılamadı %d · kesintide kapandı %d · kapanmadı %d%s" % (
-        len(ulasilamadi), len(kapandi), len(kapanmadi), " · açılış okunamadı %d" % len(bilinmiyor) if bilinmiyor else ""))
+    print("Sayım: ulaşılamadı %d · yanıt vermedi (ayakta) %d · kesintide kapandı %d · kapanmadı %d%s" % (
+        len(ulasilamadi), len(yanitsiz), len(kapandi), len(kapanmadi), " · açılış okunamadı %d" % len(bilinmiyor) if bilinmiyor else ""))
 
     if ulasilamadi:
-        print("\n== ULAŞILAMADI (değer yazma — durum yaz; kapalı/açılışta takılı olabilir → vCenter konsolu, filo-kontrol §3c)")
+        print("\n== ULAŞILAMADI — ssh bağlantısı yok (değer yazma; kapalı/açılışta takılı ya da Windows olabilir → ping/TTL, vCenter konsolu)")
         for h, k, m in ulasilamadi:
             print("  %-28s %-12s %s" % (h, k, (m or "")[:150]))
+
+    if yanitsiz:
+        print("\n== YANIT VERMEDİ — sunucu AYAKTA (bağlandı, komut süresinde bitmedi / disk dolu); sebep yazma. Yalnız bunları tekrar tara:")
+        for h, k, m in yanitsiz:
+            print("  %-28s %-12s %s" % (h, k, (m or "")[:150]))
+        print("  tekrar: aynı komut --limit '%s' -f 5 --task-timeout 180 (yine düşerse -m raw — filo-kontrol §3c)" % ":".join(h for h, _, _ in yanitsiz))
 
     def yaz(baslik, xs, aciklama):
         if not xs:
@@ -148,7 +163,7 @@ def main(argv):
     yaz("AÇILIŞ OKUNAMADI", bilinmiyor, "uptime -s çıktısı yok (RHEL 6?) — elle bak")
     print("\nKanıt: açılış = `uptime -s` · önceki kapanış = `last -x reboot shutdown` 2. satır (shutdown=temiz, reboot=ANI; wtmp döndüyse"
           " bilinmiyor) · sorunlar = aynı komutun alanları. Saatler sunucunun yerel saati.")
-    return 0 if not (ulasilamadi or any(s for _, _, _, s, _, _ in kapandi + kapanmadi)) else 1
+    return 0 if not (ulasilamadi or yanitsiz or any(s for _, _, _, s, _, _ in kapandi + kapanmadi)) else 1
 
 
 if __name__ == "__main__":

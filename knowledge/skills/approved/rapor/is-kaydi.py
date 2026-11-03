@@ -37,7 +37,8 @@ PLAN = """# {ad}
 -
 """
 
-SONUC = "# Sonuç — {ad}\n\n(ölçülen son durum; \"yaptım\" yalnız hedefteki ölçümle)\n\n"
+SONUC = ("# Sonuç — {ad}\n\n(ölçülen son durum; \"yaptım\" yalnız hedefteki ölçümle)\n\n"
+          "## Dersler (öneri — beceriye ancak Alp onayıyla girer; yalnız ölçülmüş olgu)\n\n")
 
 
 def zaman(bicim="%Y%m%d-%H%M"):

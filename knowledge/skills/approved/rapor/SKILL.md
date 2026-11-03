@@ -39,6 +39,19 @@ python3 $K liste data                                                           
 `plan.md`'yi doldur: önce sor cevapları, okuma kanıtı (dosya adıyla), adımlar (her biri ayrı komut), risk/geri dönüş. Verilmeyen alan
 "verilmedi" kalır. Betik yalnız bu köke yazar, var olan dosyanın üstüne yazmaz; kilitte onaysız.
 
+**Biten oturumu kayda al, sonra listeden sil** (opencode 2.x'te arşiv yok; liste dizin başına, üst şeritteki sekme `ctrl+x w` ile
+kapanır ve oturum listede kalır — geri `ctrl+shift+t`):
+
+```bash
+opencode session list                                         # oturum kimlikleri
+opencode session export <id> | python3 $K ekle son oturum     # tam döküm kaydın okuma/ dizinine (sahada kalır)
+opencode session delete <id>                                  # ya da listede ctrl+d (iki kez)
+```
+
+Kayıttaki oturum dökümü ve `sonuc.md` "Dersler" bölümü kurumun hafızasıdır; model ağırlığı değişmez, model kendi kendine öğrenmez.
+Yeni işte `is-kaydi.py liste <sözcük>` ile eski benzer iş bulunur, `plan.md`/`sonuc.md` okunur. Ders beceriye ancak Alp'in onayıyla
+(bu depo üzerinden) girer.
+
 ## A. Biçim, CSV, HTML
 
 Doğrulandı: AlmaLinux 10.2 (python 3.12) ve macOS — 2026-08-29

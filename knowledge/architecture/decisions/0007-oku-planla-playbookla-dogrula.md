@@ -126,3 +126,10 @@ Tekrarlayan sorunlar (kanıt):
 başına onay** (bugünkü akış). Playbook yalnız kurumun mevcut seti için ya da Alp istediğinde; ajan playbook'a çevirmeyi kendiliğinden
 dayatmaz, en fazla bir satırla önerir. ADR'nin geri kalanından geçerli olanlar: okuma → betik → karar, iş kaydı dizini (ad onayı
 bekliyor), kilitte betik işareti + statik denetim, AGENTS.md kısaltma + yönlendirme testi, saha geri sınaması.
+
+## 8. Uygulandı (2026-11-03, Alp onayı)
+
+- Kurumsal bilgi (sahada `kurumsal-bilgi.ini`) her oturumda otomatik yüklenir (`kur.sh` → `instructions`); `/kaydet` (parametresiz)
+  oturumdan günceller ve düzenler; iş kaydı `rapor/is-kaydi.py`; süzgeç `rapor/oturum-ozet.py`.
+- İş haritası `engine/AGENTS.md` başında; gerçek saha cümleleriyle test edilir. Kilitte iz bırakan "okuma" biçimleri kapandı (G122).
+- Rafta: kontrol merkezi, playbook kataloğu (§7 — isteğe bağlı), betik işaretiyle kilit listesinin otomatik denetimi.

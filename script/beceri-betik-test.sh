@@ -694,6 +694,39 @@ icermez "akıl yürütme özete girmez" oz.md "GIZLI-DUSUNCE"
 icerir "parola maskelenmez (Alp: yerel ortam)" oz.md "Gizli123"
 if awk '/^## Ölçülen/{f=1;next} /^## /{f=0} f' oz.md | grep -q "ls /yok"; then kaldi "başarısız komut ölçülen bölümünde"; else gecti "başarısız komut ölçülene girmez"; fi
 
+baslik "AGENTS.md iş haritası (gerçek saha cümleleri → beceri; 2026-11-03)"
+python3 - "$KOK/engine/AGENTS.md" "$KOK/knowledge/skills/approved" > harita.txt 2>&1 << 'PY'
+import os, re, sys
+metin = open(sys.argv[1], encoding="utf-8").read()
+bolum = metin.split("## İş haritası", 1)[1].split("\n## ", 1)[0]
+satirlar = [[h.strip() for h in l.strip().strip("|").split("|")] for l in bolum.splitlines() if l.startswith("| ") and "---" not in l][1:]
+eksik = [b for r in satirlar for b in re.findall(r"`([a-z0-9-]+)`", r[2].split("→")[0]) if not os.path.isdir(os.path.join(sys.argv[2], b))]
+print("BECERI_EKSIK=" + ",".join(eksik))
+def yonlendir(cumle):
+    c = cumle.lower()
+    for r in satirlar:
+        if any(k.strip() and k.strip() in c for k in r[0].split("·")):
+            return r[2]
+    return ""
+VAKALAR = [  # (G kaydı, saha cümlesi, beklenen beceri)
+    ("G119", "Açık sistem 2. onay işlemleri yapacak. Sunucular: dpd1intsube1.kurum-dmz.local", "rhel-teslim"),
+    ("G122", "rke-prod NS kapasite ve kaynak analizi", "kume-bul"),
+    ("G116", "OS upgrade sunucu IP ve sürüm listesi", "rhel-guncelleme"),
+    ("G121", "sunucularda disk konfigürasyonu hatalı olmuş /data diye ayrı diskler verilmiş", "rhel-depolama"),
+    ("G118", "NFS performans artışı için ne yapılabilir", "rhel-nfs"),
+    ("G118", "son zamanlarda SEP'in etkilerini anlamaya çalışıyoruz", "rke2-edr"),
+    ("G117", "dtlmrestore Veeam servisleri yeniden başlat", "veeam-linux"),
+    ("G120", "SSH yapamadı connection refused", "rhel-teslim"),
+    ("G116", "docker compose yapısını kontrol et", "rhel-guncelleme"),
+]
+for g, cumle, beklenen in VAKALAR:
+    y = yonlendir(cumle)
+    print("%s %s: %s → %s" % ("OK" if beklenen in y else "YANLIS", g, cumle[:40], y[:50]))
+PY
+grep -qx "BECERI_EKSIK=" harita.txt && gecti "haritadaki her beceri knowledge/skills/approved altında var" || kaldi "haritada olmayan beceri: $(grep BECERI_EKSIK harita.txt)"
+icermez "gerçek saha cümleleri doğru beceriye" harita.txt "YANLIS"
+grep -E "^(YANLIS|BECERI_EKSIK=.)" harita.txt || true
+
 baslik "veeam-tani.py (Veeam restore hatası; 2026-11-02)"
 VT="$B/veeam-linux/veeam-tani.py"
 printf 'acilis=2026-11-02 15:40:11\nveeam_paket=veeamtransport-13.0.0\nbaglama_tmp=/tmp rw,nosuid,nodev,noexec,relatime\nrun_veeamtransport=YOK\nservis_veeamtransport=failed/enabled\nservis_veeamnetfsmount=inactive/enabled\nlog_hata=ERR |POSIX: Failed to create or open file [/var/run/veeamtransport/veeamtransport.pid].|No such file or directory|\n' > vt1.txt

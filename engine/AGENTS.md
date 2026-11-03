@@ -1,5 +1,47 @@
 # AGENTS.md — Alp'in kurum kuralları (aider'dan aktarıldı)
 
+## İş haritası — önce kurumsal bilgi, sonra beceri (Alp, 2026-11-03)
+
+Her oturumda iki şey otomatik yüklü: bu dosya (kurallar) ve **kurumsal bilgi** (`~/ai/work/opencode/kurumsal-bilgi.ini` — DNS/NTP, DMZ,
+ağ blokları, erişim akışı, süreçler; satırdaki `[doğrula]` kesin bilgi değildir). İş gelince: isteğin sözcüklerini aşağıda **yukarıdan
+aşağı** ara, ilk eşleşen satır → o kurumsal bilgi bölümüne bak → beceriyi yükle → betiği kullan. Eşleşme yoksa sor; tahminle beceri seçme.
+Oturum sonunda kullanıcı `/kaydet` der → kurumsal bilgi güncellenir.
+
+| İsteğin sözcükleri | Kurumsal bilgi | Beceri → betik |
+|---|---|---|
+| 2. onay · açık sistem · yeni sunucu · sunucu yapılandır · teslim · ipa client | 2 DMZ · 6 süreçler | `rhel-teslim` → `disk-durum`, `filo-tablo` |
+| veeam · restore | — | `veeam-linux` → `veeam-tani` |
+| sep · symantec · antivirüs · istisna · xdr · twistlock · defender | — | `rke2-edr` → `sep-istisna` (paket üretimi: `sep-paket`) |
+| nfs · nfsidmap · dizin boş · dizinler gelmedi | 9 bilinen sorunlar | `rhel-nfs` → `nfs-tani` |
+| idm · ipa · sudo · hbac · ad trust · kerberos | 6 süreçler | `idm-erisim` · `idm-kurulum` · `idm-bakim` |
+| gpu · nvidia · run:ai · vllm | — | `rke2-gpu` → `gpu-dagilim` (sürücü `rhel-gpu-surucu`, operator `rke2-gpu-kurulum`, `rke2-runai`) |
+| sertifika · tls · pfx | — | `rancher-sertifika` → `sertifika-kontrol` |
+| root ca · güven deposu · trust · captcha | — | `rhel-ca-guven` → `ca-dogrula` |
+| cis · oscap · sıkılaştırma | — | `rhel-cis` → `cis-ozet` (küme: `rke2-cis`) |
+| sürüm uyumu · eol · destek sonu | — | `surum-uyum` → `uyum` |
+| imaj · registry · nexus · harbor · imagepull | — | `kurum-registry` → `imaj-yol` |
+| manifest · gitops · azure devops · git | 8 erişim noktaları | `rke2-manifest` · `git` → `envanter-fark` |
+| solaris · ntp mode 6 | — | `solaris-ntp` → `ntp-mode6` |
+| anthos · gke | — | `anthos-erisim` |
+| bddk · kvkk · regülasyon | — | `bankacilik-uyum` |
+| güvenlik denetimi · puan kartı | — | `rhel-guvenlik` · `rke2-guvenlik` · `rke2-denetim` |
+| rke2 kur · node ekle · worker ekle | 4 ağ blokları | `rke2-kurulum` · `rke2-node-ekle` |
+| rke2 yükselt · rancher yükselt · antrea | — | `rke2-yukseltme` → `uyum` |
+| küme · namespace · ns kapasite · pod · node · rancher · kubectl · notready | 4 ağ blokları | `kume-bul` (master'ı bul) → `k8s-sorun` → `k8s-ozet` |
+| leapp · ana sürüm | — | `rhel-yukseltme` → `leapp-rapor` |
+| os upgrade · güncelle · dnf · yama · reboot · yeniden başlat | 7 servis davranışı | `rhel-guncelleme` → `filo-tablo` |
+| disk · /data · büyüt · extend · lvm · dolu · inode | — | `rhel-depolama` → `disk-durum` |
+| erişemiyorum · bağlanamıyorum · timeout · connection refused · fw talebi | 5 erişim akışı | `rhel-teslim` §1 (ping/TTL/port) |
+| dns · ntp · chrony · dmz | 1 ağ · 2 DMZ | `rhel-yonetim` |
+| yavaş · yük · cpu · bellek · sar · performans | — | `rhel-performans` → `sar-ozet` |
+| hata · çöktü · log · olay saati · panic · hung | — | `rhel-sorun` → `olay-penceresi` |
+| çok sunucu · hepsinde · toplu kontrol | — | `filo-kontrol` → `filo-tablo` |
+| ansible · playbook · envanter · cn | 6 süreçler | `ansible` → `is-envanter`, `playbook-denetim` |
+| docker · compose · konteyner | 7 servis davranışı | `rhel-guncelleme` 1b (compose fotoğrafı) |
+| rapor · excel · html · tablo | — | `rapor` → `tablo-cevir` |
+| belge · xlsx · docx · pdf · onenote | — | `belge-oku` |
+| geçici iş · iş kaydı | — | `rapor` → `is-kaydi` |
+
 ## Dil ve üslup
 - Kullanıcı her işi **root** olarak yapar — komutlarda `sudo` önerme/yazma (Alp, 2026-10-05).
 - Yanıtlar **Türkçe**; komut/kod İngilizce kalır. Gereksiz giriş cümlesi, özet, övgü yazma.

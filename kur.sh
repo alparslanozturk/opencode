@@ -963,6 +963,9 @@ d["model"] = "kurum/" + m
 ins = d.setdefault("instructions", [])
 if "~/.config/opencode/saha-sabitleri.md" not in ins:
     ins.append("~/.config/opencode/saha-sabitleri.md")
+# Alp (2026-11-03): kurumsal bilgi her oturumda okunur; /kaydet günceller, motor dosyayı izler (değişince yeniden okur), yoksa atlar.
+if "~/ai/work/opencode/kurumsal-bilgi.ini" not in ins:
+    ins.append("~/ai/work/opencode/kurumsal-bilgi.ini")
 
 # Saha G91 (2026-10-21): uç o an /models'a cevap vermezse ctx boş kalıyor, dosya engine şablonundan (context 16384)
 # yeniden yazılıyordu → 262K pencere 16K'ya düştü (TUI "60K (366%)"), compaction özet üretemedi, araç çağrıları boş geldi.

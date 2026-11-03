@@ -13,6 +13,25 @@ ADR-0003 güncellemesi). **Ürün sürümü ayrı**: `kur.sh`'ın derlediği iki
 > **Yeniden tasarım önerisi (2026-11-03, durum: önerildi):** oku → planla (iş paketi) → playbook'la değiştir → doğrula —
 > `knowledge/architecture/decisions/0007-oku-planla-playbookla-dogrula.md`. Kabul edilene kadar aşağıdaki yapı geçerli.
 
+## Oturum düzeni — kurallar + kurumsal bilgi + harita (Alp, 2026-11-03)
+
+```
+oturum başı (otomatik, her istekte bağlamda)        işe göre (ajan yükler)
+1. ~/.config/opencode/AGENTS.md   kurallar + İŞ HARİTASI ─┐
+2. ~/ai/work/opencode/kurumsal-bilgi.ini  kurum gerçekleri ├─► 3. beceri (SKILL.md) → betik
+                                                          ┘
+oturum sonu: /kaydet  → 2'yi günceller ve düzenler (bilgi silmez; çelişki ayrı bölüm)
+geçici işin ayrıntısı: ~/ai/work/is-kayitlari/<tarih>-<etiket>/ (rapor/is-kaydi.py)
+```
+
+- **Kurumsal bilgi sahada kalır** (kurum verisi bu depoya girmez); depo yalnız bölüm şablonunu (`knowledge/templates/kurumsal-bilgi.md`),
+  `/kaydet` talimatını (`engine/opencode.json` `commands.kaydet`) ve süzgeç betiğini (`rapor/oturum-ozet.py`) taşır. `kur.sh` dosyayı
+  `instructions`'a ekler; motor dosyayı izler (değişince yeniden okur), yoksa atlar (`packages/core/src/config/plugin/instruction.ts`).
+- **Bilgi kaynağı yalnız kullanıcının sözü ve komut çıktısı** — ajanın yanıtı, düzeltilen sözü ve başarısız komut `oturum-ozet.py`'de elenir.
+  Kurumsal bilgi her istekte bağlamda olduğu için kısa tutulur: tek seferlik iş en fazla 30 satır, eskisi iş kaydına.
+- **İş haritası** (`engine/AGENTS.md` başı): isteğin sözcükleri → kurumsal bilgi bölümü → beceri → betik; gerçek saha cümleleriyle
+  `script/beceri-betik-test.sh` sınar. Değişiklikte varsayılan ad-hoc SSH + adım başına onay (ADR-0007 §7).
+
 ## Katmanlar
 
 | # | Katman | Nedir | Nerede |
@@ -21,7 +40,7 @@ ADR-0003 güncellemesi). **Ürün sürümü ayrı**: `kur.sh`'ın derlediği iki
 | 2 | **Araç (tool)** | Modelin çağırdığı fonksiyon | Yerleşik + `plugins/` (yerel TS) + MCP |
 | 3 | **Ajan** | Ayrı prompt/model/izinli asistan | `opencode.json` → `agent` veya `.opencode/agents/*.md` |
 | 4 | **Kural (rule)** | Davranış direktifi | `AGENTS.md` (proje kökü ve/veya global) |
-| 5 | **Hafıza** | Kalıcılık | opencode'ta **otomatik yok** → `knowledge/` (git tabanlı bilgi deposu) + `engine/AGENTS.md` |
+| 5 | **Hafıza** | Kalıcılık | opencode'ta **otomatik yok** → `knowledge/` (git, genel) + sahada `kurumsal-bilgi.ini` (kurum, `/kaydet`) + `engine/AGENTS.md` |
 
 ### 1) Beceriler
 - opencode becerileri şu konumlardan okur: `.opencode/skills/`, `~/.config/opencode/skills/`,

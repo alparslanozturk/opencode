@@ -3,6 +3,9 @@
 opencode becerileri **talep üzerine** yükler: ajan listeyi görür (isim + `description`),
 gerektiğinde `skill` aracıyla içeriği çeker → bağlam şişmez.
 
+> **Yönlendirme:** hangi işte hangi beceri — `engine/AGENTS.md` "İş haritası" (gerçek saha cümleleriyle testli). Kurum gerçekleri becerilere
+> yazılmaz; sahada `kurumsal-bilgi.ini`'de durur ve her oturumda yüklenir (`/kaydet` günceller).
+
 ## Yaşam döngüsü
 
 | Dizin | Kim koyar | opencode okur mu? |

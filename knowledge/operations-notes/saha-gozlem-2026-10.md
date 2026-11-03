@@ -1591,3 +1591,13 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   **sda**, cntr'de **sdb** — disk harfi sunucudan sunucuya değişiyor; her sunucunun planı kendi `disk-durum.py` çıktısından (G38).
 - Bitti (ekran): dört sunucuda root 53G → 365G / 393G / 293G / 193G, kullanım %15 / %4 / %4 / %5 (3 dk 56 sn, bağlam %47). Alp: ad-hoc SSH
   bu tür işte daha mantıklı → ADR-0007 §7. Not: sxlabinitiodata'da kök önce %100 doluydu (diğerleri değil) — ne doldurduğu ölçülmedi.
+
+### G122 — "rke-prod NS kapasite" salt-okunur incelemede üretim node'unda `kubectl proxy &` onaysız çalıştı (Alp, 2026-11-03, 1 ekran)
+
+- Ajan: `ssh root@10.0.16.196 "…/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml proxy --port=8080 &"` → "Starting to serve on
+  127.0.0.1:8080", 5 sn zaman aşımı. Sonra `curl http://127.0.0.1:8080/k8s/clusters/c-…` **yerelde** (yönetim sunucusunda) → JSON yok.
+  Sonra yerelde `pkill -f "kubectl proxy"` → Alp reddetti ("readonly kontrol edeceksin bu ne ya?").
+- Etki: veri değişmedi. Risk: node'un loopback'inde cluster-admin kimlikli, kimlik doğrulamasız API tüneli arkada kalmış olabilir
+  (ssh kapanınca süreç ölmeyebilir — ölçülmedi). `pkill` yanlış makineye (yerel) gidecekti.
+- Kök neden (kilit): `KUBE_OKUR` içinde `proxy` ve `port-forward` vardı → okuma sayıldı; arka plan `&` denetlenmiyordu.
+- Aksiyon: ikisi okuma listesinden çıktı; komutta (uzak tırnak içi dahil) arka plan `&` varsa onaysız geçmez. Test 355/355.

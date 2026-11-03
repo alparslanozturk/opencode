@@ -1190,7 +1190,8 @@ export function opencodeOturumOkur(a: string[]): boolean {
 export const KUBE_DEGERLI = new Set(["-n", "--namespace", "--context", "--kubeconfig", "--cluster", "--user", "-s",
   "--server", "--token", "-l", "--selector", "-o", "--output", "-c", "--container", "--as", "--request-timeout"])
 export const KUBE_OKUR = new Set(["get", "describe", "logs", "top", "version", "api-resources", "api-versions", "explain",
-  "cluster-info", "auth", "config", "wait", "diff", "events", "port-forward", "proxy", "whoami", "status", "projects", ""])
+  "cluster-info", "auth", "config", "wait", "diff", "events", "whoami", "status", "projects", ""])
+// port-forward / proxy KALDIRILDI (saha G122, 2026-11-03): okuma değil — kimlikli API tüneli açar, süreç arkada kalır.
 
 export function kubeFiil(a: string[]): string {
   for (let i = 0; i < a.length; i++) {
@@ -1882,6 +1883,8 @@ export function kesinOkuma(command: string, workdir: string): boolean {
     const ic: string[] = []
     const komutlar = ayristir(command, ic)
     if (!komutlar.length) return false
+    // arka plana atılan süreç (`… &`, uzak tırnak içi dahil) iz bırakır — okuma değil (G122: uzak node'da `kubectl proxy &`)
+    if (/(^|[^&>|])&(?![&>\d])/.test(command)) return false
     for (const k of komutlar) {
       if (k.yazilan.some((y) => !["/dev/null", "/dev/stdout", "/dev/stderr"].includes(y))) return false
       // yalnız kabuk değişkeni atayan parça (`x=1`, `h=$(host …)`) değişiklik değil; $() içi aşağıda ayrıca denetlenir (saha 2026-11-02)

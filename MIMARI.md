@@ -10,6 +10,9 @@ ADR-0003 güncellemesi). **Ürün sürümü ayrı**: `kur.sh`'ın derlediği iki
 
 > **Motor ≠ Bilgi.** Motor (`engine/`) güncellenebilir; bilgi (`knowledge/`) kalıcıdır. Kurumsal değer bilgide birikir.
 
+> **Yeniden tasarım önerisi (2026-11-03, durum: önerildi):** oku → planla (iş paketi) → playbook'la değiştir → doğrula —
+> `knowledge/architecture/decisions/0007-oku-planla-playbookla-dogrula.md`. Kabul edilene kadar aşağıdaki yapı geçerli.
+
 ## Katmanlar
 
 | # | Katman | Nedir | Nerede |

@@ -50,6 +50,28 @@ def zaman(x):
     return None
 
 
+# ansible'ın bağlantı mesajı → sebep. Yalnız mesajdaki metne göre; eşleşmeyen "diğer" (mesaj aynen). Saha 2026-11-03: 1235 sunucunun 251'i
+# tek "ulaşılamadı" listesindeydi — DNS'te olmayan (envanterde kalmış) ile açılmayan sunucu ayrılamıyordu.
+NEDENLER = [
+    (r"Could not resolve hostname|Name or service not known|nodename nor servname", "DNS çözülemedi — envanterde var, DNS'te yok (kapatılmış/eski kayıt olabilir; kurum-envanter)"),
+    (r"Connection timed out|Operation timed out|timed out during banner|Connection timed out during banner", "bağlantı zaman aşımı — kapalı, açılışta takılı ya da FW (ping/TTL: TTL 128 = Windows; vCenter konsolu)"),
+    (r"No route to host|Network is unreachable", "yol yok — ağ/VLAN ya da sunucu kapalı"),
+    (r"Connection refused", "bağlantı reddedildi — sunucu açık, sshd kapalı ya da başka port (Windows olabilir)"),
+    (r"Permission denied|Authentication failed|Too many authentication failures", "yetki — sunucu açık, ssh anahtarı/kullanıcı kabul edilmedi"),
+    (r"Host key verification failed|REMOTE HOST IDENTIFICATION HAS CHANGED", "host anahtarı değişmiş — sunucu açık (yeniden kurulmuş olabilir)"),
+    (r"Connection reset|Connection closed|kex_exchange", "bağlantı kapandı — sunucu açık ama ssh yanıtı bozuk/yük"),
+]
+
+
+def neden(k, m):
+    if k == "ÇIKTI YOK":
+        return "çıktı yok — komut bitmeden kesildi ya da hedef dışı"
+    for desen, ad in NEDENLER:
+        if re.search(desen, m or "", re.I):
+            return ad
+    return "diğer: %s" % ((m or k).strip().splitlines() or [k])[-1][:100]
+
+
 def sorunlar(d):
     s = []
     if d.get("basarisiz"):
@@ -132,9 +154,12 @@ def main(argv):
         len(ulasilamadi), len(yanitsiz), len(kapandi), len(kapanmadi), " · açılış okunamadı %d" % len(bilinmiyor) if bilinmiyor else ""))
 
     if ulasilamadi:
-        print("\n== ULAŞILAMADI — ssh bağlantısı yok (değer yazma; kapalı/açılışta takılı ya da Windows olabilir → ping/TTL, vCenter konsolu)")
+        print("\n== ULAŞILAMADI — ssh bağlantısı yok (değer yazma). Sebebe göre (ansible mesajından):")
+        gruplar = {}
         for h, k, m in ulasilamadi:
-            print("  %-28s %-12s %s" % (h, k, (m or "")[:150]))
+            gruplar.setdefault(neden(k, m), []).append(h)
+        for n, hs in sorted(gruplar.items(), key=lambda x: (-len(x[1]), x[0])):
+            print("  [%d] %s\n      %s" % (len(hs), n, " ".join(hs)))
 
     if yanitsiz:
         print("\n== YANIT VERMEDİ — sunucu AYAKTA (bağlandı, komut süresinde bitmedi / disk dolu); sebep yazma. Yalnız bunları tekrar tara:")

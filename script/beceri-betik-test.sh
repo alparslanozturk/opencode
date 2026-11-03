@@ -745,12 +745,15 @@ printf '%s' '{"rc":0,"stdout":"acilis=2026-11-03 10:05:12\nonceki_kapanis=ANI\nh
 printf '%s' '{"rc":0,"stdout":"acilis=2026-11-03 10:02:00\nonceki_kapanis=ANI\nhata=900\nhata_ilk= 22 error: kex_exchange_identification;\nfs_hata=0\nbasarisiz=\nbagli_degil=\nsaat=Normal"}' > kt/sunucu-b
 printf '%s' '{"rc":0,"stdout":"acilis=2026-09-01 08:00:00\nonceki_kapanis=temiz\nhata=5\nhata_ilk=\nfs_hata=0\nbasarisiz=kdump.service \nbagli_degil=\nsaat=Normal"}' > kt/sunucu-c
 printf '%s' '{"unreachable":true,"msg":"Failed to connect to the host via ssh: Connection timed out"}' > kt/sunucu-d
+printf '%s' '{"unreachable":true,"msg":"Failed to connect to the host via ssh: ssh: Could not resolve hostname eski01: Name or service not known"}' > kt/sunucu-f
 printf '%s' '{"msg":"The command action failed to execute in the expected time frame (30) and was terminated"}' > kt/sunucu-e
 if python3 "$B/kesinti-sonrasi/kesinti-ozet.py" kt --kesinti "2026-11-03 09:40" > kto.txt 2>&1; then kaldi "kesinti: sorun varken çıkış 1 bekleniyordu"; else gecti "kesinti: sorun → çıkış 1"; fi
-icerir "kesinti: sayım" kto.txt "Sayım: ulaşılamadı 1 · yanıt vermedi (ayakta) 1 · kesintide kapandı 2 · kapanmadı 1"
+icerir "kesinti: sayım" kto.txt "Sayım: ulaşılamadı 2 · yanıt vermedi (ayakta) 1 · kesintide kapandı 2 · kapanmadı 1"
 icerir "kesinti: zaman aşımı ayakta sayılır, tekrar komutu" kto.txt "tekrar: aynı komut --limit 'sunucu-e'"
 if grep -A3 "== ULAŞILAMADI" kto.txt | grep -q sunucu-e; then kaldi "kesinti: zaman aşımı ulaşılamadıya girdi"; else gecti "kesinti: zaman aşımı ulaşılamadı değil"; fi
 icerir "kesinti: ulaşılamayan değer almadan listelenir" kto.txt "sunucu-d"
+icerir "kesinti: ulaşılamayan sebebe göre — DNS" kto.txt "DNS çözülemedi"
+icerir "kesinti: ulaşılamayan sebebe göre — zaman aşımı" kto.txt "bağlantı zaman aşımı"
 icerir "kesinti: ani kapanış + açılış" kto.txt "sunucu-a                     açılış 2026-11-03 10:05:12 · önceki kapanış ANI"
 icerir "kesinti: başarısız servis" kto.txt "başarısız servis: nfs-mount.service"
 icerir "kesinti: fstab bağlı değil" kto.txt "fstab'da olup bağlı değil: /ab"

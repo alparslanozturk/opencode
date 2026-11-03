@@ -1080,3 +1080,13 @@ describe("G122 taraması: okuma gibi görünüp iz bırakan biçimler onaysız g
     "systemd-analyze blame", "kubectl auth can-i list pods", "kubectl config view --minify", "kubectl get ns"])
     test(`okuma: ${c}`, () => expect(kesinOkuma(c, workdir)).toBe(true))
 })
+
+describe("kesinti-sonrasi: beceri §1 komutu salt-okunur (2026-11-03)", () => {
+  const skill = require("fs").readFileSync(`${import.meta.dir}/../../../knowledge/skills/approved/kesinti-sonrasi/SKILL.md`, "utf8") as string
+  const komut = skill.split("\n").find((l) => l.startsWith("ansible <grup>"))!.replace("<grup>", "linux").replace("<envanter>", "env.ini")
+  test("ansible tarama komutu onaysız", () => expect(kesinOkuma(komut, workdir)).toBe(true))
+  test("aynı içerik ssh ile onaysız", () => expect(kesinOkuma(`ssh root@a '${komut.split(" -a '")[1]}`, workdir)).toBe(true))
+  test("özet betiği okuma", () =>
+    expect(kesinOkuma("python3 /root/ai/opencode/knowledge/skills/approved/kesinti-sonrasi/kesinti-ozet.py cikti/filo/kesinti --kesinti '2026-11-03 09:40'", workdir)).toBe(true))
+  test("düzeltme adımı okuma değil", () => expect(kesinOkuma("ssh root@a 'mount -a'", workdir)).toBe(false))
+})

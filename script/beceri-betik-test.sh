@@ -718,6 +718,8 @@ VAKALAR = [  # (G kaydı, saha cümlesi, beklenen beceri)
     ("G117", "dtlmrestore Veeam servisleri yeniden başlat", "veeam-linux"),
     ("G120", "SSH yapamadı connection refused", "rhel-teslim"),
     ("G116", "docker compose yapısını kontrol et", "rhel-guncelleme"),
+    ("Alp 2026-11-03", "veri merkezinde elektrik kesintisine bağlı olarak sunucular kapandı, bir hata mesajı var mı", "kesinti-sonrasi"),
+    ("Alp 2026-11-03", "bütün sunuculara bağlan, kesintiden kaynaklı hata var mı özet çıkar", "kesinti-sonrasi"),
 ]
 for g, cumle, beklenen in VAKALAR:
     y = yonlendir(cumle)
@@ -736,6 +738,28 @@ icerir "tabloya uymayan kod sorulur" eho.txt "srv: 3 harf tabloya uymuyor"
 icerir "DMZ kodu iç domain → sor" eho.txt "sxd: alan DMZ ama domain ic.local"
 icerir "çözülemeyen ad" eho.txt "çözülemeyen 1 ad: sxdkayip01"
 icermez "adın geri kalanı yorumlanmaz" eho.txt "web"
+
+baslik "kesinti-ozet.py (elektrik kesintisi sonrası filo; 2026-11-03)"
+rm -rf kt && mkdir kt
+printf '%s' '{"rc":0,"stdout":"acilis=2026-11-03 10:05:12\nonceki_kapanis=ANI\nhata=40\nhata_ilk= 3 XFS (dm-3): Metadata I/O error;\nfs_hata=2\nbasarisiz=nfs-mount.service \nbagli_degil=/ab \nsaat=Normal\ndocker=1/3\nrke2-agent=failed"}' > kt/sunucu-a
+printf '%s' '{"rc":0,"stdout":"acilis=2026-11-03 10:02:00\nonceki_kapanis=ANI\nhata=900\nhata_ilk= 22 error: kex_exchange_identification;\nfs_hata=0\nbasarisiz=\nbagli_degil=\nsaat=Normal"}' > kt/sunucu-b
+printf '%s' '{"rc":0,"stdout":"acilis=2026-09-01 08:00:00\nonceki_kapanis=temiz\nhata=5\nhata_ilk=\nfs_hata=0\nbasarisiz=kdump.service \nbagli_degil=\nsaat=Normal"}' > kt/sunucu-c
+printf '%s' '{"unreachable":true,"msg":"Failed to connect to the host via ssh: Connection timed out"}' > kt/sunucu-d
+if python3 "$B/kesinti-sonrasi/kesinti-ozet.py" kt --kesinti "2026-11-03 09:40" > kto.txt 2>&1; then kaldi "kesinti: sorun varken çıkış 1 bekleniyordu"; else gecti "kesinti: sorun → çıkış 1"; fi
+icerir "kesinti: sayım" kto.txt "Sayım: ulaşılamadı 1 · kesintide kapandı 2 · kapanmadı 1"
+icerir "kesinti: ulaşılamayan değer almadan listelenir" kto.txt "sunucu-d"
+icerir "kesinti: ani kapanış + açılış" kto.txt "sunucu-a                     açılış 2026-11-03 10:05:12 · önceki kapanış ANI"
+icerir "kesinti: başarısız servis" kto.txt "başarısız servis: nfs-mount.service"
+icerir "kesinti: fstab bağlı değil" kto.txt "fstab'da olup bağlı değil: /ab"
+icerir "kesinti: fs hatası" kto.txt "çekirdekte disk/dosya sistemi hatası: 2 satır"
+icerir "kesinti: durmuş konteyner" kto.txt "docker: 1/3 konteyner çalışıyor"
+icerir "kesinti: rke2" kto.txt "rke2-agent: failed"
+icerir "kesinti: hata sayısı tek başına sorun değil" kto.txt "sorun bulunmadı: sunucu-b(2026-11-03 10:02:00, ANI)"
+icerir "kesinti: kesintiden önce açılan ayrı sınıfta" kto.txt "== KAPANMADI (1)"
+python3 "$B/kesinti-sonrasi/kesinti-ozet.py" kt > kto2.txt 2>&1
+icerir "kesinti: saat yoksa ANI'ye göre" kto2.txt "kesintide kapandı 2 · kapanmadı 1"
+python3 "$B/kesinti-sonrasi/kesinti-ozet.py" kt --kesinti "dün" > kto3.txt 2>&1
+icerir "kesinti: bozuk saat reddedilir" kto3.txt "--kesinti okunamadı"
 
 baslik "veeam-tani.py (Veeam restore hatası; 2026-11-02)"
 VT="$B/veeam-linux/veeam-tani.py"

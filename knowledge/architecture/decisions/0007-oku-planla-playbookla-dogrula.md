@@ -1,7 +1,7 @@
 # ADR-0007: Oku → planla → playbook'la değiştir → doğrula (mimari yeniden tasarım önerisi)
 
 - **Tarih:** 2026-11-03
-- **Durum:** önerildi — Alp'in ilk cevapları işlendi (§6, 2026-11-03); dizin adı onayı bekliyor
+- **Durum:** kısmen kabul — §7: değişiklikte varsayılan ad-hoc SSH + adım başına onay; playbook isteğe bağlı
 - **Bağlam:** Alp (2026-11-03): "Mimariyi genel olarak tekrar düşünüp tasarlayabilir misin?" — öncesinde: "böyle şeyler için Ansible
   playbook yazmak daha mantıklı … yakında playbook çalıştıran bir kontrol merkezi yapacağız."
 
@@ -119,3 +119,10 @@ Tekrarlayan sorunlar (kanıt):
     kullanımda sohbette gösterilir ve bir kez gözden geçirilir; (2) `--list-tasks` + `--check --diff` çıktısı; (3) her sunucu ayrı `-l`
     ile çalışır, görev görev çıktı ekranda. `--step` etkileşimli olduğu için ajan kabuğunda kullanılamaz (stdin yok).
   - Seçim ajanın değil: ajan iki yolu önerir, Alp seçer. Varsayılan: tek sunucu/tek seferlik → ad-hoc adım adım; çok sunucu → playbook.
+
+## 7. Sonuç (Alp, 2026-11-03 — G121 dört sunucu bitti)
+
+"SSH ile bilgileri toplamak ya da bazı ufak komutlara girmek daha mantıklı olabiliyor." → **Varsayılan yol ad-hoc SSH, değişiklik adımı
+başına onay** (bugünkü akış). Playbook yalnız kurumun mevcut seti için ya da Alp istediğinde; ajan playbook'a çevirmeyi kendiliğinden
+dayatmaz, en fazla bir satırla önerir. ADR'nin geri kalanından geçerli olanlar: okuma → betik → karar, iş kaydı dizini (ad onayı
+bekliyor), kilitte betik işareti + statik denetim, AGENTS.md kısaltma + yönlendirme testi, saha geri sınaması.

@@ -765,6 +765,13 @@ icerir "kesinti: D-state" kto.txt "G/Ç bekleyen (D-state) süreç: 14"
 icerir "kesinti: hata sayısı tek başına sorun değil" kto.txt "sorun bulunmadı: sunucu-b(2026-11-03 10:02:00, ANI)"
 icerir "kesinti: kesintiden önce açılan ayrı sınıfta" kto.txt "== KAPANMADI (1)"
 icermez "kesinti: kapanmayanın eski servis hatası yazılmaz (Alp)" kto.txt "kdump.service"
+rm -rf kt2 && mkdir kt2
+for n in 1 2 3 5; do printf '%s' '{"rc":0,"stdout":"acilis=2025-01-01 00:00:00\nonceki_kapanis=temiz\nyuk=0.1 0.1 0.1/4\nd_surec=0\nbagli_degil="}' > kt2/elk$n; done
+printf '%s' '{"rc":0,"stdout":"acilis=2025-01-01 00:00:00\nonceki_kapanis=temiz\nyuk=0.1 0.1 0.1/4\nd_surec=3\nbagli_degil="}' > kt2/elk4
+printf '%s' '{"rc":0,"stdout":"acilis=2025-01-01 00:00:00\nonceki_kapanis=temiz\nyuk=0.1 0.1 0.1/4\nd_surec=0\nbagli_degil="}' > kt2/web1
+python3 "$B/kesinti-sonrasi/kesinti-ozet.py" kt2 --kesinti "2026-11-03 19:45" > kto4.txt 2>&1
+icerir "kesinti: seri — sorunlu üyenin serisi tam, numara sırasıyla" kto4.txt "elk* (5): SORUNLU elk4 · sağlam elk1,elk2,elk3,elk5"
+icermez "kesinti: sorunsuz seri yazılmaz" kto4.txt "web*"
 python3 "$B/kesinti-sonrasi/kesinti-ozet.py" kt > kto2.txt 2>&1
 icerir "kesinti: saat yoksa ANI'ye göre" kto2.txt "kesintide kapandı 2 · kapanmadı 1"
 python3 "$B/kesinti-sonrasi/kesinti-ozet.py" kt --kesinti "dün" > kto3.txt 2>&1

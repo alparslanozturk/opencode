@@ -334,6 +334,8 @@ yazma; ölçemediğin sunucuyu "ölçülmedi" diye ayrı göster. Bilmediğin de
   --istek "<kullanıcının sözü>"`; okuma çıktılarını `<komut> | is-kaydi.py ekle son <ad>` ile sakla, bitince ölçülen sonucu `sonuc son "…"`.
   Kayıt dizini `~/ai/work/is-kayitlari/` (normal projelerden ayrı, kurum verisi — sahada kalır). Benzer iş için önce `is-kaydi.py liste <sözcük>`.
   Değişiklik **her adım ayrı komut, ayrı onay**; varsayılan ad-hoc SSH, playbook isteğe bağlı (ADR-0007 §7).
+- **Oturum sonu `/kaydet`:** kullanıcı yazınca komut şablonundaki adımları aynen uygula; özeti sen yazma (`oturum-ozet.py` yazar), ders
+  adayını yalnız özetteki `#n` satırından al, onaysız `sonuc.md`'ye yazma.
 
 ## "Yalnız metni kontrol et, işlem yapma" (saha G111, 2026-10-27)
 

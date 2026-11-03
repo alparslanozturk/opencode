@@ -6,6 +6,15 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-03 — iş kaydı + `/kaydet` (oturum kanıtlı özeti), kilit düzeltmeleri
+
+Sahada: `git pull && ./kur.sh`, opencode'u yeniden aç.
+- `is-kaydi.py`: geçici iş kaydı `~/ai/work/is-kayitlari/<tarih>-<etiket>/` (plan, okuma kanıtı, sonuç) — onaysız.
+- `/kaydet [etiket]`: oturumun özetini iş kaydına alır — yalnız kullanıcı sözü + komut çıktısı; ajan metni, düzeltilen sözler ve başarısız
+  komutlar bilgi sayılmaz. Ders yalnız onayla. İlk kullanımda sonucu ekrandan kontrol et `[SAHA]`.
+- Kilit: salt-okunur disk incelemesi (kurulu beceri yolu K6'ya, disk-durum onay ekranına takılıyordu) düzeldi; `opencode session list|export` okuma.
+- `kur.sh kontrol`: "son hata" yalnız gerçek ERROR satırı.
+
 ## 2026-11-03 — `rhel-teslim`: "Açık sistem 2. onay", iç ağ/DMZ, önce sor (G119)
 
 Sahada: `git pull && ./kur.sh`.

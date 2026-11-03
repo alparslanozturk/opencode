@@ -209,6 +209,9 @@ değerdi.
 - **Kurumda k8s işi (Alp, 2026-10-05):** envanterden RKE2 kümesinin **1. master**'ına ssh ile bağlan, **yalnız
   okuyan** kubectl çalıştır. RKE2'de kubectl PATH'te olmayabilir: `/var/lib/rancher/rke2/bin/kubectl`.
   Örn. `ssh root@<master1> "/var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml get nodes"`.
+  **Her kümenin verisi KENDİ master'ından okunur** (G122): Rancher local kümesinden downstream/imported kümeye (`c-xxxxx`) tünel kurma —
+  `kubectl proxy`, `port-forward`, Rancher `/k8s/clusters/…` API'si, token/kubeconfig üretme yok. Kümenin master'ı bilinmiyorsa
+  `kume-bul` ya da kullanıcıya sor ("<küme> için 1. master hangisi?").
   Anthos (GKE): `anthos-erisim` becerisi — erişim jumpbox → admin workstation üzerinden, ajan şimdilik bağlanmaz. Hangi host'un 1. master olduğu belli değilse kullanıcıya sor.
 - **Kurum sunucu gerçekleri:** RHEL 7/8/9/10; template'ten kurulur (RHEL 9: CIS uygulanmış ESX template'i,
   RHEL 10: Satellite'ta CIS Level 1 template'i). **SELinux ve firewalld kapalı** (kurum kararı, SELinux grub'dan
@@ -220,6 +223,17 @@ değerdi.
   bu adreslere ssh **denenmez**; envantere "erişilemez (bilinen kısıt)" notuyla konur (gerçek
   kurum adı/aralığı için Alp'e sor — burada bilinçli olarak genelleştirildi, 2026-09-16, K2).
   Anthos ayrı sınıflandırılır, aynı kısıt Anthos için varsayılmaz.
+
+## Salt-okunur inceleme = hedefte iz yok (Alp, 2026-11-03 — saha G122)
+
+"Okuma/inceleme" istendiğinde hedef sunucuda **hiçbir şey bırakma**: port dinleyen süreç (`kubectl proxy`, `port-forward`, `nc -l`,
+`openssl s_server`, `python -m http.server`), arka plan süreci (`&`, `nohup`, `setsid`, `screen`, `tmux`), geçici dosya, yeni kubeconfig/token.
+Komut çıktısı yetmiyorsa yöntemi değiştirme — kullanıcıya sor. Kilit bunların hepsini onay ekranına düşürür; onay ekranı "okuma" dediğin
+işte çıktıysa **dur**, kullanıcıya neden gerektiğini söyle.
+- **Yanlışlıkla iz bıraktıysan:** hemen söyle — hangi makine, hangi süreç (PID + tam komut satırı), ne açıkta kaldı (ör. "node'un
+  loopback'inde cluster-admin yetkili, kimliksiz API tüneli"). "Tehlikeli değil" deme; etkisini yaz, kararı kullanıcıya bırak.
+- **Temizlik:** yalnız o süreç, **aynı makinede**, PID ile (`ssh root@<o-makine> 'kill <PID>'`) — desenle `pkill` yok; önce
+  `pgrep -af` çıktısını göster. Yerel makinede çalışan komut uzaktaki süreci öldürmez (G122: `pkill` yanlış makineye gidiyordu).
 
 ## Güvenlik kilitleri — onay ekranı (Alp kararı, 2026-10-27; teknik olarak zorlanır: `guvenlik-v2.ts`)
 

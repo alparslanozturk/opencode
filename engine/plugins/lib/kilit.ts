@@ -1073,7 +1073,11 @@ export function saltOkunur(argv: string[]): boolean {
     case "kubectl":
     case "oc":
       // --dry-run=client|server: istek doğrulanır, kalıcı değişiklik yapılmaz (=none ya da yalın --dry-run=false değil)
-      return KUBE_OKUR.has(kubeFiil(a)) || a.some((x) => /^--dry-run=(client|server)$/.test(x))
+      if (a.some((x) => /^--dry-run=(client|server)$/.test(x))) return true
+      // G122 taraması: `auth reconcile` RBAC yazar, `config set-*/use-context/delete-*` kubeconfig yazar — yalnız okuyan alt komutlar
+      if (kubeFiil(a) === "auth") return a.includes("can-i") || a.includes("whoami")
+      if (kubeFiil(a) === "config") return a.some((x) => ["view", "get-contexts", "current-context", "get-clusters", "get-users"].includes(x))
+      return KUBE_OKUR.has(kubeFiil(a))
     case "helm":
       return ["list", "ls", "status", "get", "history", "show", "search", "version", "template", "lint", "env"].includes(ilk)
     case "docker":
@@ -1152,7 +1156,7 @@ export function saltOkunur(argv: string[]): boolean {
     case "ansible-config":
       return true
   }
-  return SALT_OKUNUR.has(p) && !(p === "curl" && curlYazar(a)) && !(p === "wget" && wgetYazar(a))
+  return SALT_OKUNUR.has(p) && !(p === "curl" && curlYazar(a)) && !(p === "wget" && wgetYazar(a)) && !okumaGibiAmaIzBirakir(p, a)
 }
 
 // Dosya yazmayan, yalnız okuyup basan beceri betikleri (kaynağı denetlendi: open() yalnız okuma, subprocess yok/yalnız openssl okuma).
@@ -1224,16 +1228,33 @@ export function secenekDegeri(a: string[], ...adlar: string[]): string | null {
   return null
 }
 
+// G122 taraması (2026-11-03): okuma listesindeki araçların iz bırakan biçimleri — port dinler, süreç bırakır, dosya yazar, ayar değiştirir.
+export function okumaGibiAmaIzBirakir(p: string, a: string[]): boolean {
+  if (p === "nc") return a.some((x) => ["--listen", "--exec", "--sh-exec", "--lua-exec", "--keep-open"].includes(x) || /^-[A-Za-z]*[lekc]/.test(x))
+  if (p === "openssl")
+    return ["s_server", "genrsa", "genpkey", "ca", "srp", "ocsp"].includes(a[0] ?? "") ||
+      a.some((x) => ["-out", "-keyout", "-export", "-new", "-x509"].includes(x))
+  if (p === "systemd-analyze")
+    return ["set-log-level", "set-log-target", "log-level", "log-target", "service-watchdogs"].includes(a[0] ?? "") && a.length > 1
+  return false
+}
+
 export function curlYazar(a: string[]): boolean {
   const yontem = (secenekDegeri(a, "-X", "--request") ?? "").toUpperCase()
   return (
     ["POST", "PUT", "DELETE", "PATCH"].includes(yontem) ||
+    // -o/--output dosyaya yazar (stdout `-` ve /dev/null hariç), -O/--remote-name uzak adla dosya yazar (G122 taraması)
+    a.some((x, i) => (x === "-o" || x === "--output" || /^-[A-Za-z]+o$/.test(x)) && !["-", "/dev/null"].includes(a[i + 1] ?? "")) ||
+    a.some((x) => x === "--remote-name" || x === "--remote-name-all" || /^-[A-Za-z]*O[A-Za-z]*$/.test(x)) ||
     a.some((x) => /^(-d|--data.*|-F|--form.*|-T|--upload-file|--json)$/.test(x) || /^-d./.test(x))
   )
 }
 
 export function wgetYazar(a: string[]): boolean {
-  return a.some((x) => /^--(post-data|post-file|body-data|body-file)|^--method=(POST|PUT|DELETE|PATCH)/i.test(x))
+  if (a.some((x) => /^--(post-data|post-file|body-data|body-file)|^--method=(POST|PUT|DELETE|PATCH)/i.test(x))) return true
+  // wget varsayılan olarak dosyaya yazar — yalnız stdout'a (`-O -`, `-qO-`, `--output-document=-`) ya da --spider okuma (G122 taraması)
+  const stdout = a.some((x, i) => (x === "-O" && a[i + 1] === "-") || /^-[A-Za-z]*O-$/.test(x) || x === "--output-document=-")
+  return !(stdout || a.includes("--spider"))
 }
 
 export function urlHost(a: string[]): string {
@@ -1884,6 +1905,7 @@ export function kesinOkuma(command: string, workdir: string): boolean {
     const komutlar = ayristir(command, ic)
     if (!komutlar.length) return false
     // arka plana atılan süreç (`… &`, uzak tırnak içi dahil) iz bırakır — okuma değil (G122: uzak node'da `kubectl proxy &`)
+    if (/\b(nohup|setsid|disown|screen|tmux)\b/.test(command)) return false // süreç oturumdan kopar, arkada kalır
     if (/(^|[^&>|])&(?![&>\d])/.test(command)) return false
     for (const k of komutlar) {
       if (k.yazilan.some((y) => !["/dev/null", "/dev/stdout", "/dev/stderr"].includes(y))) return false

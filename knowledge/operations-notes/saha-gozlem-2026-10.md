@@ -1543,3 +1543,20 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   olmalı; etkin/istenen değer; başka yapay zeka kaynak değil); `skills/README.md` + `KAYNAK-ZORUNLULUGU.md` beceri şartı. Açık:
   `nfs-performans` becerisi (Alp'in belirti cevabı bekleniyor); 40 becerinin "Önce sor" denetimi (yalnız 4'ünde var).
 
+
+### G119 — "Açık sistem 2. onay" (yeni VM yapılandırma, DMZ): beceri tetiklenmedi, çelişen değerler işaretlenmedi, DMZ değerleri kaynaksız (Alp, 2026-11-03, 4 ekran)
+
+- İstek: "Açık sistem 2. onay işlemleri yapacak. Sunucular: dpd1intsube1.ktdmz.local dpd1intsube2.ktdmz.local". Ajan `rhel-teslim`'i
+  yüklemedi (tetik sözcükleri yoktu), üç genel soru sordu ("açık sistem ne?", "CN?", "ne yapılacak?").
+- Alp: "2. onay" = Açık Sistemler ekibinin VM yapılandırması; playbook'lar (subs, IPA client, SEP kurulum/sınırlama, XDR, disk extend /
+  data) **duruma göre tek tek** çalıştırılır; baseline ayrı projede. IPA client için **iki betik**: ana alan ve DMZ alanı.
+- Ajan hataları: 12 playbook'u "numaralı sırayla kurulum akışı" diye sundu; `02-dns-nmcli` DNS'i (`10.13.x/10.14.x`) ile
+  `group_vars/all.yml` DNS'i (`10.4.x`) ve Satellite adları (`srvsatellite…` / `satellite…`) çelişiyordu, işaretlemedi; DMZ için
+  DNS IP'lerini kaynak göstermeden tabloya yazdı; başlıkta `ktymd.local` (Alp'in mesajı) ile değerlerde `ktdmz.local` (FQDN) karıştı;
+  tablo hücresine Çince karakter (`特定`) sızdı.
+- Doğru olan: `dpd` = Ankara (DRC) · production · DMZ yorumu `engine/AGENTS.md` ad kuralıyla tutarlı.
+- `07-sep-install` kaynağı `srvsatellite/pub/SAL/1.4` → Alp'in duyduğu "1.4" büyük olasılıkla bu dizin (tahmin); Broadcom KB 222816 `SAL/1.4`
+  ↔ 14.3 RU9 (başka KB RU4 — çelişkili).
+- Aksiyon: `rhel-teslim` §0a "Önce sor" (adım seçimi, FQDN'den alan, alan adı uyuşmazlığı → sor, CN/envanter), baseline kapsam dışı,
+  numara = katalog; iç ağ/DMZ iki değer seti dosyadan; çelişen değer = dur ve iki satırı göster; tetik sözcükleri ("2. onay", "açık
+  sistem", "dmz", "ipa client", "xdr" …). `rke2-edr` §2b SAL/1.4 notu. Açık `[SAHA]`: DMZ IPA playbook'unun adı ve değerleri.

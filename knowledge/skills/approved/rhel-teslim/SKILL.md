@@ -1,6 +1,6 @@
 ---
 name: rhel-teslim
-description: Yeni sunucu devralma, Satellite'e kaydetme, güncelleme ve ilgili birime teslim akışında kullan. "yeni sunucu", "teslim", "devral", "satellite", "kaydet", "subscription", "abonelik", "güncelle", "hazırla", "yeni sunucular kurulacak", "kurulum", "playbook sırası", "sep", "ipa" isteklerinde tetiklenir.
+description: Yeni sunucu devralma, Satellite'e kaydetme, güncelleme ve ilgili birime teslim akışında kullan. "yeni sunucu", "teslim", "devral", "satellite", "kaydet", "subscription", "abonelik", "güncelle", "hazırla", "yeni sunucular kurulacak", "kurulum", "playbook sırası", "sep", "ipa", "ipa client", "xdr", "2. onay", "açık sistem", "sunucu yapılandır", "yapılandırma", "dmz", "ktdmz", "data diski", "disk büyüt" isteklerinde tetiklenir.
 ---
 
 ## Bağlam
@@ -21,7 +21,22 @@ olarak öyle bırakılmış olabilir.
 
 Senin işin: devralma kontrolü → kurulum playbook'ları (bölüm 0) → teslim.
 
-## 0. Kurumun kurulum playbook seti (Alp, 2026-10-13)
+## 0a. Önce sor (düstur — cevap gelmeden playbook çalıştırma)
+
+"Açık sistem 2. onay" = bu akış: VM'i sanallaştırma ekibi kurar, IP ve DNS kaydı hazır gelir; Açık Sistemler ekibi (2. onay) kurum
+playbook'larıyla yapılandırır (Alp, 2026-11-03). Kullanıcı vermediyse tek mesajda, numaralı sor:
+1. **Hangi adımlar?** Playbook'lar **talebe göre tek tek** seçilir, hepsi sırayla koşulmaz (Alp, 2026-11-03): ör. yalnız subs + IPA +
+   SEP; disk adımı varsa hangi disk → `/` büyütme mi `/data` mı. Listeyi kullanıcıya göster, seçtir.
+2. **Sunucular ve alan:** FQDN'leri ver (alan FQDN'in sonekinden okunur: `*.kuveytturk.local` iç ağ, `*.ktdmz.local` DMZ — saha
+   2026-11-03). Kullanıcının yazdığı alan adı FQDN'deki ile aynı değilse (G119: mesajda `ktymd.local`, FQDN'de `ktdmz.local`) **sor**,
+   birini seçme.
+3. **Değişiklik kaydı (CN)** ve envanter: sunucu ana envanterde yoksa iş envanteri (`ansible` §1b `is-envanter.py`) — kullanıcı seçer.
+Ölçülebilenleri sorma (OS sürümü, diskler, kayıt durumu → §1 ve `filo-kontrol`).
+
+**Bu akışta olmayanlar:** baseline (`site.yml`, CIS/banner/denetim rolleri) **ayrı projede** takip edilir — burada önerme, çalıştırma
+(Alp, 2026-11-03).
+
+## 0. Kurumun kurulum playbook seti (Alp, 2026-10-13; 2026-11-03 güncel)
 
 Kurulum elle komutla değil, çalışma dizinindeki `ansible/playbooks/` ile yapılır. Önce dizini listele
 (adlar değişebilir), her playbook'u çalıştırmadan önce oku ve ne yapacağını/hangi değişkeni istediğini söyle.
@@ -41,6 +56,20 @@ Sıra (2026-10-13 itibarıyla):
 11-reboot
 ```
 
+Ayrıca `12-google-captcha-cert` (belirli bir kök CA — yalnız ilgili sunucularda) ve XDR kurulumu var (saha 2026-11-03 ekranı; adı
+dizinden oku). **Numara sıra değil, katalogdur** — talepte olmayan adımı çalıştırma. Bağımlılık sırası yine geçerli: DNS → NTP → subs → IPA.
+
+- **İç ağ / DMZ — iki ayrı değer seti (Alp, 2026-11-03):** IPA istemci kurulumu için **iki ayrı betik/playbook** gerekir: ana alan
+  (`kuveytturk.local`) ve DMZ alanı (`ktdmz.local`). DNS sunucuları, NTP havuzu, search domain ve IPA alanı DMZ'de farklıdır. DMZ
+  değerlerini ve DMZ playbook'unun adını **dizinden/dosyadan oku ve dosya:satır göster** `[SAHA]` — ezbere ya da "kuveytturk yerine
+  ktdmz yaz" diye türetme (G119: ajan DMZ DNS IP'lerini kaynaksız tabloya yazdı). DMZ sunucusuna iç ağ playbook'u (ya da tersi)
+  çalıştırma; DMZ değişkeni yoksa dur ve sor. Ad kuralı: 3. harf `d` = DMZ (`engine/AGENTS.md` sunucu adı → ortam).
+- **Çelişen değer = dur:** aynı ayar iki yerde farklıysa (G119: `02-dns-nmcli` varsayılanı `10.13.x` / `10.14.x`, `group_vars/all.yml`
+  `10.4.x`; Satellite `srvsatellite…` / `satellite…`) hangisinin kullanılacağını **sen seçme** — iki satırı dosya:satır ile göster, sor.
+  Ansible önceliği (playbook `vars` > `group_vars`) hangisinin **uygulanacağını** söyler, hangisinin **doğru** olduğunu söylemez.
+- **SEP kaynağı:** `07-sep-install` Satellite'taki `pub/SAL/1.4` dizininden kurar (saha ekranı). `SAL/1.4`, Broadcom'un Linux deposundaki
+  dizin adıdır; Broadcom KB 222816 bunu 14.3 RU9 ile, başka bir KB 14.3 RU4 ile eşler — **sürüm bundan çıkarılmaz**, kurulu paket
+  (`rpm -qa | grep -iE "sdcss|symantec"`) okunur. `08-sep-sinirlama`: CPU %400, Mem 2G/3G (`rke2-edr` §0).
 - **Adım adım, kullanıcı kontrolünde (Alp, 2026-10-14):** her adım bitince dur, sonucu göster, sonraki adımı **sor**.
   Araya başka iş girdiyse (disk düzeltme, reboot) önceki "X ile devam et" onayı düşer — sıradaki adıma yeniden sor.
   "Verilen işi sonuna kadar yap" (AGENTS.md) bu akışta adımın **içi** içindir, adımlar arası geçiş için değil.

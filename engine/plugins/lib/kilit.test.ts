@@ -1083,9 +1083,12 @@ describe("G122 taraması: okuma gibi görünüp iz bırakan biçimler onaysız g
 
 describe("kesinti-sonrasi: beceri §1 komutu salt-okunur (2026-11-03)", () => {
   const skill = require("fs").readFileSync(`${import.meta.dir}/../../../knowledge/skills/approved/kesinti-sonrasi/SKILL.md`, "utf8") as string
-  const komut = skill.split("\n").find((l) => l.startsWith("ansible <grup>"))!.replace("<grup>", "linux").replace("<envanter>", "env.ini")
-  test("ansible tarama komutu onaysız", () => expect(kesinOkuma(komut, workdir)).toBe(true))
-  test("aynı içerik ssh ile onaysız", () => expect(kesinOkuma(`ssh root@a '${komut.split(" -a '")[1]}`, workdir)).toBe(true))
+  const komutlar = skill.split("\n").filter((l) => l.startsWith("ansible <grup>")).map((l) => l.replace("<grup>", "linux").replace("<envanter>", "env.ini"))
+  test("hızlı + ayrıntılı iki komut var", () => expect(komutlar.length).toBe(2))
+  for (const [i, komut] of komutlar.entries()) {
+    test(`ansible tarama komutu ${i + 1} onaysız`, () => expect(kesinOkuma(komut, workdir)).toBe(true))
+    test(`aynı içerik ssh ile onaysız ${i + 1}`, () => expect(kesinOkuma(`ssh root@a '${komut.split(" -a '")[1]}`, workdir)).toBe(true))
+  }
   test("özet betiği okuma", () =>
     expect(kesinOkuma("python3 /root/ai/opencode/knowledge/skills/approved/kesinti-sonrasi/kesinti-ozet.py cikti/filo/kesinti --kesinti '2026-11-03 09:40'", workdir)).toBe(true))
   test("düzeltme adımı okuma değil", () => expect(kesinOkuma("ssh root@a 'mount -a'", workdir)).toBe(false))

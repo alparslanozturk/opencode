@@ -6,6 +6,14 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-03 — `rhel-teslim`: "Açık sistem 2. onay", iç ağ/DMZ, önce sor (G119)
+
+Sahada: `git pull && ./kur.sh`.
+- `rhel-teslim` "2. onay", "açık sistem", "dmz", "ipa client", "xdr" isteklerinde de yüklenir; §0a önce sorar (hangi adımlar, FQDN'den alan,
+  CN/envanter). Playbook numarası katalogdur, talepte olmayan adım çalışmaz; baseline ayrı projede.
+- IPA/DNS/NTP iç ağ ve DMZ için ayrı değer seti — dosyadan okunur; aynı ayar iki dosyada farklıysa ajan durur ve iki satırı gösterir.
+- `rke2-edr`: SEP kurulum kaynağı `SAL/1.4` notu (Broadcom KB 222816); sürüm paketten okunur.
+
 ## 2026-11-03 — gece değişikliği dersleri (G116, G118): kilit çift `-l`, compose fotoğrafı, düstur, `rhel-nfs`
 
 Sahada: `git pull && ./kur.sh`, opencode'u yeniden aç.

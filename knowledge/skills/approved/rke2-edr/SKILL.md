@@ -101,7 +101,9 @@ Soru (Alp): "Aşırı CPU kullanımından kaynaklı sunucu donması ve NFS perfo
   Symantec CSP `sisfim` modülünde hung task (RHEL 6). Yani "SEP sunucuyu dondurur" **belgede yok**; kanıt yalnız olay anının yığını (§3.1).
 - **Sonuç yazımı:** "SEP yavaşlatıyor/donduruyor" ancak §3 kanıtıyla; yoksa "belgede mümkün gösterilen mekanizma şu, sizde ölçülmedi".
 - **Kurum (Alp, 2026-11-03):** "Scan files on remote computers" sanırım **açık** `[SAHA]` — SEP yöneticisi doğrular; ajan sürümü "1.4 diye
-  duydum, 1.6 downgrade / 1.3 upgrade yapıyoruz galiba" `[SAHA]` → `sep-istisna.py komut` paket adını okur.
+  duydum, 1.6 downgrade / 1.3 upgrade yapıyoruz galiba" `[SAHA]` → `sep-istisna.py komut` paket adını okur. Saha ekranı (2026-11-03): `07-sep-install` kaynağı Satellite `pub/SAL/1.4` —
+  Broadcom depo dizini; KB 222816 `SAL/1.4`'ü 14.3 RU9 ile eşler, başka bir Broadcom KB RU4 ile (çelişkili). RU9 ise KB 250717'deki
+  önek hatası (RU1–RU5) bu sürümde **geçerli olmayabilir** — paket sürümü okunmadan söyleme.
 
 ### İstisna listesi — sunucudan, tam yol, kaynaklı (`sep-istisna.py`)
 

@@ -1068,3 +1068,15 @@ describe("G122: kubectl proxy / port-forward ve arka plan süreci okuma değil",
     expect(kesinOkuma("ssh a 'df -h 2>&1' && uptime", workdir)).toBe(true)
   })
 })
+
+describe("G122 taraması: okuma gibi görünüp iz bırakan biçimler onaysız geçmez", () => {
+  for (const c of ["nc -lvp 9000", "ssh a 'nc -l 8080'", "openssl s_server -accept 4443", "openssl req -new -key k -out x.csr",
+    "openssl genrsa -out k.pem 2048", "curl -sk -o /etc/x https://a/b", "curl -O https://a/b.rpm", "curl -sSLo x.tgz https://a",
+    "wget https://a/b.rpm", "systemd-analyze set-log-level debug", "kubectl auth reconcile -f r.yaml", "kubectl config use-context x",
+    "kubectl config set-context x --namespace y", "nohup kubectl get pods", "ssh a 'setsid -f tail -f /var/log/x'"])
+    test(`onay: ${c}`, () => expect(kesinOkuma(c, workdir)).toBe(false))
+  for (const c of ["nc -zv host 22", "openssl x509 -in c.pem -noout -text", "openssl s_client -connect a:443 </dev/null",
+    "curl -sk https://a/healthz", "curl -s -o /dev/null -w '%{http_code}' https://a", "wget -qO- https://a/x", "wget --spider https://a",
+    "systemd-analyze blame", "kubectl auth can-i list pods", "kubectl config view --minify", "kubectl get ns"])
+    test(`okuma: ${c}`, () => expect(kesinOkuma(c, workdir)).toBe(true))
+})

@@ -1601,3 +1601,10 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   (ssh kapanınca süreç ölmeyebilir — ölçülmedi). `pkill` yanlış makineye (yerel) gidecekti.
 - Kök neden (kilit): `KUBE_OKUR` içinde `proxy` ve `port-forward` vardı → okuma sayıldı; arka plan `&` denetlenmiyordu.
 - Aksiyon: ikisi okuma listesinden çıktı; komutta (uzak tırnak içi dahil) arka plan `&` varsa onaysız geçmez. Test 355/355.
+- Devam: süreç gerçekten kalmıştı — Alp `pgrep -af kubectl` ile splrancherloc01'de (Rancher **local** kümesi) PID'i buldu; ajan "tehlikeli
+  değil" dedi (yanlış: node loopback'inde kimliksiz cluster-admin API). Kök neden (beceri): downstream kümeye erişim yolu yazılı değildi,
+  ajan Rancher local'den tünel kurmaya çalıştı.
+- Tarama (Alp: "bütün skill'leri tara, bir daha olmasın"): becerilerde proxy/port-forward/nohup/& öneren satır yok (ajanın doğaçlaması).
+  Kilitte aynı sınıftan açıklar kapandı: `nc -l/-e`, `openssl s_server/genrsa/req -new/-out`, `curl -o/-O`, `wget` (varsayılan dosya yazar),
+  `systemd-analyze set-log-level`, `kubectl auth reconcile`, `kubectl config set-*/use-context`, `nohup/setsid/screen/tmux`. Kural:
+  AGENTS.md "Salt-okunur inceleme = hedefte iz yok" + "her kümenin verisi kendi master'ından"; `k8s-sorun` erişim yolu. Test 381/381.

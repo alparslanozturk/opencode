@@ -727,6 +727,16 @@ grep -qx "BECERI_EKSIK=" harita.txt && gecti "haritadaki her beceri knowledge/sk
 icermez "gerçek saha cümleleri doğru beceriye" harita.txt "YANLIS"
 grep -E "^(YANLIS|BECERI_EKSIK=.)" harita.txt || true
 
+baslik "envanter-harita.py (3 harf → ağ haritası; 2026-11-03)"
+printf '10.1.1.1 splweb01.ic.local\n10.1.2.2 splapp02.ic.local\n10.2.0.1 stldb01.ic.local\n172.16.0.5 spdproxy01.dmz.local\n10.3.0.9 dpdx01.dmz.local\n10.1.9.9 srvtool.ic.local\n10.2.4.5 sxdyanlis.ic.local\n- sxdkayip01\n' > eh.txt
+python3 "$B/kurum-envanter/envanter-harita.py" eh.txt > eho.txt 2>&1
+icerir "spl 2 sunucu local" eho.txt "spl   İstanbul    production   local     2"
+icerir "dpd DRC DMZ" eho.txt "dpd   Ankara/DRC  production   DMZ"
+icerir "tabloya uymayan kod sorulur" eho.txt "srv: 3 harf tabloya uymuyor"
+icerir "DMZ kodu iç domain → sor" eho.txt "sxd: alan DMZ ama domain ic.local"
+icerir "çözülemeyen ad" eho.txt "çözülemeyen 1 ad: sxdkayip01"
+icermez "adın geri kalanı yorumlanmaz" eho.txt "web"
+
 baslik "veeam-tani.py (Veeam restore hatası; 2026-11-02)"
 VT="$B/veeam-linux/veeam-tani.py"
 printf 'acilis=2026-11-02 15:40:11\nveeam_paket=veeamtransport-13.0.0\nbaglama_tmp=/tmp rw,nosuid,nodev,noexec,relatime\nrun_veeamtransport=YOK\nservis_veeamtransport=failed/enabled\nservis_veeamnetfsmount=inactive/enabled\nlog_hata=ERR |POSIX: Failed to create or open file [/var/run/veeamtransport/veeamtransport.pid].|No such file or directory|\n' > vt1.txt

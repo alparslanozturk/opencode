@@ -63,7 +63,7 @@ Sol menüde görülen diğer modüller: `Eğitim ve Kalite` · `Hizmetler ve Sat
 | **DMZ Numarası** | dropdown | `Lokal/DMZ = DMZ` seçilince devreye girer | ✅ gözlem |
 | **Konum** | dropdown | `Application` görüldü | 🟡 öneri: varlık katmanı/türü olabilir → doğrula |
 | **Ortam** | dropdown | `Bugfix` · `Development` · `Prep` · `Test` · `Production` (+`POC`) | ✅ gözlem |
-| **Faz** | dropdown | — | `[SAHA]` seçenekler |
+| **Faz** | dropdown | `Faz - 4` görüldü; altında yardım metni "2. Faz Production Ortamı - Restart Sürecine Dahil Olmayan Sunucu Grubu" (ekran, 2026-11-03 — seçilen değerle eşleşmesi ve anlamı `[SAHA]`) | 🟡 gözlem |
 | **Adı** | metin | Sunucu/varlık kısa adı → `<kisa-ad>` | ✅ gözlem |
 | **DNS** | metin | FQDN → `<ad>.<kurum-alani>.local` | ✅ gözlem |
 | **Yapısı** | dropdown | `Fiziksel` / `Sanal` | ✅ gözlem |
@@ -77,6 +77,19 @@ Sol menüde görülen diğer modüller: `Eğitim ve Kalite` · `Hizmetler ve Sat
 | **Network** | dropdown | — | `[SAHA]` seçenekler |
 | **Toplumsal Sonuçlar** | dropdown | — | `[SAHA]` seçenekler |
 | **Sektörel Etki** | dropdown | — | `[SAHA]` seçenekler |
+
+### 2.3 Konfigürasyon Bilgileri (ekran, Alp 2026-11-03)
+
+Form iş akışında **1. onaydır** ("Açık Sistem Onay / Ret" düğmeleri); **2. onayda** kurulumlar yapılır (`rhel-teslim`).
+
+| Alan | Tip | 2. onayda neyi belirler |
+|---|---|---|
+| **İşletim Sistemi** | dropdown (`Red Hat Enterprise Linux Se…` görüldü) | Linux akışı mı — Windows ise `rhel-teslim` uygulanmaz (G120) |
+| **SQL Sürümü** | dropdown | `[SAHA]` |
+| **CPU (Adet)** · **RAM (GB)** | dropdown | teslim kontrolünde karşılaştırılır (`nproc`, `free -g`) |
+| **Data Disk Kapasitesi** (GB) | sayı | ek disk → `/data` (`10-disks-add-data`) adayı; hedef yine talepte/kullanıcıda |
+| **Sistem Disk Kapasitesi** (GB) | sayı | OS diski boyutu — `lsblk` ile karşılaştır |
+| **Maliyet** | sayı | — |
 
 ---
 

@@ -25,6 +25,10 @@ describe("izin blogu (engine/opencode.json) — K3/K4", async () => {
       "ip a", "ip route", "systemctl status sshd", "git status", "journalctl -u sshd -n 50", "uptime"])
       expect([k, karar("bash", k)]).toEqual([k, "allow"])
   })
+  test("/kaydet: opencode session export/list izinli, diger opencode alt komutlari red (saha 2026-11-03)", () => {
+    for (const k of ['opencode session export "$OPENCODE_SESSION_ID"', "opencode session list"]) expect([k, karar("bash", k)]).toEqual([k, "allow"])
+    for (const k of ["opencode run x", "opencode session delete ses_1", "opencode serve"]) expect([k, karar("bash", k)]).toEqual([k, "deny"])
+  })
   test("K5: rm -rf yazimlari reddedilir", () => {
     for (const k of ["rm -rf x", "rm -fr x", "rm -Rf x", "rm -r -f x", "rm -f -r x", "git push --force", "git push -f origin main"])
       expect([k, karar("bash", k)]).toEqual([k, "deny"])

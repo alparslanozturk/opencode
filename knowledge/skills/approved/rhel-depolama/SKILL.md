@@ -254,6 +254,18 @@ lvextend -r -l +100%FREE /dev/<vg>/<lv>                         # -r: dosya sist
 (disk ve bölüm **ayrı** argüman) → `xfs_growfs <mount-noktası>` (XFS mount noktası alır; `resize2fs` cihaz alır).
 XFS **küçültülemez**.
 
+**Yol C — `/data`'yı kaldırıp alanı `/`'e vermek (saha G121, Alp 2026-11-03):**
+- **CN:** yeni kurulan sunucuda, sunucu sahibi `/data`'yı kullanmadığını talepte yazdıysa **CN sorma** — sahibin talebi yeter. `/data`
+  kullanılıyorsa (veri var, uygulama yazıyor) bu bir değişikliktir: CN gerekir, sahibine sor.
+- **Kullanılmadığının kanıtı** (salt-okunur, plandan önce göster): `df -h /data` · `find /data -mindepth 1 -maxdepth 2 | head -20` ·
+  `fuser -vm /data` (açık dosya/süreç). Sahibin sözüyle ölçüm çelişirse (dosya var, süreç var) dur ve söyle.
+- **Plan** `disk-durum.py` + `vgs` + `lvs -o +devices` çıktısından: `/data` LV'si hangi VG'de, o VG'de başka LV var mı, `/` hangi VG/LV.
+  Sıra: `umount /data` → fstab satırını kaldır (önce `cp /etc/fstab /etc/fstab.<YYYYMMDD-HHMM>`) → `lvremove /dev/<vg>/<lv>` → ayrı
+  VG ise `vgremove <vg>` → diski kök VG'ye ekle `vgextend <kok-vg> /dev/<disk>` → `lvextend -r -l +100%FREE /dev/<kok-vg>/<kok-lv>`.
+  Her adım onay ekranına gelir; `/data` dizininin kalıp kalmayacağını sor.
+- **Doğrula:** `df -h /` (yeni boyut) · `findmnt --verify` · `vgs` (VFree 0) · fstab'da `/data` yok — 4 sunucuda tek komutla
+  (`filo-kontrol` §5).
+
 ### 4. fstab — tekrar çalıştırılabilir olmalı (A26)
 
 ```bash

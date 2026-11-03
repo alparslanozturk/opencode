@@ -31,6 +31,8 @@ playbook'larıyla yapılandırır (Alp, 2026-11-03). Kullanıcı vermediyse tek 
    2026-11-03). Kullanıcının yazdığı alan adı FQDN'deki ile aynı değilse (G119: mesajda `kurum-ymd.local`, FQDN'de `kurum-dmz.local`) **sor**,
    birini seçme.
 3. **Değişiklik kaydı (CN)** ve envanter: sunucu ana envanterde yoksa iş envanteri (`ansible` §1b `is-envanter.py`) — kullanıcı seçer.
+   Yeni kurulan, henüz kullanılmayan sunucuda kurulum/düzeltme için CN **gerekmez** — sunucu sahibinin talebi yeter (Alp, 2026-11-03);
+   kullanımdaki veriye dokunan iş değişikliktir, CN sorulur.
 4. **Talep formu (1. onay, "Sunucu Tanımlama")** değerleri: İşletim Sistemi, Lokal/DMZ, DNS (FQDN), CPU, RAM, Data Disk ve Sistem Disk
    kapasitesi. OS formda yazar — Windows ise bu akış uygulanmaz (G120). Lokal/DMZ → IPA/DNS değer seti; Data Disk → `/data` adayı;
    CPU/RAM/disk teslimde sunucudaki ölçümle karşılaştırılır. Alanlar: `knowledge/sunucu-isimlendirme.md` §2.2–2.3.

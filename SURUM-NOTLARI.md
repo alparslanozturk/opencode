@@ -6,6 +6,16 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-03 — kurumsal bilgi her oturumda + iş haritası + `/kaydet` düzenler
+
+Sahada: `git pull && ./kur.sh`, opencode'u yeniden aç, sonra `/kaydet`.
+- `~/ai/work/opencode/kurumsal-bilgi.ini` artık her oturumda modele verilir (yoksa atlanır; değişince yeniden okunur).
+- `AGENTS.md` başında iş haritası: isteğin sözcükleri → kurumsal bilgi bölümü → beceri → betik.
+- `/kaydet` parametresiz: oturumdan yeni bilgiyi ekler ve dosyayı düzenler (yedek alır; bilgi silmez; mükerrer teke; çelişki ayrı bölüm;
+  adlandırma tablosu düzeltilir; zararlı "çözüm" uyarıya; iş geçmişi ≤30 satır, eskisi iş kaydına). İlk çalıştırmada farkı dikkatle oku.
+- Kilit: `kubectl proxy/port-forward`, arka plan `&`/`nohup`/`setsid`, `nc -l`, `curl -o`, `wget` (dosyaya), `openssl s_server/-out`,
+  `kubectl auth reconcile`/`config set-*` artık onay ister (G122). `kume-bul`: envanterde IP olmaması normal, `ssh root@<ad>` (G123).
+
 ## 2026-11-03 — iş kaydı + `/kaydet` (oturum kanıtlı özeti), kilit düzeltmeleri
 
 Sahada: `git pull && ./kur.sh`, opencode'u yeniden aç.

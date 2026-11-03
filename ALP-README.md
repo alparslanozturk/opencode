@@ -45,6 +45,13 @@ Model otomatik seçili gelir (`kurum / Qwen3.6-35B-A3B-FP8`). Beceriler otomatik
 > Eski `alp-*`, `oc-teshis.sh`, `oc-dogrula.sh`, `01-derle.sh`/`02-kur.sh`/`03-kontrol.sh` adları
 > **tarihsel/kullanılmıyor**; sahada rsync'ten kalmış bir kopya görürsen yok say — `./kur.sh` kullan.
 
+## Kurumsal bilgi ve `/kaydet` (2026-11-03)
+
+- `~/ai/work/opencode/kurumsal-bilgi.ini` her oturumda otomatik okunur (DNS/NTP, DMZ, ağ blokları, erişim akışı, süreçler).
+- Oturumun sonunda (ya da arada) **`/kaydet`** yaz — parametre yok. Yeni bilgiyi ekler, dosyayı düzenler, önce yedek alır; farkı onay
+  ekranında görürsün. Bilgi yalnız senin sözünden ve komut çıktısından gelir; ajanın yanlışı kaydedilmez.
+- Tek seferlik işin ayrıntısı: `~/ai/work/is-kayitlari/` (ajan değişiklik işlerinde açar).
+
 ## Kısayollar (MobaXterm'de denendi — Alp, 2026-10-20)
 
 Kaynak: `packages/tui/src/config/keybind.ts` (lider tuşu `ctrl+x`) ve `packages/tui/src/app.tsx`.

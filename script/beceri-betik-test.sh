@@ -691,7 +691,7 @@ icerir "kilit reddi başarısızda" oz.md "güvenlik kilidi K6"
 icerir "çıkış kodu ≠0 başarısızda" oz.md "ls /yok"
 icerir "beceri listesi" oz.md "rhel-depolama"
 icermez "akıl yürütme özete girmez" oz.md "GIZLI-DUSUNCE"
-icermez "parola maskelenir" oz.md "Gizli123"
+icerir "parola maskelenmez (Alp: yerel ortam)" oz.md "Gizli123"
 if awk '/^## Ölçülen/{f=1;next} /^## /{f=0} f' oz.md | grep -q "ls /yok"; then kaldi "başarısız komut ölçülen bölümünde"; else gecti "başarısız komut ölçülene girmez"; fi
 
 baslik "veeam-tani.py (Veeam restore hatası; 2026-11-02)"

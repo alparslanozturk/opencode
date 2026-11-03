@@ -48,13 +48,13 @@ opencode session export <id> | python3 $K ekle son oturum     # tam döküm kayd
 opencode session delete <id>                                  # ya da listede ctrl+d (iki kez)
 ```
 
-**`/kaydet [not]`** (oturum sırasında ya da sonunda) — kurumsal bilgi dosyasını (`~/ai/work/opencode/kurumsal-bilgi.ini`, bölümler:
+**`/kaydet`** (parametresiz, oturum sırasında ya da sonunda) — kurumsal bilgi dosyasını (`~/ai/work/opencode/kurumsal-bilgi.ini`, bölümler:
 `knowledge/templates/kurumsal-bilgi.md`) bu oturumdan günceller: yedek alır, değişikliği edit onayında gösterir, sonda eklenen/güncellenen/
-kaldırılan/çelişki tablosu. Tek seferlik iş ayrıntısı iş kaydına (isteğe bağlı). Bilgiyi `oturum-ozet.py` süzer (betik uygular, model değil):
+taşınan/çelişki tablosu; dosyayı her seferinde düzenler (bilgi silmez: tek seferlik iş "10. İş geçmişi"ne, çelişki ayrı bölüme). Bilgiyi `oturum-ozet.py` süzer (betik uygular, model değil):
 - **Bilgi = kullanıcının sözü + komut çıktısı.** Ajanın yanıtı ve akıl yürütmesi özete hiç girmez (yanlış olabilir — G119/G120).
 - **Düzeltme:** kullanıcı "hayır / yanlış / iptal …" dediyse önceki ajan sözü "bilgi DEĞİL, tekrarlama" diye ayrı bölümde.
 - **Başarısız / reddedilen** komut (hata, çıkış ≠ 0, kilit reddi) ayrı bölümde — bilgi değil. Kullanıcının "sanırım/galiba" dediği
-  satır "kullanıcı tahmini — doğrula" etiketli. Parola/token biçimli değerler maskelenir.
+  satır "kullanıcı tahmini — doğrula" etiketli. Parola/token maskelenmez (Alp, 2026-11-03: yerel ortam).
 
 Kayıttaki oturum dökümü ve `sonuc.md` "Dersler" bölümü kurumun hafızasıdır; model ağırlığı değişmez, model kendi kendine öğrenmez.
 Yeni işte `is-kaydi.py liste <sözcük>` ile eski benzer iş bulunur, `plan.md`/`sonuc.md` okunur. Ders beceriye ancak Alp'in onayıyla

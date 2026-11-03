@@ -225,7 +225,9 @@ def main(argv):
                 ("  üst=[%s]" % "] [".join(ust)) if ust else "",
                 ("  " + goster_vars(k["vars"])) if k["vars"] else "", not_))
             kapsama.setdefault((k["dosya"], k["grup"]), set()).add(q)
-        print("  eşleşme türü: %s · IP: %s" % (tur, ", ".join(sorted(ipler)) or "envanterde yok"))
+        # saha 2026-11-03: "IP: envanterde yok" eksiklik sanıldı, ajan IP istedi — kurumda envantere IP yazılmaz, ad DNS'ten çözülür
+        print("  eşleşme türü: %s · IP: %s" % (tur, ", ".join(sorted(ipler)) or
+                                             "envantere yazılmaz (normal — ad DNS'ten çözülür; bağlan: ssh root@%s)" % esles[0]["ad"]))
         # grubun diğer üyeleri ve grup değişkenleri (tek sorguda; toplu sorguda özet yeter)
         if len(sorgular) == 1:
             goruldu = set()

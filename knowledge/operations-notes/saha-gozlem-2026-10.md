@@ -1608,3 +1608,13 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   Kilitte aynı sınıftan açıklar kapandı: `nc -l/-e`, `openssl s_server/genrsa/req -new/-out`, `curl -o/-O`, `wget` (varsayılan dosya yazar),
   `systemd-analyze set-log-level`, `kubectl auth reconcile`, `kubectl config set-*/use-context`, `nohup/setsid/screen/tmux`. Kural:
   AGENTS.md "Salt-okunur inceleme = hedefte iz yok" + "her kümenin verisi kendi master'ından"; `k8s-sorun` erişim yolu. Test 381/381.
+
+### G123 — third-party-prod (c-4hrqn) master'ı envanterde bulunamadı sanıldı; ajan IP istedi ve kubeconfig'i /tmp'ye çıkarmayı önerdi (Alp, 2026-11-03, 4 ekran)
+
+- Envanter: `spltprkemas01-03`, `spltprkewor01-03` hosts.ini:541-546'da **adıyla** var (kurum kuralı: IP envantere yazılmaz). `kume-bul.py`
+  "IP: envanterde yok" bastı → ajan "isim var ama IP yok" tablosu kurup IP istedi, envanteri düzeltmeyi önerdi. Doğrusu `ssh root@spltprkemas01`.
+- Öncesinde ajan küme adıyla (third-party-prod / c-4hrqn) aradı — envanterde küme adı yok, Rancher haritası (`--kaydet`) yok → bulamadı.
+  Önerdiği yol: Rancher local'de `cattle-fleet-system` secret'ından kubeconfig'i `/tmp/tp-prod.kubeconfig`'e çıkarmak (iz bırakır, G122 sınıfı).
+- Aksiyon: kume-bul çıktısı "IP: envantere yazılmaz (normal — ad DNS'ten çözülür; bağlan: ssh root@<ad>)"; SKILL §1 kuralı; k8s-sorun:
+  secret'tan kubeconfig çıkarmak da yasak listede. Açık öneri: Rancher haritası (`kume-bul §3 --kaydet`) bir kez alınırsa küme adıyla
+  sorgu da bulur.

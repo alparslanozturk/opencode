@@ -19,7 +19,7 @@ sor; tahmin etme.
 **Kurumda erişim yolu (G122):** her kümeye **kendi 1. master'ından** ssh + `/var/lib/rancher/rke2/bin/kubectl --kubeconfig
 /etc/rancher/rke2/rke2.yaml` ile, yalnız okuyan fiillerle (`get`, `describe`, `logs`, `top`, `events`, `auth can-i`). Rancher local
 kümesinin node'undan downstream kümeye (`c-xxxxx`) **ulaşmaya çalışma**: `kubectl proxy`, `port-forward`, Rancher `/k8s/clusters/…`
-API'si, token/kubeconfig üretmek hedefte iz bırakır (kimliksiz cluster-admin tüneli — 2026-11-03'te Rancher local node'unda oldu).
+API'si, token/kubeconfig üretmek (Rancher secret'ından kubeconfig çıkarıp `/tmp`'ye yazmak dahil) hedefte iz bırakır (kimliksiz cluster-admin tüneli — 2026-11-03'te Rancher local node'unda oldu).
 Kümenin master'ı bilinmiyorsa `kume-bul` ya da kullanıcıya sor.
 
 Namespace de aynı şekilde: `-n <ad>` vermezsen `default` kullanılır ve

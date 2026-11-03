@@ -6,6 +6,15 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-03 — `kesinti-sonrasi`: elektrik kesintisi sonrası filo taraması
+
+Sahada: `git pull && ./kur.sh`, opencode'u yeniden aç. Örnek istek: "veri merkezinde elektrik kesintisi oldu, saat 09:40 civarı;
+<envanter> sunucularını tara, kesintiden kalan hata var mı, özet çıkar".
+- Tek salt-okunur ansible komutu (onay sormaz) + `kesinti-ozet.py`: ulaşılamayan · kesintide kapanan (`last -x` ile ANI/temiz) ·
+  kapanmayan; açılanlarda başarısız servis, bağlanmamış fstab/NFS, dosya sistemi hatası, saat, durmuş konteyner, rke2.
+- Önce sorar: kesinti saati, kapsam (Windows/Exchange dışı), Kubernetes kümeleri. Hiçbir şeyi başlatmaz/düzeltmez; öneri ayrı onayla.
+- Gerçek sahada henüz çalıştırılmadı `[SAHA]`: ilk çıktıyı Doktor'a gönder.
+
 ## 2026-11-03 — kurumsal bilgi her oturumda + iş haritası + `/kaydet` düzenler
 
 Sahada: `git pull && ./kur.sh`, opencode'u yeniden aç, sonra `/kaydet`.

@@ -17,7 +17,7 @@ gerektiğinde `skill` aracıyla içeriği çeker → bağlam şişmez.
 Dosya biçimi her üç dizinde aynı: `<ad>/SKILL.md`, frontmatter'da `name` + `description`.
 
 **Kural (2026-09-28):** `approved/`'daki her beceri `./kur.sh` ile sahaya kurulur — ayrı bir liste yok,
-sayı hedefi yok (eski "6-10" hedefi kaldırıldı; şu an **42**, 2026-11-03). Kullanılmayan beceri silinmez, `parked/`'a taşınır.
+sayı hedefi yok (eski "6-10" hedefi kaldırıldı; şu an **43**, 2026-11-03). Kullanılmayan beceri silinmez, `parked/`'a taşınır.
 
 ## Düstur: önce sor, her şey kanıtlı (Alp, 2026-11-03 — "her yetenek için genel anlamda böyle sorması ve kanıtlı olması gerekir")
 
@@ -58,6 +58,7 @@ betiktir; model ham veriyi betiğe **borular**, betiğin bastığı satırı **a
 | `is-kaydi.py` | `rapor` | Geçici saha işinin kaydı (sahada `~/ai/work/is-kayitlari/<tarih>-<etiket>/`): plan.md (önce sor, kanıt, adımlar, risk), okuma/ (komut çıktıları), sonuc.md — kurum iş bilgi tabanı; yalnız bu köke yazar, onaysız |
 | `oturum-ozet.py` | `rapor` | opencode oturum dökümünden kanıtlı özet (`/kaydet`): yalnız kullanıcı sözü + komut çıktısı; ajan metni girmez; düzeltilen ajan sözü ve başarısız komut "bilgi değil" bölümünde |
 | `envanter-harita.py` | `kurum-envanter` | Sunucu adı + IP (getent) → ilk 3 harf (lokasyon·ortam·alan) başına sayı, domain, /16 blok; tabloya uymayan kod ve domain uyuşmazlığı SOR listesine |
+| `kesinti-ozet.py` | `kesinti-sonrasi` | Elektrik/veri merkezi kesintisi sonrası filo (tek ansible okuma komutu): ulaşılamayan · kesintide kapanan (`last -x` ile ani/temiz) · kapanmayan; açılandaki başarısız servis, bağlanmamış fstab/NFS, dosya sistemi hatası, saat, durmuş konteyner, rke2 |
 | `veeam-tani.py` | `veeam-linux` | Veeam Linux sunucusunda restore/iş hatası: salt-okunur komut + bilinen sebep kararı (/tmp noexec KB2099, /run/veeamtransport, koşullu veeamnetfsmount) |
 | `ntp-mode6.py` | `solaris-ntp` | NTP mode 6 (ntpq kontrol sorgusu) dışarıya açık mı — tarama bulgusunu bu makineden, ek araçsız sınar (önce/sonra) |
 | `belge-oku.py` | `belge-oku` | Excel/Word/PowerPoint/PDF/OneNote dışa aktarımı → yer bilgili metin (serbest metin: sır maskelenmez — kopyalama kuralı SKILL §3) |
@@ -88,7 +89,7 @@ platformda bir iş**; ortak veri/araç tek yerde (`surum-uyum/uyum.py`), diğerl
 - **veeam-**: `veeam-linux` (restore hatası, servisler, /tmp noexec)
 - **solaris-**: `solaris-ntp` (mode 6 bulgusu: noquery + svcadm restart, playbook şablonu) · parked `solaris-ldom` (genel keşif)
 - **idm-** (Red Hat IdM + AD trust): `idm-kurulum` · `idm-erisim` (HBAC, sudo, AD grup eşleme) · `idm-bakim` (log şişmesi, logrotate, SSSD debug, KDC'yi yoran istemci)
-- **genel**: `bankacilik-uyum` (BDDK/KVKK/PCI ↔ kanıt) · `ansible` · `kurum-registry` (imaj nereden çekilir: Nexus/Harbor, RKE2 aynaları, çekme hatası) · `belge-oku` (kurum belgesi: Excel/Word/PDF/OneNote) · `git` · `filo-kontrol` · `kurum-envanter` (3 harf → sunucu sayısı, domain, IP blokları; DMZ/DRC — `envanter-harita.py`) · `kume-bul` (envanter + küme kimliği: ad/IP → küme/platform, Rancher haritası, sertifika — `kume-bul.py`) · `rapor` · `sep-paket`
+- **genel**: `bankacilik-uyum` (BDDK/KVKK/PCI ↔ kanıt) · `ansible` · `kurum-registry` (imaj nereden çekilir: Nexus/Harbor, RKE2 aynaları, çekme hatası) · `belge-oku` (kurum belgesi: Excel/Word/PDF/OneNote) · `git` · `filo-kontrol` · `kesinti-sonrasi` (elektrik kesintisi sonrası filo taraması — `kesinti-ozet.py`) · `kurum-envanter` (3 harf → sunucu sayısı, domain, IP blokları; DMZ/DRC — `envanter-harita.py`) · `kume-bul` (envanter + küme kimliği: ad/IP → küme/platform, Rancher haritası, sertifika — `kume-bul.py`) · `rapor` · `sep-paket`
 - **ortak**: `surum-uyum` (uyum.py + çevrimdışı matris/EOL verisi — tüm platformlar)
 
 Eski → yeni (2026-10-17): kume-denetim → rke2-denetim + rke2-gpu · rke2-ansible → rke2-kurulum + rke2-node-ekle (+ matris →

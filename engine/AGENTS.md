@@ -9,6 +9,7 @@ Oturum sonunda kullanıcı `/kaydet` der → kurumsal bilgi güncellenir.
 
 | İsteğin sözcükleri | Kurumsal bilgi | Beceri → betik |
 |---|---|---|
+| elektrik · güç kesintisi · enerji kesintisi · veri merkezi · kesintiden · kesintisine · sunucular kapandı · ups | 5 erişim akışı | `kesinti-sonrasi` → `kesinti-ozet` |
 | 2. onay · açık sistem · yeni sunucu · sunucu yapılandır · teslim · ipa client | 2 DMZ · 6 süreçler | `rhel-teslim` → `disk-durum`, `filo-tablo` |
 | veeam · restore | — | `veeam-linux` → `veeam-tani` |
 | sep · symantec · antivirüs · istisna · xdr · twistlock · defender | — | `rke2-edr` → `sep-istisna` (paket üretimi: `sep-paket`) |

@@ -1586,3 +1586,6 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Alp (devam): yeni kurulan sunucularda CN istenmez — talebi sunucu sahibi iletti, "/data'yı kullanmıyorum" dedi; kullansaydı değişiklik
   (CN) gerekirdi. Aksiyon: `rhel-depolama` B §3 Yol C (/data → /: CN kuralı, kullanılmadığının salt-okunur kanıtı, sıra, doğrulama);
   `rhel-teslim` §0a CN maddesi.
+- Sonuç (ekran): sxlabinitiodata'da Yol C başarılı — `kt_rhel_vg` silindi, `/dev/sdb` `rhel` VG'ye eklendi, root LV 52.5G → 364.4G,
+  XFS büyüdü, fstab'dan `/data` kalktı; kök kullanım %100 (53G/53G) → %15. Diğer üçünde ajanın planı: `/data` diski web ve meta'da
+  **sda**, cntr'de **sdb** — disk harfi sunucudan sunucuya değişiyor; her sunucunun planı kendi `disk-durum.py` çıktısından (G38).

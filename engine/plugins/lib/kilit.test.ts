@@ -1053,3 +1053,18 @@ describe("2026-11-03: /kaydet — oturum dökümü okuma, özet onaysız", () =>
     expect(karar("opencode session import x.json")?.kilit).toBe("K5")
   })
 })
+
+describe("G122: kubectl proxy / port-forward ve arka plan süreci okuma değil", () => {
+  test("uzak node'da kubectl proxy & onaysız geçmez", () => {
+    expect(kesinOkuma(`ssh root@10.13.16.196 "/var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml proxy --port=8080 &" 2>&1 || echo x`, workdir)).toBe(false)
+  })
+  test("port-forward / proxy okuma değil", () => {
+    expect(kesinOkuma("kubectl port-forward svc/x 8080:80", workdir)).toBe(false)
+    expect(kesinOkuma("kubectl proxy --port=8001", workdir)).toBe(false)
+  })
+  test("arka plan & okuma değil; && ve 2>&1 etkilenmez", () => {
+    expect(kesinOkuma("sleep 100 &", workdir)).toBe(false)
+    expect(kesinOkuma("ssh a 'tail -f /var/log/x &'", workdir)).toBe(false)
+    expect(kesinOkuma("ssh a 'df -h 2>&1' && uptime", workdir)).toBe(true)
+  })
+})

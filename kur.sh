@@ -1190,7 +1190,10 @@ son_log_hatasi() {
   dosya="$(son_log_dosyasi)"
   [ -n "$dosya" ] || return 0
   # Saha çevrimdışı: models.dev yenilemesi her açılışta düşer, katalog gömülü anlık görüntüden gelir (zararsız, 2026-10-26).
-  grep -hE 'err_[0-9A-Za-z]{6,}|ERROR|FATAL' "$dosya" 2>/dev/null | grep -v 'Failed to fetch models.dev' | tail -1
+  # logfmt satırında yalnız level=ERROR/FATAL sayılır — INFO "spawning process" satırının komut metnindeki "ERROR" kelimesi hata değil
+  # (saha 2026-11-03: grep deseni içeren ssh komutu "son hata" diye basıldı); level alanı olmayan satırda eski desen.
+  awk '/ level=/ { if ($0 ~ / level=(ERROR|FATAL)/) print; next } /err_[0-9A-Za-z]{6,}|ERROR|FATAL/' "$dosya" 2>/dev/null |
+    grep -v 'Failed to fetch models.dev' | tail -1
 }
 # log_ozet <satır> — logfmt satırından okunur özet: "13:27Z <message> (<error/err>)"; alan yoksa satırın kendisi.
 # Saha G76: "timestamp=… level=ERROR run=… message=" önekiyle 70 karakter dolduğu için hata metni hiç görünmüyordu.

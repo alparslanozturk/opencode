@@ -764,6 +764,7 @@ icerir "kesinti: yük/çekirdek" kto.txt "yük yüksek: 22.1 21.0 20.5/8"
 icerir "kesinti: D-state" kto.txt "G/Ç bekleyen (D-state) süreç: 14"
 icerir "kesinti: hata sayısı tek başına sorun değil" kto.txt "sorun bulunmadı: sunucu-b(2026-11-03 10:02:00, ANI)"
 icerir "kesinti: kesintiden önce açılan ayrı sınıfta" kto.txt "== KAPANMADI (1)"
+icermez "kesinti: kapanmayanın eski servis hatası yazılmaz (Alp)" kto.txt "kdump.service"
 python3 "$B/kesinti-sonrasi/kesinti-ozet.py" kt > kto2.txt 2>&1
 icerir "kesinti: saat yoksa ANI'ye göre" kto2.txt "kesintide kapandı 2 · kapanmadı 1"
 python3 "$B/kesinti-sonrasi/kesinti-ozet.py" kt --kesinti "dün" > kto3.txt 2>&1

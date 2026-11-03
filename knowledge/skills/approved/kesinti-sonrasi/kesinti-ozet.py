@@ -141,10 +141,14 @@ def main(argv):
         satir = (h, d.get("acilis", "?"), d.get("onceki_kapanis", "?"), sorunlar(d), d.get("hata", "?"), d.get("hata_ilk", ""))
         if not acilis:
             bilinmiyor.append(satir)
-        elif kesinti is None:
-            (kapandi if d.get("onceki_kapanis") == "ANI" else kapanmadi).append(satir)
+            continue
+        kapanmis = d.get("onceki_kapanis") == "ANI" if kesinti is None else acilis >= kesinti
+        if kapanmis:
+            kapandi.append(satir)
         else:
-            (kapandi if acilis >= kesinti else kapanmadi).append(satir)
+            # Alp (2026-11-03): "kesintiyle ilgili olmayan bir hata istemiyorum" — kapanmayan sunucuda yalnız ŞU ANKİ takılma belirtisi
+            # (G/Ç bekleyen süreç, bağlanmamış fstab/NFS: dayandığı depolama/NFS kesintide gidip gelmiş olabilir); eski log/servis/disk yazılmaz
+            kapanmadi.append(satir[:3] + ([x for x in satir[3] if x.startswith(("G/Ç bekleyen", "fstab'da"))],) + satir[4:])
 
     toplam = len(ulasilamadi) + len(yanitsiz) + len(kapandi) + len(kapanmadi) + len(bilinmiyor)
     print("Kesinti taraması: %s · %d sunucu%s · kesinti: %s" % (
@@ -184,7 +188,7 @@ def main(argv):
             print("  sorun bulunmadı: " + ", ".join(temiz))
 
     yaz("KESİNTİDE KAPANDI", kapandi, "önceki_kapanis ANI = kapanış kaydı yok (güç gitti) · temiz = kapatılarak inmiş")
-    yaz("KAPANMADI", kapanmadi, "açılış kesintiden önce (ya da önceki kapanış temiz) — buradaki sorun kesintiyle ilişkilendirilemez")
+    yaz("KAPANMADI", kapanmadi, "açılış kesintiden önce — eski sorunları yazılmaz; yalnız şu an takılı (D-state) ya da bağlanmamış disk/NFS")
     yaz("AÇILIŞ OKUNAMADI", bilinmiyor, "uptime -s çıktısı yok (RHEL 6?) — elle bak")
     print("\nKanıt: açılış = `uptime -s` · önceki kapanış = `last -x reboot shutdown` 2. satır (shutdown=temiz, reboot=ANI; wtmp döndüyse"
           " bilinmiyor) · sorunlar = aynı komutun alanları. Saatler sunucunun yerel saati.")

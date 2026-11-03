@@ -999,3 +999,28 @@ describe("2026-11-03: sep-istisna okuma", () => {
     expect(kesinOkuma(`${k.replace("<sunucu>", "splastnginx01")} | python3 /root/ai/opencode/knowledge/skills/approved/rke2-edr/sep-istisna.py liste -`, workdir)).toBe(true)
   })
 })
+
+describe("2026-11-03: disk-durum salt-okunur; kurulu beceri kopyası K6 değil (G121)", () => {
+  const karar = (c: string) => kilitDenetle("bash", { command: c }, workdir, undefined)
+  // SKILL.md'deki komut, sahadaki gibi (rhel-depolama §1)
+  const uzak = `ssh root@sxlabinitiodata "echo '#LSBLK'; lsblk -P -b -o NAME,KNAME,PKNAME,TYPE,SIZE,FSTYPE,MOUNTPOINT,UUID 2>/dev/null || lsblk -P -b -o NAME,KNAME,TYPE,SIZE,FSTYPE,MOUNTPOINT,UUID; echo '#PVS'; pvs --noheadings --separator '|' -o pv_name,vg_name 2>/dev/null; echo '#MOUNT'; findmnt -rn -o SOURCE,TARGET; echo '#SWAP'; cat /proc/swaps; echo '#FSTAB'; grep -v '^[[:space:]]*#' /etc/fstab; echo '#IMZA'; for d in \\$(lsblk -dn -o NAME -e 7,11); do echo \\"== /dev/\\$d\\"; blkid -p -o export /dev/\\$d 2>&1; done"`
+  const home = require("node:os").userInfo().homedir
+  for (const yol of [
+    "/root/ai/opencode/knowledge/skills/approved/rhel-depolama/disk-durum.py",
+    `${home}/.config/opencode/skills/rhel-depolama/disk-durum.py`,
+    "~/.config/opencode/skills/rhel-depolama/disk-durum.py",
+  ]) {
+    test(`kesin okuma, kilit yok: ${yol}`, () => {
+      const c = `${uzak} | python3 ${yol} - --ad sxlabinitiodata 2>&1`
+      expect(kesinOkuma(c, workdir)).toBe(true)
+      expect(karar(c)).toBeNull()
+    })
+  }
+  test("kurulu beceri alanına yazma hâlâ K6", () => {
+    expect(karar("cp x.py ~/.config/opencode/skills/rhel-depolama/disk-durum.py")?.kilit).toBe("K6")
+    expect(karar("echo a >> ~/.config/opencode/skills/rhel-depolama/SKILL.md")?.kilit).toBe("K6")
+  })
+  test("listede olmayan betik kurulu alandan çalışırsa K6 kalır", () => {
+    expect(karar("python3 ~/.config/opencode/skills/ansible/gomulu-dosya.py x")?.kilit).toBe("K6")
+  })
+})

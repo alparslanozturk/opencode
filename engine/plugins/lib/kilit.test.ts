@@ -1024,3 +1024,14 @@ describe("2026-11-03: disk-durum salt-okunur; kurulu beceri kopyası K6 değil (
     expect(karar("python3 ~/.config/opencode/skills/ansible/gomulu-dosya.py x")?.kilit).toBe("K6")
   })
 })
+
+describe("2026-11-03: iş kaydı betiği onaysız (ADR-0007 §6)", () => {
+  const B = "/root/ai/opencode/knowledge/skills/approved/rapor/is-kaydi.py"
+  for (const c of [`python3 ${B} ac data-to-root --sunucular a,b`, `ssh root@a "df -h /" | python3 ${B} ekle son df`,
+    `python3 ${B} sonuc son "root 365G"`, `python3 ~/.config/opencode/skills/rapor/is-kaydi.py liste`])
+    test(`onaysız: ${c}`, () => expect(kesinOkuma(c, workdir)).toBe(true))
+  test("başka betik ya da yazma eşlik ederse onaysız değil", () => {
+    expect(kesinOkuma(`python3 ${B} ac x > /etc/x`, workdir)).toBe(false)
+    expect(kesinOkuma(`python3 /root/x/is-kaydi.py ac x`, workdir)).toBe(false)
+  })
+})

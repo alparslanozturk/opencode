@@ -655,6 +655,20 @@ icerir "postgres kaynaksız aday" sio.txt "resmi PostgreSQL belgesi bulunamadı"
 icermez "sunucuda olmayan yol yok" sio.txt "/var/lib/kubelet"
 icerir "önek uyarısı" sio.txt "KB 250717"
 
+baslik "is-kaydi.py (geçici iş kaydı; 2026-11-03)"
+IK="$B/rapor/is-kaydi.py"; export IS_KAYIT_KOK="$PWD/iskok"
+d1=$(python3 "$IK" ac "Data → Root!" --sunucular a,b --istek "talep")
+[ -f "$d1/plan.md" ] && [ -d "$d1/okuma" ] && gecti "ac: plan.md + okuma/" || kaldi "ac: $d1"
+case "$(basename "$d1")" in *-data-root) gecti "etiket güvenli ada çevrildi";; *) kaldi "etiket: $d1";; esac
+icerir "CN verilmedi varsayılanı" "$d1/plan.md" "CN: verilmedi"
+echo "Filesystem 365G" | python3 "$IK" ekle son df > ike.txt
+ls "$d1"/okuma/*-df.txt > /dev/null 2>&1 && gecti "ekle: stdin okuma/ altına" || kaldi "ekle: $(cat ike.txt)"
+echo x | python3 "$IK" ekle son df > /dev/null; [ "$(ls "$d1"/okuma | wc -l)" -eq 2 ] && gecti "ekle: üstüne yazmaz" || kaldi "ekle üstüne yazdı"
+python3 "$IK" sonuc son "root 365G" > /dev/null; icerir "sonuc satırı" "$d1/sonuc.md" "root 365G"
+if python3 "$IK" ekle ../../etc x < /dev/null > ikx.txt 2>&1; then kaldi "kök dışı kabul edildi"; else gecti "kök dışı dizin reddedilir"; fi
+python3 "$IK" liste data > ikl.txt; icerir "liste sözcükle" ikl.txt "a,b"
+unset IS_KAYIT_KOK
+
 baslik "veeam-tani.py (Veeam restore hatası; 2026-11-02)"
 VT="$B/veeam-linux/veeam-tani.py"
 printf 'acilis=2026-11-02 15:40:11\nveeam_paket=veeamtransport-13.0.0\nbaglama_tmp=/tmp rw,nosuid,nodev,noexec,relatime\nrun_veeamtransport=YOK\nservis_veeamtransport=failed/enabled\nservis_veeamnetfsmount=inactive/enabled\nlog_hata=ERR |POSIX: Failed to create or open file [/var/run/veeamtransport/veeamtransport.pid].|No such file or directory|\n' > vt1.txt

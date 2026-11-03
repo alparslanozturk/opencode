@@ -23,6 +23,22 @@ dolu satırlar; ya da `--vurgu <sütun>=<regex>`. Başlığa üretim zamanı + `
 yazmaz. Ölçüldü (2026-10-21): filo CSV → HTML 3 vurgulu satır; kapasite CSV → XLSX, `cpu_ort` hücresi float, openpyxl 3.1.5.
 Aşağıdaki elle Python örnekleri yalnız betiği olmayan küçük, kullanıcının verdiği tablolar içindir.
 
+## İş kaydı — `is-kaydi.py` (Alp, 2026-11-03)
+
+Geçici saha işinin planı, kanıtı ve sonucu tek dizinde: `~/ai/work/is-kayitlari/<YYYYMMDD-HHMM>-<etiket>/` (`plan.md`, `okuma/`, `sonuc.md`).
+Zamanla kurumun iş bilgi tabanı olur; kurum verisi içerir, sahada kalır.
+
+```bash
+K=/root/ai/opencode/knowledge/skills/approved/rapor/is-kaydi.py
+python3 $K ac data-to-root --sunucular sxl1,sxl2 --istek "/data alanını köke ver"   # yolu basar
+ssh root@<sunucu> 'df -h /; lsblk' | python3 $K ekle son <sunucu>-once            # okuma kanıtı
+python3 $K sonuc son "<sunucu>: root 53G → 365G (df -h /)"                          # yalnız ölçülen
+python3 $K liste data                                                               # eski benzer işler
+```
+
+`plan.md`'yi doldur: önce sor cevapları, okuma kanıtı (dosya adıyla), adımlar (her biri ayrı komut), risk/geri dönüş. Verilmeyen alan
+"verilmedi" kalır. Betik yalnız bu köke yazar, var olan dosyanın üstüne yazmaz; kilitte onaysız.
+
 ## A. Biçim, CSV, HTML
 
 Doğrulandı: AlmaLinux 10.2 (python 3.12) ve macOS — 2026-08-29

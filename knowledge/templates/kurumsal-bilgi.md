@@ -2,8 +2,8 @@
 
 > Yer: `~/ai/work/opencode/kurumsal-bilgi.ini` (adı tarihsel; içerik bu şablondaki bölümler). `/kaydet` günceller.
 > **Girer:** her işte yeniden lazım olan, kanıtlı, uzun ömürlü bilgi. **Girmez:** tek seferlik iş adımları ve sonuçları
-> (→ iş kaydı `~/ai/work/is-kayitlari/`), anlık değerler (sunucu sunucu kernel, disk yüzdesi), tahmin, ajanın yorumu, **sır**
-> (parola, token, PAT, anahtar — yalnız "nerede durduğu" yazılır: `<sır — dosyada tutulmaz>`).
+> ve anlık değerler (sunucu sunucu kernel, disk yüzdesi) → en alttaki "10. İş geçmişi"; tahmin `[doğrula]` ile; ajanın yorumu hiç.
+> Parola/token yazılabilir (Alp, 2026-11-03: yerel ortam, gizlilik gereği yok).
 > Her satırın sonunda kaynak: `[Alp YYYY-MM-DD]` · `[komut: <kısa komut> YYYY-MM-DD]` · doğrulanmamışsa `[doğrula]`.
 > Aynı bilgi tek yerde. Çelişki varsa iki satır `ÇELİŞKİ:` altında kalır, Alp karar verene kadar.
 
@@ -35,11 +35,14 @@
 | Sunucu grubu | Motor / compose yolu | Restart politikası (reboot sonrası) | Elle adım | Kaynak |
 |---|---|---|---|---|
 
-## 8. Erişim noktaları (sırsız)
-- Azure DevOps / git: adres, proje, yerel klon yolu; kimlik bilgisi `<sır — dosyada tutulmaz>`
+## 8. Erişim noktaları
+- Azure DevOps / git: adres, proje, yerel klon yolu, kimlik bilgisi
 
 ## 9. Bilinen sorunlar → kanıtlı çözüm
 - Belirti · neden (kanıt) · çözüm (yapılan ve ölçülen) · kaynak
+
+## 10. İş geçmişi (tek seferlik işler — kısa, tarihli)
+-
 
 ## ÇELİŞKİ / DOĞRULA
 -

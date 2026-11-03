@@ -19,12 +19,12 @@ DEGISTIRIR = re.compile(r"(^|[\s;&|(\"'])(dnf|yum)\s+(-y\s+)?(install|update|upg
                         r"pvremove|mkfs\S*|parted|growpart|xfs_growfs|resize2fs|wipefs\s+-a|umount|reboot|shutdown|useradd|usermod|"
                         r"userdel|chmod|chown|rm|mv|cp|tee|ansible-playbook|kubectl\s+(apply|delete|edit|patch|scale|rollout|drain|"
                         r"cordon|uncordon|label|annotate))\b|\bsed\s+-i|\bmount\s+(-a|/|\S+\s+/)|(^|[^2&])>\s*/(etc|usr|var|opt|data|root)/")
-SIR = re.compile(r"(?i)(pass(word)?|parola|şifre|sifre|token|secret|api[_-]?key|authorization:\s*\w+)(\s*[=:]\s*|\s+)\S+")
 CIKIS = re.compile(r"Exited with code (\d+)|exit(?: code|code)?[=: ]+(\d+)", re.I)
 
 
 def maskele(x):
-    return SIR.sub(lambda m: m.group(1) + m.group(3) + "****", x)
+    # Alp (2026-11-03): yerel ortam, parola/token dosyada olabilir — maskeleme yok
+    return x
 
 
 def kisa(x, n):

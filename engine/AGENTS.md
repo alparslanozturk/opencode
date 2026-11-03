@@ -351,8 +351,8 @@ yazma; ölçemediğin sunucuyu "ölçülmedi" diye ayrı göster. Bilmediğin de
 - **Kurumsal bilgi** (`~/ai/work/opencode/kurumsal-bilgi.ini`, sahada): DNS/NTP, DMZ, ağ blokları, erişim/izin akışı, süreç kuralı gerekince
   önce bunu oku (`grep -n -i <sözcük>`); satır sonundaki kaynak `[doğrula]` ise ölçmeden kesin bilgi gibi kullanma. Dosya ile ölçüm
   çelişirse ölçümü söyle, dosyayı kendin düzeltme — kullanıcı `/kaydet` ile günceller.
-- **`/kaydet [not]`:** komut şablonundaki adımları aynen uygula; bilgi yalnız `oturum-ozet.py` özetinden (kullanıcı sözü + komut çıktısı),
-  sır yazılmaz, tek seferlik iş ayrıntısı kurumsal bilgiye girmez.
+- **`/kaydet`** (parametresiz): komut şablonundaki adımları aynen uygula; yeni bilgi yalnız `oturum-ozet.py` özetinden (kullanıcı sözü +
+  komut çıktısı); dosyada bilgi silinmez — düzenlenir, tek seferlik iş "10. İş geçmişi"ne, çelişki "ÇELİŞKİ / DOĞRULA"ya.
 
 ## "Yalnız metni kontrol et, işlem yapma" (saha G111, 2026-10-27)
 

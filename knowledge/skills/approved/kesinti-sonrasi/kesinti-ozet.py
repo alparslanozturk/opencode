@@ -190,6 +190,28 @@ def main(argv):
     yaz("KESİNTİDE KAPANDI", kapandi, "önceki_kapanis ANI = kapanış kaydı yok (güç gitti) · temiz = kapatılarak inmiş")
     yaz("KAPANMADI", kapanmadi, "açılış kesintiden önce — eski sorunları yazılmaz; yalnız şu an takılı (D-state) ya da bağlanmamış disk/NFS")
     yaz("AÇILIŞ OKUNAMADI", bilinmiyor, "uptime -s çıktısı yok (RHEL 6?) — elle bak")
+
+    # Seri = sondaki sayı atılınca aynı kalan ad (splelastic1…8). Sorunlu üyesi olan her serinin TAMAMI — kullanıcı sormadan (Alp 2026-11-03:
+    # splelastic4/8 dolu bulundu, serinin diğer 6'sına ancak "seriye bak" deyince bakıldı)
+    durum_h = {h: "ulaşılamadı" for h, _, _ in ulasilamadi}
+    durum_h.update({h: "yanıt yok" for h, _, _ in yanitsiz})
+    durum_h.update({x[0]: ("SORUNLU" if x[3] else "sağlam") for x in kapandi + kapanmadi + bilinmiyor})
+    seriler = {}
+    for h in durum_h:
+        m = re.match(r"^(.*\D)(\d+)$", h.split(".")[0])
+        if m:
+            seriler.setdefault(m.group(1), []).append(h)
+    satirlar = []
+    for ad, hs in sorted(seriler.items()):
+        if len(hs) < 2 or all(durum_h[h] == "sağlam" for h in hs):
+            continue
+        gruplu = {}
+        for h in sorted(hs, key=lambda x: int(re.search(r"(\d+)$", x.split(".")[0]).group(1))):
+            gruplu.setdefault(durum_h[h], []).append(h)
+        satirlar.append("  %s* (%d): %s" % (ad, len(hs), " · ".join("%s %s" % (d, ",".join(v)) for d, v in sorted(gruplu.items()))))
+    if satirlar:
+        print("\n== SERİLER — sorunlu üyesi olan serinin tamamı (aynı ad, farklı numara; tarananlar içinden)")
+        print("\n".join(satirlar))
     print("\nKanıt: açılış = `uptime -s` · önceki kapanış = `last -x reboot shutdown` 2. satır (shutdown=temiz, reboot=ANI; wtmp döndüyse"
           " bilinmiyor) · sorunlar = aynı komutun alanları. Saatler sunucunun yerel saati.")
     return 0 if not (ulasilamadi or yanitsiz or any(s for _, _, _, s, _, _ in kapandi + kapanmadi)) else 1

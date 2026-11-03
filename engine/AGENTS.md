@@ -213,6 +213,15 @@ değerdi.
   `kume-bul` becerisini yükle. Önce `python3 /root/ai/opencode/knowledge/skills/approved/kume-bul/kume-bul.py <ad|IP>` — tüm envanteri
   ad, kısa ad **ve IP** ile eşler (bir dosyada adla yok diye "kümede yok" deme). Yetmezse master'dan kubectl JSON'unu
   `| kume-bul.py k8s`'e borula (kimlik, node, ingress, sertifika, Rancher'ın kümeleri); Rancher haritası `--kaydet` ile envantere yazılır.
+- **Seri sunucu = aynı ad, farklı numara — sorun bulunca serinin tamamına bak (Alp, 2026-11-03, saha):** `splelastic4` ve `splelastic8`
+  dolu çıktı; ajan serinin diğerlerine bakmadı, "elastic serisi kaç sunucu" sorusunu da ilk 3 harfe göre (spl/stl/dpl) gruplayıp yanlış
+  anladı (Alp: "hayır anlamadın, splelastic1 … ? arası sunucu var gibi bak"). Kural:
+  1. **Seri** = adın sondaki sayı atılınca kalan kısmı aynı olan sunucular (`splelastic1`…`splelastic8`; `sdlcardm1`…`3`). 3 harf grubu
+     değildir; `stlelastic*` ayrı seridir.
+  2. Bir sunucuda sorun bulduğunda (disk dolu, kapalı, takılı, servis düşük) aynı yanıtta **serinin tamamını** envanterden çıkar —
+     `ansible '<seri>*' -i <envanter> --list-hosts` — ve aynı okuma komutunu hepsinde tek seferde çalıştır (`--limit '<seri>*'`).
+     Tabloda serinin her üyesi bir satır; sorunlu olanlar ve sağlam olanlar birlikte ("8'in 2'si dolu"). Kullanıcının istemesini bekleme.
+  3. Sunucu sayısını ve listeyi envanterden al; seri numaralarında boşluk varsa (1,2,3,5) olduğu gibi yaz, eksik numara uydurma.
 - **Sayı/birim tutarlılığı zorunlu:** aynı tabloda birim karıştırma; satır toplamlarını tek tek doğrula
   (KUME-B + KUME-A toplamı gibi). Kaynağı ve tarihi yaz; ölçmediğin sayıyı "ölçülmedi" diye işaretle.
 - **Bu makineden erişilemeyen platform (Alp, 2026-10-21 — ikinci bulut platformu; saha G81):** bazı Rancher platformlarına

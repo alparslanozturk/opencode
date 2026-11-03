@@ -175,6 +175,8 @@
       "systemctl stop*": "ask",
       "systemctl restart*": "ask",
       "opencode *": "deny",
+      "opencode session export *": "allow",
+      "opencode session list*": "allow",
       "git branch --show-current": "allow",
       "git branch -a": "allow",
       "git branch -v*": "allow",

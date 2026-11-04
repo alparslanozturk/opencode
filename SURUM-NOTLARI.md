@@ -6,6 +6,15 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-04 — `rhel-aide` (dosya bütünlüğü) + `rhel-cis` Satellite döngüsü
+
+Sahada: `git pull && ./kur.sh`, **yeni oturum**. Örnek istek: "AIDE hangi sunucularda kurulu, NFS'i tarar mı?".
+- `rhel-aide`: `aide-ozet.py komut` → `ansible -m raw` (salt-okunur) → `aide-ozet.py <tree>`: kurulu değil / veritabanı yok / zamanlı
+  kontrol yok / çalışıyor; NFS-CIFS bağlaması AIDE kapsamında mı (aide.conf seçimi + 0.19 dosya sistemi türü kısıtı `!/ =0x6969`).
+  Devreye alma: istisnalar `--init`'ten önce, `--path-check` ile doğrulama, yama sonrası `--update`, `rhel-system-roles.aide`.
+- `rhel-cis` §0: Satellite tara → remediation (sihirbaz / OpenSCAP iş şablonu) → tekrar tara; SCAP içeriği RHEL ara sürümüne göre.
+- Kurum bilgisi (Alp): AIDE henüz aktif değil; XDR k8s node'larından kaldırıldı, yerine Prisma (Twistlock) Defender; SEP her yerde.
+
 ## 2026-11-04 — `uzak-envanter` + erişim kontrolü (`filo-kontrol` §7)
 
 Sahada: `git pull && ./kur.sh`, **yeni oturum**. Örnek istek: "ktbulut ortamına erişemiyoruz; oradaki satellite'ta envanteri toplayıp getireceğim".

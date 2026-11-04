@@ -690,6 +690,25 @@ python3 "$B/rhel-nfs/nfs-tani.py" tani nfs2.txt > nfs2o.txt 2>&1; rc=$?
 [ "$rc" -eq 0 ] && gecti "NFS yok → bulgu yok, çıkış 0" || kaldi "nfs2 çıkış $rc"
 icerir "fstab'da NFS yok notu" nfs2o.txt "fstab'da NFS satırı yok"
 
+baslik "aide-ozet.py (AIDE durumu + NFS kapsamı; 2026-11-04)"
+rm -rf at && mkdir at
+python3 "$B/rhel-aide/aide-ozet.py" komut > aidek.txt
+bash -c "$(sed 's#c=/etc/aide.conf#c=./yok.conf#' aidek.txt)" > aidey.txt 2>&1 && icerir "komut yerelde hatasız (aide yok)" aidey.txt "aide_paket="
+SEC='/opt@CONTENT /usr@NORMAL /var/log@LOG !/usr/src@ !/var/log/sa@'
+ak() { python3 -c 'import json,sys; print(json.dumps({"rc":0,"stdout":sys.argv[1]}))' "$1" > "at/$2"; }
+ak "$(printf 'aide_paket=aide-0.19.2\naide_db=2026-11-01 04:05:00\naide_zamanlama=/etc/crontab \nag_baglama=/opt/paylasim:nfs4 /data:nfs \naide_secim=%s' "$SEC")" sa
+ak "$(printf 'aide_paket=\naide_db=\naide_zamanlama=\nag_baglama=\naide_secim=')" sb
+ak "$(printf 'aide_paket=aide-0.19.2\naide_db=2026-11-01 04:05:00\naide_zamanlama=\nag_baglama=/opt/paylasim:nfs4 \naide_secim=%s !/@=0x6969' "$SEC")" sc
+ak "$(printf 'aide_paket=aide-0.19.2\naide_db=\naide_zamanlama=\nag_baglama=\naide_secim=%s' "$SEC")" sd
+echo '{"unreachable":true,"msg":"Failed to connect to the host via ssh: Connection timed out"}' > at/se
+python3 "$B/rhel-aide/aide-ozet.py" at > ato.txt 2>&1; rc=$?
+[ "$rc" -eq 1 ] && gecti "aide: eksik var → çıkış 1" || kaldi "aide çıkış $rc"
+icerir "aide: sayım" ato.txt "Sayım: AIDE kurulu değil 1 · erişilemedi 1 · kurulu, veritabanı yok (--init?) 1 · veritabanı var, zamanlı kontrol yok 1 · çalışıyor 1"
+icerir "/opt altındaki NFS kapsamda" ato.txt "2 (/opt/paylasim)"
+icermez "/data seçili değil → kapsam dışı" ato.txt "/data)"
+icerir "!/ =0x6969 NFS'yi dışlar" ato.txt "1 (-)"
+icerir "kapsam uyarısı sunucu adıyla" ato.txt "  sa                           /opt/paylasim"
+
 baslik "sep-istisna.py (SEP istisna adayları; 2026-11-03)"
 printf 'sep_paket=sdcss-x \nvar=/proc /sys /data /var/lib/rancher \nnfs=/ab \nmongo_conf= dbPath: /data/mongo path: /var/log/mongodb/mongod.log \nmongo_args=\npg_data= -D /var/lib/pgsql/data \ndocker_root=/var/lib/docker\n' > si.txt
 python3 "$B/rke2-edr/sep-istisna.py" liste si.txt > sio.txt 2>&1
@@ -767,6 +786,7 @@ VAKALAR = [  # (G kaydı, saha cümlesi, beklenen beceri)
     ("Alp 2026-11-03", "veri merkezinde elektrik kesintisine bağlı olarak sunucular kapandı, bir hata mesajı var mı", "kesinti-sonrasi"),
     ("Alp 2026-11-03", "bütün sunuculara bağlan, kesintiden kaynaklı hata var mı özet çıkar", "kesinti-sonrasi"),
     ("Alp 2026-11-04", "envantere erişim kontrol eden küçük bir ansible yaz, ip bloğunda hiç bir sunucuya erişmiyorsak FW erişim talebi", "erisim-blok"),
+    ("Alp 2026-11-04", "AIDR file integrity yazılımı, exception'ları NFS ve data dizinleri", "rhel-aide"),
     ("Alp 2026-11-04", "ktbulut ortamına erişemezsek orada bir ansible çalıştırıp oradaki bilgiyi alıp sana verebilirim", "uzak-envanter"),
     ("saha 2026-11-04", "bizim git deki şu adrese erişiyor musun? https://tfs-ornek/tfs/Koleksiyon/Proje/_git/notlar?path=/Sunucu-Envanter-Listesi", "`git`"),
 ]

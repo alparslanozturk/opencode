@@ -21,6 +21,7 @@ Oturum sonunda kullanıcı `/kaydet` der → kurumsal bilgi güncellenir.
 | cis · oscap · sıkılaştırma | — | `rhel-cis` → `cis-ozet` (küme: `rke2-cis`) |
 | sürüm uyumu · eol · destek sonu | — | `surum-uyum` → `uyum` |
 | imaj · registry · nexus · harbor · imagepull | — | `kurum-registry` → `imaj-yol` |
+| /_git/ · /tfs/ · git repo · git dep · azure devops | — | `git` (adres = yerel klon `git/<depo>`) |
 | manifest · gitops · azure devops · git | 8 erişim noktaları | `rke2-manifest` · `git` → `envanter-fark` |
 | solaris · ntp mode 6 | — | `solaris-ntp` → `ntp-mode6` |
 | anthos · gke | — | `anthos-erisim` |
@@ -323,6 +324,9 @@ ver ne demek?" Eski "CN + sunucular yoksa engel" kuralı **kalktı**. Şimdi Cla
 ## Güvenlik ve sınırlar
 - Yıkıcı komut (rm -rf, mkfs, dnf remove, servis durdurma, force push) → **önce sor**.
 - Kurum dışına veri gönderme; dış ağ/telemetri kapalı varsay.
+- **Kurum içi git dış ağ değildir** (saha 2026-11-04: `https://<tfs>/…/_git/notlar?path=/X` sorulunca "izole ortam, erişimim yok"
+  dendi; klon `git/notlar` yerelde vardı). `…/_git/<depo>?path=/<yol>` adresi = yerel `git/<depo>/<yol>`. "Erişemem" demeden
+  önce `git` becerisini yükle: `ls git/` → `git -C git/<depo> pull --ff-only` → dosyayı oku. Klon yoksa ilk klon komutunu ver.
 - Üretim kümesinde çalışmadan önce "hangi küme bağlı" doğrula (`k8s-sorun` becerisi).
 - **Sunucu adı → ortam** (Alp teyidi, 2026-09-25): adın ilk 3 harfi `<lokasyon><ortam><alan>` — lokasyon
   `s`=İstanbul, `d`=Ankara (DRC); ortam `p`=production, `d`=development, `t`=test, `x`=prep, `b`=bugfix; alan

@@ -88,7 +88,7 @@ platformda bir iş**; ortak veri/araç tek yerde (`surum-uyum/uyum.py`), diğerl
   (Alp, 2026-10-17: genel olan `k8s-`, RKE2'ye özgü olan `rke2-`, GKE'leri yöneten Anthos `anthos-`)
 - **anthos-**: `anthos-erisim` (ileride `anthos-yukseltme`)
 - **vcf-** (VMware VCF): veri gelince `vcf-denetim` · `vcf-yukseltme`
-- **rhel-**: `rhel-ca-guven` (CA yükle + kanıtla) · `rhel-yonetim` · `rhel-guncelleme` · `rhel-guvenlik` · `rhel-cis` (CIS L1/L2, OpenSCAP) · `rhel-aide` (dosya bütünlüğü) · `rhel-gpu-surucu` (NVIDIA sürücü/CUDA/FM) · `rhel-depolama` · `rhel-nfs` (açılış sırası, konteyner, üç eksen performans) · `rhel-performans` · `rhel-sorun` · `rhel-teslim` · `rhel-yukseltme` (Leapp 8 → 9 → 10, Satellite CV)
+- **rhel-**: `rhel-ca-guven` (CA yükle + kanıtla) · `rhel-yonetim` · `rhel-guncelleme` · `rhel-guvenlik` · `rhel-cis` (CIS L1/L2, OpenSCAP) · `rhel-aide` (dosya bütünlüğü) · `platform-bilgi` (VCF / Google Distributed Cloud / Azure Local bilgi kartı) · `rhel-gpu-surucu` (NVIDIA sürücü/CUDA/FM) · `rhel-depolama` · `rhel-nfs` (açılış sırası, konteyner, üç eksen performans) · `rhel-performans` · `rhel-sorun` · `rhel-teslim` · `rhel-yukseltme` (Leapp 8 → 9 → 10, Satellite CV)
 - **veeam-**: `veeam-linux` (restore hatası, servisler, /tmp noexec)
 - **solaris-**: `solaris-ntp` (mode 6 bulgusu: noquery + svcadm restart, playbook şablonu) · parked `solaris-ldom` (genel keşif)
 - **idm-** (Red Hat IdM + AD trust): `idm-kurulum` · `idm-erisim` (HBAC, sudo, AD grup eşleme) · `idm-bakim` (log şişmesi, logrotate, SSSD debug, KDC'yi yoran istemci)

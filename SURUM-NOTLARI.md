@@ -13,6 +13,8 @@ Sahada: `git pull && ./kur.sh`, **yeni oturum**. Örnek istek: "AIDE hangi sunuc
   kontrol yok / çalışıyor; NFS-CIFS bağlaması AIDE kapsamında mı (aide.conf seçimi + 0.19 dosya sistemi türü kısıtı `!/ =0x6969`).
   Devreye alma: istisnalar `--init`'ten önce, `--path-check` ile doğrulama, yama sonrası `--update`, `rhel-system-roles.aide`.
 - `rhel-cis` §0: Satellite tara → remediation (sihirbaz / OpenSCAP iş şablonu) → tekrar tara; SCAP içeriği RHEL ara sürümüne göre.
+- `platform-bilgi` (yeni, bilgi kartı): VCF 9.1 (VKS'de RHEL 9 node), Google Distributed Cloud = eski Anthos (bare metal: RHEL 9.6/9.4/8.10,
+  tek sayılı ara sürüm yok, 1.35+ cgroups v2), Azure Local (SAN GA 2604, iSCSI GA 2607, bağlantısız çalışma) + edinim soruları.
 - Kurum bilgisi (Alp): AIDE henüz aktif değil; XDR k8s node'larından kaldırıldı, yerine Prisma (Twistlock) Defender; SEP her yerde.
 
 ## 2026-11-04 — `uzak-envanter` + erişim kontrolü (`filo-kontrol` §7)

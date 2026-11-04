@@ -38,6 +38,7 @@ betiktir; model ham veriyi betiğe **borular**, betiğin bastığı satırı **a
 |---|---|---|
 | `kume-bul.py` | `kume-bul` | sunucu/IP hangi kümede · Rancher hangi kümeleri yönetiyor · ingress · sertifika CN |
 | `filo-tablo.py` | `filo-kontrol` | çok sunucuda aynı komut → durum/sapma/tablo |
+| `uzak-ozet.py` | `uzak-envanter` | erişilemeyen ortamda kullanıcının `uzak-topla.sh` ile topladığı .tgz → IP bloğu başına erişim (FW adayı) + host tablosu (OS, çekirdek, CPU/RAM, kök disk, açılış, Satellite kaydı) |
 | `erisim-blok.py` | `filo-kontrol` | envanterdeki sunuculara bu makineden erişim, /24 blok başına: ağ yolu kapalı (FW talebi adayı) · blok açık ama sunucu sorunlu · hepsine erişildi |
 | `sar-ozet.py` | `rhel-performans` | geçmiş kapasite (CPU/bellek/yük, gün tablosu, CSV) |
 | `disk-durum.py` | `rhel-depolama` | hangi disk OS / kullanımda / boş |
@@ -90,7 +91,7 @@ platformda bir iş**; ortak veri/araç tek yerde (`surum-uyum/uyum.py`), diğerl
 - **veeam-**: `veeam-linux` (restore hatası, servisler, /tmp noexec)
 - **solaris-**: `solaris-ntp` (mode 6 bulgusu: noquery + svcadm restart, playbook şablonu) · parked `solaris-ldom` (genel keşif)
 - **idm-** (Red Hat IdM + AD trust): `idm-kurulum` · `idm-erisim` (HBAC, sudo, AD grup eşleme) · `idm-bakim` (log şişmesi, logrotate, SSSD debug, KDC'yi yoran istemci)
-- **genel**: `bankacilik-uyum` (BDDK/KVKK/PCI ↔ kanıt) · `ansible` · `kurum-registry` (imaj nereden çekilir: Nexus/Harbor, RKE2 aynaları, çekme hatası) · `belge-oku` (kurum belgesi: Excel/Word/PDF/OneNote) · `git` · `filo-kontrol` · `kesinti-sonrasi` (elektrik kesintisi sonrası filo taraması — `kesinti-ozet.py`) · `kurum-envanter` (3 harf → sunucu sayısı, domain, IP blokları; DMZ/DRC — `envanter-harita.py`) · `kume-bul` (envanter + küme kimliği: ad/IP → küme/platform, Rancher haritası, sertifika — `kume-bul.py`) · `rapor` · `sep-paket`
+- **genel**: `bankacilik-uyum` (BDDK/KVKK/PCI ↔ kanıt) · `ansible` · `kurum-registry` (imaj nereden çekilir: Nexus/Harbor, RKE2 aynaları, çekme hatası) · `belge-oku` (kurum belgesi: Excel/Word/PDF/OneNote) · `git` · `filo-kontrol` · `uzak-envanter` (erişilemeyen ortam: orada topla, burada incele — `uzak-topla.sh` / `uzak-ozet.py`) · `kesinti-sonrasi` (elektrik kesintisi sonrası filo taraması — `kesinti-ozet.py`) · `kurum-envanter` (3 harf → sunucu sayısı, domain, IP blokları; DMZ/DRC — `envanter-harita.py`) · `kume-bul` (envanter + küme kimliği: ad/IP → küme/platform, Rancher haritası, sertifika — `kume-bul.py`) · `rapor` · `sep-paket`
 - **ortak**: `surum-uyum` (uyum.py + çevrimdışı matris/EOL verisi — tüm platformlar)
 
 Eski → yeni (2026-10-17): kume-denetim → rke2-denetim + rke2-gpu · rke2-ansible → rke2-kurulum + rke2-node-ekle (+ matris →

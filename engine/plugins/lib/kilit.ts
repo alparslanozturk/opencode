@@ -1161,13 +1161,13 @@ export function saltOkunur(argv: string[]): boolean {
 
 // Dosya yazmayan, yalnız okuyup basan beceri betikleri (kaynağı denetlendi: open() yalnız okuma, subprocess yok/yalnız openssl okuma;
 // kesinti-ozet: yalnız yerel `ansible <grup> --list-hosts`; envanter-fark: kume-bul'dan yalnız ayristir() — dosya okur;
-// erisim-blok: yalnız yerel `ansible --list-hosts` + `ansible-inventory --list`).
+// erisim-blok: yalnız yerel `ansible --list-hosts` + `ansible-inventory --list`; uzak-ozet: bu ikisini çağırır).
 // Kit yolu ve kur.sh'ın kurduğu kopya (~/.config/opencode/skills/<beceri>/ — beceri yükleyicisi modele bu dizini gösterir; saha G121:
 // ajan bu yolu kullandı, K6'ya takıldı). Kurulu kopyaya ajan yazamaz (K6), çalıştırmak okuma sayılır.
 const OKUYAN_BETIKLER = ["kurum-registry/imaj-yol.py", "rhel-ca-guven/ca-dogrula.py", "veeam-linux/veeam-tani.py", "rhel-nfs/nfs-tani.py",
   "rke2-edr/sep-istisna.py", "rhel-depolama/disk-durum.py", "k8s-sorun/k8s-ozet.py", "rhel-sorun/olay-penceresi.py",
   "rhel-yukseltme/leapp-rapor.py", "rke2-gpu/gpu-dagilim.py", "surum-uyum/uyum.py", "rapor/oturum-ozet.py", "kurum-envanter/envanter-harita.py",
-  "kesinti-sonrasi/kesinti-ozet.py", "git/envanter-fark.py", "filo-kontrol/erisim-blok.py"]
+  "kesinti-sonrasi/kesinti-ozet.py", "git/envanter-fark.py", "filo-kontrol/erisim-blok.py", "uzak-envanter/uzak-ozet.py"]
 export const OKUYAN_BECERI_BETIGI = new Set(
   OKUYAN_BETIKLER.flatMap((x) => {
     const home = userInfo().homedir

@@ -6,6 +6,16 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-04 — `uzak-envanter` + erişim kontrolü (`filo-kontrol` §7)
+
+Sahada: `git pull && ./kur.sh`, **yeni oturum**. Örnek istek: "ktbulut ortamına erişemiyoruz; oradaki satellite'ta envanteri toplayıp getireceğim".
+- `uzak-topla.sh` uzak ansible makinesinde kullanıcı çalıştırır (yalnız bash + ansible, `-m raw` okuma): host bilgisi + erişim → tek .tgz.
+- Burada `uzak-ozet.py`: IP /24 bloğu başına AĞ YOLU KAPALI (FW talebi adayı, kaynak→blok tcp/22) · blok açık ama sunucu sorunlu ·
+  hepsine erişildi; host tablosu (OS, çekirdek, CPU/RAM, kök disk, açılış, IP, sanal, kayıtlı Satellite) ve dağılımlar.
+- Erişilebilen ortamda: `filo-kontrol` §7 (`ansible -m raw -a true` + `erisim-blok.py`).
+- `git`: `…/_git/<depo>?path=/X` adresi = yerel `git/<depo>/X`; listelerden INI awk ile üretilir, `envanter-fark --birlesik` ile doğrulanır.
+- Gerçek sahada henüz çalıştırılmadı `[SAHA]`: ilk çıktıyı Doktor'a gönder.
+
 ## 2026-11-03 — `kesinti-sonrasi`: elektrik kesintisi sonrası filo taraması
 
 Sahada: `git pull && ./kur.sh`, opencode'u yeniden aç. Örnek istek: "veri merkezinde elektrik kesintisi oldu, saat 09:40 civarı;

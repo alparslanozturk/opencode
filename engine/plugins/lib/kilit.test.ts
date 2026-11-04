@@ -1107,4 +1107,8 @@ describe("filo-kontrol §7 erişim kontrolü salt-okunur (Alp 2026-11-04)", () =
   test("ansible -m raw -a true onaysız", () => expect(kesinOkuma(komut.replace("<grup>", "all").replace("<envanter>", "hosts.ini"), workdir)).toBe(true))
   test("erisim-blok okuma", () =>
     expect(kesinOkuma("python3 /root/ai/opencode/knowledge/skills/approved/filo-kontrol/erisim-blok.py cikti/filo/erisim -i hosts.ini --grup all --kaynak 192.0.2.1", workdir)).toBe(true))
+  test("uzak-ozet okuma", () =>
+    expect(kesinOkuma("python3 /root/ai/opencode/knowledge/skills/approved/uzak-envanter/uzak-ozet.py uzak/uzak-ktbulut-20261104-1445", workdir)).toBe(true))
+  test("uzak-topla okuma sayılmaz (dizin + tgz yazar; uzakta kullanıcı çalıştırır)", () =>
+    expect(kesinOkuma("bash /root/ai/opencode/knowledge/skills/approved/uzak-envanter/uzak-topla.sh hosts.ini ktbulut", workdir)).toBe(false))
 })

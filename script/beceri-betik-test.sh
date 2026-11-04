@@ -786,6 +786,7 @@ VAKALAR = [  # (G kaydı, saha cümlesi, beklenen beceri)
     ("Alp 2026-11-03", "veri merkezinde elektrik kesintisine bağlı olarak sunucular kapandı, bir hata mesajı var mı", "kesinti-sonrasi"),
     ("Alp 2026-11-03", "bütün sunuculara bağlan, kesintiden kaynaklı hata var mı özet çıkar", "kesinti-sonrasi"),
     ("Alp 2026-11-04", "envantere erişim kontrol eden küçük bir ansible yaz, ip bloğunda hiç bir sunucuya erişmiyorsak FW erişim talebi", "erisim-blok"),
+    ("Alp 2026-11-04", "Azure Local on-prem çözümleri storage hariç kullanılıyor, VCF de gelebilir", "platform-bilgi"),
     ("Alp 2026-11-04", "AIDR file integrity yazılımı, exception'ları NFS ve data dizinleri", "rhel-aide"),
     ("Alp 2026-11-04", "ktbulut ortamına erişemezsek orada bir ansible çalıştırıp oradaki bilgiyi alıp sana verebilirim", "uzak-envanter"),
     ("saha 2026-11-04", "bizim git deki şu adrese erişiyor musun? https://tfs-ornek/tfs/Koleksiyon/Proje/_git/notlar?path=/Sunucu-Envanter-Listesi", "`git`"),

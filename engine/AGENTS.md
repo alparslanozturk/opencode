@@ -25,6 +25,7 @@ Oturum sonunda kullanıcı `/kaydet` der → kurumsal bilgi güncellenir.
 | /_git/ · /tfs/ · git repo · git dep · azure devops | — | `git` (adres = yerel klon `git/<depo>`) |
 | manifest · gitops · azure devops · git | 8 erişim noktaları | `rke2-manifest` · `git` → `envanter-fark` |
 | solaris · ntp mode 6 | — | `solaris-ntp` → `ntp-mode6` |
+| vcf · vmware cloud foundation · vks · azure local · azure stack hci · azure arc · aks arc · google distributed cloud · teknoloji edinimi · platform karşılaştır | — | `platform-bilgi` (bilgi kartı, kaynaklı) |
 | anthos · gke | — | `anthos-erisim` |
 | bddk · kvkk · regülasyon | — | `bankacilik-uyum` |
 | güvenlik denetimi · puan kartı | — | `rhel-guvenlik` · `rke2-guvenlik` · `rke2-denetim` |

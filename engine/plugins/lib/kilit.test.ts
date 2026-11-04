@@ -1099,3 +1099,12 @@ describe("git/envanter-fark: kurulu kopya da okuma (saha 2026-11-04: ~/.config/o
   for (const yol of ["/root/ai/opencode/knowledge/skills/approved/git/envanter-fark.py", "~/.config/opencode/skills/git/envanter-fark.py"])
     test(yol, () => expect(kesinOkuma(`python3 ${yol} git/notlar/Sunucu-Envanter-Listesi/KTBULUT-SP41 --karsi ansible/inventories/hosts.ini 2>&1 | head -80`, workdir)).toBe(true))
 })
+
+describe("filo-kontrol §7 erişim kontrolü salt-okunur (Alp 2026-11-04)", () => {
+  const workdir = "/root/ai/work/opencode"
+  const skill = require("fs").readFileSync(`${import.meta.dir}/../../../knowledge/skills/approved/filo-kontrol/SKILL.md`, "utf8") as string
+  const komut = skill.split("\n").find((l) => l.startsWith("ansible <grup>") && l.includes("-m raw -a true"))!
+  test("ansible -m raw -a true onaysız", () => expect(kesinOkuma(komut.replace("<grup>", "all").replace("<envanter>", "hosts.ini"), workdir)).toBe(true))
+  test("erisim-blok okuma", () =>
+    expect(kesinOkuma("python3 /root/ai/opencode/knowledge/skills/approved/filo-kontrol/erisim-blok.py cikti/filo/erisim -i hosts.ini --grup all --kaynak 192.0.2.1", workdir)).toBe(true))
+})

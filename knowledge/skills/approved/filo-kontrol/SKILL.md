@@ -1,6 +1,6 @@
 ---
 name: filo-kontrol
-description: Aynı kontrolü birden çok sunucuda çalıştırıp sorunluları ayıklarken kullan — ansible ad-hoc + `--tree` + deterministik `filo-tablo.py` (sunucu başına durum, sapmalar, çıktı grupları, anahtar=değer tablosu; çıktısı gelmeyen sunucular). "tüm sunucularda", "filoda", "hepsinde kontrol et", "kaç sunucuda", "toplu", "hangi sunucularda", "tablo", "karşılaştır", "hepsinde aynı mı" isteklerinde tetiklenir. Envanter ve playbook ayrıntıları için `ansible`.
+description: Aynı kontrolü birden çok sunucuda çalıştırıp sorunluları ayıklarken kullan — ansible ad-hoc + `--tree` + deterministik `filo-tablo.py` (sunucu başına durum, sapmalar, çıktı grupları, anahtar=değer tablosu; çıktısı gelmeyen sunucular). "tüm sunucularda", "filoda", "hepsinde kontrol et", "kaç sunucuda", "toplu", "hangi sunucularda", "tablo", "karşılaştır", "hepsinde aynı mı", "erişim var mı", "fw talebi", "ip bloğu", "hangi sunuculara erişemiyoruz" isteklerinde tetiklenir. Envanter ve playbook ayrıntıları için `ansible`.
 ---
 
 Doğrulandı: ansible-core 2.16.16, AlmaLinux 10.2 — 2026-08-29
@@ -159,6 +159,29 @@ diğer 31: Stratum 2-3, senkron
 `ERİŞİLEMEZ` ile `rc≠0` farkı teşhisin yönünü belirler: birincisi sunucuya ulaşılamadı (ağ, ssh, DNS), ikincisi ulaşıldı
 ama komut düştü. `ZAMAN AŞIMI` = bağlandı ama komut `--task-timeout` içinde bitmedi (takılı node — `rke2-denetim` §4).
 `DİSK DOLU` = sunucu ayakta ama ansible modülünü yazamadı — §3c `-m raw` ilk yardımla doğrula, "erişilemez" deme.
+
+## 7. Erişim kontrolü — envanterdeki sunuculara bu makineden erişiliyor mu, FW talebi gerekir mi (Alp, 2026-11-04)
+
+İstek: "bu sunucudan envanterdeki hostlara erişim var mı; bir IP bloğunda hiçbirine erişilmiyorsa FW talebi, bazılarına
+erişiliyorsa başka yol." **Playbook yazma** — sabit mesajlı playbook örüntü saymaz (saha: "tüm sunucular ERISILEMIYOR → FW
+talebi" metni her koşulda basılıyordu). İki komut:
+
+```bash
+ansible <grup> -i <envanter> -m raw -a true -f 50 -T 5 --task-timeout 20 -t cikti/filo/erisim
+python3 /root/ai/opencode/knowledge/skills/approved/filo-kontrol/erisim-blok.py cikti/filo/erisim -i <envanter> --grup <grup> --kaynak <bu makinenin IP'si>
+```
+
+- `-m raw -a true`: yalnız ssh bağlantısı denenir, hedefte python gerekmez, hiçbir şey değişmez. `-T 5` bağlantı zaman aşımı.
+- `--kaynak`: komutun çalıştığı makinenin IP'si (`ip -br a` — kullanıcı verir ya da sen okursun); FW talebi satırına yazılır.
+- Betik ssh mesajını sınıflar: **ağ açık** (erişildi · yetki · reddedildi · host anahtarı — paket sunucuya gitti, cevap döndü) ↔
+  **ağ kapalı** (zaman aşımı · yol yok). Sonra `/24` blok başına:
+  - **AĞ YOLU KAPALI** — bloktaki her sunucu zaman aşımı/yol yok → FW/yönlendirme talebi adayı: `kaynak → blok tcp/22`.
+  - **BLOK AÇIK, BAZI SUNUCULAR SORUNLU** — aynı blokta cevap veren var → FW bloğu değil; sorunlu sunucu kapalı olabilir, kendi
+    FW'ı olabilir, yetki/DNS olabilir — satırdaki sınıfa göre (`rhel-teslim` §1 ping/TTL/port).
+  - **HEPSİNE ERİŞİLDİ**.
+- `/24` varsayımdır; kurumun ağ maskesi farklıysa kullanıcıya sor. Tek blokta tek sunucu varsa "blok kapalı" kararı zayıftır — söyle.
+- Başka makinede (ör. başka ortamın Satellite'ı) çalıştırılacaksa: kullanıcı orada ilk komutu çalıştırır, `cikti/filo/erisim`
+  dizinini ve envanteri buraya getirir; betik burada çalışır (uzak makinede kit gerekmez). Betik çıktısını **aynen** aktar.
 
 ## Sınır
 

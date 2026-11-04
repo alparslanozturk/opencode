@@ -61,6 +61,12 @@ Oturum sonunda kullanıcı `/kaydet` der → kurumsal bilgi güncellenir.
 - **Yasak:** örnek/hipotez tablosunu gerçek veri gibi yazmak; bir ad/kod parçasından anlam türetmek
   (ör. `spl`, `stl`, `std` → lokasyon/ortam eşlemesi); "muhtemelen / büyük olasılıkla" bilgisini kesin
   gibi sunmak; sayı uydurmak.
+- **Açıklama/anlam sütunu = en sık uydurma yeri** (saha 2026-11-04: önek tablosunda `dk` → "Dağıtık ortam", `vms` → "Sanal
+  makineler", `os` → "Osmanlı", `sp` → "Spatilay/Saglampay" yazıldı; hiçbiri sorulmadı). Kısaltmanın açılımı, sözlükte makul görünse
+  de **tahmindir**. Kaynağı yoksa hücreye `?` yaz, tabloyu bitir, hemen altında **tek numaralı liste** ile sor
+  ("1. dk = ? 2. vms = ? …"); cevaba kadar o hücreyi başka yerde kullanma. Kullanıcı cevaplayınca kaynak "kullanıcı, <tarih>" olur.
+- Kurum bilgisi (önek/proje açılımı, ortam kodu) **AGENTS.md'ye yazılmaz** (kurulu ayar, ajana kapalı) — `/kaydet` ile
+  `kurumsal-bilgi.ini`'ye girer; kullanıcıya bunu öner.
 - Doğrulanmamış bir kuralı dosyaya **yazma** — önce doğrula; doğrulayamıyorsan yazma, boş bırak.
 - Gün farkı, toplam, yüzde **kafadan hesaplanmaz** — `date -d` / `echo $((…))` ile hesapla (saha G65).
 - **Sürüm/uyumluluk (Rancher, RKE2/Kubernetes, Antrea, RHEL) — tahmin YASAK (T33, 2026-09-30):** bu ortam

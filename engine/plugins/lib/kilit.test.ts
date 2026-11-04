@@ -1000,6 +1000,16 @@ describe("2026-11-03: sep-istisna okuma", () => {
   })
 })
 
+describe("2026-11-04: rhel-aide okuma", () => {
+  test("aide-ozet komutu ssh ile kesin okuma, özet okuma", () => {
+    const { execSync } = require("node:child_process")
+    const k = execSync("python3 /root/ai/opencode/knowledge/skills/approved/rhel-aide/aide-ozet.py komut").toString().trim()
+    expect(kesinOkuma(`ssh root@splastnginx01 '${k}'`, workdir)).toBe(true)
+    expect(kesinOkuma("python3 /root/ai/opencode/knowledge/skills/approved/rhel-aide/aide-ozet.py cikti/filo/aide --grup all -i hosts.ini", workdir)).toBe(true)
+    expect(kesinOkuma("python3 ~/.config/opencode/skills/rhel-aide/aide-ozet.py cikti/filo/aide", workdir)).toBe(true)
+  })
+})
+
 describe("2026-11-03: disk-durum salt-okunur; kurulu beceri kopyası K6 değil (G121)", () => {
   const karar = (c: string) => kilitDenetle("bash", { command: c }, workdir, undefined)
   // SKILL.md'deki komut, sahadaki gibi (rhel-depolama §1)

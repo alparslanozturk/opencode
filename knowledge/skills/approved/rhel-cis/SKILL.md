@@ -14,6 +14,13 @@ Kaynak etiketi: **(Alp)** kurum kararı · **(RH)** Red Hat belgesi · **(SSG)**
 - **Kurum istisnaları (bulgu değil):** SELinux kapalı (grub) · firewalld kapalı · **root ssh kapatılmaz** — yerine MS AD + IdM:
   sunucular IdM'e katılır (`ipa-client`), AD trust + grup eşleme ile **HBAC (sshd) ve sudo kuralları** (`idm-erisim`) ·
   RKE2 node'larında `net.ipv4.ip_forward=1` · `/tmp` noexec (CIS ile aynı yönde).
+- **Satellite döngüsü (Alp, 2026-11-04):** RHEL 10'da CIS L1 Satellite arayüzünden yürütülür — tara → önerileri uygula → tekrar
+  tara. Satellite karşılığı (RH, Satellite 6.19 *Managing security compliance*): rapor *Hosts > Compliance > Reports* → *Reported
+  At* → başarısız kural → *Actions > Remediation* (sihirbaz; her kuralda olmayabilir) ya da *Run OpenSCAP remediation - Ansible
+  Default / Script Default* iş şablonu. Arama: `xccdf_rule_failed = <kural-id>`. **SCAP içeriği Satellite sunucusunun RHEL ara
+  sürümüne göredir** — farklı ara sürümdeki host için o sürümün SSG'si yüklenir (RH §3.3–3.4); "kural yanlış fail" şüphesinde önce bu.
+  Ajan Satellite'a bağlanmaz: kullanıcı raporu getirir (ARF/HTML) ya da sunucuda `oscap` ile aynı profil okunur (§2).
+- AIDE (6.1.x) kurumda henüz aktif değil (Alp, 2026-11-04) → bu maddelerin fail'i beklenen; ayrıntı `rhel-aide`.
 - Kurumun hangi maddeleri seçtiği (tailoring) belli olana kadar "uygulanmamış madde" = **bilgi**, kritik bulgu değil.
   CIS'in tek tek elle kontrolü ve istenen maddenin Ansible ile uygulanması gerekebilir (Alp) — §4, §5.
 

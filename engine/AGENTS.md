@@ -12,6 +12,7 @@ Oturum sonunda kullanıcı `/kaydet` der → kurumsal bilgi güncellenir.
 | elektrik · güç kesintisi · enerji kesintisi · veri merkezi · kesintiden · kesintisine · sunucular kapandı · ups | 5 erişim akışı | `kesinti-sonrasi` → `kesinti-ozet` |
 | 2. onay · açık sistem · yeni sunucu · sunucu yapılandır · teslim · ipa client | 2 DMZ · 6 süreçler | `rhel-teslim` → `disk-durum`, `filo-tablo` |
 | veeam · restore | — | `veeam-linux` → `veeam-tani` |
+| aide · dosya bütünlüğü · file integrity · fim · bütünlük kontrol | — | `rhel-aide` → `aide-ozet` (CIS 6.1.x: `rhel-cis`) |
 | sep · symantec · antivirüs · istisna · xdr · twistlock · defender | — | `rke2-edr` → `sep-istisna` (paket üretimi: `sep-paket`) |
 | nfs · nfsidmap · dizin boş · dizinler gelmedi | 9 bilinen sorunlar | `rhel-nfs` → `nfs-tani` |
 | idm · ipa · sudo · hbac · ad trust · kerberos | 6 süreçler | `idm-erisim` · `idm-kurulum` · `idm-bakim` |
@@ -102,6 +103,7 @@ kullanım becerinin SKILL.md'sinde (önce beceriyi yükle):
 - olay saati → log penceresi (yerel↔UTC, saDD, hazır journalctl/sar komutları) → `rhel-sorun/olay-penceresi.py`
 - sürüm uyumu / EOL (Rancher, RKE2, Antrea, RHEL, GPU Operator, sürücü, GPU modeli, Run:ai) → `surum-uyum/uyum.py`
 - CIS taraması (oscap ekran çıktısı → CIS no + L1/L2, kurum kararı ayrı) → `rhel-cis/cis-ozet.py`
+- AIDE durumu (kurulu / veritabanı / zamanlama / NFS kapsamda mı) → `rhel-aide/aide-ozet.py` (komut → ansible -m raw → özet)
 - rapor dosyası (CSV → HTML/XLSX) → betiğin `--csv` çıktısı + `rapor/tablo-cevir.py` — değerleri koda elle yazma
 - kurum belgesini okuma (Excel, Word, PowerPoint, PDF, OneNote dışa aktarımı) → `belge-oku/belge-oku.py` (yer bilgili metin)
 - aynı envanter bilgisi birden çok yerde (ENVANTER.md ↔ ansible INI) → `git/envanter-fark.py`

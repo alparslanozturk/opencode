@@ -49,6 +49,7 @@ betiktir; model ham veriyi betiğe **borular**, betiğin bastığı satırı **a
 | `tablo-cevir.py` | `rapor` | betik CSV'si → HTML/XLSX (değerler elle yazılmaz) |
 | `uyum.py` | `surum-uyum` | sürüm uyumu, EOL, yükseltme yolu; GPU Operator/sürücü/GPU modeli, Run:ai ↔ K8s ↔ GPU Operator |
 | `leapp-rapor.py` | `rhel-yukseltme` | `leapp preupgrade` raporu (JSON) → ENGEL önce, önem sırası, çözüm; çok sunucu özeti |
+| `aide-ozet.py` | `rhel-aide` | AIDE sunucu başına: kurulu / veritabanı / zamanlı kontrol; NFS-CIFS bağlaması AIDE kapsamında mı (aide.conf seçim + fs türü kısıtı) |
 | `cis-ozet.py` | `rhel-cis` | oscap ekran çıktısı → CIS madde no + L1/L2, kurum kararı ayrı (veri: SSG kontrol dosyaları) |
 | `playbook-denetim.py` | `ansible` | playbook'u çalıştırmadan bilinen hata kalıpları (hosts all, ignore_errors, pipefail, sahte başarı, curl -f …) |
 | `envanter-fark.py` | `git` | aynı envanter bilgisi birden çok yerde: ansible INI ↔ ENVANTER.md / başka INI farkı |
@@ -87,7 +88,7 @@ platformda bir iş**; ortak veri/araç tek yerde (`surum-uyum/uyum.py`), diğerl
   (Alp, 2026-10-17: genel olan `k8s-`, RKE2'ye özgü olan `rke2-`, GKE'leri yöneten Anthos `anthos-`)
 - **anthos-**: `anthos-erisim` (ileride `anthos-yukseltme`)
 - **vcf-** (VMware VCF): veri gelince `vcf-denetim` · `vcf-yukseltme`
-- **rhel-**: `rhel-ca-guven` (CA yükle + kanıtla) · `rhel-yonetim` · `rhel-guncelleme` · `rhel-guvenlik` · `rhel-cis` (CIS L1/L2, OpenSCAP) · `rhel-gpu-surucu` (NVIDIA sürücü/CUDA/FM) · `rhel-depolama` · `rhel-nfs` (açılış sırası, konteyner, üç eksen performans) · `rhel-performans` · `rhel-sorun` · `rhel-teslim` · `rhel-yukseltme` (Leapp 8 → 9 → 10, Satellite CV)
+- **rhel-**: `rhel-ca-guven` (CA yükle + kanıtla) · `rhel-yonetim` · `rhel-guncelleme` · `rhel-guvenlik` · `rhel-cis` (CIS L1/L2, OpenSCAP) · `rhel-aide` (dosya bütünlüğü) · `rhel-gpu-surucu` (NVIDIA sürücü/CUDA/FM) · `rhel-depolama` · `rhel-nfs` (açılış sırası, konteyner, üç eksen performans) · `rhel-performans` · `rhel-sorun` · `rhel-teslim` · `rhel-yukseltme` (Leapp 8 → 9 → 10, Satellite CV)
 - **veeam-**: `veeam-linux` (restore hatası, servisler, /tmp noexec)
 - **solaris-**: `solaris-ntp` (mode 6 bulgusu: noquery + svcadm restart, playbook şablonu) · parked `solaris-ldom` (genel keşif)
 - **idm-** (Red Hat IdM + AD trust): `idm-kurulum` · `idm-erisim` (HBAC, sudo, AD grup eşleme) · `idm-bakim` (log şişmesi, logrotate, SSSD debug, KDC'yi yoran istemci)

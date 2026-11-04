@@ -153,6 +153,24 @@ icerir "birleşik: yanlış yazılmış IP" kb2.txt "orneksms1: kaynakta 192.0.2
 icerir "birleşik: unutulan sunucu" kb2.txt "Ornek-ESign ansible_host=192.0.2.95"
 icerir "birleşik: fark → çıkış 1" kb2.txt "rc=1"
 
+# --------------------------------------------------------------------------- erisim-blok
+baslik "erisim-blok.py (IP bloğu başına erişim / FW talebi; Alp 2026-11-04)"
+printf '[a]\nweb1 ansible_host=192.0.2.11\nweb2 ansible_host=192.0.2.12\ndb1 ansible_host=198.51.100.5\ndb2 ansible_host=198.51.100.6\napp1 ansible_host=203.0.113.7\napp2 ansible_host=203.0.113.8\napp3 ansible_host=203.0.113.9\nyeni1\n' > eb.ini
+mkdir -p eb && echo '{"rc":0,"stdout":""}' > eb/web1
+echo '{"unreachable":true,"msg":"root@192.0.2.12: Permission denied (publickey)."}' > eb/web2
+echo '{"unreachable":true,"msg":"ssh: connect to host 198.51.100.5 port 22: Connection timed out"}' > eb/db1
+echo '{"unreachable":true,"msg":"ssh: connect to host 198.51.100.6 port 22: Connection timed out"}' > eb/db2
+echo '{"rc":0}' > eb/app1
+echo '{"unreachable":true,"msg":"ssh: connect to host 203.0.113.8 port 22: Connection timed out"}' > eb/app2
+echo '{"unreachable":true,"msg":"ssh: Could not resolve hostname yeni1: Name or service not known"}' > eb/yeni1
+python3 "$B/filo-kontrol/erisim-blok.py" eb -i eb.ini --kaynak 192.0.2.250 > eb.txt 2>&1; echo "rc=$?" >> eb.txt
+icerir "hepsi zaman aşımı olan blok → FW adayı" eb.txt "198.51.100.0/24  (2 sunucu)  kaynak 192.0.2.250 → 198.51.100.0/24 tcp/22"
+icerir "aynı blokta erişilen varsa FW değil" eb.txt "203.0.113.0/24  (3 sunucu, 1 erişildi)"
+icerir "yetki = ağ açık" eb.txt "yetki — ağ açık"
+icerir "çıktısı gelmeyen sunucu anılır" eb.txt "app3"
+icerir "IP'siz sunucu ayrı" eb.txt "DNS çözülemedi"
+icerir "erişilemeyen var → çıkış 1" eb.txt "rc=1"
+
 # --------------------------------------------------------------------------- belge-oku
 baslik "belge-oku.py (Excel/Word/PowerPoint/MHT; Alp 2026-10-26)"
 python3 - << 'E'
@@ -731,6 +749,7 @@ VAKALAR = [  # (G kaydı, saha cümlesi, beklenen beceri)
     ("G116", "docker compose yapısını kontrol et", "rhel-guncelleme"),
     ("Alp 2026-11-03", "veri merkezinde elektrik kesintisine bağlı olarak sunucular kapandı, bir hata mesajı var mı", "kesinti-sonrasi"),
     ("Alp 2026-11-03", "bütün sunuculara bağlan, kesintiden kaynaklı hata var mı özet çıkar", "kesinti-sonrasi"),
+    ("Alp 2026-11-04", "envantere erişim kontrol eden küçük bir ansible yaz, ip bloğunda hiç bir sunucuya erişmiyorsak FW erişim talebi", "erisim-blok"),
     ("saha 2026-11-04", "bizim git deki şu adrese erişiyor musun? https://tfs-ornek/tfs/Koleksiyon/Proje/_git/notlar?path=/Sunucu-Envanter-Listesi", "`git`"),
 ]
 for g, cumle, beklenen in VAKALAR:

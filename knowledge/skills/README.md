@@ -38,6 +38,7 @@ betiktir; model ham veriyi betiğe **borular**, betiğin bastığı satırı **a
 |---|---|---|
 | `kume-bul.py` | `kume-bul` | sunucu/IP hangi kümede · Rancher hangi kümeleri yönetiyor · ingress · sertifika CN |
 | `filo-tablo.py` | `filo-kontrol` | çok sunucuda aynı komut → durum/sapma/tablo |
+| `erisim-blok.py` | `filo-kontrol` | envanterdeki sunuculara bu makineden erişim, /24 blok başına: ağ yolu kapalı (FW talebi adayı) · blok açık ama sunucu sorunlu · hepsine erişildi |
 | `sar-ozet.py` | `rhel-performans` | geçmiş kapasite (CPU/bellek/yük, gün tablosu, CSV) |
 | `disk-durum.py` | `rhel-depolama` | hangi disk OS / kullanımda / boş |
 | `sertifika-kontrol.py` | `rancher-sertifika` | sertifika dosyaları, kalan gün, anahtar, zincir, eski yaprak; RKE2 tls `--ozet`; canlı uç `--uc host:port` (https/ldaps — `idm-kurulum` §7) |

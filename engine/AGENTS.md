@@ -95,6 +95,9 @@ kullanım becerinin SKILL.md'sinde (önce beceriyi yükle):
 - rapor dosyası (CSV → HTML/XLSX) → betiğin `--csv` çıktısı + `rapor/tablo-cevir.py` — değerleri koda elle yazma
 - kurum belgesini okuma (Excel, Word, PowerPoint, PDF, OneNote dışa aktarımı) → `belge-oku/belge-oku.py` (yer bilgili metin)
 - aynı envanter bilgisi birden çok yerde (ENVANTER.md ↔ ansible INI) → `git/envanter-fark.py`
+- dosyalardan yeni INI derleme (ör. depodaki `KTBULUT-*` listeleri → `hosts-<ad>.ini`) → satırları Write/Edit ile **elle yazma**
+  (saha 2026-11-04: 347 sunucu elle yazıldı, dosya `sp41xlbio` satırında yarım kaldı). `awk` ile kaynaktan üret (grup başlığı +
+  `tolower($1)`), sonra her kaynak için `git/envanter-fark.py <yeni.ini> --karsi <kaynak>` → "fark yok" görmeden bitti deme.
 - NTP mode 6 (ntpq dışarıya açık mı, önce/sonra) → `solaris-ntp/ntp-mode6.py`
 - CA sertifikası gerçekten yüklü mü (sunucu başına TAMAM/EKSİK) → `rhel-ca-guven/ca-dogrula.py`
 - Veeam restore/iş hatası Linux sunucuda (bilinen sebep: /tmp noexec, /run/veeamtransport; kaynaklı) → `veeam-linux/veeam-tani.py`

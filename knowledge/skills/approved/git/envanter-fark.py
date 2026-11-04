@@ -11,6 +11,7 @@ import sys
 KULLANIM = """kullanım: envanter-fark.py <kaynak.ini> [<kaynak2.ini> …] --karsi <ENVANTER.md|diger.ini> [--karsi …]
   Kaynak INI(ler) = ansible envanteri (aralık x[01:14], ansible_host, :children okunur — kume-bul ile aynı ayrıştırıcı).
   Karşı dosya .ini ise envanter olarak, değilse metin (MD) olarak okunur.
+  --birlesik: tüm karşı dosyalar tek metin sayılır (liste parça dosyalarda: KTBULUT-* → derlenmiş INI doğrulaması).
   Çıkış: 0 fark yok · 1 fark var · 2 okunamadı."""
 
 IP = re.compile(r"(?<![\d.])((?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3})(?![\d.])")
@@ -109,6 +110,8 @@ def main(argv):
         print(KULLANIM)
         return 0
     kaynaklar, karsilar, i = [], [], 0
+    birlesik = "--birlesik" in argv
+    argv = [a for a in argv if a != "--birlesik"]
     while i < len(argv):
         if argv[i] == "--karsi" and i + 1 < len(argv):
             karsilar.append(argv[i + 1])
@@ -127,6 +130,19 @@ def main(argv):
     kaynak = ini_oku(kb, kaynaklar)
     print("Kaynak: %s — %d host" % (", ".join(kaynaklar), len(kaynak)))
     toplam = 0
+    if birlesik:  # listeler parça parça tutuluyorsa (KTBULUT-*): hepsi tek metin — her dosyayla ayrı karşılaştırma gürültü verir
+        metin = "".join(open(k, encoding="utf-8", errors="replace").read().rstrip("\n") + "\n" for k in karsilar)
+        farklar = md_karsilastir(kaynak, "birleşik", metin)
+        print("\n== %s ↔ birleşik karşı (%d dosya, metin): %s" % ("+".join(os.path.basename(x) for x in kaynaklar), len(karsilar),
+                                                                "fark yok" if not farklar else "%d fark" % len(farklar)))
+        karsilar = []
+        for tur in ("ip-farkli", "yalnız-kaynakta", "yalnız-karşıda"):
+            secili = [m for t, m in farklar if t == tur]
+            if secili:
+                print("  %s (%d):" % (tur, len(secili)))
+                for m in secili[:200]:
+                    print("    " + m)
+        toplam += len(farklar)
     for k in karsilar:
         if k.lower().endswith(".ini") or os.path.basename(k).lower().startswith("hosts"):
             farklar = ini_karsilastir(kaynak, ini_oku(kb, [k]), k)

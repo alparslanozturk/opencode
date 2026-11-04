@@ -141,6 +141,17 @@ icerir "MD: yalnız dokümanda olan IP" ef.txt "ef.md:6  192.0.2.13"
 icerir "INI: yalnız karşıda" ef.txt "yeniapp01 (ef2.ini:6) kaynak envanterde yok"
 icermez "INI: kısa ad = FQDN fark sayılmaz" ef.txt "ornekweb01.kurum.local (ef2.ini"
 icerir "fark varsa çıkış 1" ef.txt "rc=1"
+# saha 2026-11-04: KTBULUT-* parça listeler → elle yazılmış INI; beceri §6 awk ile üretir, --birlesik ile doğrular
+mkdir -p kb && printf 'ORNEKWOR04   ansible_host=192.0.2.17\nORNEKSMS1  ansible_host=192.0.2.39\n\n' > kb/KTBULUT-SP41
+printf 'ornek_backup ansible_host=192.0.2.217\nOrnek-ESign ansible_host=192.0.2.95\n' > kb/KTBULUT-FARKLI
+for f in kb/KTBULUT-*; do g=$(basename "$f" | sed 's/^KTBULUT-//' | tr 'A-Z' 'a-z'); printf '\n[%s]\n' "$g"; awk 'NF && $1 !~ /^[#;\[]/ {$1=tolower($1); print}' "$f"; done > kb.ini
+python3 "$B/git/envanter-fark.py" kb.ini --birlesik $(printf -- '--karsi %s ' kb/KTBULUT-*) > kb1.txt 2>&1; echo "rc=$?" >> kb1.txt
+icerir "birleşik: üretilen INI kaynakla aynı" kb1.txt "fark yok"
+sed -i 's/192.0.2.39/192.0.2.93/; /ornek-esign/d' kb.ini
+python3 "$B/git/envanter-fark.py" kb.ini --birlesik $(printf -- '--karsi %s ' kb/KTBULUT-*) > kb2.txt 2>&1; echo "rc=$?" >> kb2.txt
+icerir "birleşik: yanlış yazılmış IP" kb2.txt "orneksms1: kaynakta 192.0.2.93"
+icerir "birleşik: unutulan sunucu" kb2.txt "Ornek-ESign ansible_host=192.0.2.95"
+icerir "birleşik: fark → çıkış 1" kb2.txt "rc=1"
 
 # --------------------------------------------------------------------------- belge-oku
 baslik "belge-oku.py (Excel/Word/PowerPoint/MHT; Alp 2026-10-26)"
@@ -720,7 +731,7 @@ VAKALAR = [  # (G kaydı, saha cümlesi, beklenen beceri)
     ("G116", "docker compose yapısını kontrol et", "rhel-guncelleme"),
     ("Alp 2026-11-03", "veri merkezinde elektrik kesintisine bağlı olarak sunucular kapandı, bir hata mesajı var mı", "kesinti-sonrasi"),
     ("Alp 2026-11-03", "bütün sunuculara bağlan, kesintiden kaynaklı hata var mı özet çıkar", "kesinti-sonrasi"),
-    ("saha 2026-11-04", "bizim git deki şu adrese erişiyor musun? https://ktdevops/tfs/KT/KT.SoftwareSystemScrum/_git/notlar?path=/Sunucu-Envanter-Listesi", "`git`"),
+    ("saha 2026-11-04", "bizim git deki şu adrese erişiyor musun? https://tfs-ornek/tfs/Koleksiyon/Proje/_git/notlar?path=/Sunucu-Envanter-Listesi", "`git`"),
 ]
 for g, cumle, beklenen in VAKALAR:
     y = yonlendir(cumle)

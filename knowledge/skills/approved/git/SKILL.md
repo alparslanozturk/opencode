@@ -200,6 +200,10 @@ Aynı bilgi birden çok depoda/dosyada tutulur: dokümandaki `ENVANTER.md`, ansi
   ```
 
   "fark yok" + host sayısı kaynak satır sayısıyla aynı olmadan bitti deme. Yazmadan önce dosya adını kullanıcıya söyle (yeni dosya).
+- **Sunucu adını "düzeltme"** (saha 2026-11-04: model kaynaktaki 3 adı "yazım hatası" sayıp değiştirdi — `…infntend` → `…inffntend`;
+  listede olmayan bir sunucu "eksik" diye eklendi; gruplara addan açıklama uyduruldu). Ad DNS'te/sunucuda ne ise odur; tuhaf görünen
+  adı yalnız **listele**: `getent hosts <ad>` / `ansible <ad> -m ping` çıktısıyla kullanıcıya sor. Ekleme/çıkarma kullanıcı söyleyince;
+  grup açıklaması yazılmaz (kullanıcı verirse yazılır, kaynağı yorumda).
 - Düzeltme ayrı iş: kullanıcı "şu doğru" deyince yalnız o dosyayı düzelt, §4 ile push et; commit mesajında karşı dosyayı an
   ("ENVANTER.md: ornekweb02 IP'si ansible hosts.ini ile eşitlendi"). Bir taraftan ötekine **toplu kopyalama** yapma.
 - Bir sunucu eklendi/kaldırıldıysa (kurulum, iade) işi bitirirken kullanıcıya hangi yerlerin güncellenmesi gerektiğini tek satırla

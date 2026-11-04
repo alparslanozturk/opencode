@@ -186,6 +186,20 @@ Aynı bilgi birden çok depoda/dosyada tutulur: dokümandaki `ENVANTER.md`, ansi
   (INI'deki ad/IP metinde aranır); MD'de IP'siz yazılmış ve INI'de olmayan ad yakalanmaz — o satırları kullanıcı okur. İş envanterleri
   (`hosts-<CN>-<tarih>.ini`) kaynak verme — bir işin kaydıdır, envanter değil (`ansible`).
 - Önce her depoda `pull --ff-only` (§3) — eski klonla karşılaştırma yanlış fark üretir.
+- **Listelerden yeni envanter derleme** (saha 2026-11-04, `notlar/Sunucu-Envanter-Listesi/KTBULUT-*` → tek INI): satırları elle
+  yazma — yüzlerce satırda yazım hatası ve yarım dosya çıkar. Kaynak zaten `AD ansible_host=IP` biçimindeyse dosyadan üret, her
+  kaynağı kendi grubuna koy (grup adı = dosya son eki, küçük harf; anlam türetme), sonra doğrula:
+
+  ```bash
+  for f in git/notlar/Sunucu-Envanter-Listesi/KTBULUT-*; do
+    g=$(basename "$f" | sed 's/^KTBULUT-//' | tr 'A-Z' 'a-z'); printf '\n[%s]\n' "$g"
+    awk 'NF && $1 !~ /^[#;\[]/ {$1=tolower($1); print}' "$f"
+  done > ansible/inventories/hosts-<ad>.ini
+  python3 /root/ai/opencode/knowledge/skills/approved/git/envanter-fark.py ansible/inventories/hosts-<ad>.ini --birlesik \
+    $(printf -- '--karsi %s ' git/notlar/Sunucu-Envanter-Listesi/KTBULUT-*)
+  ```
+
+  "fark yok" + host sayısı kaynak satır sayısıyla aynı olmadan bitti deme. Yazmadan önce dosya adını kullanıcıya söyle (yeni dosya).
 - Düzeltme ayrı iş: kullanıcı "şu doğru" deyince yalnız o dosyayı düzelt, §4 ile push et; commit mesajında karşı dosyayı an
   ("ENVANTER.md: ornekweb02 IP'si ansible hosts.ini ile eşitlendi"). Bir taraftan ötekine **toplu kopyalama** yapma.
 - Bir sunucu eklendi/kaldırıldıysa (kurulum, iade) işi bitirirken kullanıcıya hangi yerlerin güncellenmesi gerektiğini tek satırla

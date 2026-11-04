@@ -1093,3 +1093,9 @@ describe("kesinti-sonrasi: beceri §1 komutu salt-okunur (2026-11-03)", () => {
     expect(kesinOkuma("python3 /root/ai/opencode/knowledge/skills/approved/kesinti-sonrasi/kesinti-ozet.py cikti/filo/kesinti --kesinti '2026-11-03 09:40'", workdir)).toBe(true))
   test("düzeltme adımı okuma değil", () => expect(kesinOkuma("ssh root@a 'mount -a'", workdir)).toBe(false))
 })
+
+describe("git/envanter-fark: kurulu kopya da okuma (saha 2026-11-04: ~/.config/opencode/skills/git yolu K6'ya takıldı)", () => {
+  const workdir = "/root/ai/work/opencode"
+  for (const yol of ["/root/ai/opencode/knowledge/skills/approved/git/envanter-fark.py", "~/.config/opencode/skills/git/envanter-fark.py"])
+    test(yol, () => expect(kesinOkuma(`python3 ${yol} git/notlar/Sunucu-Envanter-Listesi/KTBULUT-SP41 --karsi ansible/inventories/hosts.ini 2>&1 | head -80`, workdir)).toBe(true))
+})

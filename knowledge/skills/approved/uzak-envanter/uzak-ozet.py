@@ -44,7 +44,7 @@ def main(argv):
     print("\n################ 2. HOST BİLGİSİ — erişilenler (filo-kontrol/filo-tablo.py --kv)\n")
     ek = ["--csv", csv_yol] if csv_yol else []
     yukle("filo_tablo", "filo-tablo.py").main([tree, "--kv", "--grup", grup, "-i", env, "--say", "os", "--say", "satellite", "--say", "sanal", "--say", "alan_adi",
-                                                   "--say", "dns", "--say", "ntp", "--say", "ad_alani"] + ek)
+                                                   "--say", "dns", "--say", "ntp", "--say", "ntp_senkron", "--say", "ad_alani"] + ek)
     return kod
 
 

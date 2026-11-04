@@ -28,10 +28,11 @@ bash uzak-topla.sh <envanter> <ortam-adı> [<grup>]
 
 Ne yapar (kaynağı oku, kullanıcıya böyle anlat — fazlasını söyleme):
 - `ansible <grup> -m raw -T 5 --task-timeout 30 -f 30 -t uzak-<ortam>-<tarih>/bilgi` ile her sunucuda **yalnız okuma** komutları:
-  `ad` · `os` (`/etc/os-release`) · `cekirdek` · `cpu` · `bellek_gb` · `kok_doluluk` · `acilis` (`uptime -s`) · `ip` · `sanal`
+  `ad` · `os` (`/etc/os-release`) · `cekirdek` · `cpu` · `bellek_gb` · `kok_doluluk` · `acilis` (`uptime -s`) · `ip` (varsayılan yolun kaynak IP'si — k8s node'unda veth/CNI adresleri gürültü olmasın; saha 2026-11-04:
+  `ip -br a` çıktısı yüzlerce veth satırı getirdi) · `ip_sayisi` (`hostname -I` adet) · `sanal`
   (`systemd-detect-virt`) · `satellite` (`/etc/rhsm/rhsm.conf` hostname — hangi Satellite'a kayıtlı) · `alan_adi` (`hostname -d`) ·
   `dns` / `dns_arama` (`/etc/resolv.conf`) · `ntp` (`chrony.conf`/`ntp.conf` server/pool satırları — yapılandırılan, anlık senkron
-  değil) · `ad_alani` (`/etc/sssd/sssd.conf` `domains=`; boşsa AD'ye sssd ile katılmamış ya da dosya yok). `-m raw`: hedefte python gerekmez.
+  değil) · `ntp_senkron` (`chronyc tracking` Leap status — `Normal` = senkron) · `ad_alani` (`/etc/sssd/sssd.conf` `domains=`; boşsa AD'ye sssd ile katılmamış ya da dosya yok). `-m raw`: hedefte python gerekmez.
 - Çıktıyı **yapıştırtma** — tek dosya getirtilir (saha 2026-11-04: yapıştırılan 347 sunucu çıktısı oturumu 262k pencereye kilitledi).
 - Erişilemeyen sunucunun ssh hata mesajı da tree'ye yazılır — erişim analizi ayrı tarama gerektirmez.
 - `meta.txt` (ortam, tarih, makine, **kaynak IP** — FW talebi satırına girer, ansible sürümü, host sayısı) + envanterin kopyası.

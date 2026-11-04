@@ -1,6 +1,6 @@
 ---
 name: uzak-envanter
-description: Buradan (spllnxmgmt01) erişilemeyen bir ortamın envanterini incelemek için kullan — kullanıcı o ortamdaki ansible makinesinde (ör. başka ortamın Satellite'ı) `uzak-topla.sh` çalıştırır, salt-okunur host bilgisi + erişim sonucu tek .tgz olur, buraya getirilir, `uzak-ozet.py` IP bloğu başına erişim (FW talebi adayı) ve host tablosu (OS, çekirdek, CPU/RAM, kök disk, açılış, IP, sanal, kayıtlı Satellite) basar. "uzak ortam", "erişemiyoruz ama orada çalıştırırım", "oradaki envanter", "başka ortamın satellite'ı", "çıktıyı getiririm", "ktbulut envanteri" isteklerinde tetiklenir. Erişilebilen ortamda doğrudan `filo-kontrol`.
+description: Buradan (spllnxmgmt01) erişilemeyen bir ortamın envanterini incelemek için kullan — kullanıcı o ortamdaki ansible makinesinde (ör. başka ortamın Satellite'ı) `uzak-topla.sh` çalıştırır, salt-okunur host bilgisi + erişim sonucu tek .tgz olur, buraya getirilir, `uzak-ozet.py` IP bloğu başına erişim (FW talebi adayı) ve host tablosu (OS, çekirdek, CPU/RAM, kök disk, açılış, IP, sanal, kayıtlı Satellite, alan adı, DNS sunucuları, NTP kaynakları, sssd AD alanı) basar. "uzak ortam", "erişemiyoruz ama orada çalıştırırım", "oradaki envanter", "başka ortamın satellite'ı", "çıktıyı getiririm", "ktbulut envanteri" isteklerinde tetiklenir. Erişilebilen ortamda doğrudan `filo-kontrol`.
 ---
 
 # Uzak ortam envanteri — orada topla, burada incele (salt-okunur)
@@ -29,7 +29,10 @@ bash uzak-topla.sh <envanter> <ortam-adı> [<grup>]
 Ne yapar (kaynağı oku, kullanıcıya böyle anlat — fazlasını söyleme):
 - `ansible <grup> -m raw -T 5 --task-timeout 30 -f 30 -t uzak-<ortam>-<tarih>/bilgi` ile her sunucuda **yalnız okuma** komutları:
   `ad` · `os` (`/etc/os-release`) · `cekirdek` · `cpu` · `bellek_gb` · `kok_doluluk` · `acilis` (`uptime -s`) · `ip` · `sanal`
-  (`systemd-detect-virt`) · `satellite` (`/etc/rhsm/rhsm.conf` hostname — hangi Satellite'a kayıtlı). `-m raw`: hedefte python gerekmez.
+  (`systemd-detect-virt`) · `satellite` (`/etc/rhsm/rhsm.conf` hostname — hangi Satellite'a kayıtlı) · `alan_adi` (`hostname -d`) ·
+  `dns` / `dns_arama` (`/etc/resolv.conf`) · `ntp` (`chrony.conf`/`ntp.conf` server/pool satırları — yapılandırılan, anlık senkron
+  değil) · `ad_alani` (`/etc/sssd/sssd.conf` `domains=`; boşsa AD'ye sssd ile katılmamış ya da dosya yok). `-m raw`: hedefte python gerekmez.
+- Çıktıyı **yapıştırtma** — tek dosya getirtilir (saha 2026-11-04: yapıştırılan 347 sunucu çıktısı oturumu 262k pencereye kilitledi).
 - Erişilemeyen sunucunun ssh hata mesajı da tree'ye yazılır — erişim analizi ayrı tarama gerektirmez.
 - `meta.txt` (ortam, tarih, makine, **kaynak IP** — FW talebi satırına girer, ansible sürümü, host sayısı) + envanterin kopyası.
 - Yazdığı tek yer: çalışılan dizinde `uzak-<ortam>-<tarih>/` ve `.tgz`. Sonda .tgz'nin tam yolunu basar.

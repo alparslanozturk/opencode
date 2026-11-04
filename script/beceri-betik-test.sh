@@ -182,6 +182,8 @@ icerir "başlık: ortam" uzo.txt "UZAK ORTAM: test-ortam"
 icerir "erişim bölümü" uzo.txt "HEPSİNE ERİŞİLDİ (1 blok): 127.0.0.0/24(1)"
 icerir "DNS'siz sunucu" uzo.txt "DNS çözülemedi"
 icerir "host tablosu os sütunu" uzo.txt "Dağılım: os"
+icerir "DNS dağılımı" uzo.txt "Dağılım: dns"
+icerir "NTP dağılımı" uzo.txt "Dağılım: ntp"
 icerir "erişilemeyen → çıkış 1" uzo.txt "rc=1"
 python3 "$B/uzak-envanter/uzak-ozet.py" uzak-test-ortam-x.tgz > uzo2.txt 2>&1
 icerir "açılmamış arşiv uyarısı" uzo2.txt "arşiv açılmamış"

@@ -37,6 +37,11 @@ echo acilis=$(uptime -s 2>/dev/null)
 echo ip=$(hostname -I 2>/dev/null)
 echo sanal=$(systemd-detect-virt 2>/dev/null)
 echo satellite=$(awk -F= '/^hostname/{gsub(/ /,"",$2); print $2; exit}' /etc/rhsm/rhsm.conf 2>/dev/null)
+echo alan_adi=$(hostname -d 2>/dev/null)
+echo dns=$(awk '/^nameserver/{printf "%s ", $2}' /etc/resolv.conf 2>/dev/null)
+echo dns_arama=$(awk '/^(search|domain)/{$1=""; printf "%s", $0}' /etc/resolv.conf 2>/dev/null)
+echo ntp=$(awk '/^(server|pool|peer) /{printf "%s ", $2}' /etc/chrony.conf /etc/ntp.conf 2>/dev/null)
+echo ad_alani=$(awk -F= '/^[[:space:]]*domains[[:space:]]*=/{gsub(/ /,"",$2); print $2; exit}' /etc/sssd/sssd.conf 2>/dev/null)
 true
 K
 )

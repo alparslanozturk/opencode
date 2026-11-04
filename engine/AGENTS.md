@@ -194,6 +194,11 @@ değerdi.
 - **Uzun veriyi yeniden yazma (G94):** kullanıcının yapıştırdığı base64, sertifika, anahtar, uzun JSON/log değerini kopyalayıp
   dosyaya/komuta **yazma** — yeniden yazarken bozuluyor ("1 more than a multiple of 4", PEM sonu çöp). Değeri kaynağından boruyla
   al (`kubectl … | base64 -d | openssl …`) ya da kullanıcıya orada çalıştıracağı tek satırı ver.
+- **Çok sunuculu çıktıyı yapıştırtma — dosya getirt (saha 2026-11-04):** ajan "347 sunucuda playbook'u çalıştır, çıktıyı
+  yapıştır" dedi; ardından istek 261 121 token oldu (pencere 262 144) ve sıkıştırma "Nothing to compact yet" ile düştü — oturum
+  kilitlendi (yapıştırılan çıktının payı [doğrula]). Birkaç ekran satırından uzun çıktı için kullanıcıya
+  **dosyaya yazdır ve getir** de (`… > <ad>.txt` ya da `-t <dizin>` + `tar`), dosyayı betikle/`grep`/`head` ile oku, tamamını okuma.
+  Erişilemeyen ortamın envanteri: `uzak-envanter` (tek .tgz + `uzak-ozet.py`). Playbook yazdırma.
 - **Kubernetes Secret (G88, G94):** `.data` değerleri base64 — bir kez `base64 -d` → PEM → `openssl x509`. Anahtarda nokta varsa
   jsonpath'te kaçır: `{.data.tls\.crt}`; `{.data.tls.crt}` **boş** döner (openssl "Could not find certificate" / "header too long"
   bunun sonucudur, PEM/DER sorunu değil — `-inform DER` deneme). Ayrıntı: `kume-bul` §3, `rancher-sertifika`.

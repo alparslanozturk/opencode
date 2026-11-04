@@ -43,7 +43,8 @@ def main(argv):
     kod = yukle("erisim_blok", "erisim-blok.py").main([tree, "-i", env, "--grup", grup] + (["--kaynak", kaynak[0]] if kaynak else []))
     print("\n################ 2. HOST BİLGİSİ — erişilenler (filo-kontrol/filo-tablo.py --kv)\n")
     ek = ["--csv", csv_yol] if csv_yol else []
-    yukle("filo_tablo", "filo-tablo.py").main([tree, "--kv", "--grup", grup, "-i", env, "--say", "os", "--say", "satellite", "--say", "sanal"] + ek)
+    yukle("filo_tablo", "filo-tablo.py").main([tree, "--kv", "--grup", grup, "-i", env, "--say", "os", "--say", "satellite", "--say", "sanal", "--say", "alan_adi",
+                                                   "--say", "dns", "--say", "ntp", "--say", "ad_alani"] + ek)
     return kod
 
 

@@ -34,6 +34,7 @@ Oturum sonunda kullanıcı `/kaydet` der → kurumsal bilgi güncellenir.
 | leapp · ana sürüm | — | `rhel-yukseltme` → `leapp-rapor` |
 | os upgrade · güncelle · dnf · yama · reboot · yeniden başlat | 7 servis davranışı | `rhel-guncelleme` → `filo-tablo` |
 | disk · /data · büyüt · extend · lvm · dolu · inode | — | `rhel-depolama` → `disk-durum` |
+| uzak ortam · orada çalıştır · oradaki envanter · çıktıyı getir · erişemezsek | 5 erişim akışı | `uzak-envanter` → `uzak-topla` (orada) · `uzak-ozet` (burada) |
 | erişim kontrol · erişim var mı · ip bloğu · fw erişim talebi · envanterdeki sunuculara eriş | 5 erişim akışı | `filo-kontrol` §7 → `erisim-blok` |
 | erişemiyorum · bağlanamıyorum · timeout · connection refused · fw talebi | 5 erişim akışı | `rhel-teslim` §1 (ping/TTL/port) |
 | dns · ntp · chrony · dmz | 1 ağ · 2 DMZ | `rhel-yonetim` |
@@ -86,6 +87,7 @@ kullanım becerinin SKILL.md'sinde (önce beceriyi yükle):
   (PEM/base64'ü kendin yazma — betik bayt bayt gömer, sha256 doğrular)
 - çok sunucuda aynı komut → `ansible … -t cikti/filo/<etiket>` + `filo-kontrol/filo-tablo.py`
 - envanterdeki sunuculara erişim / IP bloğu başına FW talebi gerekir mi → `filo-kontrol/erisim-blok.py` (playbook yazma)
+- buradan erişilemeyen ortamın envanteri (kullanıcı orada toplar, .tgz getirir) → `uzak-envanter/uzak-ozet.py`
 - geçmiş kapasite (sar, "son N gün") → `rhel-performans/sar-ozet.py`
 - disk OS mu / boş mu → `rhel-depolama/disk-durum.py` — **yıkıcı disk adımından (pvcreate/mkfs/parted) önce zorunlu**
 - sertifika dosyası/secret, kalan gün, zincir, anahtar eşleşmesi → `rancher-sertifika/sertifika-kontrol.py` (RKE2 tls: `--ozet`)

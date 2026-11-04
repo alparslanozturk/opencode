@@ -171,6 +171,21 @@ icerir "çıktısı gelmeyen sunucu anılır" eb.txt "app3"
 icerir "IP'siz sunucu ayrı" eb.txt "DNS çözülemedi"
 icerir "erişilemeyen var → çıkış 1" eb.txt "rc=1"
 
+# --------------------------------------------------------------------------- uzak-envanter (uçtan uca, yerel bağlantı)
+baslik "uzak-envanter: uzak-topla.sh → tgz → uzak-ozet.py (Alp 2026-11-04)"
+printf '[a]\nyerel ansible_host=127.0.0.1 ansible_connection=local\nyok1.invalid\n' > uz.ini
+bash "$B/uzak-envanter/uzak-topla.sh" uz.ini test-ortam > uzt.txt 2>&1
+icerir "uzak-topla .tgz verir" uzt.txt "hazır: "
+mkdir -p uzk && tar xzf uzak-test-ortam-*.tgz -C uzk
+python3 "$B/uzak-envanter/uzak-ozet.py" uzk/uzak-test-ortam-* > uzo.txt 2>&1; echo "rc=$?" >> uzo.txt
+icerir "başlık: ortam" uzo.txt "UZAK ORTAM: test-ortam"
+icerir "erişim bölümü" uzo.txt "HEPSİNE ERİŞİLDİ (1 blok): 127.0.0.0/24(1)"
+icerir "DNS'siz sunucu" uzo.txt "DNS çözülemedi"
+icerir "host tablosu os sütunu" uzo.txt "Dağılım: os"
+icerir "erişilemeyen → çıkış 1" uzo.txt "rc=1"
+python3 "$B/uzak-envanter/uzak-ozet.py" uzak-test-ortam-x.tgz > uzo2.txt 2>&1
+icerir "açılmamış arşiv uyarısı" uzo2.txt "arşiv açılmamış"
+
 # --------------------------------------------------------------------------- belge-oku
 baslik "belge-oku.py (Excel/Word/PowerPoint/MHT; Alp 2026-10-26)"
 python3 - << 'E'
@@ -750,6 +765,7 @@ VAKALAR = [  # (G kaydı, saha cümlesi, beklenen beceri)
     ("Alp 2026-11-03", "veri merkezinde elektrik kesintisine bağlı olarak sunucular kapandı, bir hata mesajı var mı", "kesinti-sonrasi"),
     ("Alp 2026-11-03", "bütün sunuculara bağlan, kesintiden kaynaklı hata var mı özet çıkar", "kesinti-sonrasi"),
     ("Alp 2026-11-04", "envantere erişim kontrol eden küçük bir ansible yaz, ip bloğunda hiç bir sunucuya erişmiyorsak FW erişim talebi", "erisim-blok"),
+    ("Alp 2026-11-04", "ktbulut ortamına erişemezsek orada bir ansible çalıştırıp oradaki bilgiyi alıp sana verebilirim", "uzak-envanter"),
     ("saha 2026-11-04", "bizim git deki şu adrese erişiyor musun? https://tfs-ornek/tfs/Koleksiyon/Proje/_git/notlar?path=/Sunucu-Envanter-Listesi", "`git`"),
 ]
 for g, cumle, beklenen in VAKALAR:

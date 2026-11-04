@@ -720,6 +720,7 @@ VAKALAR = [  # (G kaydı, saha cümlesi, beklenen beceri)
     ("G116", "docker compose yapısını kontrol et", "rhel-guncelleme"),
     ("Alp 2026-11-03", "veri merkezinde elektrik kesintisine bağlı olarak sunucular kapandı, bir hata mesajı var mı", "kesinti-sonrasi"),
     ("Alp 2026-11-03", "bütün sunuculara bağlan, kesintiden kaynaklı hata var mı özet çıkar", "kesinti-sonrasi"),
+    ("saha 2026-11-04", "bizim git deki şu adrese erişiyor musun? https://ktdevops/tfs/KT/KT.SoftwareSystemScrum/_git/notlar?path=/Sunucu-Envanter-Listesi", "`git`"),
 ]
 for g, cumle, beklenen in VAKALAR:
     y = yonlendir(cumle)

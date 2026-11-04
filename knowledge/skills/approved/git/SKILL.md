@@ -1,6 +1,6 @@
 ---
 name: git
-description: Kurum git depolarında çalışırken kullan — Azure DevOps Server (kurum içi, on-prem) depoları: ansible (playbook, iş envanteri), envanter, Kubernetes manifestleri, dokümanlar (MD). İlk klon (`git/<depo>`), kurum CA/TLS hatası, depodan bilgi okuma, mükerrer bilgiyi karşılaştırma (ENVANTER.md ↔ ansible envanteri, `envanter-fark.py`), playbook/doküman ekleyip main'e push, parola sorma hatası, Semaphore'un okuyacağı düzen. "git", "repo", "depo", "commit", "push", "pull", "main", "envanter deposu", "azure devops", "tfs", "manifest deposu", "dokümanı depoya koy" isteklerinde tetiklenir. Playbook yazımı ve çalıştırma `ansible`.
+description: Kurum git depolarında çalışırken kullan — Azure DevOps Server (kurum içi, on-prem) depoları: ansible (playbook, iş envanteri), envanter, Kubernetes manifestleri, dokümanlar (MD). İlk klon (`git/<depo>`), kurum CA/TLS hatası, depodan bilgi okuma, mükerrer bilgiyi karşılaştırma (ENVANTER.md ↔ ansible envanteri, `envanter-fark.py`), playbook/doküman ekleyip main'e push, parola sorma hatası, Semaphore'un okuyacağı düzen. "git", "repo", "depo", "commit", "push", "pull", "main", "envanter deposu", "azure devops", "tfs", "_git/ adresi", "bu adrese erişiyor musun", "manifest deposu", "dokümanı depoya koy" isteklerinde tetiklenir. Playbook yazımı ve çalıştırma `ansible`.
 ---
 
 Doğrulandı: git 2.52, 2026-10-23 (yerel ölçüm; sahadaki sürüm `git --version`)
@@ -135,6 +135,11 @@ git -C <depo> log --oneline -5
 **dokunma**, söyle.
 
 ## 3. Depodan bilgi okuma (envanter, manifest, doküman)
+
+**Kullanıcı web adresi verirse** (saha 2026-11-04): Azure DevOps sayfası `https://<tfs-sunucu>/tfs/<koleksiyon>/<proje>/_git/<depo>?path=/<yol>`
+= yerel klonda `git/<depo>/<yol>`. Tarayıcı/curl gerekmez, "erişimim yok" deme — kurum içi depo dış ağ değildir. Sıra:
+`ls git/` (klon var mı) → `git -C git/<depo> pull --ff-only` → `ls`/oku. Klon yoksa §1b ilk klon komutunu ver.
+Sahada görülen: `?path=/Sunucu-Envanter-Listesi` → `git/notlar/Sunucu-Envanter-Listesi/` (çalışma dizini `~/ai/work/opencode`).
 
 ```bash
 git -C <depo> pull --ff-only              # güncel hâli al (yerelde iş yoksa)

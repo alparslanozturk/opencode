@@ -79,10 +79,58 @@ Log alırken `--tail` **her zaman** ver. Sınırsız log bağlamı doldurur.
 | `OOMKilled` | Bellek limitini aştı | `describe` → Last State; limit artır ya da sızıntı ara |
 | `Evicted` | Node kaynağı bitti | Node'da disk/bellek baskısı |
 | `ContainerCreating` uzun sürüyor | Volume ya da ağ | Events; PVC, CNI |
-| `Terminating` takıldı | Finalizer ya da graceful shutdown | `describe`; zorlamadan önce sebebi anla |
+| `Terminating` takıldı | Finalizer, ya da node'da konteyner öldürülemiyor | **Aşağıdaki "Takılı Terminating" bölümü** — force delete'ten önce |
 
 `Running` görmek yeterli değil — `READY` sütununa bak. `1/2` demek bir kabın
 hazır olmadığı demektir; readiness probe başarısız olabilir.
+
+## Takılı `Terminating` pod — force delete'ten önce ve sonra (saha 2026-11-05)
+
+Saha: pod 19 saat `Terminating`, olay `FailedKillPod … DeadlineExceeded`. Ajan `kubectl delete pod --force --grace-period=0` ile
+sildi → pod Rancher'dan/API'den kayboldu ama **node'da sandbox çalışmaya devam etti**; yeni pod'lar başka node'da startup probe
+`connection refused` ile öldürüldü; node reboot edildi (Alp). Ders: force delete node'daki sorunu çözmez, yalnız görünmez yapar.
+
+Kubernetes belgesi (Pod Lifecycle, "Forced Pod termination"): "the API server does not wait for confirmation from the kubelet that
+the Pod has been terminated on the node" · "The resource may continue to run on the cluster indefinitely."
+
+**1. Sebebi oku (hepsi okuma):**
+```bash
+kubectl get pod <pod> -n <ns> -o jsonpath='{.metadata.deletionTimestamp} {.metadata.finalizers} {.spec.nodeName}{"\n"}'
+kubectl get events -n <ns> --field-selector involvedObject.name=<pod> --sort-by=.lastTimestamp | tail -15
+kubectl get node <node> -o wide
+# node'da (ssh, okuma):
+C="env CRI_CONFIG_FILE=/var/lib/rancher/rke2/agent/etc/crictl.yaml /var/lib/rancher/rke2/bin/crictl"
+$C pods --name <pod>                       # sandbox kimliği, durum (Ready/NotReady)
+$C ps -a --pod <sandbox-id>                # içindeki konteynerler
+ps -eo pid,stat,wchan:32,etime,cmd | awk '$2 ~ /D/'          # kesintisiz uykuda (D) süreç — kill işlemez
+journalctl -k --since -24h --no-pager | grep -i -e "hung task" -e "blocked for more than" -e "nfs: server" | tail -20
+findmnt -rn -o TARGET,SOURCE,FSTYPE | grep <pod-uid>         # pod hacimleri; NFS takılıysa → rhel-nfs
+```
+
+**2. Karar:**
+
+| Gözlem | Sebep | Yol |
+|---|---|---|
+| `finalizers` dolu | bir denetleyici bekliyor | finalizer'ı kim ekledi bul; finalizer silmek değişiklik (onay) |
+| Node `NotReady` / erişilemez | node gitmiş | node'u düzelt; force delete yalnız node'un **kesin kapalı** olduğu biliniyorsa |
+| Node Ready + `FailedKillPod` / `KillPodSandbox … DeadlineExceeded` | node'da süreç öldürülemiyor (D durumu, G/Ç, NFS) ya da containerd takılı (`rke2-denetim` G10) | sorun **node'da**: §3; force delete çözüm değil |
+
+**3. Temizlik — değişiklik, her adım ayrı onay:** `$C stopp <sandbox-id>` → `$C rmp <sandbox-id>`. Süreç D durumundaysa bunlar da
+takılır — tek yol node'u boşaltıp yeniden başlatmak: `kubectl cordon <node>` → `kubectl drain <node> --ignore-daemonsets
+--delete-emptydir-data` (iş yükü etkisini kullanıcıya söyle) → reboot → `kubectl uncordon <node>`. Önce §1'in kanıtını kaydet
+(reboot D sürecini ve logun bir kısmını siler).
+
+**4. Force delete zaten yapıldıysa — hemen node'da bak:** `$C pods --name <pod>` boş değilse **yetim sandbox** var: eski konteyner
+hâlâ porta/veriye sahip. RWO PVC: `kubectl get volumeattachment -o wide | grep <pv>` eski node'da kaldıysa yeni pod `Multi-Attach`
+ya da `ContainerCreating`'de bekler; RWX/NFS'te iki kopya aynı veriye yazabilir. Kullanıcıya söyle; §3 ile temizle.
+
+**5. Reboot/temizlik sonrası doğrula (bitti demeden):** node `Ready` · `$C pods --name <eski-pod>` boş · volumeattachment eski
+node'da değil · yeni pod `Running` ve `READY 1/1`, `RESTARTS` artmıyor · events'te probe hatası yok (birkaç dakika sonra tekrar bak).
+
+**6. Yeni pod "Startup probe failed: connection refused" → Killing** ayrı bir soru: `kubectl logs <yeni> --previous`, `describe`
+→ probe tanımı (port, path, `periodSeconds × failureThreshold` = uygulamaya tanınan açılış süresi), uygulama o portu açıyor mu.
+Yetim sandbox kilidi/veriyi tutuyorsa yeni pod açılamayabilir — **tahmin**; yetim temizlendikten sonra düzeliyorsa kanıt olur.
+Probe süresini artırmak uygulama sahibinin kararı (öneri dili).
 
 ## Rancher'a özgü
 

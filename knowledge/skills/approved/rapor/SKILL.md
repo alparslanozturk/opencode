@@ -94,9 +94,9 @@ patch`, `systemctl restart` …) ayrı listelenir — "yapılan değişiklikler"
 - **RKE2'de `systemctl status containerd` → inactive normaldir:** RKE2 kendi gömülü containerd'sini `rke2-server/agent` sürecinin
   altında çalıştırır; ayrı `containerd.service` kullanılmaz (RKE2 belgesi: containerd RKE2 ile birlikte gelir). Raporda bulgu diye yazma.
 - **`kubectl delete pod --force --grace-period=0`** yalnız API kaydını siler; node'da konteyner hâlâ çalışıyor olabilir (Kubernetes
-  belgesi, "Force Delete StatefulSet Pods": zorla silme, eski pod'un gerçekten bittiğini doğrulamaz). RWO PVC kullanan uygulamada
+  belgesi, Pod Lifecycle "Forced Pod termination": API, kubelet'in onayını beklemez; kaynak çalışmaya devam edebilir — `k8s-sorun`). RWO PVC kullanan uygulamada
   (`strategy: Recreate` bunun işaretidir) iki pod aynı diske yazabilir. Raporda: node'da eski konteyner kalmadığının kanıtı —
-  node'da `/var/lib/rancher/rke2/bin/crictl --runtime-endpoint unix:///run/k3s/containerd/containerd.sock ps -a | grep <pod>` boş —
+  node'da `CRI_CONFIG_FILE=/var/lib/rancher/rke2/agent/etc/crictl.yaml /var/lib/rancher/rke2/bin/crictl pods --name <pod>` boş —
   ya da "eski konteynerin durduğu doğrulanmadı" satırı. "Force delete ile düzeltildi" tek başına kök neden değil, belirtiyi kaldırır.
 
 Biçim: HTML (§A, "HTML — bağımlılıksız ve yazdırılabilir") — başlık, tarih, hazırlayan, alıcı; tablolar betik/çıktı değerleriyle.

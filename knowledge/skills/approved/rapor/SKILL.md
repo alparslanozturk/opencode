@@ -62,7 +62,7 @@ Yeni işte `is-kaydi.py liste <sözcük>` ile eski benzer iş bulunur, `plan.md`
 
 ## Olay raporu — işi başka ekibe anlatmak (Alp, 2026-11-05)
 
-Saha: k8s sorunu çözüldükten sonra "ne yaptın, güzel bir PDF hazırlar mısın Büşra Hn. için" (uygulamanın sahibi DevOps ekibi).
+Saha: k8s sorunu çözüldükten sonra "ne yaptın, güzel bir PDF hazırlar mısın <kişi> Hn. için" (uygulamanın sahibi DevOps ekibi).
 Rapor kurum dışına çıkmaz ama **başka ekip buna göre karar verir** — sohbetteki ajan özeti (ör. "sebebi X, düzeltildi") kaynak değildir.
 
 **Önce sor (tek mesaj, numaralı; oturumda cevabı varsa sorma):** 1) alıcı ve ekibi (hitap kullanıcının yazdığı gibi) · 2) kapsam:

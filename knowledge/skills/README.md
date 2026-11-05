@@ -50,6 +50,7 @@ betiktir; model ham veriyi betiğe **borular**, betiğin bastığı satırı **a
 | `uyum.py` | `surum-uyum` | sürüm uyumu, EOL, yükseltme yolu; GPU Operator/sürücü/GPU modeli, Run:ai ↔ K8s ↔ GPU Operator |
 | `leapp-rapor.py` | `rhel-yukseltme` | `leapp preupgrade` raporu (JSON) → ENGEL önce, önem sırası, çözüm; çok sunucu özeti |
 | `aide-ozet.py` | `rhel-aide` | AIDE sunucu başına: kurulu / veritabanı / zamanlı kontrol; NFS-CIFS bağlaması AIDE kapsamında mı (aide.conf seçim + fs türü kısıtı) |
+| `pdf-rapor.py` | `rapor` | Markdown alt kümesi → tek sayfaya sığan PDF (fpdf2): başlık, sorun/tamam kutusu, tablo, Türkçe font denetimi — model yerleşim kodu yazmaz |
 | `cis-ozet.py` | `rhel-cis` | oscap ekran çıktısı → CIS madde no + L1/L2, kurum kararı ayrı (veri: SSG kontrol dosyaları) |
 | `playbook-denetim.py` | `ansible` | playbook'u çalıştırmadan bilinen hata kalıpları (hosts all, ignore_errors, pipefail, sahte başarı, curl -f …) |
 | `envanter-fark.py` | `git` | aynı envanter bilgisi birden çok yerde: ansible INI ↔ ENVANTER.md / başka INI farkı |

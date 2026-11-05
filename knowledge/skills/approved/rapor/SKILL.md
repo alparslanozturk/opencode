@@ -100,12 +100,20 @@ patch`, `systemctl restart` …) ayrı listelenir — "yapılan değişiklikler"
   ya da "eski konteynerin durduğu doğrulanmadı" satırı. "Force delete ile düzeltildi" tek başına kök neden değil, belirtiyi kaldırır.
 
 Biçim: HTML (§A, "HTML — bağımlılıksız ve yazdırılabilir") — başlık, tarih, hazırlayan, alıcı; tablolar betik/çıktı değerleriyle.
-PDF istenirse önce `python3 -c 'import fpdf'` — kuruluysa aynı içerikten doğrudan PDF (§B, Türkçe font `find /usr/share/fonts -name
-'*.ttf'` ile bulunur); kurulu değilse HTML + yazdırma yolu. `pip install` değişikliktir (onay; tercihen `python3 -m venv`), sistem
+**PDF — yerleşimi elle kodlama, `pdf-rapor.py` kullan** (saha 2026-11-05: model fpdf2 koordinatlarını elle yazdı → tablolar boş,
+metin üst üste, Türkçe harfler silinmiş). Model yalnız içeriği `.md` olarak yazar; betik başlık, kutu, tablo, Türkçe font (cmap ile
+denetlenir) ve `--tek-sayfa` (yazı 10 → 7 pt küçülterek sığdırır) işini yapar. `.md` kaynak olarak PDF'in yanında kalır:
+```bash
+P=/root/ai/opencode/knowledge/skills/approved/rapor/pdf-rapor.py
+python3 $P cikti/rapor/<ad>.md cikti/rapor/<ad>.pdf --tek-sayfa      # fpdf2 venv'deyse: <venv>/bin/python $P …
+```
+Girdi: `# Başlık` + altında tek satır (tarih · küme · ns · hazırlayan · alıcı) · `## Bölüm` · `> [sorun] …` / `> [tamam] …` /
+`> [not] …` kutu · `| a | b |` tablo (ilk satır başlık) · `- madde` · `**kalın**`. Betik "1 sayfa · yazı X pt" basar; 7 pt'de
+sığmazsa çıkış 1 — içeriği kısalt, uydurma özetle değil ayrıntıyı ek dosyaya alarak. fpdf2 yoksa betik söyler → HTML + yazdırma. `pip install` değişikliktir (onay; tercihen `python3 -m venv`), sistem
 python'una root ile kurma uyarısı ciddiye alınır. Saha 2026-11-05: yönetim sunucusunda fpdf2 kurulup PDF doğrudan üretildi.
 
 **Dizin ve ad (Alp kararı, 2026-11-05)** — çalışma dizini altında:
-- rapor (küme/uygulama/olay — ansible'la ilgisi yok): `cikti/rapor/<küme>_<uygulama>-<tür>-<YYYYMMDD>.{pdf,html}`
+- rapor (küme/uygulama/olay — ansible'la ilgisi yok): `cikti/rapor/<küme>_<uygulama>-<tür>-<YYYYMMDD>.{md,pdf,html}`
   ör. `cikti/rapor/<küme>_<uygulama>-olay-20261105.pdf`; aynı adın HTML'i ve PDF'i yan yana.
 - ansible çıktısı (tree, filo): `cikti/filo/<etiket>/` (AGENTS); playbook/envanter `ansible/` altında.
 - `<küme>` ve `<uygulama>` çıktıdaki adlarla (Rancher küme adı, namespace/deployment) — uydurma kısaltma yok. `<tür>`: olay · durum ·

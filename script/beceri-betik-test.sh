@@ -709,6 +709,20 @@ icermez "/data seçili değil → kapsam dışı" ato.txt "/data)"
 icerir "!/ =0x6969 NFS'yi dışlar" ato.txt "1 (-)"
 icerir "kapsam uyarısı sunucu adıyla" ato.txt "  sa                           /opt/paylasim"
 
+baslik "pdf-rapor.py (Markdown → PDF, yerleşim betikte; 2026-11-05)"
+printf '# Başlık\nalt satır\n\n> [sorun] bozuk\n## Bölüm\n| A | B |\n|---|---|\n| 1 | 2 |\n- madde **kalın**\ndüz metin\n' > pr.md
+python3 - "$B/rapor/pdf-rapor.py" > pro.txt 2>&1 << 'PY2'
+import importlib.util, sys
+sp = importlib.util.spec_from_file_location("pr", sys.argv[1]); m = importlib.util.module_from_spec(sp); sp.loader.exec_module(m)
+print(m.ayristir(open("pr.md", encoding="utf-8").read()))
+PY2
+icerir "pdf-rapor: başlık + alt başlık" pro.txt "('baslik', 'Başlık'), ('alt', 'alt satır')"
+icerir "pdf-rapor: kutu türü" pro.txt "('kutu', ('sorun', 'bozuk'))"
+icerir "pdf-rapor: tablo ayırıcı atlanır" pro.txt "('tablo', [['A', 'B'], ['1', '2']])"
+icerir "pdf-rapor: madde" pro.txt "('madde', 'madde **kalın**')"
+if python3 -c "import fpdf" 2>/dev/null; then gecti "pdf-rapor: fpdf2 var (çizim yerelde ayrıca denendi)"; else
+  python3 "$B/rapor/pdf-rapor.py" pr.md pr.pdf > pr2.txt 2>&1; icerir "pdf-rapor: fpdf2 yoksa HTML yolu söylenir" pr2.txt "fpdf2 kurulu değil"; fi
+
 baslik "sep-istisna.py (SEP istisna adayları; 2026-11-03)"
 printf 'sep_paket=sdcss-x \nvar=/proc /sys /data /var/lib/rancher \nnfs=/ab \nmongo_conf= dbPath: /data/mongo path: /var/log/mongodb/mongod.log \nmongo_args=\npg_data= -D /var/lib/pgsql/data \ndocker_root=/var/lib/docker\n' > si.txt
 python3 "$B/rke2-edr/sep-istisna.py" liste si.txt > sio.txt 2>&1

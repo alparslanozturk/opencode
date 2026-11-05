@@ -1,6 +1,6 @@
 ---
 name: rapor
-description: Toplanan veriyi rapora/dosyaya dökerken kullan — betik CSV'sinden değerlere dokunmadan HTML/XLSX: deterministik `tablo-cevir.py`; biçim seçimi, CSV ve HTML (bağımlılıksız), Excel (xlsx) ve PDF (bağımlılık kontrolü, çevrimdışı kurulum, Türkçe font), sayı/birim tutarlılığı. "rapor", "envanter raporu", "csv çıkar", "tabloya dök", "dosyaya yaz", "html rapor", "excel", "xlsx", "pdf üret", "pdf dosyası", "openpyxl", "rapor pdf olsun" isteklerinde tetiklenir.
+description: Toplanan veriyi rapora/dosyaya dökerken kullan — betik CSV'sinden değerlere dokunmadan HTML/XLSX: deterministik `tablo-cevir.py`; biçim seçimi, CSV ve HTML (bağımlılıksız), Excel (xlsx) ve PDF (bağımlılık kontrolü, çevrimdışı kurulum, Türkçe font), sayı/birim tutarlılığı. "rapor", "envanter raporu", "csv çıkar", "tabloya dök", "dosyaya yaz", "html rapor", "excel", "xlsx", "pdf üret", "pdf dosyası", "openpyxl", "rapor pdf olsun", "olay raporu", "ne yaptın pdf hazırla", "ekibe rapor" isteklerinde tetiklenir.
 ---
 
 Bu beceri iki bölüm: **A. Biçim, CSV, HTML** ve **B. Excel ve PDF**.
@@ -59,6 +59,48 @@ taşınan/çelişki tablosu; dosyayı her seferinde düzenler (bilgi silmez: tek
 Kayıttaki oturum dökümü ve `sonuc.md` "Dersler" bölümü kurumun hafızasıdır; model ağırlığı değişmez, model kendi kendine öğrenmez.
 Yeni işte `is-kaydi.py liste <sözcük>` ile eski benzer iş bulunur, `plan.md`/`sonuc.md` okunur. Ders beceriye ancak Alp'in onayıyla
 (bu depo üzerinden) girer.
+
+## Olay raporu — işi başka ekibe anlatmak (Alp, 2026-11-05)
+
+Saha: k8s sorunu çözüldükten sonra "ne yaptın, güzel bir PDF hazırlar mısın Büşra Hn. için" (uygulamanın sahibi DevOps ekibi).
+Rapor kurum dışına çıkmaz ama **başka ekip buna göre karar verir** — sohbetteki ajan özeti (ör. "sebebi X, düzeltildi") kaynak değildir.
+
+**Önce sor (tek mesaj, numaralı; oturumda cevabı varsa sorma):** 1) alıcı ve ekibi (hitap kullanıcının yazdığı gibi) · 2) kapsam:
+küme, namespace, uygulama, zaman aralığı · 3) teknik ayrıntı düzeyi (yönetici özeti mi, komutlu teknik rapor mu) · 4) biçim: HTML →
+tarayıcıdan PDF (kurulum yok, önerilen) ya da PDF dosyası (§B — kurulum ister).
+
+**Kaynak:** her olgu bu oturumun komut çıktısından. Önce kanıtı süz, raporu ondan yaz:
+```bash
+opencode session list                                              # bu oturumun kimliği
+opencode session export <id> | python3 /root/ai/opencode/knowledge/skills/approved/rapor/oturum-ozet.py - > olay-kanit.md
+```
+`olay-kanit.md`'de olmayan saat, pod adı, sayı rapora girmez; yalnız bulunan satırlar. Değişiklik komutları (`kubectl apply/delete/
+patch`, `systemctl restart` …) ayrı listelenir — "yapılan değişiklikler" bölümü oradan.
+
+**Bölümler (sırayla):**
+1. **Özet** — 3 satır: ne bozuktu, ne yapıldı, şu anki durum (ölçülmüş: `kubectl get pod … -o wide` çıktısı).
+2. **Etkilenen** — küme, namespace, deployment/pod, node, PVC (çıktıdaki adlarla).
+3. **Zaman çizelgesi** — çıktıdaki zaman damgalarıyla (event `LAST SEEN`, `creationTimestamp`, `deletionTimestamp`); yoksa "saat ölçülmedi".
+4. **Bulgular** — her biri: gözlem + kanıt komutu + kısa çıktı alıntısı.
+5. **Kök neden** — iki etiketten biri: **doğrulandı** (hangi log/çıktı gösteriyor) ya da **tahmin** (neye dayanıyor, ne doğrular).
+   Kanıtsız "sebebi X'tir" yazılmaz.
+6. **Yapılan değişiklikler** — komut, zaman, kim onayladı; geri dönüş yolu.
+7. **Doğrulama** — değişiklikten sonra ölçülen son durum (pod Running/Ready, restart sayısı, PVC Bound, uygulamanın kendi sağlık ucu).
+   Ölçülmediyse "doğrulanmadı" ve nasıl doğrulanır.
+8. **Ekipten beklenen / öneriler** — uygulama tarafı (ör. `terminationGracePeriodSeconds`, preStop, probe) ekibin kararı; öneri dili.
+9. **Açık sorular**.
+
+**k8s olaylarında iki tuzak (bilinen yanlış anlatımlar):**
+- **RKE2'de `systemctl status containerd` → inactive normaldir:** RKE2 kendi gömülü containerd'sini `rke2-server/agent` sürecinin
+  altında çalıştırır; ayrı `containerd.service` kullanılmaz (RKE2 belgesi: containerd RKE2 ile birlikte gelir). Raporda bulgu diye yazma.
+- **`kubectl delete pod --force --grace-period=0`** yalnız API kaydını siler; node'da konteyner hâlâ çalışıyor olabilir (Kubernetes
+  belgesi, "Force Delete StatefulSet Pods": zorla silme, eski pod'un gerçekten bittiğini doğrulamaz). RWO PVC kullanan uygulamada
+  (`strategy: Recreate` bunun işaretidir) iki pod aynı diske yazabilir. Raporda: node'da eski konteyner kalmadığının kanıtı —
+  node'da `/var/lib/rancher/rke2/bin/crictl --runtime-endpoint unix:///run/k3s/containerd/containerd.sock ps -a | grep <pod>` boş —
+  ya da "eski konteynerin durduğu doğrulanmadı" satırı. "Force delete ile düzeltildi" tek başına kök neden değil, belirtiyi kaldırır.
+
+Biçim: HTML (§A, "HTML — bağımlılıksız ve yazdırılabilir") — başlık, tarih, hazırlayan, alıcı; tablolar betik/çıktı değerleriyle. Dosya
+çalışma dizinine (`olay-<uygulama>-<tarih>.html`); var olanın üstüne yazma.
 
 ## A. Biçim, CSV, HTML
 

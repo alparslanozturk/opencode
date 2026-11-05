@@ -45,6 +45,7 @@ Oturum sonunda kullanıcı `/kaydet` der → kurumsal bilgi güncellenir.
 | çok sunucu · hepsinde · toplu kontrol | — | `filo-kontrol` → `filo-tablo` |
 | ansible · playbook · envanter · cn | 6 süreçler | `ansible` → `is-envanter`, `playbook-denetim` |
 | docker · compose · konteyner | 7 servis davranışı | `rhel-guncelleme` 1b (compose fotoğrafı) |
+| olay raporu · pdf · ne yaptın · ekibe rapor · için rapor hazırla | — | `rapor` → olay raporu (`oturum-ozet` kanıtı) |
 | rapor · excel · html · tablo | — | `rapor` → `tablo-cevir` |
 | belge · xlsx · docx · pdf · onenote | — | `belge-oku` |
 | geçici iş · iş kaydı | — | `rapor` → `is-kaydi` |

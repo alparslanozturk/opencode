@@ -1000,6 +1000,18 @@ describe("2026-11-03: sep-istisna okuma", () => {
   })
 })
 
+describe("2026-11-05: kurulu beceri kopyasından yazan betik K6 değil", () => {
+  test("pdf-rapor kurulu yoldan K6'ya takılmaz, onaya düşer; çıktı korunan alana yazılamaz", () => {
+    const w = "/root/ai/work/opencode"
+    const k = kilitDenetle("bash", { command: "python3 ~/.config/opencode/skills/rapor/pdf-rapor.py cikti/rapor/a.md cikti/rapor/a.pdf --tek-sayfa" }, w, undefined)
+    expect(k?.kilit).not.toBe("K6")
+    const k2 = kilitDenetle("bash", { command: "python3 ~/.config/opencode/skills/rapor/pdf-rapor.py a.md ~/.config/opencode/x.pdf" }, w, undefined)
+    expect(k2?.kilit).toBe("K6")
+    const k3 = kilitDenetle("bash", { command: "cp x ~/.config/opencode/skills/rapor/pdf-rapor.py" }, w, undefined)
+    expect(k3?.kilit).toBe("K6")
+  })
+})
+
 describe("2026-11-04: rhel-aide okuma", () => {
   test("aide-ozet komutu ssh ile kesin okuma, özet okuma", () => {
     const { execSync } = require("node:child_process")

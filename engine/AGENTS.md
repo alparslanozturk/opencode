@@ -108,6 +108,7 @@ kullanım becerinin SKILL.md'sinde (önce beceriyi yükle):
 - CIS taraması (oscap ekran çıktısı → CIS no + L1/L2, kurum kararı ayrı) → `rhel-cis/cis-ozet.py`
 - AIDE durumu (kurulu / veritabanı / zamanlama / NFS kapsamda mı) → `rhel-aide/aide-ozet.py` (komut → ansible -m raw → özet)
 - rapor dosyası (CSV → HTML/XLSX) → betiğin `--csv` çıktısı + `rapor/tablo-cevir.py` — değerleri koda elle yazma
+- PDF rapor → içerik `.md` + `rapor/pdf-rapor.py --tek-sayfa` — fpdf2 koordinatı elle yazma
 - kurum belgesini okuma (Excel, Word, PowerPoint, PDF, OneNote dışa aktarımı) → `belge-oku/belge-oku.py` (yer bilgili metin)
 - aynı envanter bilgisi birden çok yerde (ENVANTER.md ↔ ansible INI) → `git/envanter-fark.py`
 - dosyalardan yeni INI derleme (ör. depodaki `KTBULUT-*` listeleri → `hosts-<ad>.ini`) → satırları Write/Edit ile **elle yazma**

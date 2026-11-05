@@ -123,6 +123,16 @@ kurulu değil** ve hiçbir Python PDF kütüphanesi yok. HTML üretip tarayıcı
 yazdırmak çoğu ihtiyacı bağımlılıksız karşılar. Kullanıcı gerçekten dosya
 istiyorsa **B. Excel ve PDF** bölümüne geç.
 
+Kullanıcı "pdf olsun" diye ısrar ederse (saha 2026-11-05) HTML'i yine üret ama
+**PDF'e giden yolu tek seferde ve tam ver**, "tarayıcıda açın" deyip bırakma:
+1) dosyanın tam yolu · 2) MobaXterm sol SFTP panelinden o yola git, dosyayı
+Windows'a sürükle · 3) Edge'de aç → `Ctrl+P` → Yazıcı: *PDF olarak kaydet* →
+*Diğer ayarlar* → *Arka plan grafikleri* işaretli → Kaydet. Türkçe karakter
+sorunu olmaz (`<meta charset="utf-8">`). HTML'e yazdırma CSS'i koy:
+`@media print { body { margin: 0 } table, pre { page-break-inside: avoid } }`
+ve A4 için `@page { size: A4; margin: 15mm }`. Sunucuya PDF aracı kurmak
+(`fpdf2` + bağımlılıkları) değişikliktir — ayrı onay.
+
 Bağımlılık gerektiren bir biçim istendiğinde **önce kurulu mu bak**:
 
 ```bash

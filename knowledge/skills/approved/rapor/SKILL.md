@@ -99,8 +99,17 @@ patch`, `systemctl restart` …) ayrı listelenir — "yapılan değişiklikler"
   node'da `/var/lib/rancher/rke2/bin/crictl --runtime-endpoint unix:///run/k3s/containerd/containerd.sock ps -a | grep <pod>` boş —
   ya da "eski konteynerin durduğu doğrulanmadı" satırı. "Force delete ile düzeltildi" tek başına kök neden değil, belirtiyi kaldırır.
 
-Biçim: HTML (§A, "HTML — bağımlılıksız ve yazdırılabilir") — başlık, tarih, hazırlayan, alıcı; tablolar betik/çıktı değerleriyle. Dosya
-çalışma dizinine (`olay-<uygulama>-<tarih>.html`); var olanın üstüne yazma.
+Biçim: HTML (§A, "HTML — bağımlılıksız ve yazdırılabilir") — başlık, tarih, hazırlayan, alıcı; tablolar betik/çıktı değerleriyle.
+PDF istenirse önce `python3 -c 'import fpdf'` — kuruluysa aynı içerikten doğrudan PDF (§B, Türkçe font `find /usr/share/fonts -name
+'*.ttf'` ile bulunur); kurulu değilse HTML + yazdırma yolu. `pip install` değişikliktir (onay; tercihen `python3 -m venv`), sistem
+python'una root ile kurma uyarısı ciddiye alınır. Saha 2026-11-05: yönetim sunucusunda fpdf2 kurulup PDF doğrudan üretildi.
+
+**Dizin ve ad (Alp kararı, 2026-11-05)** — çalışma dizini altında:
+- rapor (küme/uygulama/olay — ansible'la ilgisi yok): `cikti/rapor/<küme>_<uygulama>-<tür>-<YYYYMMDD>.{pdf,html}`
+  ör. `cikti/rapor/<küme>_<uygulama>-olay-20261105.pdf`; aynı adın HTML'i ve PDF'i yan yana.
+- ansible çıktısı (tree, filo): `cikti/filo/<etiket>/` (AGENTS); playbook/envanter `ansible/` altında.
+- `<küme>` ve `<uygulama>` çıktıdaki adlarla (Rancher küme adı, namespace/deployment) — uydurma kısaltma yok. `<tür>`: olay · durum ·
+  kapasite · kurulum · yukseltme (listede yoksa kullanıcıya sor). Var olanın üstüne yazma; yeniden adlandırma (`mv`) onaylı.
 
 ## A. Biçim, CSV, HTML
 

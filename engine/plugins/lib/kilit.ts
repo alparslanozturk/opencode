@@ -1186,6 +1186,20 @@ export const YEREL_KAYIT_BETIGI = new Set(
     return ["/root/ai/opencode/knowledge/skills/approved/" + x, join(home, ".config", "opencode", "skills", x), "~/.config/opencode/skills/" + x]
   }),
 )
+// Kurulu beceri kopyasındaki (~/.config/opencode/skills/<x>) dosya YAZAN betikler: `python3 <yol>` ile çalıştırmak K6 değildir — betik kopyası
+// değişmez, yazdığı yer argümandır (o yol ayrıca K6'dan geçer); onay ekranı normal sorar. Saha 2026-11-05: pdf-rapor.py kurulu
+// yoldan K6'ya takıldı, ajan betiği /tmp'ye kopyalayıp çalıştırdı.
+export const YAZAN_BECERI_BETIKLERI = ["rapor/pdf-rapor.py", "rapor/is-kaydi.py"]
+export function beceriBetikYolunuSil(metin: string): string {
+  const home = userInfo().homedir
+  const cfg = process.env.XDG_CONFIG_HOME ? join(process.env.XDG_CONFIG_HOME, "opencode") : join(home, ".config", "opencode")
+  let m = metin
+  for (const x of [...OKUYAN_BETIKLER, ...YAZAN_BECERI_BETIKLERI])
+    for (const y of [join(cfg, "skills", x), "~/.config/opencode/skills/" + x, "$HOME/.config/opencode/skills/" + x])
+      m = m.replace(new RegExp("((?:^|[\\s;&|(/])python3?\\s+)" + y.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?=\\s|$)", "g"), "$1<beceri-betigi>")
+  return m
+}
+
 export function yerelKayitBetigi(argv: string[]): boolean {
   return ["python", "python3"].includes((argv[0] ?? "").split("/").pop() ?? "") && YEREL_KAYIT_BETIGI.has(argv[1] ?? "")
 }
@@ -1961,7 +1975,7 @@ export function kilitDenetle(
       yalnizOkur = false
     }
     // kesin salt-okunur komut (ssh içi dahil) korunan alanı okuyabilir — ör. kurulu beceri betiğini çalıştırmak (saha G121)
-    const k6 = yalnizOkur || kesinOkuma(args.command, workdir) ? null : korunanMetin(args.command)
+    const k6 = yalnizOkur || kesinOkuma(args.command, workdir) ? null : korunanMetin(beceriBetikYolunuSil(args.command))
     if (k6)
       return {
         kilit: "K6",

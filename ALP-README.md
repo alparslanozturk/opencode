@@ -63,6 +63,9 @@ Kaynak: `packages/tui/src/config/keybind.ts` (lider tuşu `ctrl+x`) ve `packages
 - **Mesajlarda kaydırma** (opencode varsayılanı — opencode.ai/docs/keybinds; fare kapalı olduğu için tekerlek çalışmaz):
   satır satır `ctrl+alt+y` (yukarı) / `ctrl+alt+e` (aşağı) · yarım sayfa `ctrl+alt+u` / `ctrl+alt+d` · sayfa `PageUp` / `PageDown`
   · en başa `Home` · en sona `End`. `shift+↑/↓` istem kutusunda seçim yapar, kaydırmaz.
+- **Fare tekerleğiyle kaydırma:** `opencode` yerine **`ocm`** aç (= `opencode mini`). Çıktı terminalin kendi kaydırma
+  arabelleğine yazılır; tekerlek ve seçip kopyalama terminalde çalışır. Kenar çubuğu/sekme yok; menü `ctrl+p`, komutlar `/`.
+  MobaXterm'de henüz denenmedi (2026-11-10).
 
 ## Kurum git'i (Azure DevOps) — giriş: `./git-giris.sh`
 

@@ -541,6 +541,23 @@ kisayol_kur() { # <ad>
   fi
 }
 
+# `ocm` = `opencode mini`: sarmalayıcı betik (symlink değil — alt komut eklemek gerekir). Tek sahibi burasıdır;
+# bizim yazmadığımız bir `ocm` varsa yedeklenir.
+mini_kisayol_kur() {
+  local baglanti="$HEDEF_DIZIN/ocm" isaret="# kur.sh: ocm" yedek
+  if [ -e "$baglanti" ] || [ -L "$baglanti" ]; then
+    if ! grep -qF "$isaret" "$baglanti" 2>/dev/null; then
+      yedek="$baglanti.bak-$(date +%Y%m%d-%H%M%S)"
+      mv "$baglanti" "$yedek"
+      sari "  'ocm' başka bir dosyaydı → yedeklendi: $yedek"
+    fi
+  fi
+  printf '%s\n' '#!/bin/sh' "$isaret (opencode mini — çıktı terminalin kaydırma arabelleğinde; tekerlek ve seçim terminalde)" \
+    "exec \"$BENIM\" mini \"\$@\"" > "$baglanti"
+  chmod 755 "$baglanti"
+  yesil "  kısayol kuruldu: $baglanti → $BENIM mini"
+}
+
 # ---------------------------------------------------------------------------
 #  T3 — çıktı (output) sınırını uçtan öğren.
 #
@@ -1039,6 +1056,36 @@ PY
     esac
   fi
 
+  # Fare tekerleği (Alp isteği 2026-11-10): `ocm` = `opencode mini` — upstream'in ana ekrana yazan arayüzü
+  # (packages/tui/src/mini/runtime.lifecycle.ts: screenMode "split-footer", useMouse false). Çıktı terminalin
+  # kendi kaydırma arabelleğine düşer → tekerlek ve seçim/kopyalama terminalde (Claude Code gibi). Fork yaması
+  # yok. mini varsayılanı araç çağrılarını gizler (mini/verbosity.ts "default": tools hide); komutlar görünsün
+  # diye yalnız "mini" anahtarı HİÇ yoksa tools:show yazılır — kullanıcı ayarı ezilmez.
+  local mini_sonuc
+  mini_sonuc="$("$PY" - "$HOME/.config/opencode/cli.json" << 'PY' 2> /dev/null
+import json, os, sys
+yol = sys.argv[1]
+d = {}
+if os.path.exists(yol):
+    try:
+        d = json.load(open(yol, encoding="utf-8"))
+    except Exception:
+        print("bozuk"); sys.exit(0)
+    if not isinstance(d, dict):
+        print("bozuk"); sys.exit(0)
+if "mini" in d:
+    print("korundu"); sys.exit(0)
+d["mini"] = {"tools": "show"}
+json.dump(d, open(yol, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+print("yazildi")
+PY
+)"
+  case "$mini_sonuc" in
+    yazildi) yesil "  mini: ~/.config/opencode/cli.json → mini.tools: show (ocm araç çağrılarını gösterir)" ;;
+    korundu) yesil "  mini: cli.json'da mini ayarı var — dokunulmadı" ;;
+    *) sari "  ! cli.json okunamadı — mini ayarı yazılmadı" ;;
+  esac
+
   # T3 künyesi: değerin NEREDEN geldiği (uç alanı / probe / env / varsayılan).
   # opencode.json'a şema dışı alan eklemiyoruz; kaynak bilgisi ayrı dosyada durur
   # ve yalnız kontrol raporunun "cikti: N (kaynak)" parantezini beslemek için var.
@@ -1123,6 +1170,7 @@ PY
 
   kisayol_kur opencode
   kisayol_kur oc
+  mini_kisayol_kur
 
   case ":$PATH:" in
     *":$HEDEF_DIZIN:"*) ;;
@@ -1146,6 +1194,7 @@ PY
   fi
   yesil "  kuruldu  : $HOME/.opencode/bin/opencode · ayar $HOME/.config/opencode/ · kısayol $HEDEF_DIZIN/opencode (oc)"
   echo  "  çalıştır : cd <veri/proje dizini> && opencode     (kısa ad: oc)"
+  echo  "  tekerlek : cd <veri/proje dizini> && ocm          (fare tekerleğiyle kaydırma + terminalde seçim; = opencode mini)"
   echo  "  Model otomatik seçili: kurum / Qwen3.6-35B-A3B-FP8 (/models ile değiştirilebilir)."
   sari "  NOT: opencode'u VERİNİN OLDUĞU dizinde aç (ör: cd ~/ansible && opencode) — dışarı çıkmak izin kapısı açar."
 

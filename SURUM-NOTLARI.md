@@ -6,6 +6,17 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-10 — `ocm`: fare tekerleğiyle kaydırma (dal `feature/fare-tekerlegi`)
+
+Sahada: `git pull && ./kur.sh`, sonra `cd <dizin> && ocm`. İkili değişmez (yeniden derleme yok).
+- `ocm` = `opencode mini`: upstream'in ana ekrana yazan arayüzü (`packages/tui/src/mini/`). Çıktı terminalin kaydırma arabelleğine
+  düşer → tekerlek ve seçim/kopyalama terminalde. Fork yaması yok; upstream güncellemesiyle kendiliğinden gelir.
+- Yerel ölçüm (v3.0.0 ikili, tmux, sahte uç): 200 satırlık komut çıktısının 200'ü kaydırma arabelleğinde; ham çıktıda alt ekran
+  (`ESC[?1049h`) ve fare izleme (`ESC[?1000h/1002h/1003h/1006h`) dizisi 0 (tam TUI'de `1049h` 1). İzin ekranı, `guvenlik-v2`
+  eklentisi ve `/kaydet` mini'de çalıştı. **MobaXterm'de denenmedi** — ilk saha denemesi bekleniyor.
+- `cli.json`'a `mini.tools: show` (yalnız `mini` anahtarı hiç yoksa; mini varsayılanı araç çağrılarını gizler).
+- `opencode` / `oc` değişmedi (tam ekran arayüz, fare kapalı — A22).
+
 ## 2026-11-04 — `rhel-aide` (dosya bütünlüğü) + `rhel-cis` Satellite döngüsü
 
 Sahada: `git pull && ./kur.sh`, **yeni oturum**. Örnek istek: "AIDE hangi sunucularda kurulu, NFS'i tarar mı?".

@@ -1,6 +1,6 @@
 #!/bin/bash
 # uzak-topla.sh — buradan erişemediğimiz ortamda (ör. başka ortamın Satellite / ansible makinesi) KULLANICI çalıştırır. Envanterdeki
-# sunuculardan yalnız okuyarak host bilgisi toplar, tek .tgz verir; .tgz spllnxmgmt01'e getirilip uzak-ozet.py ile incelenir.
+# sunuculardan yalnız okuyarak host bilgisi toplar, tek .tgz verir; .tgz yönetim makinesine getirilip uzak-ozet.py ile incelenir.
 # Alp (2026-11-04): "erişemezsek orada çalıştırıp oradaki bilgiyi alıp sana verebilirim."
 # Hedefte hiçbir şey değişmez: -m raw ile yalnız okuma komutları (hedefte python gerekmez). Yazdığı tek yer: çalışılan dizinde
 # uzak-<ortam>-<tarih>/ ve .tgz'si. Uzak makinede kit gerekmez — yalnız bash + ansible.
@@ -51,4 +51,4 @@ echo "$sayi sunucu taranıyor ($grup) — erişilemeyen sunucu başına en çok 
 ansible "$grup" -i "$env" -m raw -a "$BILGI" -f 30 -T 5 --task-timeout 30 -t "$d/bilgi" > "$d/ansible.log" 2>&1
 echo "tree=$(ls "$d/bilgi" 2>/dev/null | wc -l) dosya" >> "$d/meta.txt"
 tar czf "$d.tgz" "$d" || exit 2
-echo "hazır: $(pwd)/$d.tgz ($(du -h "$d.tgz" | cut -f1)) — bu dosyayı spllnxmgmt01'e getir (scp / MobaXterm)"
+echo "hazır: $(pwd)/$d.tgz ($(du -h "$d.tgz" | cut -f1)) — bu dosyayı yönetim makinesine (opencode'un çalıştığı yer) getir (scp / MobaXterm)"

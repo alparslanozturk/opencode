@@ -10,6 +10,9 @@ Bir bayraktan emin değilsen önce `--help` / `nvidia-smi --help-query-gpu` çı
 Kaynak etiketi: **(Alp)** = kurum bilgisi · **(genel)** = NVIDIA/vLLM/Kubernetes genel bilgisi, sahada
 doğrulanmadı — raporda "öneri" olarak yaz, "kural" olarak değil.
 
+**Ek dosya** (§0 tarihli saha kayıtları; §4–§6 komutları): `/root/ai/opencode/knowledge/skills/approved/rke2-gpu/gpu-node.md` —
+"ek dosya" denen yerde o katmana gelince **önce o bölümü oku**.
+
 ### Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
 
 1. **Küme:** `gpu-dtx` mi, `gpu-prod` mu — `gpu-prod` yalnız açıkça istenirse (§0).
@@ -27,27 +30,20 @@ Sorma: GPU sayısı ve dağılımı, sürücü, pod limitleri, shm, depolama —
   - `gpu-prod` — prod Rancher'ın (`rke-prod.<kurum>`) altında; **3 fiziksel H200** worker.
   - `gpu-dtx` — nonprod Rancher'ın (`rke-nonprod.<kurum>`) altında (dev/test/prep = `d`/`t`/`x`); **1 fiziksel H200**
     (`h200w1`) + **L40S'li VM worker'lar** (VMware sanallaştırması).
-  - `gpu-dtx` node'ları (saha `get nodes -o wide`, 2026-10-15): `sdlgpumaster1-3` (control-plane), `sdlgpuworker1-3`
-    (rol etiketi `runai-system`, **GPU etiketi yok** — L40S bunlarda mı `[SAHA]`), `sdlgpuh200w1` (rol `runai-system`,
-    `NVIDIA-H200` × 8). H200 node'u o gün **RKE2 v1.32.6 / RHEL 9.4 / containerd 2.0.5**, diğerleri v1.33.13 / 9.6 / 2.2.5
-    — sapmayı her incelemede yeniden oku (`rke2-denetim` §1); 9.4 bilinçli olabilir (Satellite'ta 9.4 CV'si var, Alp).
+  - `gpu-dtx` node'ları: 3 master (`gpumaster1-3`) + 3 VM worker (`gpuworker1-3`, rol `runai-system`; L40S bunlarda mı `[SAHA]`) + fiziksel
+    `h200w1` (`NVIDIA-H200` × 8). H200 node'unun RKE2/RHEL/containerd sürümü diğerlerinden **farklıydı** (2026-10-15 kaydı ve donanım:
+    ek dosya §0) — sapmayı her incelemede yeniden oku (`rke2-denetim` §1); 9.4 bilinçli olabilir (Satellite'ta 9.4 CV'si var, Alp).
   - **Şimdilik yalnız `gpu-dtx` incelenir** (Alp, 2026-10-14). `gpu-prod`'a Alp açıkça istemedikçe komut çalıştırma.
 - Worker'lar (H200 fiziksel ve L40S VM'ler) RKE2 kümesinin worker node'larıdır — **ikisi de denetim kapsamında.** VM
   worker'da ayrıca hipervizör etkisine bak (`rhel-performans` §3 `%steal`) ve GPU'nun VM'e nasıl verildiğini
   (`nvidia-smi -q` ürün/sanallaştırma alanları) yaz.
 - B300 yakında gelecek. NVIDIA GPU Operator iki kümede de çalışıyor. H200 host'unda (RHEL 9) `nvidia-smi` çalışıyor.
-- `sdlgpuh200w1` donanımı (saha, 2026-10-15): 2 × AMD EPYC 9575F (256 iş parçacığı, NUMA 0: GPU0-3, NUMA 1: GPU4-7),
-  RAM **2266 GiB** (`free -g`), 8 × H200 SXM — NVSwitch, `topo -m` hepsi `NV18`, Fabric `Completed/Success`; sürücü
-  580.82.07, CUDA 13.0; `tuned` kurulu değil; THP `always`.
 - `/models`: host'ta NVMe RAID10 (+2 yedek) → LVM → xfs, ~10 TB; **yazılabilir** — modelleri ekip NFS ya da scp ile
-  kopyalıyor. Ayrıntı: 16 × 1.7 TB NVMe, 12'si yazılım RAID10 (mdadm), 2'si yedek — `rhel-depolama` A §8; LV düzeni
-  (`rke2-node-ekle` "Elle worker ekleme" planı). **Sahada (2026-10-15):** `/dev/mapper/vg_models-lv_models` → `/models`,
-  xfs, 13T (900G dolu), seçenek `relatime` (`noatime` değil) — planla fark varsa yaz, değiştirme.
+  kopyalıyor. Disk düzeni ve saha ölçüsü: ek dosya §0; RAID sağlığı `rhel-depolama` A §8.
 - **vLLM pod'ları modelleri hostPath `/models` ile okur — bilinçli kurum kararı, "kötü uygulama" diye bulgu yazma:** eskiden
   `nfs-sc` StorageClass kullanılıyordu; blok StorageClass yok, Longhorn kurulu değil ve tercih edilmiyor → tek seçenek hostPath;
-  model açılışı ~45 dk'dan saniyeler düzeyine indi. **Geçiş sürüyor (saha 2026-10-15, gpu-dtx):** `runai-inference` pod'ları
-  hostPath `/models` (readOnly), `vllm` namespace pod'ları hâlâ **NFS PVC** (`nfs-sc`, ör. `vllm-qwen3-235b-fp8-storage-claim` 250Gi)
-  — DevOps tarafında; kalan PVC tanımları eski, bulgu değil, yalnız "geçiş durumu" olarak yaz (Alp).
+  model açılışı ~45 dk'dan saniyeler düzeyine indi. **Geçiş sürüyor:** `vllm` namespace pod'larında hâlâ
+  **NFS PVC** (`nfs-sc`) görülebilir — DevOps tarafında; bulgu değil, yalnız "geçiş durumu" olarak yaz (Alp; saha kaydı ek dosya §0).
 - vLLM deployment'ları fiziksel H200'e sabitleniyor; yöntem (nodeSelector mı taint/toleration mı) `[SAHA]` — §1/§3'te
   bul ve yaz.
 - **opencode'un kendi modeli (kurum Qwen) `gpu-dtx`'te vLLM ile çalışıyor** (Alp; saha 2026-10-15): ns `runai-inference`,
@@ -55,24 +51,15 @@ Sorma: GPU sayısı ve dağılımı, sürücü, pod limitleri, shm, depolama —
   `/models/models--Qwen--Qwen36-35B-A3B-FP8`). **Kesinlikle dokunma** — yeniden başlarsa ajan işin ortasında cevapsız
   kalır. vLLM parametrelerini (`--max-model-len`, `--max-num-seqs`, `--gpu-memory-utilization`) ve Run:ai ayırmasını
   yaz; opencode tarafındaki değerler `./kur.sh kontrol` "ayar" satırında (bağlam / çıktı) ya da opencode `env`'inde.
-- **opencode modeli ↔ model kartı (Qwen3.6-35B-A3B-FP8, Hugging Face model kartı, okundu 2026-10-26):** kart
-  `vllm>=0.19.0` ister; önerilen bayraklar `--reasoning-parser qwen3`, araç çağrısı için `--enable-auto-tool-choice
-  --tool-call-parser qwen3_coder`; isteğe bağlı `--language-model-only` (görüntü kodlayıcısı yüklenmez, KV-cache'e yer —
-  opencode yalnız metin), MTP `--speculative-config '{"method":"qwen3_next_mtp","num_speculative_tokens":2}'`; bağlam
-  en az 128K tutulmalı (düşünme için). Saha: `--max-model-len 262144`, `--gpu-memory-utilization 0.92`, `--max-num-seqs 16`
-  (G52); imaj sürümü ve parser bayrakları bu pod için **bilinmiyor** — pod `image` ve `args`'tan oku, karttan düşükse
-  "model kartı altı" diye yaz (kural değil, DevOps'a öneri). Örnekleme opencode tarafında: `engine/opencode.json` model
-  `options` (0.6 / 0.95 / 20 / presence 0 — kartın "kod" satırı); vLLM'e dokunmaz.
-- **Run:ai kurulu (saha 2026-10-15, doğrulandı; kurum Qwen ucunun adı da `runai.gpudtx.<kurum>`):** h200w1'de `runai-inference`
-  pod'ları (qwen36-35b, qwen3-14b, qwen3-32b-vlm, qwen3-4b-embd) + `runai-reservation` ns'te 2 `gpu-reservation-<node>-…` pod'u +
-  `vllm` ns'te 2 deployment (qwen3-235b: 2 GPU, qwen35-397b: 3 GPU). İş yükleri Run:ai üzerinden zamanlanır (proje kotası, kesirli
-  GPU) → §3'teki `nvidia.com/gpu` limiti tek kaynak değil: kesirli ayırma limitte **görünmez** — pod annotation'larında:
-  `runai-allocated-gpus` (ör. "0.35"), `runai-allocated-gpu-memory` (MiB), `runai-nodepools`; CPU/RAM isteği
-  `--cpu-core-request/limit`, `--cpu-memory-request/limit` (bir pod'da `limit 8Gi` görüldü — hangi pod olduğunu `-o jsonpath` ile
-  pod adıyla birlikte al, `grep -A` ile birden çok pod'u karıştırma). `-00001-deployment` adı Knative revizyonu olabilir (tahmin).
-  Kesirli pod'lar aynı fiziksel GPU'yu paylaşır → gecikmeyi o GPU'daki diğer modellerle birlikte değerlendir. Run:ai nesnelerini de
-  listele, yorumu kullanıcıya sor. Başka kümede var mı: `kubectl get ns | grep -i runai`. Sürüm/sağlık, rezervasyon pod'ları,
-  Run:ai ↔ K8s ↔ GPU Operator matrisi → `rke2-runai` (`uyum.py kontrol --rke2 … --gpu-operator … --runai … --gpu H200,L40S`).
+- **opencode modeli ↔ model kartı** (önerilen vLLM sürümü/bayrakları ile sahadaki değerlerin karşılaştırması): ek dosya §0. Pod `image`
+  ve `args`'tan oku; karttan düşükse "model kartı altı" diye yaz (kural değil, DevOps'a öneri).
+- **Run:ai kurulu (saha 2026-10-15, doğrulandı):** iş yükleri Run:ai üzerinden zamanlanır (proje kotası, kesirli GPU) → §3'teki
+  `nvidia.com/gpu` limiti tek kaynak değil: kesirli ayırma limitte **görünmez** — pod annotation'larında: `runai-allocated-gpus`
+  (ör. "0.35"), `runai-allocated-gpu-memory` (MiB), `runai-nodepools`. Değeri **pod adıyla** birlikte al (`gpu-dagilim.py`; `grep -A`
+  ile birden çok pod'u karıştırma). Kesirli pod'lar aynı fiziksel GPU'yu paylaşır → gecikmeyi o GPU'daki diğer modellerle birlikte
+  değerlendir. Run:ai nesnelerini de listele, yorumu kullanıcıya sor. Başka kümede var mı: `kubectl get ns | grep -i runai`. Saha pod
+  listesi: ek dosya §0. Sürüm/sağlık, rezervasyon pod'ları, Run:ai ↔ K8s ↔ GPU Operator matrisi → `rke2-runai`
+  (`uyum.py kontrol --rke2 … --gpu-operator … --runai … --gpu H200,L40S`).
 - Geçmişte vLLM pod'ları **OOMKilled** oldu; `/dev/shm` boyutu (8 GB olabilir) ve pod bellek limiti belirsiz — §3'te
   mutlaka incele.
 - OS ayarı örneği (Alp): `/tmp`'nin inode sayısı artırılıyor — kurumun hedef değeri `[SAHA]`.
@@ -126,16 +113,12 @@ kubectl describe node <gpu-node> | sed -n '/Taints/,/Events/p'   # taint, Alloca
 - **Sürümler kümeden okunur, tahmin edilmez; sapma ilk bulgu:** `get nodes -o wide`'daki VERSION (`v1.xx.y+rke2rN`) / OS-IMAGE /
   KERNEL-VERSION / CONTAINER-RUNTIME sütunlarında GPU node'u diğerlerinden farklıysa ilk özete yaz (`rke2-denetim` §1). Rancher →
   `kubectl -n cattle-system get deploy cattle-cluster-agent -o jsonpath='{.spec.template.spec.containers[0].image}'` (ajan imaj
-  etiketi, genel). Nonprod Rancher ekranı (2026-10-15): Rancher v2.14.3, `gpu-dtx` v1.33.13+rke2r1 — yine de okunan değeri yaz.
+  etiketi, genel).
   Uyumluluk yorumu yalnız `surum-uyum`'daki veri tablosundan.
-- **Üretici matrisi — NVIDIA GPU Operator "Platform Support"** (sürüme özel sayfa:
-  `docs.nvidia.com/datacenter/cloud-native/gpu-operator/<minor>/platform-support.html`; operator sürümünü kümeden oku). **v25.3.4**
-  (indirme 2026-10-24, `uyum.py --gpu-operator`): RKE2 **1.29–1.33** ve Kubernetes 1.29–1.33 · RHEL **9.2, 9.4, 9.5, 9.6** ve 8.8, 8.10 ·
-  GPU listesinde **HGX H200 / DGX H200 / H200, H200 NVL**, **HGX B300 yok** (25.10'dan itibaren var) · varsayılan sürücü **580.82.07** (D),
-  önerilen **580.126.16** (R — NVIDIA 2026-10-21'den sonra "recommended update" ekledi); tam sürücü listesi ve diğer operator sürümleri
-  **betikten** (`uyum.py kontrol --gpu-operator <v> --surucu <v> --gpu H200,B300`), buraya liste kopyalama; bilinen sorun: 570.124.06/570.133.20/
-  570.148.08/570.158.01 sürücülerinde MIG + tam GPU karışık node'da pod Pending (NVIDIA/gpu-operator#1361). Listede olmayan
-  (ör. RHEL 9.8, K8s 1.34) → "NVIDIA doğrulama listesinde yok — destek kapsamı dışı olabilir", çalışmaz demek değil.
+- **Üretici matrisi — NVIDIA GPU Operator "Platform Support"** (sürüme özel sayfa; operator sürümünü kümeden oku): RKE2/Kubernetes
+  aralığı, RHEL, GPU (H200/B300) ve sürücü listesi **yalnız betikten** — `uyum.py kontrol --gpu-operator <v> --surucu <v> --gpu H200,B300
+  --rke2 … --rhel …`; buraya liste kopyalama (v25.3.4 kaydı: ek dosya §0). Listede olmayan (ör. RHEL 9.8, K8s 1.34) → "NVIDIA doğrulama
+  listesinde yok — destek kapsamı dışı olabilir", çalışmaz demek değil.
 - `nvidia.com/gpu.*` etiketlerini GPU Feature Discovery koyar (genel). Etiket yoksa operator'ün GFD bileşenine bak (§2).
 - `Allocatable` içindeki `nvidia.com/gpu` sayısı = node'daki fiziksel GPU sayısı mı? Karşılaştır: node'da `nvidia-smi -L | wc -l`.
 - GPU node'unda taint var mı? Yoksa GPU'suz iş yükleri de oraya düşebilir — bulgu olarak yaz (genel).
@@ -162,7 +145,7 @@ Bakılacaklar:
 | MIG | `spec.mig.strategy`, node etiketi `nvidia.com/mig.config` | Bilinçli mi? Kullanıcıya sor |
 | DCGM | `spec.dcgmExporter.enabled` ve `spec.dcgm.enabled` **ayrı** alanlar | Metrik için bakılacak `dcgmExporter`; `dcgm.enabled: false` yalnız ayrı DCGM hostengine'in kapalı olduğunu söyler, "metrik yok" demek değildir (genel; saha G52) |
 | Validator | `kubectl logs -n <ns> <nvidia-operator-validator-…> --all-containers --tail=50` | hata yok (`Could not create symlink … file exists` uyarısı zararsız — genel) |
-| Restart | `get pods -n <ns> -o wide` RESTARTS sütunu; sebep: `describe pod` → `Last State`, `logs --previous` | Artmıyor. **OOM yalnız `Reason: OOMKilled` / `Exit Code: 137`** ise denir; `Reason: Error, Exit Code: 2` + loglarda `panic at …go:NN` = programın kendi hatası (Go panic) — "bellek limiti düşük" deme (saha G59). Saha 2026-10-15: `node-feature-discovery-worker` pod'ları 270-313 restart (27 günde), `master` 65 → sebebini bu kanıtla oku |
+| Restart | `get pods -n <ns> -o wide` RESTARTS sütunu; sebep: `describe pod` → `Last State`, `logs --previous` | Artmıyor. **OOM yalnız `Reason: OOMKilled` / `Exit Code: 137`** ise denir; `Reason: Error, Exit Code: 2` + loglarda `panic at …go:NN` = programın kendi hatası (Go panic) — "bellek limiti düşük" deme (saha G59). |
 
 Sürüm (operator, sürücü, CUDA) **tahmin edilmez** — pod imaj etiketinden ve `nvidia-smi` başlığından oku.
 
@@ -232,107 +215,20 @@ Her vLLM pod'u için (kanıt = yaml'daki alan):
 - **Restart sayısı ve son loglar:** `kubectl logs <pod> -n <ns> --tail=200 | grep -i -e error -e warn -e "out of memory" -e weights`
   — ağırlık yükleme süresini veren satır (`/models` hızı için §5).
 
-### 4. GPU node işletim sistemi (ssh, okuma)
+### 4–6. GPU node işletim sistemi · Depolama `/models` · Ölçüm → ek dosya
 
-**GPU ve sürücü:**
+Komutlar ve yorum satırları ek dosyada (§4 GPU/sürücü, Xid, CPU/bellek/NUMA, `/tmp` inode · §5 `/models` · §6 ölçüm) — o katmana
+gelince **önce oku**. Dosyayı okumadan da geçerli kurallar:
 
-```bash
-nvidia-smi                                   # sürücü/CUDA sürümü, GPU listesi, süreçler
-nvidia-smi --query-gpu=index,name,persistence_mode,temperature.gpu,power.draw,power.limit,clocks.sm,clocks.max.sm,memory.used,memory.total,ecc.errors.uncorrected.volatile.total,pcie.link.gen.current,pcie.link.gen.max,pcie.link.width.current --format=csv
-nvidia-smi -q -d PERFORMANCE                 # saat düşürme sebepleri (thermal, power, HW slowdown)
-nvidia-smi topo -m                           # GPU↔GPU bağlantısı (NV#), CPU/NUMA yakınlığı
-nvidia-smi -q | grep -i -A3 fabric           # NVSwitch'li kartta Fabric State
-journalctl -k --since -7d | grep -i -e xid -e nvrm | tail -30
-```
-
-- **Fabric Manager (genel):** NVSwitch'li 8 GPU'lu HGX kartta fabric manager çalışmıyorsa GPU'lar arası NVLink
-  kullanılamaz, CUDA başlatma hata verir. Sürücü host'taysa `systemctl status nvidia-fabricmanager` (sürümü sürücüyle
-  aynı olmalı); operator kuruyorsa driver pod'unun içinde çalışır. H200'ün kart tipi (SXM/HGX mi, PCIe mi) `[SAHA]` —
-  `nvidia-smi -q` ürün adı ve `topo -m`'den oku.
-- **XID → pod eşlemesi:** Xid satırındaki `PCI:0000:29:00` → `nvidia-smi --query-gpu=index,pci.bus_id --format=csv`
-  ile GPU numarası; o GPU'daki süreç `nvidia-smi --query-compute-apps=gpu_bus_id,pid,process_name --format=csv`;
-  pid → pod: `cat /proc/<pid>/cgroup` (pod UID) → `kubectl get pods -A -o custom-columns=NS:.metadata.namespace,AD:.metadata.name,UID:.metadata.uid | grep <uid>`.
-  Aynı GPU + aynı birimde (`GPCCLIENT_…`) tekrar eden Xid + `KGSP`/`nvAssert` satırı → donanım/sürücü olasılığını da
-  yaz, ama tek başına "GPU arızalı" deme (tahmin) — NVIDIA/sunucu üreticisi destek kaydı önerisi.
-- **Anlık güç/saat yorumlama:** tek okumadaki yüksek güç o anda iş yapan GPU demektir, "anormal" değildir —
-  `nvidia-smi dmon -s pucm -c 10` ile zaman içinde bak (§6).
-- **XID:** her XID bir sürücü/donanım olayıdır; kodu, tarihi, sayısı ve satırdaki `pid=…, name=…`'yi raporla. Diğer kodların
-  anlamını uydurma — kaynak: NVIDIA *XID Catalog* (`docs.nvidia.com/deploy/xid-errors/analyzing-xid-catalog.html`).
-- **Xid 31 (MMU fault) — NVIDIA'nın kendi akışı** (XID Catalog, `WORKFLOW_XID_31`, indirme 2026-10-21): "Typically these are
-  application-level bugs, but can also be driver bugs or hardware bugs." Ayırt etme: **aynı GPU'da (PCI-ID) tekrar eden** MMU
-  fault → `RUN_DCGMEUD` (olası donanım; geçerse field diag) · **farklı GPU'larda** tekrar → uygulama/CUDA (`CHECK_APP`) · tek
-  seferlik → uygulama. Önerilen uygulama araçları: Compute Sanitizer memcheck, `CUDA_DEVICE_WAITS_ON_EXCEPTION=1` + cuda-gdb.
-  **Tuzak (saha G77, gpu-dtx GPU1 = `29:00`):** "hep aynı GPU" kalıbı, o GPU'ya **hep aynı iş yükü** düşüyorsa uygulama hatasını da
-  aynı biçimde gösterir. Yazmadan önce her Xid satırındaki pid'i o saatteki pod/modelle eşle (pid kısa ömürlü — Xid zamanındaki
-  `journalctl` satırıyla vLLM pod'unun yeniden başlama zamanını karşılaştır: `kubectl get pod <p> -o jsonpath='{.status.containerStatuses[0].lastState.terminated}'`).
-  - Hepsi aynı model/pod ve o pod hep GPU1'de → "uygulama mı donanım mı **ayırt edilemedi** — aynı model başka GPU'da çalışırsa
-    belli olur" (tahmin). Farklı modeller GPU1'de aynı hatayı veriyorsa → donanım olasılığı güçlenir (yine tahmin).
-  - Kanıt sırası: ECC/row remap (`nvidia-smi -q -d ECC,ROW_REMAPPER`, `retired pages`) → aynı dönemde başka Xid (48/63/64/79/94/95)
-    → DCGM tanı (`dcgmi diag -r 3` — **GPU'yu meşgul eder, iş yükünü etkiler**: değişiklik sayılır, bakım penceresi + kullanıcı onayı).
-  - "Donanım sorunu ihtimalini güçlendirir" gibi bir cümle yalnız yukarıdaki ayırt etme yapıldıysa; yoksa "olabilir" + eksik kanıt.
-- **ECC uncorrected > 0**, sürekli düşük saat, `power.limit` beklenenden düşük → bulgu.
-- **PCIe:** boşta `gen.current` güç tasarrufuyla düşer (genel) — karşılaştırmayı **yük altında** yap.
-
-**CPU / bellek / çekirdek:**
-
-```bash
-tuned-adm active
-cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_driver /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>&1
-cpupower frequency-info -p 2>/dev/null
-lscpu | grep -i -e numa -e 'model name' -e '^cpu(s)'
-free -g; swapon --show                       # RKE2 için swap kapalı olmalı (`rke2-kurulum`)
-cat /sys/kernel/mm/transparent_hugepage/enabled
-cat /proc/cmdline                            # iommu, isolcpus, hugepages gibi açılış parametreleri
-grep -i -e kubelet-arg -A15 /etc/rancher/rke2/config.yaml
-cat /var/lib/kubelet/cpu_manager_state 2>/dev/null
-```
-
-- **Frekans yöneticisini yalnız `scaling_governor` dosyasından yaz.** `lscpu` bayrağındaki `nonstop_tsc` yönetici değildir;
-  `CPU(s) scaling MHz: 69%` frekansın değiştiğini gösterir, "scaling yok" demez (saha G52).
-- `tuned` profili, CPU frekans yöneticisi (`performance` mı `powersave` mı), THP: değeri **raporla**; kurum hedef
-  değeri `[SAHA]` — tek başına "yanlış" deme, kullanıcıya hedefi sor.
-- **NUMA (genel):** `topo -m`'deki CPU yakınlığı ile pod'un çalıştığı CPU'lar örtüşüyor mu? kubelet
-  `cpu-manager-policy=static` + `topology-manager-policy` (`kubelet-arg`) yoksa pod CPU'ları GPU'ya uzak NUMA'ya düşebilir
-  — öneri olarak yaz; değiştirmek kubelet yeniden başlatması ister (onay ekranı).
-
-**`/tmp` ve inode (Alp):**
-
-```bash
-findmnt /tmp; df -h /tmp; df -i /tmp
-```
-
-`IUse%` ve toplam inode'u yaz; kurumun hedef değeri `[SAHA]`. Ayrıca pod'ların cache/geçici dizinleri hostPath ile
-host'a bağlıysa (`kubectl get pod -o yaml` → `volumes`) o dizinin `df -i`'sine de bak.
-
-### 5. Depolama `/models`
-
-RAID ve NVMe sağlığı → **`rhel-depolama` A §8** (mdstat, `mdadm --detail`, yedek sayısı, `nvme smart-log`). Burada ek olarak:
-
-```bash
-findmnt /models                              # kaynak lv_models mi, seçenekler (noatime)
-df -h /models; df -i /models
-lvs -o +devices; vgs
-xfs_info /models
-mdadm --detail /dev/md<N> | grep -i -e level -e layout -e chunk -e 'array size'
-```
-
-- **Okuma hızı:** tek ölçü vLLM'in kendi logundaki ağırlık yükleme süresi (§3). `fio` / `dd` / benchmark **yok**
-  (canlı ortam, Alp).
-- Kaç model var: `ls /models | head -50` yeterli; `du` büyük dizinde disk okuması yapar, çalıştırma.
-
-### 6. Ölçüm (yük altında)
-
-Boştaki node "iyi" görünür; darboğaz istek varken çıkar.
-
-- **DCGM exporter** (operator'ün parçası) metrikleri Prometheus/Rancher Monitoring'de olabilir — var mı `[SAHA]`.
-  `nvidia-smi`'deki GPU kullanım % yalnız "bir kernel çalışıyordu" demektir, doygunluk değildir (genel); varsa
-  DCGM'in `PROF` metriklerine bak.
-- **vLLM `/metrics`:** çalışan/bekleyen istek sayısı, KV-cache doluluğu. Metrik adları sürüme göre değişir — adları
-  ezberden yazma, `curl -s http://<pod-ip>:<port>/metrics | grep -i -e running -e waiting -e cache` çıktısından oku.
-- Anlık tur: `nvidia-smi dmon -s pucm -c 10` (10 örnek; güç, kullanım, saat, bellek) + aynı anda `rhel-sorun`
-  CPU kısıtlaması ölçümü.
-- Bekleyen istek kuyruğu büyürken GPU kullanımı düşükse darboğaz GPU dışında (CPU kısıtlaması, tokenizer, ağ) —
-  "GPU yetmiyor" demeden önce bunu ayır.
+- **Xid:** kodu, tarihi, sayısı ve satırdaki `pid=…, name=…`'yi raporla; pid'i o saatteki pod/modelle eşlemeden "GPU arızalı" deme.
+  "Hep aynı GPU" kalıbı, o GPU'ya hep aynı iş yükü düşüyorsa uygulama hatasını da aynı biçimde gösterir (saha G77). Kodun anlamını
+  uydurma — kaynak NVIDIA *XID Catalog*.
+- `dcgmi diag` GPU'yu meşgul eder → **değişiklik** sayılır (bakım penceresi + kullanıcı onayı).
+- Frekans yöneticisini yalnız `scaling_governor` dosyasından yaz (saha G52). `tuned`, governor, THP: değeri raporla; kurum hedefi
+  `[SAHA]` — tek başına "yanlış" deme.
+- `/models`: `fio` / `dd` / benchmark **yok**, `du` çalıştırma; okuma hızının tek ölçüsü vLLM logundaki ağırlık yükleme süresi (§3).
+- Ölçüm: `nvidia-smi` GPU kullanım %'si doygunluk değildir; bekleyen istek büyürken GPU kullanımı düşükse darboğaz GPU dışında —
+  "GPU yetmiyor" demeden önce ayır. Metrik adlarını ezberden yazma.
 
 ### 7. Sonuç (ekrana — dosya/rapor üretme gerekmez, Alp)
 

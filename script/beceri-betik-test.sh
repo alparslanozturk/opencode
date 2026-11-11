@@ -917,12 +917,13 @@ icermez "tireli grup başlığı yok" ie1.txt "[os-upgrade-29107]"
 icerir "rakamla başlayan grup g_ önekli" ie2.txt "[g_29107_x]"
 
 # --------------------------------------------------------------------------- yazım denetimi
-baslik "Yazım denetimi (ad, açıklama ≤1024 ve etiketsiz, gövde <500 satır, anılan dosya, iş haritası, maskeleme, önce sor)"
+baslik "Yazım denetimi (ad, açıklama ≤1024 ve etiketsiz, gövde <500 satır, anılan dosya, ek dosya, iş haritası, maskeleme, önce sor)"
 if python3 "$KOK/script/beceri-yazim-denetim.py" "$KOK" > yazim.txt 2>&1; then gecti "$(grep '^BECERI=' yazim.txt)"; else kaldi "$(grep -E '^HATA|^BECERI=' yazim.txt | head -20)"; fi
 # denetim gerçekten yakalıyor mu: bozuk bir kopya üzerinde HATA vermeli
 mkdir -p yz/knowledge/skills/approved/ornek-beceri yz/engine
 printf -- '---\nname: baska-ad\ndescription: <sunucu> için kullan\n---\n# x\nsunucu 10.201.7.9, ad01.sirketim.local; bkz. approved/ornek-beceri/yok.py\n' > yz/knowledge/skills/approved/ornek-beceri/SKILL.md
 printf '## İş haritası\n| x | — | `baska` |\n' > yz/engine/AGENTS.md
+printf '# ek\n' > yz/knowledge/skills/approved/ornek-beceri/ayrinti.md
 python3 "$KOK/script/beceri-yazim-denetim.py" yz > yz.txt 2>&1; echo "rc=$?" >> yz.txt
 icerir "yazım: ad ≠ dizin" yz.txt "dizin adıyla aynı değil"
 icerir "yazım: açıklamada etiket" yz.txt "etiketi var"
@@ -931,6 +932,7 @@ icerir "yazım: haritada yok" yz.txt "iş haritasında geçmiyor"
 icerir "yazım: iç IP" yz.txt "iç IP maskelenmemiş: 10.201.7.9"
 icerir "yazım: alan adı" yz.txt "sirketim.local"
 icerir "yazım: önce sor yok" yz.txt '"Önce sor" bölümü yok'
+icerir "yazım: anılmayan ek dosya" yz.txt "ek dosya ayrinti.md SKILL.md'de anılmıyor"
 icerir "yazım: bozuk kopyada rc=1" yz.txt "rc=1"
 
 # Gövdesi büyük beceriler — bilgi, testi düşürmez. ("Önce sor" 2026-11-11'de 46/46 oldu → script/beceri-yazim-denetim.py'de zorunlu.)

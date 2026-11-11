@@ -10,6 +10,8 @@ Yalnız okur. Kurallar ve kaynakları:
   - SKILL.md'nin andığı beceri dosyası (approved/<beceri>/<dosya>, $B/<dosya>) yerinde                (kırık yönlendirme = saha hatası)
   - her beceri engine/AGENTS.md "İş haritası"nda geçer                                               (Alp 2026-11-03: yönlendirme haritadan)
   - maskeleme: iç IP ve kurum alan adı yazılmaz (knowledge/operations-notes/README.md, Alp 2026-10-14; depo GitHub'da public)
+  - beceri dizinindeki ek .md dosyası (SKILL.md'den taşınan ayrıntı) SKILL.md'de adıyla anılır; maskeleme ona da uygulanır
+    (Alp 2026-11-11: büyük beceriler bölündü — anılmayan ek dosyayı model açmaz)
   - her beceride "Önce sor" bölümü (## / ### başlık ya da kalın satır)                                (düstur, Alp 2026-11-03; 2026-11-11'de
     46/46 tamamlandı → zorunlu; "güvenlik önemli, kararları insan alacak")
 BİLGİ satırı testi düşürmez: gövdesi büyük beceriler (öneri < 5000 token ≈ 20 bin karakter).
@@ -106,6 +108,12 @@ def main():
         if harita and not re.search(r"`%s`" % re.escape(b), harita):
             hata.append("%s: engine/AGENTS.md iş haritasında geçmiyor (model yönlendirmeyi haritadan yapar)" % b)
         maske_tara(yol, metin, hata)
+        # ek dosyalar (SKILL.md'den taşınan ayrıntı): SKILL.md'de adıyla anılmalı (anılmayan dosyayı model hiç açmaz), maskeleme aynı
+        for ek in sorted(f for f in os.listdir(os.path.join(ONAYLI, b)) if f.endswith(".md") and f != "SKILL.md"):
+            if ek not in metin:
+                hata.append("%s: ek dosya %s SKILL.md'de anılmıyor (tam yoluyla ve ne zaman okunacağıyla yaz)" % (b, ek))
+            ek_yol = os.path.join(ONAYLI, b, ek)
+            maske_tara(ek_yol, oku(ek_yol), hata)
     # maskeleme: saha notları, şablonlar, politika (depo public)
     for alt in (("knowledge", "operations-notes"), ("knowledge", "templates"), ("knowledge", "policy"), ("knowledge", "incidents")):
         d = os.path.join(KOK, *alt)

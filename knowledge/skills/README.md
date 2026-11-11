@@ -82,6 +82,13 @@ Betik yazarken:
   SKILL.md'nin andığı beceri dosyası yerinde, beceri `engine/AGENTS.md` iş haritasında, maskeleme (iç IP / kurum alan adı —
   `knowledge/operations-notes/README.md`), **"Önce sor" bölümü** (2026-11-11: 46/46 → eksikse HATA). Sınırların kaynağı:
   agentskills.io/specification. Bilgi satırı (testi düşürmez): gövdesi 20 bin karakteri aşan beceriler.
+- **Ek dosya** (2026-11-11): SKILL.md tetiklenince **tamamı** modelin bağlamına girer; gövde 20 bin karakteri (≈ 5000 token)
+  aşıyorsa ayrıntı (belirtiye özel komut blokları, tarihli saha kayıtları) aynı dizinde bir `.md` dosyasına taşınır. SKILL.md'de
+  kalanlar: akış, karar kuralları, "yapma"lar ve ek dosyanın **tam yolu + hangi belirtide hangi bölümünün okunacağı**. Kural, ek
+  dosya okunmasa da geçerli olacak biçimde SKILL.md'de durur (yerel model ek dosyayı atlayabilir). Örnek: `rke2-denetim/node-takilma.md`,
+  `rke2-gpu/gpu-node.md`. Denetim: anılmayan ek dosya HATA; maskeleme ek dosyaya da uygulanır.
+- **Sunucu adı** (Alp, 2026-11-11): ortam/rol adları (prod, nonprod, test, gpu, dtx) ve ad **kalıpları** yazılır; tek tek sunucuların
+  tam adı yazılmaz — kaynak envanterdir (başka birimden gelir, sahada doğrulanır). Gerekirse kısa rol biçimi (`wor07`, `gpuworker1`).
 
 ## Adlandırma: `<platform>-<iş>` (Alp onayı, 2026-10-17)
 

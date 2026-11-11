@@ -6,6 +6,26 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-11 — iki büyük beceri bölündü (SKILL.md + ek dosya); sunucu tam adları becerilerden çıktı
+
+Sahada: `al.sh` → `./kur.sh`, **yeni oturum**. İkili değişmez. Ek dosyalar `kur.sh`'ın beceri dizini kopyasıyla (`cp -r`) birlikte gider.
+- **Neden:** SKILL.md tetiklenince tamamı modelin bağlamına girer; öneri < 20 bin karakter (≈ 5000 token). `rke2-denetim` 30,9 →
+  **20,0 bin**, `rke2-gpu` 29,0 → **20,0 bin** karakter. Yazım denetiminde "büyük" (BİLGİ) satırı artık yok.
+- `rke2-denetim/node-takilma.md` (15,7 bin): belirtiye özel komut blokları — A antrea-ovs restart · B NFS · C tmpmounts · D yük/boyut ·
+  E conntrack · F node donması / VMware VM · G control plane · H nonprod Rancher + `test` kümesi tarihli kayıtları.
+- `rke2-gpu/gpu-node.md` (12,6 bin): §0 tarihli saha kayıtları · §4 GPU node işletim sistemi · §5 depolama `/models` · §6 ölçüm.
+- SKILL.md'de kalan: akış, karar kuralları, "yapma"lar ve ek dosyanın tam yolu + hangi belirtide hangi bölümün okunacağı. Kurallar ek
+  dosya okunmasa da geçerli olacak biçimde SKILL.md'de durur. Taşıma betikle doğrulandı: kaybolan komut satırı 0, kaybolan (saha G…)
+  etiketi 0. **Sahada denenmedi:** yerel modelin ek dosyayı gerektiğinde açıp açmadığı — ilk `rke2-denetim` / `rke2-gpu` işinde bak.
+- **Sunucu adı kuralı (Alp, 2026-11-11):** ortam/rol adları (prod, nonprod, test, gpu, dtx) ve ad kalıpları kalır; tek tek sunucuların
+  tam adı becerilere yazılmaz — kaynak envanterdir. `rke2-denetim`, `rke2-gpu` kısa rol biçimine (`mas01-03`, `wor01-14`,
+  `gpumaster1-3`, `gpuworker1-3`, `h200w1`); `rke2-node-ekle` → `<node-adı>`; `anthos-erisim` jumpbox adları çıktı (envanterden);
+  `uzak-envanter` + `uzak-topla.sh` → "yönetim makinesi". Kalıp örneği olarak duranlar: `engine/AGENTS.md` seri kuralı,
+  `GUVENLIK-KILITLERI.md`, `kilit.ts` / `envanter.ts` yorumları, `kilit.test.ts` test verisi, saha günlüğü. Kural `knowledge/skills/README.md`'de.
+- Denetimler: `beceri-yazim-denetim.py` — beceri dizinindeki ek `.md` SKILL.md'de anılmıyorsa **HATA**, maskeleme ek dosyaya da
+  uygulanır. `beceri-komut-kilit.ts` — ek dosyalardaki sabit okuma komutları da kilitten geçirilir (76 geçti · 0 takıldı).
+  `beceri-betik-test.sh` 286 geçti · 0 kaldı.
+
 ## 2026-11-11 — beceriler: "Önce sor" 46/46 (artık zorunlu)
 
 Sahada: `al.sh` → `./kur.sh`, **yeni oturum**. İkili değişmez. Alp (2026-11-11): "Güvenlik önemli. Kararları insan alacak. Projenin ana teması bu."

@@ -1,6 +1,6 @@
 ---
 name: uzak-envanter
-description: Buradan (spllnxmgmt01) erişilemeyen bir ortamın envanterini incelemek için kullan — kullanıcı o ortamdaki ansible makinesinde (ör. başka ortamın Satellite'ı) `uzak-topla.sh` çalıştırır, salt-okunur host bilgisi + erişim sonucu tek .tgz olur, buraya getirilir, `uzak-ozet.py` IP bloğu başına erişim (FW talebi adayı) ve host tablosu (OS, çekirdek, CPU/RAM, kök disk, açılış, IP, sanal, kayıtlı Satellite, alan adı, DNS sunucuları, NTP kaynakları, sssd AD alanı) basar. "uzak ortam", "erişemiyoruz ama orada çalıştırırım", "oradaki envanter", "başka ortamın satellite'ı", "çıktıyı getiririm", "ktbulut envanteri" isteklerinde tetiklenir. Erişilebilen ortamda doğrudan `filo-kontrol`.
+description: Buradan (yönetim makinesinden) erişilemeyen bir ortamın envanterini incelemek için kullan — kullanıcı o ortamdaki ansible makinesinde (ör. başka ortamın Satellite'ı) `uzak-topla.sh` çalıştırır, salt-okunur host bilgisi + erişim sonucu tek .tgz olur, buraya getirilir, `uzak-ozet.py` IP bloğu başına erişim (FW talebi adayı) ve host tablosu (OS, çekirdek, CPU/RAM, kök disk, açılış, IP, sanal, kayıtlı Satellite, alan adı, DNS sunucuları, NTP kaynakları, sssd AD alanı) basar. "uzak ortam", "erişemiyoruz ama orada çalıştırırım", "oradaki envanter", "başka ortamın satellite'ı", "çıktıyı getiririm", "ktbulut envanteri" isteklerinde tetiklenir. Erişilebilen ortamda doğrudan `filo-kontrol`.
 ---
 
 # Uzak ortam envanteri — orada topla, burada incele (salt-okunur)

@@ -8,7 +8,7 @@ description: Anthos (GKE on-prem) kümeleriyle ilgili soru ve incelemelerde kull
 - Anthos kümeleri **GKE** (on-prem); Rancher arayüzünde de görünürler.
 - Erişim zinciri: **jumpbox → ssh ile admin workstation** → orada admin ve user cluster yapılandırmaları ve
   kubeconfig dosyaları.
-  - Prod: `stpanthosjb` · Alt ortamlar: `stlanthosjb` · DRC (Ankara): `dplanthosjb`
+  - Jumpbox ortam başına ayrıdır: prod · alt ortamlar · DRC (Ankara). Adları envanterden / kurumsal bilgiden gelir — burada yazılmaz, bilinmiyorsa sor.
 - **Şimdilik ajan bu zinciri atlayamaz** (jumpbox üzerinden çoklu ssh yok) ve kubeconfig dosyaları verilmedi.
   Bu yüzden: Anthos kümesine kendin bağlanmaya çalışma, jumpbox'a ssh kurma, kubeconfig arama.
 

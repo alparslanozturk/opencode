@@ -19,6 +19,9 @@ for (const ad of readdirSync(BECERI).sort()) {
   let metin: string
   try {
     metin = readFileSync(join(BECERI, ad, "SKILL.md"), "utf8")
+    // ek dosyalar (SKILL.md'den taşınan ayrıntı komutları, 2026-11-11) aynı denetimden geçer
+    for (const ek of readdirSync(join(BECERI, ad)).sort())
+      if (ek.endsWith(".md") && ek !== "SKILL.md") metin += "\n" + readFileSync(join(BECERI, ad, ek), "utf8")
   } catch {
     continue
   }

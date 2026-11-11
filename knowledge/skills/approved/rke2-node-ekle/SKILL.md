@@ -41,9 +41,9 @@ Sorma: kümenin sürümü, `server:` satırı, token yolu, Antrea imajı, yeni n
    sunucu CA'sını doğrulamaz (ortadaki adam riski). Yeni node'un RHEL ara sürümü Rancher'ın RHEL listesinde olmalı:
    `uyum.py kontrol --rancher <r> --rke2 <k> --rhel <yeni>` (Rancher v2.14+ listesinde 9.2/9.4 yok).
 6. **`node_name` hostvar'ı 2.x'te etkisizdir** (1.x'ten kalma; 2.x yeniden yazımında kaldırıldı — `grep -rn node_name
-   roles/` boş döner). Sahadaki `host.yml` (`<ip>: node_name: "stlrancherwor0N"`) bu biçimde. Node adı
+   roles/` boş döner). Sahadaki `host.yml` (`<ip>: node_name: "<node-adı>"`) bu biçimde. Node adı
    makinenin hostname'inden gelir. `kubectl get nodes` adları hostname ile aynıysa sorun yok; yeni node'lara
-   farklı ad gerekiyorsa: `<ip>: {host_rke2_config: {node-name: "stlrancherwor07"}}`. Sahadaki kopyada
+   farklı ad gerekiyorsa: `<ip>: {host_rke2_config: {node-name: "<node-adı>"}}`. Sahadaki kopyada
    `grep -rn node_name roles/` sonuç veriyorsa sürüm farklıdır — önce onu oku.
 
 7. **Ekipler arası erişim izinleri — HER node eklemede hatırlat (Alp, 2026-10-21):** kümedeki node'lar NFS paylaşımlarına

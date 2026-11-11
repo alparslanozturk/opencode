@@ -44,15 +44,14 @@ olduğu kümeden görünmez; gerekiyorsa kullanıcıdan vCenter bilgisi istenir 
 - Nonprod Rancher (`rke-nonprod.<kurum>`) **v2.14.3**. Prod Rancher (`rke-prod.<kurum>`) sürümü `[SAHA]`.
 - Nonprod downstream RKE2 kümeleri (`gpu-dtx`, `test`, `test-sasviya`, `peaka-poc`, `vibecode-test`, `devops-utilities`
   …) ve `local`: **v1.33.13+rke2r1**. Anthos (GKE) kümeleri de Rancher'da görünür — bu becerinin kapsamı dışı (`anthos-erisim`).
-- **Masterlar ve VM worker'lar VMware üzerinde**; GPU worker'lar (H200) fiziksel sunucu (Alp, 2026-10-15). Bir VM'in
-  hangi ESX host'unda/datastore'da olduğu kümeden görünmez → `[SAHA]`, gerekirse kullanıcıdan vCenter bilgisi iste.
+- **Masterlar ve VM worker'lar VMware üzerinde**; GPU worker'lar (H200) fiziksel sunucu (Alp, 2026-10-15). VM'in ESX host'u/
+  datastore'u kümeden görünmez → `[SAHA]`, kullanıcıdan (§5b listesi).
 - CNI: **Antrea** (OVS veri yolu). İşletim sistemi RHEL (8/9/10 — node başına `get nodes -o wide`'dan oku).
-- `test` kümesi: 3 master (`stlranchermas01-03`) + 14 worker (`stlrancherwor01-14`). Worker'ların bir kısmı zaman
-  zaman `Unavailable` oluyor. **Yaş kalıbı (Rancher, 2026-10-15):** wor01-03 535 gün, wor04-06 304 gün, wor07-14 **13 gün**
-  (son eklenen grup); o gün Unavailable: wor03 (eski grup) + wor08-11 (yeni grup), wor07 yeni ama sağlam. Önce
-  karşılaştır: wor07 ↔ wor08 (aynı grup, biri sağlam) ve wor01 ↔ wor03. Önceki kayıtlar: 2026-10-12 wor03/wor12/wor14 (saha G7-G11: wor03/wor14'te OVS transaction timeout),
-  2026-10-15 wor03/wor08 Unavailable, wor14'te `antrea-ovs` liveness hatası (Rancher ekranı). **Aynı node'lar
-  tekrarlıyor** — kalıp ara (§4).
+- `test` kümesi: 3 master (`stlranchermas01-03`) + 14 worker (`stlrancherwor01-14`); worker'ların bir kısmı zaman zaman `Unavailable`.
+  **Yaş kalıbı (Rancher, 2026-10-15):** wor01-03 535 gün, wor04-06 304 gün, wor07-14 **13 gün** (son eklenen grup); o gün Unavailable:
+  wor03 (eski grup) + wor08-11 (yeni grup), wor07 yeni ama sağlam → önce karşılaştır: wor07 ↔ wor08 ve wor01 ↔ wor03. Önceki kayıtlar:
+  2026-10-12 wor03/wor12/wor14 (saha G7-G11: wor03/wor14'te OVS transaction timeout), 2026-10-15 wor14'te `antrea-ovs` liveness hatası.
+  **Aynı node'lar tekrarlıyor** — kalıp ara (§4).
 - Erişim: kubectl → bir master'a ssh, `/var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml`
   (`engine/AGENTS.md`). Node'lara ssh açık. Envanter: **çalışma dizinindeki** `ansible/inventories/` — cwd dışında
   (`~/ai`, `/root`) glob'lama, izin kapısı açar (saha G3, G60) (test kümesi grubu `hosts-rke2.ini` içinde,
@@ -71,10 +70,9 @@ kubectl -n kube-system get pods -l app=antrea -o jsonpath='{range .items[*]}{.sp
   davranış farkı demektir).
 - Rancher sürümü: Rancher arayüzü sol alt ya da downstream'de `kubectl -n cattle-system get deploy cattle-cluster-agent
   -o jsonpath='{.spec.template.spec.containers[0].image}'` (genel).
-- **Uyum + destek sonu (EOL) + en son yama kararı betikten:** `python3 /root/ai/opencode/knowledge/skills/approved/surum-uyum/uyum.py
-  kontrol --rancher … --rke2 … --antrea … --rhel …` — çıktıyı olduğu gibi aktar (`rke2-yukseltme`). Güvenlik puan kartı: `rke2-guvenlik`.
-- **Uyumluluk yorumu yalnız `surum-uyum` becerisindeki çevrimdışı matristen (`uyum.py`)** (Rancher ↔ RKE2 ↔ RHEL; Antrea notu
-  orada). **Antrea ↔ K8s satırı her raporda zorunlu** (Alp, 2026-10-17: "matris çok önemli, supported olmalı"); Antrea RKE2
+- **Uyum, destek sonu (EOL), en son yama: yalnız betikten** — `python3 /root/ai/opencode/knowledge/skills/approved/surum-uyum/uyum.py
+  kontrol --rancher … --rke2 … --antrea … --rhel …`; çıktıyı olduğu gibi aktar (`surum-uyum`, `rke2-yukseltme`). Güvenlik puan kartı: `rke2-guvenlik`.
+- **Antrea ↔ K8s satırı her raporda zorunlu** (Alp, 2026-10-17: "matris çok önemli, supported olmalı"); Antrea RKE2
   ile gelmez, ayrı yükseltilir — K8s yükseltilip Antrea unutulabilir. Satırı **kanıt katmanlarıyla** yaz (`surum-uyum` §"Kanıt
   zorunluluğu": upstream garanti · VMware VCN matrisi · VMware VKr ikilisi · bilinen kayıt). `test` Antrea v2.3.0 + 1.33 → ⚠️ garanti/
   matris dışı, VKr'de paketli, **kanıtlı uyumsuzluk yok** (G77 — eskiden yanlışlıkla ❌ yazılıyordu). Matris durumu node donmasının ya
@@ -100,13 +98,11 @@ df -h /var/lib/rancher; cat /proc/pressure/io
 
 - etcd logunda `apply request took too long` / `slow fdatasync` (genel) → master diski yavaş; `rhel-performans` becerisi
   disk bölümü. Üç master'da da aynı mı, tek birinde mi?
-- Sertifika (RKE2 docs security/certificates): istemci/sunucu sertifikaları 365 gün geçerli; **120 gün** kala (v1.33.1+rke2r1'den
-  beri, öncesi 90) `CertificateExpirationWarning` event'i çıkar ve sertifika **rke2 bir sonraki yeniden başlatmada kendiliğinden
-  yenilenir**. Yani uyarı event'i = "bu master uzun süredir yeniden başlamadı", elle rotasyon gerekmez; yükseltme ya da planlı
-  restart yeniler (yenileme değişikliktir — öneri). Bulgu eşiği: 30 günden az kaldıysa. **Kalan günü kafadan hesaplama** — betik hesaplar ve kalan güne göre sıralar:
+- Sertifika (RKE2 docs security/certificates): 365 gün geçerli; **120 gün** kala (v1.33.1+rke2r1'den beri, öncesi 90)
+  `CertificateExpirationWarning` event'i çıkar ve sertifika **rke2'nin bir sonraki yeniden başlamasında kendiliğinden yenilenir** → uyarı =
+  "bu master uzun süredir yeniden başlamadı"; elle rotasyon gerekmez (yenileme/restart değişikliktir — öneri). Bulgu eşiği: 30 günden az.
+  **Kalan günü kafadan hesaplama** (saha G65: 120 gün eşiği "120 gün sonra" diye yazıldı; gerçek kalan 84 gündü) — betik hesaplar, kalan güne göre sıralar:
   `ssh root@<master> 'cd /var/lib/rancher/rke2/server/tls && for f in *.crt */*.crt; do [ -f "$f" ] && { echo "#DOSYA $f"; base64 -w0 "$f"; echo; }; done' | python3 /root/ai/opencode/knowledge/skills/approved/rancher-sertifika/sertifika-kontrol.py - --ozet`
-  (eski `… | sort -t= -k2` ay adına göre alfabetik sıralıyordu, en yakın bitişi göstermez). Tek tarih için: `echo $(( ($(date -d "2027-01-09" +%s) - $(date +%s)) / 86400 ))` (saha G65: event'teki 120 gün eşiği "120 gün sonra" diye
-  yazıldı; gerçek kalan 84 gündü).
 
 **rke2-server döngüde çöküyor / `context deadline exceeded` (saha G98, 2026-10-22: test-sasviya master01, 3 günde 2566 restart; ajan
 "en temiz çözüm reboot" deyip kanıt toplamadan reboot önerdi — G11'deki hatanın tekrarı).** Restart/reboot **değişikliktir ve kanıtı
@@ -133,7 +129,7 @@ ssh root@<master> "df -h /var/lib/rancher; du -sh /var/lib/rancher/rke2/server/d
 - "Control plane ✅" yalnız readyz temiz **ve** her master'a ssh bu turda başarılıysa. Bir master'a ssh banner timeout →
   Control plane **⚠️, en yüksek bulgu** (§4 tablo, §5b). "Geçici" yazmak için sonradan başarılı bir ssh çıktısı gerekir.
 - API'deki pod "Running" / node "Ready" donmuş node'da bir süre eski kalır; kubelet canlılığının kanıtı lease
-  (genel: ~10 sn'de yenilenir): `kubectl -n kube-node-lease get lease <node> -o jsonpath='{.spec.renewTime}'; date -u`.
+  (genel: ~10 sn'de yenilenir; komut §4 "Küme tarafı") — `renewTime`'ı `date -u` ile karşılaştır.
 - **İnceleme sırasında erişim kaybı** (aynı node'a önce ssh çalıştı, sonra banner timeout) → kullanıcıya hemen söyle;
   2-3 dk sonra **bir kez** daha dene. Hâlâ yoksa donma (§5b: vCenter konsol ekranı reset'ten **önce**); döndüyse kısa takılma
   (§5b "Kısa takılma": olay penceresinin logu — "sorun yok" deme).
@@ -184,7 +180,7 @@ yedekleme penceresi, vMotion) sor.
 | `Connection timed out during banner exchange` | **TCP kuruldu (çekirdek cevap veriyor) ama sshd banner gönderemiyor** → kullanıcı alanı takılı: bellek baskısı/swap, G/Ç beklemesi (datastore), hung task, CPU açlığı |
 
 Banner timeout'ta tekrar tekrar ssh deneme (her deneme sürer, bağlam yer): bir kez dene, sonucu yaz. Node donukken
-kanıt dışarıda: VMware konsolu / vCenter (CPU ready, balloon, datastore gecikmesi, olay zamanı) — kullanıcıdan iste.
+kanıt dışarıda: VMware konsolu / vCenter — kullanıcıdan iste (§5b listesi).
 Node düzelince önceki açılışı oku: `journalctl -b -1 -p warning --no-pager | tail -50` (reboot olduysa),
 `journalctl -k --since "<düşüş saati>"`. Erişilemeyen node sayısını **listeyle** ver ("belki başkaları" yazma).
 
@@ -244,15 +240,13 @@ kubectl -n kube-system logs <antrea-agent-pod> -c antrea-ovs --previous --tail=6
 
 ```bash
 ls -la --time-style=+%F_%T /var/log/antrea/ /var/log/antrea/openvswitch/                      # node'da (ssh)
-# pencereyi ve aşağıdaki komutların tarihli hallerini SEN çevirme — betik üretir (yerel↔UTC, saDD, gece yarısı):
-# python3 /root/ai/opencode/knowledge/skills/approved/rhel-sorun/olay-penceresi.py "2026-10-19 05:30" --tz +0300   (k8s/OVS UTC damgası da verilebilir: 2026-10-19T02:30:00Z)
-# örnek (wor14 olayı 05:30 yerel = 02:30Z):
-grep -h -e "Unreasonably long" -e "blocked" -e "timeout" -e "Dropped" -e "exit" /var/log/antrea/openvswitch/ovs-vswitchd.log* | grep "2026-10-19T02:[1-4]" | tail -30
-grep -h "2026-10-19T02:[1-4]" /var/log/antrea/openvswitch/ovsdb-server.log* | tail -20
-journalctl --since "2026-10-19 05:15" --until "2026-10-19 05:45" -p warning --no-pager | tail -40
-journalctl -k --since "2026-10-19 05:15" --until "2026-10-19 05:45" --no-pager | tail -30
-sar -u -q -r -d -s 05:15:00 -e 05:45:00 -f /var/log/sa/sa19 | tail -50                       # o gün: saYY = ayın günü
+python3 /root/ai/opencode/knowledge/skills/approved/rhel-sorun/olay-penceresi.py "2026-10-19 05:30" --tz +0300   # ya da UTC damgası: 2026-10-19T02:30:00Z
 ```
+
+Pencereyi ve tarihli komutları **sen çevirme** — betik yerel↔UTC'yi, `saDD`'yi ve gece yarısını hesaplar; bastığı `journalctl` (uyarı,
+çekirdek, rke2), `sar` ve OVS-log komutlarını node'da çalıştır (örnek: wor14 olayı 05:30 yerel = 02:30Z). OVS loglarında aranan:
+`Unreasonably long`, `blocked`, `timeout`, `Dropped`, `exit` (`ovs-vswitchd.log*`); aynı dakika desenini
+`/var/log/antrea/openvswitch/ovsdb-server.log*` üzerinde de çalıştır.
 
 Ayırt et (her satır "tahmin:" ile başlar, kanıt gelince kesinleşir):
 
@@ -265,29 +259,21 @@ Ayırt et (her satır "tahmin:" ile başlar, kanıt gelince kesinleşir):
 | `sar` o pencerede `%iowait`/`await` yüksek, PSI `io` | disk/datastore |
 | Hiçbiri yok, yalnız OVS satırları | OVS'nin kendisi — Antrea sürüm/matris (§1), `antrea-agent` logu |
 
-**Eleme — NFS** (Alp, 2026-10-20: "NFS bağlanabiliyor 14 nolu worker"): "sunucuya erişiliyor" NFS'i elemek için yetmez,
-soru **node'da asılı bir NFS bağlaması var mı**. Okuma komutları (kilitten geçer — bağlama denemesi yapma, o değişiklik):
+**NFS — ele ya da kanıtla** (Alp, 2026-10-20: "NFS bağlanabiliyor 14 nolu worker"; saha G80): "sunucuya erişiliyor" NFS'i elemez,
+soru **node'da asılı bir NFS bağlaması var mı**; bağlama sayısı (1/2/3) ve "yüksek I/O" da kanıt değildir. Okuma (bağlama denemesi yapma
+— değişiklik):
 
 ```bash
-findmnt -t nfs,nfs4 || echo "NFS baglamasi yok"; grep -c " nfs" /proc/mounts
-journalctl -k --since -7d --no-pager | grep -i -e "nfs: server" -e "not responding" | tail
-showmount -e <nfs-sunucu>; rpcinfo -s <nfs-sunucu> | head; timeout 3 bash -c '</dev/tcp/<nfs-sunucu>/2049' && echo "2049 acik"
-kubectl get pods -A -o wide --field-selector spec.nodeName=<node> | grep -v -e kube-system -e cattle-   # node'da PVC'li iş yükü var mı
-```
-
-Node'da NFS bağlaması ve "not responding" yoksa NFS o node'un donmasının sebebi olamaz → "kök neden NFS değil" yazılabilir.
-
-**NFS bağlaması VARSA — sebep mi, kanıt (saha G80):** sayı (1/2/3 bağlama) ve "yüksek I/O" kanıt değildir. Sırayla oku:
-
-```bash
-findmnt -t nfs,nfs4 -o TARGET,SOURCE,FSTYPE,OPTIONS                       # hard/soft, timeo, retrans, vers
-journalctl -k -b -1 --no-pager | grep -i -e "nfs: server" -e "not responding" -e "server .* OK" | tail -20   # önceki açılış (donan)
+findmnt -t nfs,nfs4 -o TARGET,SOURCE,FSTYPE,OPTIONS || echo "NFS baglamasi yok"          # hard/soft, timeo, retrans, vers
+journalctl -k --since -7d --no-pager | grep -i -e "nfs: server" -e "not responding" -e "server .* OK" | tail -20   # reset olduysa ayrıca: -b -1
 journalctl -k -b -1 --no-pager | grep -A25 "blocked for more than" | grep -e "blocked for" -e "nfs_" -e "rpc_" -e "sisevt" -e "sisap" -e fanotify -e fsnotify | head -40
+showmount -e <nfs-sunucu>; rpcinfo -s <nfs-sunucu> | head; timeout 3 bash -c '</dev/tcp/<nfs-sunucu>/2049' && echo "2049 acik"
 nfsiostat 5 2 2>/dev/null | head -40                                       # şimdiki gecikme (RTT/exe ms)
-kubectl get pods -A -o wide --field-selector spec.nodeName=<node> | grep -v -e kube-system -e cattle-   # NFS PVC'li iş yükü hangisi
+kubectl get pods -A -o wide --field-selector spec.nodeName=<node> | grep -v -e kube-system -e cattle-   # node'daki iş yükü (NFS PVC'li hangisi)
 ```
 
-- `not responding` saatleri NotReady/ssh timeout saatleriyle örtüşüyor + takılan sürecin yığınında `nfs_`/`rpc_` → NFS **kanıtlı**.
+- Node'da NFS bağlaması ve `not responding` **yoksa** NFS o node'un donmasının sebebi olamaz → "kök neden NFS değil" yazılabilir.
+- **NFS bağlaması VARSA:** `not responding` saatleri NotReady/ssh timeout saatleriyle örtüşüyor + takılan sürecin yığınında `nfs_`/`rpc_` → NFS **kanıtlı**.
 - Yığında `sisevt`/`sisap`/`fanotify` **ve** `nfs_` birlikte → güvenlik ajanı + NFS etkileşimi kanıtlı (`rke2-edr`). Yığın yoksa
   "SISEVT NFS I/O'sunu engelliyor" bir **mekanizma tahminidir** — kök neden diye yazılmaz.
 - `hard` bağlamada sunucu cevap vermezse dosyaya dokunan süreç (kubelet'in volume istatistiği, containerd) süresiz bekler (genel,
@@ -314,13 +300,13 @@ anındaki yükü **göstermez** → "yükten kaynaklı sorun YOK" yazılmaz; en 
 
 ```bash
 kubectl describe node <node> | sed -n '/Allocated resources/,/Events/p'        # requests/limits toplamı vs allocatable (aşırı taahhüt)
-kubectl get pods -A -o wide --field-selector spec.nodeName=<node> | grep -v -e kube-system -e cattle-   # hangi iş yükü (ör. milvus) hangi boyuttaki node'da
 sar -q -r -u -s <olaydan 15 dk önce> -e <olay> -f /var/log/sa/saDD | tail -40   # olay penceresinde yük, bellek, %iowait/%steal (node'da)
 journalctl -k -b -1 --no-pager | grep -i -e "out of memory" -e oom -e "invoked oom-killer" | tail      # OOM önceki açılışta
 kubectl get events -A --field-selector reason=Evicted -o wide | tail; cat /proc/pressure/memory        # tahliye, bellek baskısı
 ```
 
-Karşılaştır: sorunlu node'ların **boyutu** (vCPU/RAM) ile sağlamlarınki — sorunlu kümede hem büyük hem küçük node varsa boyut tek
+Hangi iş yükü (ör. milvus) hangi boyuttaki node'da → NFS bölümündeki `--field-selector spec.nodeName=<node>` listesi. Karşılaştır: sorunlu
+node'ların **boyutu** (vCPU/RAM) ile sağlamlarınki — sorunlu kümede hem büyük hem küçük node varsa boyut tek
 başına sebep değildir (tablo-sonuç çelişkisi, §6). Küçük node'a büyük `limits`'li iş yükü düşüp olay anında bellek/CPU tükeniyorsa
 kanıtı `sar`/OOM/eviction satırıdır; yoksa "olabilir".
 
@@ -350,9 +336,8 @@ ansible <grup> -i <envanter> -m shell -o -f 20 -T 10 --task-timeout 30 -a 'uname
 
 Test kümesinde master ve worker'lar **tamamen donuyor** (ssh banner timeout, Rancher Unavailable, sanallaştırma ekibi
 reset atıyor — Alp, 2026-10-16). Bu Kubernetes'in değil, **işletim sistemi ya da hipervizör** katmanının işidir; pod
-restart'ları (antrea, ingress, fluent-bit) çoğunlukla bunun **sonucu**, sebebi değil. Önceliklendirmeyi buna göre yap:
-inceleme sırasında bir master'a ssh banner timeout alınırsa ya da Rancher→master `i/o timeout` görülürse bu "düşük"
-değil **en yüksek** bulgudur; "Control plane sağlam" yazma.
+restart'ları (antrea, ingress, fluent-bit) çoğunlukla bunun **sonucu**, sebebi değil. Bir master'a ssh banner timeout ya da
+Rancher→master `i/o timeout` = **en yüksek** bulgu (§2 "Control plane kararı").
 
 Reset sonrası (okuma):
 
@@ -369,26 +354,24 @@ sar -q -r -f /var/log/sa/sa$(date -d yesterday +%d) | tail -30   # donma saatine
   datastore (VM stun: snapshot, yedek, vMotion; CPU ready; datastore gecikmesi). Saatleri yan yana yaz; vCenter'dan host +
   datastore eşlemesini iste.
 - `chronyd` günlüğünde saat sıçraması (`System clock wrong by`, `Forward time jump`) → VM bir süre durmuş.
-- OVS günlüğünde `Unreasonably long NNNNms poll interval` → ovs-vswitchd o kadar ms çalışamamış; birden çok node'da aynı
-  dakikada ise ortak altyapı. (Antrea'da: `kubectl logs <antrea-agent> -c antrea-ovs`.)
+- OVS günlüğünde `Unreasonably long NNNNms poll interval` (§4 tablo) — birden çok node'da aynı dakikada ise ortak altyapı.
 - etcd: `slow fdatasync`, `apply request took too long`, `leader failed to send out heartbeat on time` → disk/CPU duraklaması.
 - Çekirdek: `soft lockup`, `rcu_sched … stall`, `blocked for more than 120 seconds` (hung task), `pvscsi`/`sd … abort`
   (disk komutu zaman aşımı), `nfs: server … not responding`.
-- Bellek: `vmware-toolbox-cmd stat balloon` > 0 (ESX belleği geri alıyor), `sar -W` swap, PSI `memory`.
+- Bellek: balloon > 0 (ESX belleği geri alıyor — §4 VMware komutları), `sar -W` swap, PSI `memory`.
 - Kendiliğinden düzelen olayın kanıtı **şu an** node'da: reboot ya da log dönmeden topla (birden çok node → ansible ad-hoc).
 
 **Kısa takılma (kendiliğinden düzelen)** — ssh banner timeout sonra tekrar çalıştı, ya da node kısa NotReady→Ready (saha
 G65: mas01 01:2x banner timeout → 01:29 `up 229 days`, reboot yok; wor03 00:48 NotReady→Ready). "Bağlantı hatasıydı, sorun
 yok" **yazma**: banner timeout'ta TCP kurulmuştu, sshd o an cevap verememişti (§4 tablo). Kullanıcı "neden" diye sorduysa
-yeniden denemek cevap değildir; olay penceresini oku (saati ±5 dk, node'un yerel saatiyle):
+yeniden denemek cevap değildir; olay penceresini oku — komutları betik üretir (saati ±5 dk, node'un yerel saatiyle):
 
 ```bash
-journalctl --since "00:43" --until "00:53" -p warning --no-pager | tail -40           # her şey, uyarı ve üstü
-journalctl -k --since "00:43" --until "00:53" --no-pager | tail -30                   # hung task / soft lockup / vmxnet / i/o
-journalctl -u rke2-agent -u rke2-server --since "00:43" --until "00:53" --no-pager | grep -i -e "not ready" -e pleg -e lease -e deadline -e timeout | tail -20
-sar -q -r -d -s 00:40:00 -e 00:55:00 | tail -40                                        # yük, bellek, disk await o pencerede
-cat /proc/pressure/{cpu,memory,io}                                                     # şimdiki baskı (avg300 = son 5 dk)
+python3 /root/ai/opencode/knowledge/skills/approved/rhel-sorun/olay-penceresi.py "00:48" --dk 5 --tz +0300   # journalctl (uyarı, çekirdek, rke2) + sar
+cat /proc/pressure/{cpu,memory,io}                                                     # node'da: şimdiki baskı (avg300 = son 5 dk)
 ```
+
+rke2 journal'ında aranan: `not ready`, `pleg`, `lease`, `deadline`, `timeout`; çekirdekte: hung task / soft lockup / vmxnet / i/o.
 
 Aynı gece birden çok node kısa takıldıysa saatleri yan yana yaz (aynı dakika mı → ortak altyapı: datastore/ESX/ağ).
 

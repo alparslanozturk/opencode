@@ -14,6 +14,13 @@ Sahada: `al.sh` → `./kur.sh`, **yeni oturum**. İkili değişmez. Alp (2026-11
   "Bilinmeyenler" bölümü bu başlığa çevrildi. Yeni kurum bilgisi eklenmedi; sorular yalnız becerinin kendi metnine dayanır.
 - `script/beceri-yazim-denetim.py`: "Önce sor" bölümü olmayan beceri artık **HATA** (önceden bilgi satırıydı); başlık `##` ya da
   `###` olabilir. `beceri-betik-test.sh` bozuk kopyada bunu da sınar.
+- İki büyük beceri **yerinde sadeleştirildi** (Alp: "biraz küçültebilirsin, özetleyebilirsin"): `rke2-denetim` 32,5 → 30,9 bin
+  karakter, `rke2-gpu` 29,9 → 29,0 bin. Yalnız tekrar çıkarıldı — bölüm numaraları, saha gözlemleri ve (saha G…) etiketleri yerinde.
+  `rke2-denetim`: elle tarihlenmiş olay penceresi komutları (iki yerde) yerine `rhel-sorun/olay-penceresi.py` çağrısı; iki NFS bloğu
+  tek blok; sertifika, `uyum.py`, lease, VMware ve "en yüksek bulgu" tekrarları tek yerde. `rke2-gpu`: Run:ai iki madde → tek
+  (doğrulanmış hali), hostPath iki madde → tek, çelişen bayrak ve `NCCL_P2P_DISABLE` §3'te tek yerde (§4'teki kopya kalktı), §2
+  tablosunda paylaşım ve restart satırları birleşti. `rke2-gpu` shm maddesindeki "(~1 TB)" node belleği sayısı çıkarıldı (aynı
+  dosyanın §0 saha ölçümü 2266 GiB ile çelişiyordu). Yazım denetimi ikisini hâlâ "büyük" diye bildiriyor (BİLGİ, hata değil).
 
 ## 2026-11-11 — git geçmişi yeniden yazıldı (kurum alan adı + iç IP eski commit'lerden çıkarıldı)
 

@@ -43,16 +43,15 @@ Sorma: GPU sayısı ve dağılımı, sürücü, pod limitleri, shm, depolama —
   kopyalıyor. Ayrıntı: 16 × 1.7 TB NVMe, 12'si yazılım RAID10 (mdadm), 2'si yedek — `rhel-depolama` A §8; LV düzeni
   (`rke2-node-ekle` "Elle worker ekleme" planı). **Sahada (2026-10-15):** `/dev/mapper/vg_models-lv_models` → `/models`,
   xfs, 13T (900G dolu), seçenek `relatime` (`noatime` değil) — planla fark varsa yaz, değiştirme.
-- **Depolama iki türlü (saha 2026-10-15, gpu-dtx):** `runai-inference` pod'ları **hostPath `/models`** (readOnly);
-  `vllm` namespace pod'ları **NFS PVC** (`nfs-sc`, ör. `vllm-qwen3-235b-fp8-storage-claim` 250Gi). Alp: hedef hostPath,
-  geçiş DevOps tarafında **sürüyor**; kalan PVC tanımları eski — bulgu değil, yalnız "geçiş durumu" olarak yaz.
-- vLLM pod'ları modelleri **hostPath `/models`** ile okur. Neden hostPath: eskiden `nfs-sc` StorageClass kullanılıyordu;
-  blok StorageClass yok, Longhorn kurulu değil ve tercih edilmiyor → tek seçenek hostPath. Sonuç: model açılışı
-  ~45 dk'dan saniyeler düzeyine indi. hostPath'i "kötü uygulama" diye bulgu yazma — bilinçli kurum kararı.
+- **vLLM pod'ları modelleri hostPath `/models` ile okur — bilinçli kurum kararı, "kötü uygulama" diye bulgu yazma:** eskiden
+  `nfs-sc` StorageClass kullanılıyordu; blok StorageClass yok, Longhorn kurulu değil ve tercih edilmiyor → tek seçenek hostPath;
+  model açılışı ~45 dk'dan saniyeler düzeyine indi. **Geçiş sürüyor (saha 2026-10-15, gpu-dtx):** `runai-inference` pod'ları
+  hostPath `/models` (readOnly), `vllm` namespace pod'ları hâlâ **NFS PVC** (`nfs-sc`, ör. `vllm-qwen3-235b-fp8-storage-claim` 250Gi)
+  — DevOps tarafında; kalan PVC tanımları eski, bulgu değil, yalnız "geçiş durumu" olarak yaz (Alp).
 - vLLM deployment'ları fiziksel H200'e sabitleniyor; yöntem (nodeSelector mı taint/toleration mı) `[SAHA]` — §1/§3'te
   bul ve yaz.
-- **opencode'un kendi modeli (kurum Qwen) bu GPU kümelerinden birinde vLLM ile çalışıyor** (Alp; hangi küme `[SAHA]`).
-  Saha (2026-10-15): `gpu-dtx`, ns `runai-inference`, pod `qwen36-35b-a3b-fp8-00001-deployment-…` (model dizini
+- **opencode'un kendi modeli (kurum Qwen) `gpu-dtx`'te vLLM ile çalışıyor** (Alp; saha 2026-10-15): ns `runai-inference`,
+  pod `qwen36-35b-a3b-fp8-00001-deployment-…` (model dizini
   `/models/models--Qwen--Qwen36-35B-A3B-FP8`). **Kesinlikle dokunma** — yeniden başlarsa ajan işin ortasında cevapsız
   kalır. vLLM parametrelerini (`--max-model-len`, `--max-num-seqs`, `--gpu-memory-utilization`) ve Run:ai ayırmasını
   yaz; opencode tarafındaki değerler `./kur.sh kontrol` "ayar" satırında (bağlam / çıktı) ya da opencode `env`'inde.
@@ -64,29 +63,25 @@ Sorma: GPU sayısı ve dağılımı, sürücü, pod limitleri, shm, depolama —
   (G52); imaj sürümü ve parser bayrakları bu pod için **bilinmiyor** — pod `image` ve `args`'tan oku, karttan düşükse
   "model kartı altı" diye yaz (kural değil, DevOps'a öneri). Örnekleme opencode tarafında: `engine/opencode.json` model
   `options` (0.6 / 0.95 / 20 / presence 0 — kartın "kod" satırı); vLLM'e dokunmaz.
-- **Run:ai (saha 2026-10-15, doğrulandı):** h200w1'de `runai-inference` pod'ları (qwen36-35b, qwen3-14b, qwen3-32b-vlm,
-  qwen3-4b-embd) + `runai-reservation` ns'te 2 `gpu-reservation-<node>-…` pod'u + `vllm` ns'te 2 deployment
-  (qwen3-235b: 2 GPU, qwen35-397b: 3 GPU). Kesirli GPU ayırması `nvidia.com/gpu` limitinde **görünmez** — pod
-  annotation'larında: `runai-allocated-gpus` (ör. "0.35"), `runai-allocated-gpu-memory` (MiB), `runai-nodepools`;
-  CPU/RAM isteği `--cpu-core-request/limit`, `--cpu-memory-request/limit` (bir pod'da `limit 8Gi` görüldü — hangi pod
-  olduğunu `-o jsonpath` ile pod adıyla birlikte al, `grep -A` ile birden çok pod'u karıştırma). `-00001-deployment`
-  adı Knative revizyonu olabilir (tahmin). Kesirli pod'lar aynı fiziksel GPU'yu paylaşır → gecikmeyi o GPU'daki diğer
-  modellerle birlikte değerlendir.
-- **Run:ai olabilir:** kurum Qwen ucunun adı `runai.gpudtx.<kurum>` (saha `kur.sh kontrol`, 2026-10-15) — tahmin: `gpu-dtx`'te
-  NVIDIA Run:ai kurulu. Doğrula: `kubectl get ns | grep -i runai`. Varsa iş yükleri Run:ai üzerinden zamanlanır (proje
-  kotası, kesirli GPU) — §3'teki `nvidia.com/gpu` limiti tek kaynak olmayabilir; Run:ai nesnelerini de listele, yorumu
-  kullanıcıya sor. Run:ai sürümü/sağlığı, rezervasyon pod'ları, Run:ai ↔ K8s ↔ GPU Operator matrisi → `rke2-runai`
-  (`uyum.py kontrol --rke2 … --gpu-operator … --runai … --gpu H200,L40S`).
+- **Run:ai kurulu (saha 2026-10-15, doğrulandı; kurum Qwen ucunun adı da `runai.gpudtx.<kurum>`):** h200w1'de `runai-inference`
+  pod'ları (qwen36-35b, qwen3-14b, qwen3-32b-vlm, qwen3-4b-embd) + `runai-reservation` ns'te 2 `gpu-reservation-<node>-…` pod'u +
+  `vllm` ns'te 2 deployment (qwen3-235b: 2 GPU, qwen35-397b: 3 GPU). İş yükleri Run:ai üzerinden zamanlanır (proje kotası, kesirli
+  GPU) → §3'teki `nvidia.com/gpu` limiti tek kaynak değil: kesirli ayırma limitte **görünmez** — pod annotation'larında:
+  `runai-allocated-gpus` (ör. "0.35"), `runai-allocated-gpu-memory` (MiB), `runai-nodepools`; CPU/RAM isteği
+  `--cpu-core-request/limit`, `--cpu-memory-request/limit` (bir pod'da `limit 8Gi` görüldü — hangi pod olduğunu `-o jsonpath` ile
+  pod adıyla birlikte al, `grep -A` ile birden çok pod'u karıştırma). `-00001-deployment` adı Knative revizyonu olabilir (tahmin).
+  Kesirli pod'lar aynı fiziksel GPU'yu paylaşır → gecikmeyi o GPU'daki diğer modellerle birlikte değerlendir. Run:ai nesnelerini de
+  listele, yorumu kullanıcıya sor. Başka kümede var mı: `kubectl get ns | grep -i runai`. Sürüm/sağlık, rezervasyon pod'ları,
+  Run:ai ↔ K8s ↔ GPU Operator matrisi → `rke2-runai` (`uyum.py kontrol --rke2 … --gpu-operator … --runai … --gpu H200,L40S`).
 - Geçmişte vLLM pod'ları **OOMKilled** oldu; `/dev/shm` boyutu (8 GB olabilir) ve pod bellek limiti belirsiz — §3'te
   mutlaka incele.
 - OS ayarı örneği (Alp): `/tmp`'nin inode sayısı artırılıyor — kurumun hedef değeri `[SAHA]`.
 - SELinux ve firewalld kurum kararıyla kapalı — bulgu sayma (`engine/AGENTS.md` "Kurum sunucu gerçekleri").
 
-**Erişim (Alp, 2026-10-14):** kubectl, kümenin master node'larından birine ssh ile bağlanıp orada çalıştırılır —
-`engine/AGENTS.md` "SSH ve Kubernetes erişimi" kalıbı:
-`ssh root@<master1> "/var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml …"`.
-Master ve worker'ların hepsine ssh açık; OS komutları için `ssh root@<node>`. Master/worker adlarını envanterden
-(`ansible/inventories/`) oku, tahmin etme. Aşağıdaki `kubectl …` satırlarının hepsi bu kalıpla çalışır.
+**Erişim (Alp, 2026-10-14):** `engine/AGENTS.md` "SSH ve Kubernetes erişimi" kalıbı (`rke2-denetim` §0) — kubectl master'a ssh ile:
+`ssh root@<master1> "/var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml …"`; OS komutları `ssh root@<node>`
+(master ve worker'ların hepsine ssh açık). Node adlarını envanterden (`ansible/inventories/`) oku, tahmin etme. Aşağıdaki
+`kubectl …` satırlarının hepsi bu kalıpla çalışır.
 
 ### Canlı ortam — yalnız okuma (Alp, 2026-10-14)
 
@@ -128,9 +123,11 @@ kubectl describe node <gpu-node> | sed -n '/Taints/,/Events/p'   # taint, Alloca
   kubectl get node <gpu-node> -o jsonpath='{.metadata.labels}' | tr ',' '\n' | grep -e 'nvidia.com/' -e runai | head -40
   kubectl get node <gpu-node> -o jsonpath='{.status.capacity}'; echo     # memory Ki cinsinden — GiB'e çevirirken hesabı göster
   ```
-- **İlk özete sürüm sapmasını yaz:** `get nodes -o wide`'daki VERSION / OS-IMAGE / KERNEL-VERSION / CONTAINER-RUNTIME
-  sütunlarında GPU node'u diğerlerinden farklıysa bunu ilk bulgu olarak ver (`rke2-denetim` §1, matris `surum-uyum`).
-
+- **Sürümler kümeden okunur, tahmin edilmez; sapma ilk bulgu:** `get nodes -o wide`'daki VERSION (`v1.xx.y+rke2rN`) / OS-IMAGE /
+  KERNEL-VERSION / CONTAINER-RUNTIME sütunlarında GPU node'u diğerlerinden farklıysa ilk özete yaz (`rke2-denetim` §1). Rancher →
+  `kubectl -n cattle-system get deploy cattle-cluster-agent -o jsonpath='{.spec.template.spec.containers[0].image}'` (ajan imaj
+  etiketi, genel). Nonprod Rancher ekranı (2026-10-15): Rancher v2.14.3, `gpu-dtx` v1.33.13+rke2r1 — yine de okunan değeri yaz.
+  Uyumluluk yorumu yalnız `surum-uyum`'daki veri tablosundan.
 - **Üretici matrisi — NVIDIA GPU Operator "Platform Support"** (sürüme özel sayfa:
   `docs.nvidia.com/datacenter/cloud-native/gpu-operator/<minor>/platform-support.html`; operator sürümünü kümeden oku). **v25.3.4**
   (indirme 2026-10-24, `uyum.py --gpu-operator`): RKE2 **1.29–1.33** ve Kubernetes 1.29–1.33 · RHEL **9.2, 9.4, 9.5, 9.6** ve 8.8, 8.10 ·
@@ -139,10 +136,6 @@ kubectl describe node <gpu-node> | sed -n '/Taints/,/Events/p'   # taint, Alloca
   **betikten** (`uyum.py kontrol --gpu-operator <v> --surucu <v> --gpu H200,B300`), buraya liste kopyalama; bilinen sorun: 570.124.06/570.133.20/
   570.148.08/570.158.01 sürücülerinde MIG + tam GPU karışık node'da pod Pending (NVIDIA/gpu-operator#1361). Listede olmayan
   (ör. RHEL 9.8, K8s 1.34) → "NVIDIA doğrulama listesinde yok — destek kapsamı dışı olabilir", çalışmaz demek değil.
-- **Sürümler küme üzerinden okunur, tahmin edilmez:** RKE2/Kubernetes → `get nodes` `VERSION` sütunu
-  (`v1.xx.y+rke2rN` biçimi); Rancher → `kubectl -n cattle-system get deploy cattle-cluster-agent -o
-  jsonpath='{.spec.template.spec.containers[0].image}'` (ajan imaj etiketi, genel). Nonprod Rancher ekranı (2026-10-15):
-  Rancher v2.14.3, `gpu-dtx` v1.33.13+rke2r1 — yine de okunan değeri yaz. Uyumluluk yorumu yalnız `surum-uyum`'daki veri tablosundan.
 - `nvidia.com/gpu.*` etiketlerini GPU Feature Discovery koyar (genel). Etiket yoksa operator'ün GFD bileşenine bak (§2).
 - `Allocatable` içindeki `nvidia.com/gpu` sayısı = node'daki fiziksel GPU sayısı mı? Karşılaştır: node'da `nvidia-smi -L | wc -l`.
 - GPU node'unda taint var mı? Yoksa GPU'suz iş yükleri de oraya düşebilir — bulgu olarak yaz (genel).
@@ -165,13 +158,11 @@ Bakılacaklar:
 | Durum | `status.state` | `ready` |
 | Bileşen pod'ları | driver, container-toolkit, device-plugin, dcgm-exporter, gpu-feature-discovery, operator-validator | hepsi `Running`/`Completed`, restart artmıyor |
 | Sürücü kimde | `spec.driver.enabled` + host'ta `rpm -qa \| grep -i -e nvidia -e cuda \| head` | `true` = sürücüyü operator kurar (driver pod'u); `false` = host'a kurulu. Host'ta `nvidia-smi` çalışıyor (Alp) — hangisi olduğunu bu iki kanıtla yaz; ikisi birden olmamalı (genel) |
-| GPU paylaşımı | `spec.devicePlugin.config` → ConfigMap, `timeSlicing` / `replicas` | Varsa yaz: bir GPU birden çok pod'a bölünüyor; vLLM için genelde istenmez (genel) |
+| GPU paylaşımı | `spec.devicePlugin.config` → ConfigMap, `timeSlicing` / `replicas`; device-plugin `sharing-strategy` | Varsa yaz: bir GPU birden çok pod'a bölünüyor; vLLM için genelde istenmez (genel). `sharing-strategy: none` olsa da Run:ai kesirli GPU (`runai-allocated-gpus`) ayrıca paylaştırır — "GPU paylaşımı yok" yazmadan önce Run:ai annotation'larına bak (saha G52) |
 | MIG | `spec.mig.strategy`, node etiketi `nvidia.com/mig.config` | Bilinçli mi? Kullanıcıya sor |
 | DCGM | `spec.dcgmExporter.enabled` ve `spec.dcgm.enabled` **ayrı** alanlar | Metrik için bakılacak `dcgmExporter`; `dcgm.enabled: false` yalnız ayrı DCGM hostengine'in kapalı olduğunu söyler, "metrik yok" demek değildir (genel; saha G52) |
-| Paylaşım (Run:ai) | device-plugin `sharing-strategy: none` | Run:ai kesirli GPU (`runai-allocated-gpus`) ayrıca paylaştırır — "GPU paylaşımı yok" yazmadan önce Run:ai annotation'larına bak (saha G52) |
 | Validator | `kubectl logs -n <ns> <nvidia-operator-validator-…> --all-containers --tail=50` | hata yok (`Could not create symlink … file exists` uyarısı zararsız — genel) |
-| Restart sebebi | `describe pod` → `Last State` | **OOM yalnız `Reason: OOMKilled` / `Exit Code: 137`** ise denir. `Reason: Error, Exit Code: 2` + loglarda `panic at …go:NN` = programın kendi hatası (Go panic) — "bellek limiti düşük" deme (saha G59) |
-| Restart | `get pods -n <ns> -o wide` RESTARTS sütunu | Artmıyor. Saha 2026-10-15: `node-feature-discovery-worker` pod'ları 270-313 restart (27 günde), `master` 65 → `logs --previous` ve `describe` (`Last State` OOMKilled mi) ile sebebini oku |
+| Restart | `get pods -n <ns> -o wide` RESTARTS sütunu; sebep: `describe pod` → `Last State`, `logs --previous` | Artmıyor. **OOM yalnız `Reason: OOMKilled` / `Exit Code: 137`** ise denir; `Reason: Error, Exit Code: 2` + loglarda `panic at …go:NN` = programın kendi hatası (Go panic) — "bellek limiti düşük" deme (saha G59). Saha 2026-10-15: `node-feature-discovery-worker` pod'ları 270-313 restart (27 günde), `master` 65 → sebebini bu kanıtla oku |
 
 Sürüm (operator, sürücü, CUDA) **tahmin edilmez** — pod imaj etiketinden ve `nvidia-smi` başlığından oku.
 
@@ -211,11 +202,10 @@ Her vLLM pod'u için (kanıt = yaml'daki alan):
     Birden çok GPU'lu (tensor parallel) pod'da yoksa konteynerin küçük varsayılan shm'si NCCL'i bozar (genel; vLLM
     belgesi `--ipc=host`/büyük shm ister).
   - **Bellek tabanlı emptyDir'e yazılan veri pod'un bellek hesabına sayılır** (genel, Kubernetes belgesi): shm kullanımı +
-    süreç belleği `limits.memory`'yi aşarsa pod OOMKilled olur. Yani `sizeLimit` ile `limits.memory`'yi **birlikte**
-    değerlendir; limit yoksa pod node belleğiyle (~1 TB) sınırlıdır — bu da node'daki diğer pod'ları riske atar.
-  - `sizeLimit` yoksa tmpfs boyutu pod'un bellek limitine (yoksa node'un ayrılabilir belleğine) eşitlenir (genel,
-    Kubernetes `SizeMemoryBackedVolumes`) — yani shm, `limits.memory` ile aynı havuzdan yer. tp=1 pod'da NCCL shm'yi az
-    kullanır (tahmin); risk asıl tp>1 pod'larında. Ölçmeden "OOM olur" deme: `df` ile shm doluluğu + `kubectl top pod`.
+    süreç belleği `limits.memory`'yi aşarsa pod OOMKilled olur → `sizeLimit` ile `limits.memory`'yi **birlikte** değerlendir.
+    `sizeLimit` yoksa tmpfs boyutu pod'un bellek limitine, o da yoksa node'un ayrılabilir belleğine eşitlenir (genel, Kubernetes
+    `SizeMemoryBackedVolumes`) — limitsiz pod node'daki diğer pod'ları riske atar. tp=1 pod'da NCCL shm'yi az kullanır (tahmin);
+    risk asıl tp>1 pod'larında. Ölçmeden "OOM olur" deme: `df` ile shm doluluğu + `kubectl top pod`.
   - Gerçek boyutu pod'a girmeden, node'dan oku (okuma):
     ```bash
     kubectl get pod <pod> -n <ns> -o jsonpath='{.metadata.uid}'; echo
@@ -228,15 +218,16 @@ Her vLLM pod'u için (kanıt = yaml'daki alan):
   (`nodeSelector` / `affinity` / `tolerations`) ve namespace PSA istisnası (`rke2-kurulum`).
 - **Prob'lar:** model yüklemesi dakikalar sürebilir. `startupProbe` yok ve `livenessProbe` erken başlıyorsa pod yükleme
   sırasında öldürülür → `CrashLoopBackOff`. `initialDelaySeconds`/`failureThreshold`'u gerçek yükleme süresiyle karşılaştır.
-- **Çelişen bayraklar:** aynı args'ta hem `--enable-X` hem `--no-enable-X` (ör. prefix caching, saha G59) → bulgu;
-  hangisinin geçerli olduğu sıraya bağlı (argparse'ta sonuncu kazanır — genel), vLLM başlangıç logundan doğrula.
+- **Çelişen bayraklar:** aynı args'ta hem `--enable-X` hem `--no-enable-X` (ör. `--no-enable-prefix-caching` +
+  `--enable-prefix-caching`, saha G59/G77) → bulgu; hangisinin geçerli olduğunu pod logundaki vLLM açılış satırından oku
+  (`non-default args` / `enable_prefix_caching=`) — argparse kuralından ("sonuncu kazanır") çıkarım yapma.
 - **vLLM parametreleri** (değerini yaz, iş yükü bilinmeden "yanlış" deme): `--gpu-memory-utilization`,
   `--max-model-len`, `--max-num-seqs`, `--tensor-parallel-size`, `--dtype`/`--quantization`, `--enforce-eager`.
 - **Ortam değişkenleri:** `CUDA_VISIBLE_DEVICES`/`NVIDIA_VISIBLE_DEVICES` elle verilmişse device plugin'in atamasıyla
-  çakışabilir — neden verildiğini sor (genel). `NCCL_*` değişkenlerini **pod adıyla** listele.
-  `NCCL_P2P_DISABLE=1` NVLink/NVSwitch'li node'da (`topo -m` → `NV#`) GPU'lar arası doğrudan yolu kapatır; tensor
-  parallel trafiği host belleği üzerinden gider (genel). Bulgu olarak yaz ve **neden konduğunu sor** — geçmişte bir
-  hatayı aşmak için bilinçli konmuş olabilir; "kaldırın" deme. Etkisi yalnız tp>1 / pp>1 pod'larda.
+  çakışabilir — neden verildiğini sor (genel). `NCCL_*` değişkenlerini **pod adıyla** listele. `NCCL_P2P_DISABLE=1` NVLink/NVSwitch'li
+  node'da (`topo -m` → `NV#`) P2P taşımasını kapatır (NCCL belgesi: "disables the peer to peer (P2P) transport"); tensor parallel
+  trafiği host belleği üzerinden gider (genel). Bulgu olarak yaz ve **neden konduğunu sor** — bir hatayı aşmak için bilinçli konmuş
+  olabilir; "kaldırın" deme, etkisini **ölçmeden** "kayıp var" yazma (saha G77). Etkisi yalnız tp>1 / pp>1 pod'larda.
 - **GPU belleği %90+ normaldir:** vLLM `--gpu-memory-utilization` kadarını baştan ayırır (genel) — doluluk sorun değil.
 - **Restart sayısı ve son loglar:** `kubectl logs <pod> -n <ns> --tail=200 | grep -i -e error -e warn -e "out of memory" -e weights`
   — ağırlık yükleme süresini veren satır (`/models` hızı için §5).
@@ -279,11 +270,6 @@ journalctl -k --since -7d | grep -i -e xid -e nvrm | tail -30
   - Kanıt sırası: ECC/row remap (`nvidia-smi -q -d ECC,ROW_REMAPPER`, `retired pages`) → aynı dönemde başka Xid (48/63/64/79/94/95)
     → DCGM tanı (`dcgmi diag -r 3` — **GPU'yu meşgul eder, iş yükünü etkiler**: değişiklik sayılır, bakım penceresi + kullanıcı onayı).
   - "Donanım sorunu ihtimalini güçlendirir" gibi bir cümle yalnız yukarıdaki ayırt etme yapıldıysa; yoksa "olabilir" + eksik kanıt.
-- **Ortam değişkeni / argüman bulguları (saha G77):** `NCCL_P2P_DISABLE=1` NVSwitch'li node'da P2P (NVLink) taşımasını kapatır
-  (NCCL belgesi: "disables the peer to peer (P2P) transport") — performans etkisini **ölçmeden** "kayıp var" yazma; neden konduğunu
-  sor (bilinen bir hatayı aşmak için konmuş olabilir). Çelişen argümanda (`--no-enable-prefix-caching` + `--enable-prefix-caching`)
-  hangisinin geçerli olduğunu pod logundaki vLLM açılış satırından oku (`non-default args` / `enable_prefix_caching=`), argparse
-  kuralından çıkarım yapma.
 - **ECC uncorrected > 0**, sürekli düşük saat, `power.limit` beklenenden düşük → bulgu.
 - **PCIe:** boşta `gen.current` güç tasarrufuyla düşer (genel) — karşılaştırmayı **yük altında** yap.
 

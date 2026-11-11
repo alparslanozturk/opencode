@@ -22,6 +22,11 @@ Sahada: `al.sh` → `./kur.sh`, sonra `cd <dizin> && ocm`. İkili değişmez (ye
   sorun yokken de sorun varmış gibi okunuyordu.
 - Test: `script/duman-kontrol-rapor.sh` T5 (log tarihi), T6 (`ocm` — mini'li ve mini'siz ikili), T7 (sonuç satırı): 33 geçti, 0 kaldı.
 - **MobaXterm'de `ocm` hâlâ denenmedi** — ilk saha denemesi bekleniyor (tekerlek + seçip kopyalama).
+- **Saha 11.11 11:21:** kurulum `ocm` kısayolunu kurdu (ikili 3.0.0'da `mini` var), `ocm` MobaXterm'de açıldı; kontrol `log`
+  satırı `11-04 12:46Z Failed to drain Session` (tarihli — hata 4 Kasım'dan). Soru: "`ocm`'de oturumlarım nerede?" → menüde
+  oturum listesi yok; `ocm -c` / `opencode session list` / `ocm -s <kimlik>` (`ALP-README.md`). Yerel deneme (3.0.0, sahte uç,
+  tmux): `mini -c` son oturumu geçmişiyle açtı, `session list` yalnız o dizinin oturumunu listeledi, `mini -s` başka dizinin
+  oturumunu açtı.
 - **Alp kararı (11.11):** `ocm` ayrı kısayol kalır, istenince çağrılır; `opencode` / `oc` olduğu gibi (tam ekran arayüz) açılır.
 
 ## 2026-11-10 — `ocm`: fare tekerleğiyle kaydırma (dal `feature/fare-tekerlegi`; 11.11'de `main`'e alındı)

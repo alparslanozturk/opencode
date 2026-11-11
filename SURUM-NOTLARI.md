@@ -6,6 +6,23 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-11 — git geçmişi yeniden yazıldı (kurum alan adı + iç IP eski commit'lerden çıkarıldı)
+
+**Bir kerelik iş — `al.sh`'ın `git pull` yaptığı klonda:** `git fetch origin && git reset --hard origin/main` (yoksa `git pull`
+"divergent branches" der ya da eski geçmişle birleştirme commit'i üretir). Dosya içeriği aynı: yeni `main`'in ağacı eskisiyle
+birebir (`git rev-parse main^{tree}` ikisinde `38e3ae8ec5df`). Sahaya giden dosyalarda fark yok; `./kur.sh` her zamanki gibi.
+- Alp onayı (2026-11-11): "eski commitlerde geçmişi yeniden yazabilirsin". Kapsam: kurum alan adları ve iç IP'ler (sunucu/ortam
+  adları kapsam dışı — Alp: maskeleme gerekmez).
+- Yöntem: ayrı klonda `git filter-repo --replace-text --replace-message`; 378 commit'in 234'ü yeniden yazıldı (2026-10-12'den
+  sonrası), yazar/tarih/mesaj aynı (bir mesajdaki commit kimliği yenisine çevrildi), değişen dosya 11 (hepsi `engine/`,
+  `knowledge/`, `script/`). `urun-2.0.0` etiketi değişmedi. Gönderim `--force-with-lease`: `main` `e5272e53c8` → `9510c97fd0`,
+  `feature/fare-tekerlegi` `3322fb18e5` → `4d63a46202`.
+- Doğrulama: yeni geçmişteki tüm nesneler tarandı — alan adı 0, saha IP bloğu 0 (kalanlar test örneği: `10.1.x`, `10.2.x`).
+- **Sınır:** GitHub eski commit'i dal dışında saklamayı sürdürür — kimliği bilen açabilir (denendi: API eski `e5272e53c8`'i hâlâ
+  döndürüyor). Tam silme GitHub Destek talebiyle olur. Depo 2026-10-12'den beri public olduğu için önceden alınmış kopya
+  olup olmadığı bilinmiyor.
+- Yerel yedek (yalnız geliştirme sunucusunda, gönderilmez): `refs/yedek/2026-11-11/{main,fare}` — saha eşitlemesi doğrulanınca silinir.
+
 ## 2026-11-11 — beceriler: yazım denetimi, maskeleme, "Önce sor" ×9, `dnf`/`yum` TLS hatası tablosu
 
 Sahada: `al.sh` → `./kur.sh`, **yeni oturum**. İkili değişmez. Örnek istek: "yum SSL hatası veriyor" / hata satırını yapıştır.
@@ -15,7 +32,7 @@ Sahada: `al.sh` → `./kur.sh`, **yeni oturum**. İkili değişmez. Örnek istek
   `<x>` yer tutucusu vardı (ansible, git, idm-kurulum, kurum-registry, rke2-manifest → `{x}`).
 - **Maskeleme** (`knowledge/operations-notes/README.md` kuralı — depo public): beceri, şablon, saha notu, politika ve testlerdeki
   kurum alan adları → `<kurum>.local` / `<kurum-dmz>.local`, iç IP'ler → `<ip-…>` ya da örnek blok. `rhel-teslim` FQDN son ekini
-  artık kurumsal bilgi §1–§2'den okur, yoksa sorar. **Eski commit'lerde bu metinler duruyor** (karar Alp'te).
+  artık kurumsal bilgi §1–§2'den okur, yoksa sorar.
 - **"Önce sor"** bölümü eklendi (her becerinin kendi dallarından): rhel-depolama, rancher-sertifika, k8s-sorun, kume-bul,
   kurum-registry, filo-kontrol, rhel-guncelleme, rhel-sorun, rhel-performans → 16/46.
 - **`rhel-guncelleme` → "Depo erişiminde TLS/SSL hatası"**: `dnf -q` sebebi göstermez (ölçüldü) → asıl `Curl error (N)` satırı

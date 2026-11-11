@@ -1,6 +1,6 @@
 ---
 name: rke2-manifest
-description: Kümeye git'teki manifesti uygularken ya da küme ile git'i karşılaştırırken kullan — kurum "elle GitOps": her kümenin manifestleri (StorageClass, optic izleme, twistlock, commvault …) Azure DevOps kubernetes deposunda `rancher/<adres>/<küme>/`; otomatik senkron yok. Sıra: pull → hedef küme → `kubectl diff` (salt-okunur) → CN ile `apply` → doğrulama + uygulanan commit. "manifest uygula", "gitten yükle", "kümeye yükle", "optic", "twistlock", "storage class", "storageclass", "commvault", "yeni kümeye standart bileşenler", "git ile küme aynı mı", "drift", "kayma", "bu kümenin manifestlerini şu kümeye uyarla", "özelleştir", "yeni kümeye kopyala" isteklerinde tetiklenir. Depo/klon/kimlik `git`, küme bulma `kume-bul`.
+description: Kümeye git'teki manifesti uygularken ya da küme ile git'i karşılaştırırken kullan — kurum "elle GitOps": her kümenin manifestleri (StorageClass, optic izleme, twistlock, commvault …) Azure DevOps kubernetes deposunda `rancher/{adres}/{küme}/`; otomatik senkron yok. Sıra: pull → hedef küme → `kubectl diff` (salt-okunur) → CN ile `apply` → doğrulama + uygulanan commit. "manifest uygula", "gitten yükle", "kümeye yükle", "optic", "twistlock", "storage class", "storageclass", "commvault", "yeni kümeye standart bileşenler", "git ile küme aynı mı", "drift", "kayma", "bu kümenin manifestlerini şu kümeye uyarla", "özelleştir", "yeni kümeye kopyala" isteklerinde tetiklenir. Depo/klon/kimlik `git`, küme bulma `kume-bul`.
 ---
 
 # Git'teki manifesti kümeye uygulama — elle GitOps

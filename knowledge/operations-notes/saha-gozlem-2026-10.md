@@ -1168,10 +1168,10 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   `-delete`, `-fprint*`, `-exec rm`, `-exec sh -c …` değişiklik kalır; `{}` tek simge. Test 330 → 332, `tsc --strict` temiz.
 
 ### G98 — "kriz durumu evet sadece onu restart et" → "sunucu listesi yok"; ad yazınca IP eşleşmedi; ajan kalıp cümle dikte etti
-- Görülen (Alp ekranları, 2026-10-22, test-sasviya master01 `10.0.4.135`): ajan "CN: CHGXXXXXX (varsa) / sunucular: stlsasmaster01 …
+- Görülen (Alp ekranları, 2026-10-22, test-sasviya master01 `<ip-M>`): ajan "CN: CHGXXXXXX (varsa) / sunucular: stlsasmaster01 …
   restart edeyim mi?" dedi. Alp: "kriz durumu evet sadece onu restart et." → K1 "KRIZ verildi ama sunucu listesi yok"; ajan "sunucular:
-  stlsasmaster01 yazarsan" → Alp yazdı → K1 "Hedef yetki listesinde yok: 10.0.4.135 (geçerli yetki — KRİZ: stlsasmaster01)" → ajan
-  "kriz var, 10.0.4.135 yazmayı dener misin?" → geçti. Sonra ajan "en temiz çözüm reboot … `kriz var, 10.0.4.135 reboot` yazarsan
+  stlsasmaster01 yazarsan" → Alp yazdı → K1 "Hedef yetki listesinde yok: <ip-M> (geçerli yetki — KRİZ: stlsasmaster01)" → ajan
+  "kriz var, <ip-M> yazmayı dener misin?" → geçti. Sonra ajan "en temiz çözüm reboot … `kriz var, <ip-M> reboot` yazarsan
   reboot ederim" → Alp yazdı, master reboot edildi (kanıt toplanmadan). Alp: "hâlâ format istiyor, çok garip."
 - Kök: (1) kilit yalnız kullanıcı mesajındaki adları okuyordu — onaylanan önerideki ad kullanılmıyordu; (2) ad envanterde IP'siz/yok →
   ad ↔ IP eşlemesi yapılamadı (tahmin: test-sasviya master'ları envanterde `ansible_host`'suz; sahada `kume-bul.py stlsasmaster01` ile
@@ -1366,8 +1366,8 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 ### G111 — "DumpSight NFS IP kontrolü": metin karşılaştırması doğru, ama önce izinsiz okuma denedi (Alp, 2026-10-27, 2 ekran)
 - İstek: `/splbtfile_NFS_FS/DumpSight` paylaşımına verilmiş IP listesi + SPLKUBEWORK1–10 (IP'li) — "tabloyu sadece kontrol et metini, işlem yapma".
 - Ajan önce `cat /etc/exports || grep -r "DumpSight" /etc/` çalıştırmak istedi (izin ekranı; çalışma makinesi NFS sunucusu değil, istek
-  de yalnız metindi). Sonra doğru cevap: 10/10 sunucu IP'si paylaşımda ✅; paylaşımda listede olmayan 3 IP (10.0.10.166–168).
-  Doktor kontrolü: ekrandaki 10 IP (.77–.83, .96, .160, .161) paylaşım satırında var ✅; paylaşım satırı ekranda `10.0.10.16…` diye
+  de yalnız metindi). Sonra doğru cevap: 10/10 sunucu IP'si paylaşımda ✅; paylaşımda listede olmayan 3 IP (`<ip-…>.166–168`).
+  Doktor kontrolü: ekrandaki 10 IP (.77–.83, .96, .160, .161) paylaşım satırında var ✅; paylaşım satırı ekranda `<ip-…>.16…` diye
   kesik — 166–168 değerleri ekrandan doğrulanamadı (bilinmiyor).
 - Aksiyon: AGENTS "Yalnız metni kontrol et, işlem yapma" bölümü (komut yok; canlı doğrulama sonda tek cümle öneri; kesik satırı söyle).
 
@@ -1528,10 +1528,10 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 
 ### G118 — NFS "performans": ajan nfsidmap'i kök neden yazdı, kaynaksız ayar önerdi; Alp düsturu "önce sor, her şey kanıtlı" (Alp, 2026-11-03, 4 ekran)
 - Görülen: splastnginx01-03 `/ab` ← `splbtfile:/splbtfile_NFS_FS/Assistbox_PROD`, nfs4 vers=4.1, rsize/wsize=262144, hard, tcp,
-  timeo=600, retrans=2, sec=sys; nginx02 `10.0.10.115`, diğerleri `.114` (ajan "3'ü aynı" dedi). Log: `nfsidmap … 'root@localdomain'
-  does not map into domain 'kurum.local'` (00:30, 00:44, 00:55); `nfsrahead: setting /ab readahead to 128`; SEP `SISEVT … nfs4`.
+  timeo=600, retrans=2, sec=sys; nginx02 `<ip-…>.115`, diğerleri `.114` (ajan "3'ü aynı" dedi). Log: `nfsidmap … 'root@localdomain'
+  does not map into domain '<kurum>.local'` (00:30, 00:44, 00:55); `nfsrahead: setting /ab readahead to 128`; SEP `SISEVT … nfs4`.
 - ❌ "NFS sorununun kökü nfsidmap, her işlemde yavaşlatıyor" — eşleme önbellekli (`man nfsidmap`: `-t` varsayılan 600 sn), etkisi
-  sahiplik görünümü. ❌ Öneri istemcide `Domain = kurum.local` — zaten o (uyumsuz olan sunucunun `localdomain`'i). ❌
+  sahiplik görünümü. ❌ Öneri istemcide `Domain = <kurum>.local` — zaten o (uyumsuz olan sunucunun `localdomain`'i). ❌
   `RPCIDMAPD_ARGS="-g"` — `man idmapd` (nfs-utils 2.8.3) seçenekleri -h -v -f -p -c -C -S, `-g` yok; `nfs-idmapd.service`
   `BindsTo=nfs-server.service` (sunucu tarafı). ❌ `systemctl restart rpcidmapd nfs-client.target` canlı `hard` bağlamada. ❌ "compose
   down -v / up -d ile düzeldi". Copilot: "-g performansa etkisiz" (sonuç doğru) ama "-g grup→GID çevirmeyi kapatır" (kaynaksız);
@@ -1546,13 +1546,13 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 
 ### G119 — "Açık sistem 2. onay" (yeni VM yapılandırma, DMZ): beceri tetiklenmedi, çelişen değerler işaretlenmedi, DMZ değerleri kaynaksız (Alp, 2026-11-03, 4 ekran)
 
-- İstek: "Açık sistem 2. onay işlemleri yapacak. Sunucular: dpd1intsube1.kurum-dmz.local dpd1intsube2.kurum-dmz.local". Ajan `rhel-teslim`'i
+- İstek: "Açık sistem 2. onay işlemleri yapacak. Sunucular: dpd1intsube1.<kurum-dmz>.local dpd1intsube2.<kurum-dmz>.local". Ajan `rhel-teslim`'i
   yüklemedi (tetik sözcükleri yoktu), üç genel soru sordu ("açık sistem ne?", "CN?", "ne yapılacak?").
 - Alp: "2. onay" = Açık Sistemler ekibinin VM yapılandırması; playbook'lar (subs, IPA client, SEP kurulum/sınırlama, XDR, disk extend /
   data) **duruma göre tek tek** çalıştırılır; baseline ayrı projede. IPA client için **iki betik**: ana alan ve DMZ alanı.
 - Ajan hataları: 12 playbook'u "numaralı sırayla kurulum akışı" diye sundu; `02-dns-nmcli` DNS'i (`10.13.x/10.14.x`) ile
   `group_vars/all.yml` DNS'i (`10.4.x`) ve Satellite adları (`srvsatellite…` / `satellite…`) çelişiyordu, işaretlemedi; DMZ için
-  DNS IP'lerini kaynak göstermeden tabloya yazdı; başlıkta `kurum-ymd.local` (Alp'in mesajı) ile değerlerde `kurum-dmz.local` (FQDN) karıştı;
+  DNS IP'lerini kaynak göstermeden tabloya yazdı; başlıkta Alp'in mesajındaki (yanlış yazılmış) alan adı ile değerlerde FQDN'deki `<kurum-dmz>.local` karıştı;
   tablo hücresine Çince karakter (`特定`) sızdı.
 - Doğru olan: `dpd` = Ankara (DRC) · production · DMZ yorumu `engine/AGENTS.md` ad kuralıyla tutarlı.
 - `07-sep-install` kaynağı `srvsatellite/pub/SAL/1.4` → Alp'in duyduğu "1.4" büyük olasılıkla bu dizin (tahmin); Broadcom KB 222816 `SAL/1.4`
@@ -1563,8 +1563,8 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 
 ### G120 — 2. onay devamı: IP DNS'ten bulundu, ping var, SSH "Connection refused"; ajan nedeni ölçmeden sıraladı (Alp, 2026-11-03, 3 ekran)
 
-- Ajan IP'yi kanıtla buldu: atlama makinesi `10.0.1.136` üzerinden `nslookup dpd1intsube{1,2}.kurum-dmz.local 10.0.60.1` →
-  `10.0.35.126/127` (iyi). Ping 3/3, `ssh root@…` → "Connection refused" (iki sunucu).
+- Ajan IP'yi kanıtla buldu: atlama makinesi `<ip-atlama>` üzerinden `nslookup dpd1intsube{1,2}.<kurum-dmz>.local <ip-dns>` →
+  `<ip-…>.126/127` (iyi). Ping 3/3, `ssh root@…` → "Connection refused" (iki sunucu).
 - Ajan "muhtemelen: kurulmadı / firewall / sshd başlamadı" listeledi, ayıran ölçüm önermedi. Alp: "sunucular Windows bile olmayabilir".
 - Aksiyon: `rhel-teslim` §1 "Ping var, SSH refused" — TTL + 22/3389/5985 tek satır (bash /dev/tcp, kilitte okuma), TTL varsayılanları
   kaynaklı (Linux 64 ölçüldü; Windows 128 Microsoft eski belge), sonuç tahmin olarak söylenir; eksik sanallaştırma ekibine döner.
@@ -1594,7 +1594,7 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 
 ### G122 — "rke-prod NS kapasite" salt-okunur incelemede üretim node'unda `kubectl proxy &` onaysız çalıştı (Alp, 2026-11-03, 1 ekran)
 
-- Ajan: `ssh root@10.0.16.196 "…/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml proxy --port=8080 &"` → "Starting to serve on
+- Ajan: `ssh root@<ip-master> "…/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml proxy --port=8080 &"` → "Starting to serve on
   127.0.0.1:8080", 5 sn zaman aşımı. Sonra `curl http://127.0.0.1:8080/k8s/clusters/c-…` **yerelde** (yönetim sunucusunda) → JSON yok.
   Sonra yerelde `pkill -f "kubectl proxy"` → Alp reddetti ("readonly kontrol edeceksin bu ne ya?").
 - Etki: veri değişmedi. Risk: node'un loopback'inde cluster-admin kimlikli, kimlik doğrulamasız API tüneli arkada kalmış olabilir

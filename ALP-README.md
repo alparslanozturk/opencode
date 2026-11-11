@@ -65,7 +65,7 @@ Kaynak: `packages/tui/src/config/keybind.ts` (lider tuşu `ctrl+x`) ve `packages
   · en başa `Home` · en sona `End`. `shift+↑/↓` istem kutusunda seçim yapar, kaydırmaz.
 - **Fare tekerleğiyle kaydırma:** `opencode` yerine **`ocm`** aç (= `opencode mini`). Çıktı terminalin kendi kaydırma
   arabelleğine yazılır; tekerlek ve seçip kopyalama terminalde çalışır. Kenar çubuğu/sekme yok; menü `ctrl+p`, komutlar `/`.
-  MobaXterm'de açıldı (saha 2026-11-11); tekerlek + seçip kopyalama sonucu bekleniyor.
+  MobaXterm'de açıldı, tekerlekle kaydırma çalıştı (Alp, saha 2026-11-11: "Güzelce scroll etti"); seçip kopyalama sonucu bildirilmedi.
   **Eski oturumlar `ocm`'de:** menüde oturum listesi yok (yalnız "New session"). Oturumlar `opencode` ile ortaktır:
   `ocm -c` = bu dizinin son oturumu (geçmiş ekrana yeniden yazılır, en yeni 200 mesaj) · `opencode session list` = bu dizinin
   oturumları (kimlik + başlık + zaman) · `ocm -s <kimlik>` = seçilen oturum. Listeden seçmek için `opencode` (tam ekran).

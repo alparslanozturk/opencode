@@ -8,10 +8,10 @@
 > Aynı bilgi tek yerde. Çelişki varsa iki satır `ÇELİŞKİ:` altında kalır, Alp karar verene kadar.
 
 ## 1. Ağ, DNS, NTP
-- İç ağ (kurum.local) DNS sunucuları — ortama göre:
+- İç ağ (alan adı: … ) DNS sunucuları — ortama göre:
 - NTP:
 
-## 2. DMZ (kurum-dmz.local, kurum-dmz-test.local)
+## 2. DMZ (alan adları: … )
 - DNS sunucuları:
 - Çözümleme yolu (iç DNS DMZ adlarını çözmez):
 

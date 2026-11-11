@@ -9,6 +9,16 @@ Doğrulandı: ansible-core 2.16.16, AlmaLinux 10.2 — 2026-08-29
 çalışır, tek bir ulaşılamayan sunucuda takılır ve çıktısı ayrıştırılamaz.
 Ansible ad-hoc bunu tek komutta, paralel ve makine okunur biçimde yapar.
 
+## 0. Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Ne kontrol edilecek:** hangi soru (sürüm, servis, disk, erişim …) — tek cümleyle; "genel bak" ise hangi başlıklar.
+2. **Kapsam:** hangi envanter dosyası ve grup / sunucu listesi (serbest yazım olur: ad, kısa ad, aralık).
+3. **Komut nereden çalışacak:** bu makineden mi, başka ortamın makinesinden mi (erişilemeyen ortam → §7 son madde, `uzak-envanter`).
+4. **Çıktı:** ekranda özet mi, tablo/CSV/rapor mu (`rapor` becerisi).
+
+Ölçülebileni sorma: kimin kapsandığı (`--list-hosts`), erişim, değerler — §1–§7 komutları ve `filo-tablo.py` / `erisim-blok.py` toplar.
+Bu beceri yalnız okur; değişiklik isteniyorsa "Sınır" bölümü.
+
 ## 1. Kimi kapsıyorsun — önce bunu gör
 
 ```bash

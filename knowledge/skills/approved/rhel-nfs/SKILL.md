@@ -14,7 +14,7 @@ Etiketler: **(man)** makinedeki man sayfası · **(ölçüldü)** komut çıktı
 
 Kullanıcı vermediyse tek mesajda, numaralı:
 1. **Belirti:** dizin boş mu görünüyor, hata mı (hangi metin), uygulama mı yazamıyor, yavaşlık mı — hangi işlemde (okuma, yazma, listeleme)?
-2. **Kapsam:** hangi sunucular — hepsi mi, biri mi? (saha: nginx02 `10.0.10.115`, diğerleri `.114` — farklı uç)
+2. **Kapsam:** hangi sunucular — hepsi mi, biri mi? (saha G118: üç sunucudan biri farklı NFS ucuna bağlıydı; ajan "üçü aynı" dedi)
 3. **Zaman:** hangi açılış/saat; bir değişiklikten (güncelleme, reboot) önce de var mıydı?
 4. **Ne yapıldı:** yeniden bağlama nasıl (`mount -a`? `umount`+`mount`?), konteyner/servis o arada yeniden başlatıldı mı, kayıt yazımı sürdü mü?
 Ölçülebilenleri sorma — §1'in komutu toplar.
@@ -52,9 +52,9 @@ ile host'ta `ls <hedef>`. Farklıysa konteyner yerel dizini görüyor.
 
 ## 3. Ölçülmemiş/yanlış iddialar (saha G118) — tekrarlama
 
-- `nfsidmap: name 'root@localdomain' does not map into domain 'kurum.local'` = sunucu sahibi `localdomain` ile gönderiyor, istemci
-  domain'i `kurum.local`. Etkisi **sahiplik görünümü** (ör. `nobody`); eşleme sonucu önbellekte tutulur (man nfsidmap: `-t`
-  varsayılan 600 sn — saha logunda satırlar 10–15 dk arayla). "Her işlemi yavaşlatıyor" kanıtsız. İstemcide `Domain = kurum.local`
+- `nfsidmap: name 'root@localdomain' does not map into domain '<kurum>.local'` = sunucu sahibi `localdomain` ile gönderiyor, istemci
+  domain'i `<kurum>.local`. Etkisi **sahiplik görünümü** (ör. `nobody`); eşleme sonucu önbellekte tutulur (man nfsidmap: `-t`
+  varsayılan 600 sn — saha logunda satırlar 10–15 dk arayla). "Her işlemi yavaşlatıyor" kanıtsız. İstemcide `Domain = <kurum>.local`
   önerisi zaten olan değer; düzeltme ya sunucu tarafında (depolama ekibi) ya istemcide `localdomain` — sahiplik kararı, sahibine.
 - `RPCIDMAPD_ARGS="-g"`: man idmapd (nfs-utils 2.8.3, ölçüldü) seçenekleri `-h -v -f -p -c -C -S` — `-g` **yok**; `nfs-idmapd.service`
   `BindsTo=nfs-server.service` (NFS **sunucusu** tarafı). Önerme.

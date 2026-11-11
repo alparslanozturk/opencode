@@ -6,6 +6,26 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-11 — beceriler: yazım denetimi, maskeleme, "Önce sor" ×9, `dnf`/`yum` TLS hatası tablosu
+
+Sahada: `al.sh` → `./kur.sh`, **yeni oturum**. İkili değişmez. Örnek istek: "yum SSL hatası veriyor" / hata satırını yapıştır.
+- **Yazım denetimi** `script/beceri-yazim-denetim.py` (yalnız okur; `beceri-betik-test.sh` içinde koşar): ad, açıklama ≤1024 ve
+  `<…>`'siz, gövde <500 satır, anılan dosya yerinde, iş haritasında, maskeleme. Kaynak: agentskills.io/specification. İlk
+  koşuda bulunanlar düzeltildi: `rancher-sertifika` açıklaması 1024'ü aşıyordu (tekrarlar atıldı); 5 becerinin açıklamasında
+  `<x>` yer tutucusu vardı (ansible, git, idm-kurulum, kurum-registry, rke2-manifest → `{x}`).
+- **Maskeleme** (`knowledge/operations-notes/README.md` kuralı — depo public): beceri, şablon, saha notu, politika ve testlerdeki
+  kurum alan adları → `<kurum>.local` / `<kurum-dmz>.local`, iç IP'ler → `<ip-…>` ya da örnek blok. `rhel-teslim` FQDN son ekini
+  artık kurumsal bilgi §1–§2'den okur, yoksa sorar. **Eski commit'lerde bu metinler duruyor** (karar Alp'te).
+- **"Önce sor"** bölümü eklendi (her becerinin kendi dallarından): rhel-depolama, rancher-sertifika, k8s-sorun, kume-bul,
+  kurum-registry, filo-kontrol, rhel-guncelleme, rhel-sorun, rhel-performans → 16/46.
+- **`rhel-guncelleme` → "Depo erişiminde TLS/SSL hatası"**: `dnf -q` sebebi göstermez (ölçüldü) → asıl `Curl error (N)` satırı
+  nasıl alınır; 9 durum tek tek üretilip ölçüldü (dnf 4.20.0 / libcurl 8.12.1 / OpenSSL 3.5.8, AlmaLinux 10): bilinmeyen CA,
+  süresi dolmuş, henüz geçerli değil, ad uyuşmuyor, istemci sertifikası isteniyor / dosyası yok, `sslcacert` yolu yok, TLS sürümü,
+  bağlantı. Her biri → anlamı → sonraki okuma → düzeltme kimde. `sslverify=0` çözüm sayılmaz. İş haritasına satır eklendi.
+  **Sahadaki gerçek hata metni henüz görülmedi** (yalnız sekme başlığı "yum SSL …") — RHEL 8/9'da köşeli parantez metni farklı
+  olabilir; beceri "kodu ve metni aynen göster, tabloda yoksa söyle" der.
+- Test: `script/beceri-betik-test.sh` 284 geçti · 0 kaldı (vermin kurulu değil — 3.6 denetimi atlandı); `engine/plugins` `bun test` 397 pass · 0 fail; `beceri-komut-kilit` 74 geçti · 0 takıldı.
+
 ## 2026-11-11 — `ocm` artık `main`'de + kontrol raporunda eski log hatası tarihiyle
 
 Sahada: `al.sh` → `./kur.sh`, sonra `cd <dizin> && ocm`. İkili değişmez (yeniden derleme yok).

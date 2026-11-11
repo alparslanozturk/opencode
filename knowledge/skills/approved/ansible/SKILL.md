@@ -1,6 +1,6 @@
 ---
 name: ansible
-description: Ansible ile birden çok sunucuda iş yaparken kullan — proje düzeni kurma, CN/değişiklik numarasıyla iş envanteri (hosts-<CN>-<tarih>.ini) üretme, sertifika/ayar dosyasını playbook'a gömülü dağıtma, envanter doğrulama, tek sunucuya daraltma, ad-hoc komut, playbook yazma ve hazır playbook'u inceleme (`playbook-denetim.py`), playbook çalıştırma, kuru çalıştırma. "ansible", "playbook", "hosts dosyası", "tüm sunucularda", "şu sunucuda çalıştır", "ansible-playbook" isteklerinde tetiklenir.
+description: Ansible ile birden çok sunucuda iş yaparken kullan — proje düzeni kurma, CN/değişiklik numarasıyla iş envanteri (hosts-{CN}-{tarih}.ini) üretme, sertifika/ayar dosyasını playbook'a gömülü dağıtma, envanter doğrulama, tek sunucuya daraltma, ad-hoc komut, playbook yazma ve hazır playbook'u inceleme (`playbook-denetim.py`), playbook çalıştırma, kuru çalıştırma. "ansible", "playbook", "hosts dosyası", "tüm sunucularda", "şu sunucuda çalıştır", "ansible-playbook" isteklerinde tetiklenir.
 ---
 
 Doğrulandı: ansible-core 2.16.16, AlmaLinux 10.2 — 2026-08-29

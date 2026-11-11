@@ -1,6 +1,6 @@
 ---
 name: rancher-sertifika
-description: Rancher sunucusunun (ingress / web arayüzü) TLS sertifikasını yenilerken ya da değiştirirken kullan — deterministik `sertifika-kontrol.py` (dosya türü, kalan gün, anahtar eşleşmesi, zincir, verify, eski yaprak tespiti, canlı secret ile aynı CA mı), kurumun aynı-CA yenileme akışı (old/ dizini, aynı dosya adları, apply), `tls-rancher-ingress` ve `tls-ca` secret'ları, privateCA, "aynı CA mı yeni CA mı" kararı, dosya hazırlama (PKCS#8 anahtar, .cer DER/PEM, zincir sırası, Windows CRLF), doğrulama, yedek ve geri alma, CA değiştiyse Rancher pod'ları + ajanların CATTLE_CA_CHECKSUM'u + Fleet force update. "rancher sertifika", "sertifika yenile", "sertifikaları değiştir", "sertifika yükle", "yeni sertifika geldi", "tls.crt", "tls.key", "ingress sertifikası", "cacerts.pem", "chain.pem", "pfx", "tls-rancher-ingress", "tls-ca", "cacerts", "privateCA", "ingress sertifikası", "not secure", "x509", "certificate signed by unknown authority", "sertifika ne zaman bitiyor", "kaç gün kaldı", "sertifikayı kontrol et" isteklerinde tetiklenir. RKE2'nin kendi iç sertifikaları (etcd, apiserver — 120 gün kala kendiliğinden yenilenir) bu beceri değil: `rke2-denetim`, `rke2-guvenlik`.
+description: Rancher sunucusunun (ingress / web arayüzü) TLS sertifikasını yenilerken ya da değiştirirken kullan — deterministik `sertifika-kontrol.py` (dosya türü, kalan gün, anahtar eşleşmesi, zincir, eski yaprak, canlı secret ile aynı CA mı), kurumun aynı-CA yenileme akışı (old/ dizini, aynı dosya adları, apply), "aynı CA mı yeni CA mı" kararı, dosya hazırlama (PKCS#8 anahtar, .cer DER/PEM, zincir sırası, Windows CRLF), doğrulama, yedek ve geri alma, CA değiştiyse Rancher pod'ları + ajanların CATTLE_CA_CHECKSUM'u + Fleet. "rancher sertifika", "sertifika yenile", "sertifikaları değiştir", "sertifika yükle", "yeni sertifika geldi", "tls.crt", "tls.key", "cacerts.pem", "chain.pem", "pfx", "tls-rancher-ingress", "tls-ca", "privateCA", "ingress sertifikası", "not secure", "x509", "certificate signed by unknown authority", "sertifika ne zaman bitiyor", "kaç gün kaldı", "sertifikayı kontrol et" isteklerinde tetiklenir. RKE2'nin kendi iç sertifikaları (etcd, apiserver) bu beceri değil: `rke2-denetim`, `rke2-guvenlik`.
 ---
 
 # Rancher sunucu sertifikası — yenileme / değiştirme
@@ -16,6 +16,17 @@ erişim yok** (AGENTS "erişilemeyen platform") → orada komutları **kullanıc
 ve sırayı ver, çıktıyı yorumla.
 
 Değişiklik adımları (§4, §5) CN/KRİZ yetkisi ister; bu beceri önce **okur ve karar verir**.
+
+## Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Amaç:** yalnız kontrol mü ("ne zaman bitiyor") yoksa yenileme/değiştirme mi.
+2. **Hangi Rancher:** adresi (hostname) ve platformu — bu makineden erişilen mi, erişilmeyen (bulut) mi; erişilmeyende komutları
+   kullanıcı çalıştırır (yukarıdaki kurum notu).
+3. **Yeni sertifika:** elde mi, hangi biçimde (PFX / ayrı `tls.crt`+`tls.key`), dosyalar hangi sunucuda hangi dizinde. Sertifika
+   dizinini bilmiyorsa tahmin etme — local kümenin master'ını `kume-bul` bulur, dizini kullanıcı söyler ya da `ls` çıktısı gösterir.
+4. **Kısıt:** değişiklik kaydı (CN) ve pencere — §4–§5 yetki ister.
+
+Ölçülebileni sorma: kalan gün, anahtar eşleşmesi, zincir, "aynı CA mı" — `sertifika-kontrol.py` basar (§0, §1).
 
 ## 0. Kurumun yenileme akışı — aynı CA (Alp, 2026-10-21, saha G84) — en sık senaryo
 

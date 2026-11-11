@@ -5,6 +5,17 @@ description: Sunucu yavaşlığı, yüksek yük, CPU/bellek/disk darboğazı, pa
 
 Darboğazı bulmadan çözüm önerme. Sıra: yük → hangi kaynak → hangi süreç.
 
+## 0. Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Belirti:** ne yavaş — hangi işlem/uygulama, kullanıcı neyle ölçüyor (süre, zaman aşımı, kuyruk); "yavaş" tek başına yetmez.
+2. **Eksen:** şikâyet iş hacmi mi (throughput), işlem sayısı mı (IOPS), gecikme mi (latency) — biliniyorsa (AGENTS "Ayar ve performans önerisi").
+3. **Kapsam:** hangi sunucu(lar); aynı roldeki diğerleri normal mi (kıyas için).
+4. **Zaman:** şu an mı, belirli saatlerde mi, ne zamandan beri; öncesinde değişiklik oldu mu → geçmiş için §6 `sar-ozet.py`.
+5. **Amaç:** anlık teşhis mi, kapasite raporu mu ("son N gün").
+
+Ölçülebileni sorma: yük, CPU/bellek/disk kullanımı, süreçler — §1–§6 toplar. Ölçmeden ayar önerme; öneri makinenin kendi dokümanındaki
+(`man`, `--help`) seçenekle ve etkin değeriyle yazılır (düstur — saha G118).
+
 ## 1. Yük gerçekten yüksek mi
 
 ```bash

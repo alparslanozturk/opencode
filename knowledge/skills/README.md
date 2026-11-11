@@ -17,7 +17,7 @@ gerektiğinde `skill` aracıyla içeriği çeker → bağlam şişmez.
 Dosya biçimi her üç dizinde aynı: `<ad>/SKILL.md`, frontmatter'da `name` + `description`.
 
 **Kural (2026-09-28):** `approved/`'daki her beceri `./kur.sh` ile sahaya kurulur — ayrı bir liste yok,
-sayı hedefi yok (eski "6-10" hedefi kaldırıldı; şu an **43**, 2026-11-03). Kullanılmayan beceri silinmez, `parked/`'a taşınır.
+sayı hedefi yok (eski "6-10" hedefi kaldırıldı; şu an **46**, 2026-11-11). Kullanılmayan beceri silinmez, `parked/`'a taşınır.
 
 ## Düstur: önce sor, her şey kanıtlı (Alp, 2026-11-03 — "her yetenek için genel anlamda böyle sorması ve kanıtlı olması gerekir")
 
@@ -75,6 +75,12 @@ Betik yazarken:
 - Erişilemeyen/çıktısız hedef için "değer YAZMA" satırı basar; çelişki/şüpheyi (aynı değerler, hostname ≠ hedef) kendisi uyarır.
 - Sır basmaz (özel anahtar, token — `***`). Python **3.6** uyumlu (RHEL 8 platform-python; `vermin -t=3.6-` ile denetlenir).
 - Kurum verisi içermez; örnek veriler genel adlıdır. Regresyon: `script/beceri-betik-test.sh`.
+- **Yazım denetimi** (2026-11-11): `python3 script/beceri-yazim-denetim.py` — regresyonun içinde de koşar, HATA varsa test düşer.
+  Baktıkları: `name` = dizin adı (1-64, `a-z0-9-`), `description` 1-1024 karakter ve içinde `<…>` yok (beceri listesi modele XML
+  içinde verilir — `packages/core/src/skill/instructions.ts`; açıklamada yer tutucu `{x}` yazılır), gövde 500 satırın altında,
+  SKILL.md'nin andığı beceri dosyası yerinde, beceri `engine/AGENTS.md` iş haritasında, maskeleme (iç IP / kurum alan adı —
+  `knowledge/operations-notes/README.md`). Sınırların kaynağı: agentskills.io/specification. Bilgi satırları (testi düşürmez):
+  gövdesi 20 bin karakteri aşan beceriler, "Önce sor" bölümü olmayanlar (2026-11-11: 16/46).
 
 ## Adlandırma: `<platform>-<iş>` (Alp onayı, 2026-10-17)
 

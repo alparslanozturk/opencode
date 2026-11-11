@@ -5,6 +5,17 @@ description: Disk/depolama işlerinin hepsinde kullan — teşhis (disk dolması
 
 Bu beceri iki bölüm: **A. Teşhis** (salt-okunur) ve **B. Disk ekleme / büyütme** (değişiklik — kurallarıyla).
 
+## 0. Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Amaç/belirti:** disk dolu mu (hangi hata metni, hangi uygulama yazamıyor) → A; yoksa planlı büyütme / yeni disk mi → B.
+2. **Kapsam:** hangi sunucu(lar), hangi bağlama noktası (`/`, `/var`, `/data` …).
+3. **Zaman:** ne zamandan beri; öncesinde değişiklik (güncelleme, yeni uygulama, log seviyesi) oldu mu.
+4. **Büyütme varsa:** sanallaştırma tarafında disk eklendi mi / mevcut disk mi büyütüldü, kaç GB; hedef `/` mı ayrı veri dizini mi.
+5. **Yer açmak gerekirse:** neye dokunulmaz (uygulama verisi, saklanması zorunlu log) — neyi sileceğine kullanıcı karar verir (§6b).
+
+Ölçülebileni sorma: doluluk, inode, en büyük dizinler, silinmiş-açık dosya, disk/LVM düzeni — A §1–§3 ve `disk-durum.py` toplar.
+Cevap beklerken yalnız okuma yap; "plan" istendiyse plan ver, uygulama (B §3) ayrı onay.
+
 ## A. Teşhis
 
 Disk dolması bir numaralı olaydır ve iki tuzağı vardır: inode ayrı dolar,

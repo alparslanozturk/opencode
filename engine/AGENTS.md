@@ -17,6 +17,7 @@ Oturum sonunda kullanıcı `/kaydet` der → kurumsal bilgi güncellenir.
 | nfs · nfsidmap · dizin boş · dizinler gelmedi | 9 bilinen sorunlar | `rhel-nfs` → `nfs-tani` |
 | idm · ipa · sudo · hbac · ad trust · kerberos | 6 süreçler | `idm-erisim` · `idm-kurulum` · `idm-bakim` |
 | gpu · nvidia · run:ai · vllm | — | `rke2-gpu` → `gpu-dagilim` (sürücü `rhel-gpu-surucu`, operator `rke2-gpu-kurulum`, `rke2-runai`) |
+| curl error · repomd · all mirrors were tried · yum ssl · dnf ssl · depo ssl · repo ssl · ssl certificate problem | — | `rhel-guncelleme` → "Depo erişiminde TLS/SSL hatası" (CA eksikse `rhel-ca-guven`) |
 | sertifika · tls · pfx | — | `rancher-sertifika` → `sertifika-kontrol` |
 | root ca · güven deposu · trust · captcha | — | `rhel-ca-guven` → `ca-dogrula` |
 | cis · oscap · sıkılaştırma | — | `rhel-cis` → `cis-ozet` (küme: `rke2-cis`) |

@@ -1,6 +1,6 @@
 ---
 name: kurum-registry
-description: Kümeye uygulama/helm kurarken imaj NEREDEN çekilecek — kurum registry'leri (amiral gemisi Nexus `registry.<kurum>`, eski platform Harbor `cr` / `cr-test`), düğümün RKE2 `registries.yaml` aynaları, imaj yolunu Harbor'a çevirme, kurulum sonrası çekme hatası kontrolü. Deterministik `imaj-yol.py` (imajlar · yol · cekme). "imaj çekemiyor", "ImagePullBackOff", "ErrImagePull", "registry", "nexus", "harbor", "proxy cache", "imaj yolu", "image path", "registries.yaml", "mirror", "ayna", "helm kur", "chart kur", "imaj nereden geliyor" isteklerinde tetiklenir. Manifest uygulama akışı `rke2-manifest`, küme bulma `kume-bul`; registry'yi podman ile kullanma parked `nexus-registry`.
+description: Kümeye uygulama/helm kurarken imaj NEREDEN çekilecek — kurum registry'leri (amiral gemisi Nexus `registry.{kurum}`, eski platform Harbor `cr` / `cr-test`), düğümün RKE2 `registries.yaml` aynaları, imaj yolunu Harbor'a çevirme, kurulum sonrası çekme hatası kontrolü. Deterministik `imaj-yol.py` (imajlar · yol · cekme). "imaj çekemiyor", "ImagePullBackOff", "ErrImagePull", "registry", "nexus", "harbor", "proxy cache", "imaj yolu", "image path", "registries.yaml", "mirror", "ayna", "helm kur", "chart kur", "imaj nereden geliyor" isteklerinde tetiklenir. Manifest uygulama akışı `rke2-manifest`, küme bulma `kume-bul`; registry'yi podman ile kullanma parked `nexus-registry`.
 ---
 
 # Kurum registry'leri — imaj nereden çekilir, çekildi mi?
@@ -32,6 +32,15 @@ yolu (genel): `<harbor>/<proje>/<kaynaktaki depo yolu>:<etiket>`; Docker Hub res
 (`<harbor>/docker.io/library/nginx`). Örnekteki `registry.k8s.io_2` projesi cr-test listesinde yok — cr'deki ad kuralı `[SAHA]`.
 
 Kümenin hangi registry'yi kullandığını buradan **varsayma** — §1'de düğümden oku.
+
+## Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Amaç:** kurmadan önce "imaj nereden gelecek" (§2) mi, kurulmuş işte çekme hatası (§3) mı, yoksa erişim/kural tablosu mu.
+2. **Küme ve platform:** hangi küme — amiral gemisi (Nexus) mi eski platform (Harbor) mı; ad yeter, master'ı `kume-bul` bulur.
+3. **Ne kurulacak / hangi iş yükü:** chart ya da manifest (ad, sürüm, values dosyası nerede) · hata varsa namespace ve pod adı.
+4. **Kısıt:** ayna eklemek / `registries.yaml` değiştirmek düğüm değişikliğidir — isteniyor mu, yoksa yalnız imaj yolu mu uyarlanacak.
+
+Ölçülebileni sorma: düğümün aynaları, imaj başına karar, çekme hatası metni — `imaj-yol.py` basar (§1–§3).
 
 ## 1. Kümenin aynaları (okuma)
 

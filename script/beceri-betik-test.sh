@@ -788,7 +788,7 @@ def yonlendir(cumle):
             return r[2]
     return ""
 VAKALAR = [  # (G kaydı, saha cümlesi, beklenen beceri)
-    ("G119", "Açık sistem 2. onay işlemleri yapacak. Sunucular: dpd1intsube1.kurum-dmz.local", "rhel-teslim"),
+    ("G119", "Açık sistem 2. onay işlemleri yapacak. Sunucular: dpd1intsube1.<kurum-dmz>.local", "rhel-teslim"),
     ("G122", "rke-prod NS kapasite ve kaynak analizi", "kume-bul"),
     ("G116", "OS upgrade sunucu IP ve sürüm listesi", "rhel-guncelleme"),
     ("G121", "sunucularda disk konfigürasyonu hatalı olmuş /data diye ayrı diskler verilmiş", "rhel-depolama"),
@@ -805,6 +805,9 @@ VAKALAR = [  # (G kaydı, saha cümlesi, beklenen beceri)
     ("Alp 2026-11-04", "Azure Local on-prem çözümleri storage hariç kullanılıyor, VCF de gelebilir", "platform-bilgi"),
     ("Alp 2026-11-04", "AIDR file integrity yazılımı, exception'ları NFS ve data dizinleri", "rhel-aide"),
     ("Alp 2026-11-04", "ktbulut ortamına erişemezsek orada bir ansible çalıştırıp oradaki bilgiyi alıp sana verebilirim", "uzak-envanter"),
+    ("ölçüldü 2026-11-11 dnf 4.20", "Curl error (60): SSL peer certificate or SSH remote key was not OK [SSL certificate problem: certificate has expired]", "rhel-guncelleme"),
+    ("saha 2026-11-11 sekme başlığı (cümle tahmini)", "yum SSL hatası veriyor, depoya erişemiyor", "rhel-guncelleme"),
+    ("saha 2026-11-11 oturum başlığı", "Rancher SSL sertifika yenileme için sunucuyu bul", "rancher-sertifika"),
     ("saha 2026-11-04", "bizim git deki şu adrese erişiyor musun? https://tfs-ornek/tfs/Koleksiyon/Proje/_git/notlar?path=/Sunucu-Envanter-Listesi", "`git`"),
 ]
 for g, cumle, beklenen in VAKALAR:
@@ -913,9 +916,24 @@ icerir "tireli grup adı _ ile" ie1.txt "[os_upgrade_29107]"
 icermez "tireli grup başlığı yok" ie1.txt "[os-upgrade-29107]"
 icerir "rakamla başlayan grup g_ önekli" ie2.txt "[g_29107_x]"
 
-# Düstur takibi (Alp, 2026-11-03): "Önce sor" listesi olan beceri sayısı — bilgi, testi düşürmez; hepsi tamamlanınca zorunlu yapılacak
-toplam=$(ls -d "$B"/*/SKILL.md | wc -l); sorlu=$(grep -liE "^## .*(önce sor|sorulacak)" "$B"/*/SKILL.md | wc -l)
-printf '\nBİLGİ: "Önce sor" bölümü olan beceri %d/%d — eksikler: %s\n' "$sorlu" "$toplam" \
-  "$(for f in "$B"/*/SKILL.md; do grep -qiE "^## .*(önce sor|sorulacak)" "$f" || printf '%s ' "$(basename "$(dirname "$f")")"; done)"
+# --------------------------------------------------------------------------- yazım denetimi
+baslik "Yazım denetimi (ad, açıklama ≤1024 ve etiketsiz, gövde <500 satır, anılan dosya, iş haritası, maskeleme)"
+if python3 "$KOK/script/beceri-yazim-denetim.py" "$KOK" > yazim.txt 2>&1; then gecti "$(grep '^BECERI=' yazim.txt)"; else kaldi "$(grep -E '^HATA|^BECERI=' yazim.txt | head -20)"; fi
+# denetim gerçekten yakalıyor mu: bozuk bir kopya üzerinde HATA vermeli
+mkdir -p yz/knowledge/skills/approved/ornek-beceri yz/engine
+printf -- '---\nname: baska-ad\ndescription: <sunucu> için kullan\n---\n# x\nsunucu 10.201.7.9, ad01.sirketim.local; bkz. approved/ornek-beceri/yok.py\n' > yz/knowledge/skills/approved/ornek-beceri/SKILL.md
+printf '## İş haritası\n| x | — | `baska` |\n' > yz/engine/AGENTS.md
+python3 "$KOK/script/beceri-yazim-denetim.py" yz > yz.txt 2>&1; echo "rc=$?" >> yz.txt
+icerir "yazım: ad ≠ dizin" yz.txt "dizin adıyla aynı değil"
+icerir "yazım: açıklamada etiket" yz.txt "etiketi var"
+icerir "yazım: anılan dosya yok" yz.txt "anılan dosya yok: approved/ornek-beceri/yok.py"
+icerir "yazım: haritada yok" yz.txt "iş haritasında geçmiyor"
+icerir "yazım: iç IP" yz.txt "iç IP maskelenmemiş: 10.201.7.9"
+icerir "yazım: alan adı" yz.txt "sirketim.local"
+icerir "yazım: bozuk kopyada rc=1" yz.txt "rc=1"
+
+# Düstur takibi (Alp, 2026-11-03): "Önce sor" listesi olan beceri sayısı + gövdesi büyük beceriler — bilgi, testi düşürmez
+# (sayım script/beceri-yazim-denetim.py'de; hepsi tamamlanınca zorunlu yapılacak)
+printf '\n'; grep '^BİLGİ' yazim.txt
 printf '\nSonuç: %d geçti · %d kaldı\n' "$GECEN" "$KALAN"
 [ "$KALAN" -eq 0 ]

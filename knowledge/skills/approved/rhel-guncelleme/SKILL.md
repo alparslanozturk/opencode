@@ -1,6 +1,6 @@
 ---
 name: rhel-guncelleme
-description: RHEL ailesinde paket güncellemesi, güvenlik yaması ve yeniden başlatma kararı için kullan — güncelleme durumu tablosu `filo-tablo.py --kv` ile (sürüm, çalışan/son kurulu çekirdek, reboot, dnf sürüyor mu). "güncelle", "güncel mi", "update", "upgrade", "yama", "dnf update", "güvenlik yaması", "reboot gerekiyor mu", "güncellendi mi", "hangi çekirdekte", "dnf bitti mi", "upgrade akışı", "content view güncel mi", "satellite sync", "fstab kontrol", "mount -av" isteklerinde tetiklenir. Devralma ve teslim akışı için `rhel-teslim`.
+description: RHEL ailesinde paket güncellemesi, güvenlik yaması ve yeniden başlatma kararı için kullan — güncelleme durumu tablosu `filo-tablo.py --kv` ile (sürüm, çalışan/son kurulu çekirdek, reboot, dnf sürüyor mu). "güncelle", "güncel mi", "update", "upgrade", "yama", "dnf update", "güvenlik yaması", "reboot gerekiyor mu", "güncellendi mi", "hangi çekirdekte", "dnf bitti mi", "upgrade akışı", "content view güncel mi", "satellite sync", "fstab kontrol", "mount -av", "yum/dnf SSL hatası", "Curl error", "repomd.xml indirilemiyor", "depo sertifika hatası" isteklerinde tetiklenir. Devralma ve teslim akışı için `rhel-teslim`.
 ---
 
 Doğrulandı: AlmaLinux 10.2, dnf 4.20.0 — 2026-08-29
@@ -8,6 +8,15 @@ Doğrulandı: AlmaLinux 10.2, dnf 4.20.0 — 2026-08-29
 **Paket yöneticisi `dnf`.** `apt` Debian/Ubuntu'ya aittir, RHEL ailesinde
 yoktur — `command not found` alırsın. `yum` çalışır ama `dnf-3`'e sembolik
 bağdır (ölçüldü), yeni yazılan komutlarda `dnf` kullan.
+
+## Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Amaç:** yalnız durum (ne güncellenecek, hangi sürümde) mu, güncelleme + reboot mu, yoksa güncelleme/depo hatası mı (hata metni).
+2. **Kapsam:** hangi sunucu(lar) / envanter grubu; sıra ya da aynı anda kapanmaması gerekenler var mı (küme üyeleri).
+3. **Kısıt:** değişiklik kaydı (CN) ve pencere; reboot serbest mi; sunucu/uygulama sahibine haber verildi mi.
+4. **Hedef:** tam güncelleme mi, yalnız güvenlik mi, belirli paket/sürüm mü (ana sürüm yükseltmesi → `rhel-yukseltme`).
+
+Ölçülebileni sorma: bekleyen paket, çekirdek, reboot gerekir mi, depo/CV tarihi, fstab, konteynerler — aşağıdaki akış toplar.
 
 Salt-okunur:
 
@@ -136,6 +145,43 @@ Sütunlar: `surum` (/etc/redhat-release) · `cekirdek_calisan` (uname -r) · `ce
 `reboot_gerekli` (needs-restarting -r çıkış kodu: 1 → EVET) · `dnf_suruyor` (EVET ise o sunucuda ikinci işlem başlatma — G37) ·
 `release` (boş = sabit minor yok, Satellite CV'nin en sonu) · `son_paket_kurulumu`. Çalışan ≠ son kurulu çekirdek ve reboot EVET →
 güncelleme kurulu, **yeniden başlatma** bekliyor (aşağıdaki "En sık yanlış okuma"). Ölçüldü: AlmaLinux 10.2, ansible-core 2.16 (2026-10-21).
+
+## Depo erişiminde TLS/SSL hatası — `dnf`/`yum` "Curl error" (ölçüldü 2026-11-11)
+
+Ölçüm: dnf 4.20.0, librepo 1.19.0, libcurl 8.12.1, OpenSSL 3.5.8 (AlmaLinux 10) — yerel deneme sunucusuna karşı her durum ayrı üretildi.
+Sayılar libcurl hata kodudur (`man curl` → EXIT CODES). Eski sürümde köşeli parantez içindeki metin farklı olabilir: **kodu ve metni
+aynen göster**, tabloda yoksa "tabloda yok" de, sebep uydurma.
+
+**Önce asıl satırı al.** `dnf -q …` yalnız `Cannot download repomd.xml: … All mirrors were tried` basar — sebep bu satırda **yoktur**
+(ölçüldü). `-q` olmadan çalıştır ya da logdan oku (ikisi de okuma):
+```bash
+ssh root@<sunucu> "dnf check-update --refresh 2>&1 | grep -iE 'curl error|status code' | sort -u | head; grep -iE 'curl error' /var/log/dnf.librepo.log | tail -5"
+```
+
+| Satırdaki metin | Anlamı | Sonraki okuma | Düzeltme kimde |
+|---|---|---|---|
+| `(60)` … `unable to get local issuer certificate` | deponun sertifikasını imzalayan CA istemcide yok ya da sunucu ara CA'yı göndermiyor | deponun `sslcacert` satırı (boşsa sistem güven deposu — `man dnf.conf`); `rhel-ca-guven` → `ca-dogrula.py` | CA yükleme: `rhel-ca-guven` (değişiklik) |
+| `(60)` … `certificate has expired` | sunucunun (ya da zincirdeki bir CA'nın) sertifikası bitmiş — ya da istemci saati ileride | canlı uç: aşağıdaki `sertifika-kontrol.py --uc`; istemcide `date -u` | depo/Satellite sahibi; saat ise `rhel-yonetim` (chrony) |
+| `(60)` … `certificate is not yet valid` | istemci saati geride ya da sertifika yeni kesilmiş | `date -u`; `chronyc tracking` | saat: `rhel-yonetim` |
+| `(60)` … `no alternative certificate subject name matches target hostname` | `baseurl`'deki ad sertifikanın SAN'ında yok (takma ad/IP ile yazılmış depo, araya giren yük dengeleyici/proxy) | `baseurl` ↔ `--uc` çıktısındaki SAN | depo tanımı ya da sertifika sahibi — sor |
+| `(56)` … `alert certificate required` | sunucu istemci sertifikası istiyor, istemci göndermedi | depo dosyasında `sslclientcert` / `sslclientkey` var mı, dosya yerinde mi | abonelik/kayıt (Satellite) — kullanıcı |
+| `(58)` … `could not load PEM client certificate` | `sslclientcert` dosyası yok/okunamıyor | `ls -l <o dosya>`; bitiş: `openssl x509 -noout -enddate -in <dosya>` | abonelik/kayıt yenileme — kullanıcı |
+| `(77)` … `error setting certificate file` | `sslcacert` yolundaki dosya yok/okunamıyor | `ls -l <o dosya>` | depo tanımı / CA dosyası |
+| `(35)` … `alert protocol version` | TLS sürümü uyuşmuyor (ölçümde sunucu yalnız TLS 1.1 sunuyordu) | `update-crypto-policies --show` | sunucu tarafı; politikayı düşürmek güvenlik kararı — sor |
+| `(7)` … `Could not connect to server` | TLS değil, bağlantı | `rhel-teslim` §1 (ping/port) | ağ/FW |
+
+Depo tanımını ve canlı sertifikayı oku (hepsi okuma; `<depo-sunucusu>` = `baseurl`'deki ad):
+```bash
+ssh root@<sunucu> "grep -HEs '^(\[|baseurl|sslverify|sslcacert|sslclientcert|sslclientkey|proxy)' /etc/yum.repos.d/*.repo /etc/dnf/dnf.conf; date -u"
+python3 /root/ai/opencode/knowledge/skills/approved/rancher-sertifika/sertifika-kontrol.py --uc <depo-sunucusu>:443
+```
+`--uc` bu makineden bağlanır: sunucunun gönderdiği zincir, geçerlilik tarihleri, kalan gün, SAN (ölçüldü: süresi dolmuş uçta `kalan -N gün ❌`
+ve "uç yalnız yaprağı gönderiyor" uyarısı). Bu makine depo sunucusuna erişemiyorsa aynı bilgiyi kullanıcı o sunucudan getirir.
+
+- `sslverify=0` / `--setopt=sslverify=false` / `--nogpgcheck` **çözüm değildir**: doğrulamayı kapatır (`man dnf.conf`: "If False … certificates
+  are not verified"). Önerme; kullanıcı isterse geçici olduğunu ve neyi kapattığını yaz.
+- Hata bir sunucuda mı, hepsinde mi? Hepsindeyse sebep büyük olasılıkla depo/Satellite tarafında (tahmin — yukarıdaki satırla doğrula);
+  tek sunucudaysa o sunucunun saati, güven deposu, depo dosyası. Filo için aynı `grep 'curl error'` komutunu `filo-kontrol` ile koş.
 
 ## Yapma
 

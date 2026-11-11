@@ -20,6 +20,14 @@ koşuda doğrulanacak (betik bulamadığı alana `?` basar, uydurmaz).
   ilk 3 harf tablosuyla yorumlanır.
 - `execute` diye araç yok (kapalı); komut = `bash`, dosya = `read`/`grep`/`glob`.
 
+## Önce sor — bu beceride **önce betik**, sonra soru (saha G123)
+
+Sunucu adı, kısa ad, IP ya da küme adı verildiyse **sormadan** §1'i çalıştır. "IP: envanterde yok" soru sebebi değildir (kurum
+envantere IP yazmaz; ad DNS'ten çözülür). Yalnız betik hiçbir şey bulamadıysa, tek mesajda:
+1. Aranan şeyin başka bir adı var mı (küme adı ↔ Rancher'daki ad / `c-xxxxx` kimliği ↔ bir master ya da worker adı)?
+2. Envanter dosyası çalışma dizininde değilse nerede?
+3. Rancher haritası (§3 `--kaydet`) hiç alınmadıysa: alınsın mı (salt-okunur, bir kez)?
+
 ## 1. Envanter — `KB <ad|kısa ad|IP> [...]` (bağlanmadan)
 
 Çalışma dizinindeki `ansible/`, `inventories/`, `inventory/` altındaki `*.ini` ve `hosts*` dosyalarını okur (kilitteki

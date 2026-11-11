@@ -5,6 +5,16 @@ description: Bir hata, çöken iş ya da beklenmeyen davranış araştırırken 
 
 Bu beceri iki bölüm: **A. Genel disiplin** (her hata için) ve **B. Çekirdek teşhisi** (kernel kaynaklı belirti varsa).
 
+## 0. Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Belirti:** tam olarak ne bozuk — hata metni aynen, hangi servis/komut/uygulama; kullanıcı nereden görüyor.
+2. **Kapsam:** hangi sunucu(lar); aynı roldeki diğerlerinde de var mı.
+3. **Zaman:** olay saati (saat dilimiyle) ve sürüyor mu; öncesinde değişiklik (güncelleme, reboot, ayar, dağıtım) oldu mu.
+4. **Kısıt:** yalnız inceleme mi; servis yeniden başlatma / reboot serbest mi (CN).
+
+Ölçülebileni sorma: loglar, servis durumu, çekirdek mesajları — A §1'den başla; olay saati verildiyse `olay-penceresi.py` pencereyi ve
+hazır komutları basar. Cevap gelmeden "kök neden" yazma (düstur — saha G118, G120).
+
 ## A. Genel disiplin — tahmin değil kanıt
 
 En sık yapılan hata, ilk makul açıklamayı doğru sanıp onu düzeltmeye

@@ -3,6 +3,15 @@ name: k8s-sorun
 description: Kubernetes ve Rancher üzerinde sorun ararken kullan — pod, deployment, node, namespace, log, event; küme durum özeti deterministik `k8s-ozet.py` ile (NotReady node + süre + lease, sürüm sapması, altyapı/uygulama pod'ları, restart son çıkış sebebi OOM/exit kodu, DaemonSet, olaylar). "kubernetes", "k8s", "rancher", "pod", "kubectl", "deployment", "node", "namespace", "kümede neler oluyor", "notready", "restart", "crashloop", "oom", "durum özeti" isteklerinde tetiklenir. Küme dışı tek makinedeki konteynerler için `podman-docker`.
 ---
 
+## Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Küme:** hangi küme — ad ya da bir master/worker adı yeter (`kume-bul` master'ı bulur); söylenmediyse sor, tahmin etme.
+2. **Belirti:** ne bozuk — hangi namespace / iş yükü / pod, hangi hata metni; yoksa genel durum özeti mi isteniyor.
+3. **Zaman:** ne zamandan beri; öncesinde değişiklik (deploy, yükseltme, node reboot, sertifika) var mı.
+4. **Kısıt:** yalnız inceleme mi; değişiklik gerekecekse CN var mı (silme / restart / drain onaysız yapılmaz — "Yan etkili komutlar").
+
+Ölçülebileni sorma: node/pod durumu, restart sebebi, olaylar — `k8s-ozet.py` basar. Cevap beklerken yalnız okuyan fiiller.
+
 ## Önce hangi kümedesin
 
 En pahalı hata yanlış kümede komut çalıştırmaktır. Rancher'da birden çok

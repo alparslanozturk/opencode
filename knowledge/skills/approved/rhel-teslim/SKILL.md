@@ -1,6 +1,6 @@
 ---
 name: rhel-teslim
-description: Yeni sunucu devralma, Satellite'e kaydetme, güncelleme ve ilgili birime teslim akışında kullan. "yeni sunucu", "teslim", "devral", "satellite", "kaydet", "subscription", "abonelik", "güncelle", "hazırla", "yeni sunucular kurulacak", "kurulum", "playbook sırası", "sep", "ipa", "ipa client", "xdr", "2. onay", "açık sistem", "sunucu yapılandır", "yapılandırma", "dmz", "kurum-dmz", "data diski", "disk büyüt" isteklerinde tetiklenir.
+description: Yeni sunucu devralma, Satellite'e kaydetme, güncelleme ve ilgili birime teslim akışında kullan. "yeni sunucu", "teslim", "devral", "satellite", "kaydet", "subscription", "abonelik", "güncelle", "hazırla", "yeni sunucular kurulacak", "kurulum", "playbook sırası", "sep", "ipa", "ipa client", "xdr", "2. onay", "açık sistem", "sunucu yapılandır", "yapılandırma", "dmz", "data diski", "disk büyüt" isteklerinde tetiklenir.
 ---
 
 ## Bağlam
@@ -27,8 +27,8 @@ Senin işin: devralma kontrolü → kurulum playbook'ları (bölüm 0) → tesli
 playbook'larıyla yapılandırır (Alp, 2026-11-03). Kullanıcı vermediyse tek mesajda, numaralı sor:
 1. **Hangi adımlar?** Playbook'lar **talebe göre tek tek** seçilir, hepsi sırayla koşulmaz (Alp, 2026-11-03): ör. yalnız subs + IPA +
    SEP; disk adımı varsa hangi disk → `/` büyütme mi `/data` mı. Listeyi kullanıcıya göster, seçtir.
-2. **Sunucular ve alan:** FQDN'leri ver (alan FQDN'in sonekinden okunur: `*.kurum.local` iç ağ, `*.kurum-dmz.local` DMZ — saha
-   2026-11-03). Kullanıcının yazdığı alan adı FQDN'deki ile aynı değilse (G119: mesajda `kurum-ymd.local`, FQDN'de `kurum-dmz.local`) **sor**,
+2. **Sunucular ve alan:** FQDN'leri ver (alan FQDN'in sonekinden okunur; iç ağ ve DMZ alan adları kurumsal bilgi §1–§2 başlıklarında,
+   orada yoksa sor — saha 2026-11-03). Kullanıcının yazdığı alan adı FQDN'deki ile aynı değilse (G119: mesajdaki alan adı FQDN'dekinden bir-iki harf farklıydı) **sor**,
    birini seçme.
 3. **Değişiklik kaydı (CN)** ve envanter: sunucu ana envanterde yoksa iş envanteri (`ansible` §1b `is-envanter.py`) — kullanıcı seçer.
    Yeni kurulan, henüz kullanılmayan sunucuda kurulum/düzeltme için CN **gerekmez** — sunucu sahibinin talebi yeter (Alp, 2026-11-03);
@@ -65,9 +65,9 @@ Ayrıca `12-google-captcha-cert` (belirli bir kök CA — yalnız ilgili sunucul
 dizinden oku). **Numara sıra değil, katalogdur** — talepte olmayan adımı çalıştırma. Bağımlılık sırası yine geçerli: DNS → NTP → subs → IPA.
 
 - **İç ağ / DMZ — iki ayrı değer seti (Alp, 2026-11-03):** IPA istemci kurulumu için **iki ayrı betik/playbook** gerekir: ana alan
-  (`kurum.local`) ve DMZ alanı (`kurum-dmz.local`). DNS sunucuları, NTP havuzu, search domain ve IPA alanı DMZ'de farklıdır. DMZ
-  değerlerini ve DMZ playbook'unun adını **dizinden/dosyadan oku ve dosya:satır göster** `[SAHA]` — ezbere ya da "kurum yerine
-  kurum-dmz yaz" diye türetme (G119: ajan DMZ DNS IP'lerini kaynaksız tabloya yazdı). DMZ sunucusuna iç ağ playbook'u (ya da tersi)
+  (`<kurum>.local`) ve DMZ alanı (`<kurum-dmz>.local`; gerçek adlar kurumsal bilgi §1–§2). DNS sunucuları, NTP havuzu, search domain ve IPA alanı DMZ'de farklıdır. DMZ
+  değerlerini ve DMZ playbook'unun adını **dizinden/dosyadan oku ve dosya:satır göster** `[SAHA]` — ezbere ya da "iç ağ adının yerine
+  DMZ adını yaz" diye türetme (G119: ajan DMZ DNS IP'lerini kaynaksız tabloya yazdı). DMZ sunucusuna iç ağ playbook'u (ya da tersi)
   çalıştırma; DMZ değişkeni yoksa dur ve sor. Ad kuralı: 3. harf `d` = DMZ (`engine/AGENTS.md` sunucu adı → ortam).
 - **Çelişen değer = dur:** aynı ayar iki yerde farklıysa (G119: `02-dns-nmcli` varsayılanı `10.13.x` / `10.14.x`, `group_vars/all.yml`
   `10.4.x`; Satellite `srvsatellite…` / `satellite…`) hangisinin kullanılacağını **sen seçme** — iki satırı dosya:satır ile göster, sor.

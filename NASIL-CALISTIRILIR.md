@@ -517,7 +517,7 @@ tamamını olduğu gibi kopyalayıp gönderebilirsin.
 
 | `SORUN:` satırı | Anlamı | Ne yapılır |
 |---|---|---|
-| `yok — uc saglikli, sorun opencode tarafinda` | Uç akışlı+akışsız yanıt veriyor, model doğru | Sorun **opencode tarafında**: satırın sonundaki log alıntısına bak; toast'taki `err_xxxxxxxx` ref'ini `grep -r 'err_xxxxxxxx' ~/.local/share/opencode/log` ile ara → `cause` alanını gönder |
+| `yok — uc saglikli. Takilirsan opencode logu: …` / `yok — uc saglikli, log temiz` | Uç akışlı+akışsız yanıt veriyor, model doğru. Kurulum sonunda da bu satır basılır — sorun yaşamıyorsan yapılacak bir şey yok | Sorun yaşıyorsan **opencode tarafında**: satırın sonundaki log alıntısına bak (başında `11-10` gibi ay-gün varsa hata **bugünün değil**, eski); toast'taki `err_xxxxxxxx` ref'ini `grep -r 'err_xxxxxxxx' ~/.local/share/opencode/log` ile ara → `cause` alanını gönder |
 | `uc erisilemiyor (TCP <host>:<port> kapali)` / `DNS cozulemiyor` | Ağ/erişim | **Uç/ağ tarafı.** opencode'u kurcalama; `getent hosts`, güvenlik duvarı, `http_proxy` |
 | `kimlik dogrulama — /models HTTP 401` | Anahtar yanlış/eksik | `env` içindeki `KURUM_KEY`'i düzelt → `./kur.sh` |
 | `MODEL_ID ucta yok — <id>` | Model uçtaki listede yok | Raporun bastığı listeden **birebir** kopyala → `env` → `./kur.sh` |

@@ -543,8 +543,16 @@ kisayol_kur() { # <ad>
 
 # `ocm` = `opencode mini`: sarmalayıcı betik (symlink değil — alt komut eklemek gerekir). Tek sahibi burasıdır;
 # bizim yazmadığımız bir `ocm` varsa yedeklenir.
+# İkilide `mini` alt komutu yoksa (2.1.4 öncesi kaynaktan derlenmiş eski ikili) kısayol KURULMAZ: `ocm` sessizce
+# genel yardım ekranını basardı. MINI_VAR=1 yalnız kısayol kurulduysa (son özet satırı buna bakar).
+MINI_VAR=0
 mini_kisayol_kur() {
   local baglanti="$HEDEF_DIZIN/ocm" isaret="# kur.sh: ocm" yedek
+  if ! "$BENIM" mini --help 2>/dev/null | grep -q 'opencode mini'; then
+    if [ -f "$baglanti" ] && grep -qF "$isaret" "$baglanti" 2>/dev/null; then rm -f "$baglanti"; fi
+    sari "  ! bu ikilide 'mini' arayüzü yok — ocm kısayolu kurulmadı (ikili eski: ./kur.sh derle)"
+    return 0
+  fi
   if [ -e "$baglanti" ] || [ -L "$baglanti" ]; then
     if ! grep -qF "$isaret" "$baglanti" 2>/dev/null; then
       yedek="$baglanti.bak-$(date +%Y%m%d-%H%M%S)"
@@ -555,6 +563,7 @@ mini_kisayol_kur() {
   printf '%s\n' '#!/bin/sh' "$isaret (opencode mini — çıktı terminalin kaydırma arabelleğinde; tekerlek ve seçim terminalde)" \
     "exec \"$BENIM\" mini \"\$@\"" > "$baglanti"
   chmod 755 "$baglanti"
+  MINI_VAR=1
   yesil "  kısayol kuruldu: $baglanti → $BENIM mini"
 }
 
@@ -1194,7 +1203,9 @@ PY
   fi
   yesil "  kuruldu  : $HOME/.opencode/bin/opencode · ayar $HOME/.config/opencode/ · kısayol $HEDEF_DIZIN/opencode (oc)"
   echo  "  çalıştır : cd <veri/proje dizini> && opencode     (kısa ad: oc)"
-  echo  "  tekerlek : cd <veri/proje dizini> && ocm          (fare tekerleğiyle kaydırma + terminalde seçim; = opencode mini)"
+  if [ "$MINI_VAR" -eq 1 ]; then
+    echo  "  tekerlek : cd <veri/proje dizini> && ocm          (fare tekerleğiyle kaydırma + terminalde seçim; = opencode mini)"
+  fi
   echo  "  Model otomatik seçili: kurum / Qwen3.6-35B-A3B-FP8 (/models ile değiştirilebilir)."
   sari "  NOT: opencode'u VERİNİN OLDUĞU dizinde aç (ör: cd ~/ansible && opencode) — dışarı çıkmak izin kapısı açar."
 
@@ -1249,9 +1260,13 @@ son_log_hatasi() {
 }
 # log_ozet <satır> — logfmt satırından okunur özet: "13:27Z <message> (<error/err>)"; alan yoksa satırın kendisi.
 # Saha G76: "timestamp=… level=ERROR run=… message=" önekiyle 70 karakter dolduğu için hata metni hiç görünmüyordu.
+# Hata bugüne (UTC) ait değilse saatin önüne ay-gün gelir ("11-10 12:46Z"): saha 2026-11-11 — sabah kurulumunda
+# "12:46Z Failed to drain Session" basıldı; yalnız saat olduğundan önceki günün hatası güncel sorun gibi okundu.
 log_ozet() {
-  local satir="$1" saat mesaj hata
+  local satir="$1" saat mesaj hata tarih
   saat="$(printf '%s' "$satir" | sed -n 's/.*timestamp=[0-9-]*T\([0-9]*:[0-9]*\).*/\1Z/p')"
+  tarih="$(printf '%s' "$satir" | sed -n 's/.*timestamp=\([0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}\)T.*/\1/p')"
+  if [ -n "$saat" ] && [ -n "$tarih" ] && [ "$tarih" != "$(date -u +%Y-%m-%d)" ]; then saat="${tarih#*-} $saat"; fi
   mesaj="$(printf '%s' "$satir" | sed -n 's/.*message="\(\([^"\\]\|\\.\)*\)".*/\1/p')"
   [ -n "$mesaj" ] || mesaj="$(printf '%s' "$satir" | sed -n 's/.*message=\([^ ]*\).*/\1/p')"
   hata="$(printf '%s' "$satir" | sed -n 's/.* err\(or\)\{0,1\}="\(\([^"\\]\|\\.\)*\)".*/\2/p')"
@@ -2225,9 +2240,9 @@ PY
   fi
   if [ "$SOHBET_OK" -eq 1 ] && [ "$AKIS_OK" -eq 1 ]; then
     if [ -n "$SON_LOG" ]; then
-      bitir 0 "yok — uc saglikli, sorun opencode tarafinda; log: $(kis "$(log_ozet "$SON_LOG")" 45)"
+      bitir 0 "yok — uc saglikli. Takilirsan opencode logu: $(kis "$(log_ozet "$SON_LOG")" 47)"
     fi
-    bitir 0 "yok — uc saglikli, sorun opencode tarafinda.${EK} (log: temiz; opencode --log-level DEBUG)"
+    bitir 0 "yok — uc saglikli, log temiz.${EK} (takilirsan: opencode --log-level DEBUG)"
   fi
   bitir 1 "uc beklendigi gibi yanit vermedi — yukaridaki satirlara bak ($HATA hata, $UYARI uyari)"
 }

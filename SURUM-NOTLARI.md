@@ -6,7 +6,24 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
-## 2026-11-10 — `ocm`: fare tekerleğiyle kaydırma (dal `feature/fare-tekerlegi`)
+## 2026-11-11 — `ocm` artık `main`'de + kontrol raporunda eski log hatası tarihiyle
+
+Sahada: `al.sh` → `./kur.sh`, sonra `cd <dizin> && ocm`. İkili değişmez (yeniden derleme yok).
+- **`ocm` neden sahaya gelmiyordu:** 10.11 işi `feature/fare-tekerlegi` dalındaydı, `al.sh` `main`'i çeker (saha ekranı 11.11:
+  "new branch feature/fare-tekerlegi" + "Already up to date"). Alp kararı (10.11): "opencode mini geçelim, artık onu takip
+  edelim" → dal `main`'e alındı (ileri sarma, tek commit).
+- `ocm` yalnız ikilide `mini` alt komutu varsa kurulur; yoksa uyarı basar (`./kur.sh derle`). Eski ikilide `ocm` genel yardım
+  ekranını basardı (skyup'taki 1.0.1 ikiliyle görüldü).
+- Kontrol raporu `log` satırı: hata bugüne (UTC) ait değilse başına ay-gün gelir (`11-10 12:46Z …`). Saha 11.11: sabah
+  kurulumunda `12:46Z Failed to drain Session` basıldı — tek `opencode.log` dosyasına eklenerek yazıldığı için günler önceki
+  hata da "son hata"dır; tarihsiz hâli güncel sorun gibi okunuyordu.
+- Sonuç satırı: `SORUN: yok — uc saglikli, sorun opencode tarafinda; log: …` → `SORUN: yok — uc saglikli. Takilirsan opencode
+  logu: …` (log temizse `… uc saglikli, log temiz`). Kurulum sonunda da basıldığı için "sorun opencode tarafında" cümlesi
+  sorun yokken de sorun varmış gibi okunuyordu.
+- Test: `script/duman-kontrol-rapor.sh` T5 (log tarihi), T6 (`ocm` — mini'li ve mini'siz ikili), T7 (sonuç satırı): 33 geçti, 0 kaldı.
+- **MobaXterm'de `ocm` hâlâ denenmedi** — ilk saha denemesi bekleniyor (tekerlek + seçip kopyalama).
+
+## 2026-11-10 — `ocm`: fare tekerleğiyle kaydırma (dal `feature/fare-tekerlegi`; 11.11'de `main`'e alındı)
 
 Sahada: `git pull && ./kur.sh`, sonra `cd <dizin> && ocm`. İkili değişmez (yeniden derleme yok).
 - `ocm` = `opencode mini`: upstream'in ana ekrana yazan arayüzü (`packages/tui/src/mini/`). Çıktı terminalin kaydırma arabelleğine

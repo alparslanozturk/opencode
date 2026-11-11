@@ -7,6 +7,9 @@
 #    T3  çıktı (output) sınırı uçtan öğrenilir; alınamazsa 4096'ya düşer ve
 #        raporda "uctan alinamadi" diye görünür (sessizce sabit kalmaz)
 #    T4  ikili ↔ sürüm ↔ commit tutarsızlığı uyarı satırı basar, tutarlıysa basmaz
+#    T5  log hatası bugüne ait değilse tarihiyle basılır
+#    T6  ocm kısayolu yalnız ikilide `mini` alt komutu varsa kurulur
+#    T7  uç sağlıklıyken sonuç satırı: log temiz / tarihli log alıntısı (güncel derleme çıktısı varsa koşar)
 #
 #  Kurum ağı YOKTUR: uç, script/sahte-uc.py ile taklit edilir (loopback).
 #  Gerçek ~/.opencode ve ~/.config/opencode'a DOKUNULMAZ: her durum kendi
@@ -326,6 +329,97 @@ if [ -s "$KUNYE_TEST" ] \
   gecti "t4: kunye_yaz surum/commit/boyut/tarih alanlarini yaziyor"
 else
   kaldi "t4: kunye_yaz beklenen alanlari yazmadi ($KUNYE_TEST)"
+fi
+
+# ---------------------------------------------------------------------------
+#  T5 — log satiri: bugunden eski hata TARIHIYLE basilir (saha 2026-11-11: yalniz saat basildigi icin onceki
+#  gunun hatasi guncel sorun gibi okundu); bugunun hatasi yalniz saatle.
+# ---------------------------------------------------------------------------
+baslik "T5 — log hatasinin tarihi"
+LOGD="$KUM/home/.local/share/opencode/log"
+mkdir -p "$LOGD"
+find "$LOGD" -maxdepth 1 -type f -name '*.log' -delete
+printf 'timestamp=2026-01-02T12:46:07.000Z level=ERROR run=abc message="Failed to drain Session"\n' > "$LOGD/test.log"
+kos "$KUM" kontrol --zaman-asimi 8 > "$CALISMA/t5-eski.txt" 2>&1
+if grep -q 'son hata: 01-02 12:46Z Failed to drain Session' "$CALISMA/t5-eski.txt"; then
+  gecti "t5: eski hata ay-gun ile basildi (01-02 12:46Z)"
+else
+  kaldi "t5: eski hatada tarih yok ($CALISMA/t5-eski.txt)"
+fi
+BUGUN_SAAT="$(date -u +%Y-%m-%dT%H:%M)"
+printf 'timestamp=%s:07.000Z level=ERROR run=abc message="Failed to drain Session"\n' "$BUGUN_SAAT" > "$LOGD/test.log"
+kos "$KUM" kontrol --zaman-asimi 8 > "$CALISMA/t5-bugun.txt" 2>&1
+if grep -q "son hata: ${BUGUN_SAAT#*T}Z Failed to drain Session" "$CALISMA/t5-bugun.txt"; then
+  gecti "t5: bugunun hatasi yalniz saatle basildi"
+else
+  kaldi "t5: bugunun hatasi beklenen bicimde degil ($CALISMA/t5-bugun.txt)"
+fi
+rm -f "$LOGD/test.log"
+
+# ---------------------------------------------------------------------------
+#  T6 — ocm kisayolu yalniz ikilide `mini` alt komutu varsa kurulur (eski ikilide `ocm` genel yardimi basardi).
+#  Eldeki her ikili denenir: bin/opencode ve (varsa) son derleme ciktisi.
+# ---------------------------------------------------------------------------
+baslik "T6 — ocm kisayolu (opencode mini)"
+ocm_durumu() { # <ad> <ikili>
+  local ad="$1" ikili="$2" kum port surum
+  kum="$(kum_hazirla "$ad")"
+  KUM_SON="$kum"; SURUM_SON=""
+  ln -sf "$ikili" "$kum/bin/opencode"
+  surum="$("$ikili" --version 2> /dev/null | sed 's/^opencode v//' | head -1)"
+  port="$(uc_baslat "$ad" SAHTE_MODEL="$MODEL" SAHTE_CTX=32768)"
+  if [ -z "$port" ]; then kaldi "$ad: sahte uc baslamadi"; return; fi
+  kum_env "$kum" "http://127.0.0.1:$port/v1"
+  SURUM_SON="$surum"
+  SAHTE_SURUM="$surum" kos "$kum" kur --zaman-asimi 8 > "$CALISMA/$ad.log" 2>&1
+  if "$ikili" mini --help 2> /dev/null | grep -q 'opencode mini'; then
+    if [ -x "$kum/kisayol/ocm" ] && grep -q ' mini "\$@"' "$kum/kisayol/ocm" && grep -q 'tekerlek : ' "$CALISMA/$ad.log"; then
+      gecti "$ad (surum $surum, mini var): ocm kuruldu, 'opencode mini' cagiriyor"
+    else
+      kaldi "$ad (surum $surum, mini var): ocm kurulmadi ($CALISMA/$ad.log)"
+    fi
+    if python3 -c 'import json,sys; sys.exit(0 if json.load(open(sys.argv[1]))["mini"]["tools"]=="show" else 1)' \
+        "$kum/home/.config/opencode/cli.json" 2> /dev/null; then
+      gecti "$ad: cli.json mini.tools = show"
+    else
+      kaldi "$ad: cli.json mini.tools yazilmamis ($kum/home/.config/opencode/cli.json)"
+    fi
+  else
+    if [ ! -e "$kum/kisayol/ocm" ] && grep -q "ocm kısayolu kurulmadı" "$CALISMA/$ad.log" && ! grep -q 'tekerlek : ' "$CALISMA/$ad.log"; then
+      gecti "$ad (surum $surum, mini yok): ocm kurulmadi, uyari basildi"
+    else
+      kaldi "$ad (surum $surum, mini yok): ocm kurulmus ya da uyari yok ($CALISMA/$ad.log)"
+    fi
+  fi
+}
+ocm_durumu t6-bin "$KOK/bin/opencode"
+SON_DERLEME="$KOK/packages/cli/dist/cli-linux-x64/bin/opencode"
+if [ -x "$SON_DERLEME" ]; then
+  ocm_durumu t6-derleme "$SON_DERLEME"
+
+  # T7 — sonuc satiri. Guncel ikili gerekir: bin/opencode eskiyse (1.x motor) sonuc "kilitler devre disi" olur,
+  # "uc saglikli" yoluna hic girilmez; bu yuzden son derlemenin kum havuzunda bakilir.
+  baslik "T7 — sonuc satiri (uc saglikliyken log alintisi)"
+  LOGD="$KUM_SON/home/.local/share/opencode/log"
+  mkdir -p "$LOGD"
+  find "$LOGD" -maxdepth 1 -type f -name '*.log' -delete
+  SAHTE_SURUM="$SURUM_SON" kos "$KUM_SON" kontrol --zaman-asimi 8 > "$CALISMA/t7-temiz.txt" 2>&1
+  if grep -q 'SORUN: yok — uc saglikli, log temiz' "$CALISMA/t7-temiz.txt"; then
+    gecti "t7: log temizken sonuc 'uc saglikli, log temiz'"
+  else
+    kaldi "t7: temiz log sonucu beklenen bicimde degil: $(grep 'SORUN:' "$CALISMA/t7-temiz.txt" | head -1)"
+  fi
+  # opencode.log'a EKLENIR: guncel ikili tek dosyaya (opencode.log) yazar ve kontrolun kendi cagrisi da oraya satir
+  # ekler — ayri dosyaya yazilan satir "en yeni log" olmaz.
+  printf 'timestamp=2026-01-02T12:46:07.000Z level=ERROR run=abc message="Failed to drain Session"\n' >> "$LOGD/opencode.log"
+  SAHTE_SURUM="$SURUM_SON" kos "$KUM_SON" kontrol --zaman-asimi 8 > "$CALISMA/t7-eski.txt" 2>&1
+  if grep -q 'SORUN: yok — uc saglikli. Takilirsan opencode logu: 01-02 12:46Z Failed to drain Session' "$CALISMA/t7-eski.txt"; then
+    gecti "t7: log hatasi varken sonuc tarihli log alintisini tasiyor"
+  else
+    kaldi "t7: sonuc satiri beklenen bicimde degil: $(grep 'SORUN:' "$CALISMA/t7-eski.txt" | head -1)"
+  fi
+else
+  printf '  ATLANDI  t6-derleme/t7: %s yok (./kur.sh derle sonrasi kosar)\n' "$SON_DERLEME"
 fi
 
 echo

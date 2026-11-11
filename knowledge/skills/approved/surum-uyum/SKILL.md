@@ -28,6 +28,16 @@ Sürümleri toplama komutları: `rke2-yukseltme` §1 (Run:ai sürümü `rke2-run
 RKE2 "upstream K8s'e göre"). GPU Operator ve Run:ai NVIDIA'nın ticari matrisi: GPU Operator liste dışı = ⚠️ (doğrulanmamış), Run:ai liste dışı = ❌
 "destek kapsamı dışı — çalışmadığı anlamına gelmez" (belge: "must align"). Anthos ve VMware VCF verisi gelince aynı dosyaya bölüm olarak eklenir.
 
+## Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Hangi sürümler:** Rancher, RKE2, Antrea, RHEL ara sürümleri (GPU kümesinde GPU Operator, sürücü, GPU modeli, Run:ai) — verilmediyse
+   kümeden okunur (`rke2-yukseltme` §1); okunamıyorsa sor, uydurma.
+2. **Küme rolü:** Rancher'ın kendi `local` kümesi mi (`--rol upstream`), yönettiği küme mi.
+3. **Soru:** bugünkü destek durumu mu (`kontrol`), yükseltme yolu mu (`yol` — hedef hat/sürüm kullanıcıdan), verinin tarihi mi (`veri`).
+4. **Antrea imajı:** upstream mi, VMware (VCN) imajı mı — hangi üretici matrisinin geçerli olduğunu belirler.
+
+Sorma: uyum, EOL tarihi, gün hesabı — betik verir. Veride olmayan sürüm için "hesaplanamadı (veri yok)".
+
 ## Kanıt zorunluluğu (Alp, 2026-10-21 — "matrisi kanıtlarıyla istiyorum; kanıt yoksa yalnız 'olabilir' desin")
 
 Saha G77: "Antrea v2.3.0 + 1.33 ❌ KURAL DIŞI" yazıldı ve test kümesindeki node donmaları Antrea'ya bağlandı; kaynak kurumun

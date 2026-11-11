@@ -28,6 +28,17 @@ bilgisi — "(genel)" maddeyi öneri olarak yaz, kural olarak değil.
 - **Bağlamı koru:** çıktıyı sınırla (`--tail`, `head`, `grep`); katman bitince en fazla 5 satır ara özet; sonraki
   katmanda ham çıktıyı tekrarlama (saha G20/G22).
 
+### Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Küme:** hangisi (adı ya da Rancher'daki adı), prod mu nonprod mu — bilinmiyorsa `kume-bul`.
+2. **Kapsam:** uçtan uca denetim mi, tek belirti mi (node NotReady/Unavailable, donma, kısa takılma, etcd, Antrea).
+3. **Belirti ise:** hangi node(lar), ne zaman (tarih-saat; yerel mi UTC mi), tekrarlıyor mu.
+4. **Yakında ne değişti:** reboot, yama, node ekleme, yükseltme — ne zaman. Reboot edilecekse önce kanıt toplanır (§4).
+5. **Uygulama pod'ları:** derine inilsin mi (varsayılan: yalnız altyapı — İlkeler).
+
+Sorma: sürümler, node durumu, event'ler, sistem pod'ları, node işletim sistemi — §1–§5 okur. VM'in hangi ESX host'unda/datastore'da
+olduğu kümeden görünmez; gerekiyorsa kullanıcıdan vCenter bilgisi istenir (§0).
+
 ### 0. Ortam (Alp ve Rancher ekranları, 2026-10-15)
 
 - Nonprod Rancher (`rke-nonprod.<kurum>`) **v2.14.3**. Prod Rancher (`rke-prod.<kurum>`) sürümü `[SAHA]`.

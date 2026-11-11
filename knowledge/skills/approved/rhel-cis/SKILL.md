@@ -24,6 +24,15 @@ Kaynak etiketi: **(Alp)** kurum kararı · **(RH)** Red Hat belgesi · **(SSG)**
 - Kurumun hangi maddeleri seçtiği (tailoring) belli olana kadar "uygulanmamış madde" = **bilgi**, kritik bulgu değil.
   CIS'in tek tek elle kontrolü ve istenen maddenin Ansible ile uygulanması gerekebilir (Alp) — §4, §5.
 
+## Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Hedef:** hangi sunucu(lar).
+2. **Seviye:** CIS Level 1 mi, Level 2 mi.
+3. **İş:** ölçüm mü (§2 — okuma), tek madde kontrolü mü (§4 — madde no), uygulama mı (§5 — değişiklik: yetki + iş envanteri).
+4. **Uygulamaysa:** hangi maddeler; kurum istisnaları (§0, §3) dışında yeni istisna var mı — karar kullanıcıda.
+
+Sorma: RHEL sürümü, oscap/SSG kurulu mu, hangi profil var — §1 okur.
+
 ## 1. Profil ve içerik (SSG — RHEL paketinde gelir)
 
 | | RHEL 9 | RHEL 10 |

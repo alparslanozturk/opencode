@@ -10,6 +10,16 @@ Hedef Linux makine internetsiz/izole ve üzerine Symantec Endpoint Protection
 olmayan (**unmanaged**) bir `LinuxInstaller` paketi üretmek. SEPM'e enroll
 (`rp` + stub, sylink import) **ayrı, sonraki faz**.
 
+## Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Hedef:** işletim sistemi + sürümü (platform) ve mimari (x86-64 / ARM64) — `ls` çıktısında yoksa alternatif kullanıcıyla netleşir.
+2. **Ürün sürümü (RU):** hangi SEP sürümü isteniyor.
+3. **Üretim makinesi:** internet erişimi olan x86-64 makine hangisi; çıkış (egress) izni var mı.
+4. **Aktarım:** paket hedefe nasıl taşınacak.
+5. **Kurulum:** hedefte kurulumu kim, ne zaman çalıştıracak — kullanıcı onayı olmadan çalıştırılmaz ("Hedefte kurulum").
+
+Sorma: `seplpkg` sözdizimi, var olan platform/mimari kombinasyonları — `--help` ve `ls` söyler.
+
 ## Üretim makinesi ≠ hedef makine
 
 `seplpkg` **x86-64 + internet erişimi olan** bir makinede çalışır. Ürettiği

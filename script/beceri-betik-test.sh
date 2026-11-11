@@ -917,7 +917,7 @@ icermez "tireli grup başlığı yok" ie1.txt "[os-upgrade-29107]"
 icerir "rakamla başlayan grup g_ önekli" ie2.txt "[g_29107_x]"
 
 # --------------------------------------------------------------------------- yazım denetimi
-baslik "Yazım denetimi (ad, açıklama ≤1024 ve etiketsiz, gövde <500 satır, anılan dosya, iş haritası, maskeleme)"
+baslik "Yazım denetimi (ad, açıklama ≤1024 ve etiketsiz, gövde <500 satır, anılan dosya, iş haritası, maskeleme, önce sor)"
 if python3 "$KOK/script/beceri-yazim-denetim.py" "$KOK" > yazim.txt 2>&1; then gecti "$(grep '^BECERI=' yazim.txt)"; else kaldi "$(grep -E '^HATA|^BECERI=' yazim.txt | head -20)"; fi
 # denetim gerçekten yakalıyor mu: bozuk bir kopya üzerinde HATA vermeli
 mkdir -p yz/knowledge/skills/approved/ornek-beceri yz/engine
@@ -930,10 +930,10 @@ icerir "yazım: anılan dosya yok" yz.txt "anılan dosya yok: approved/ornek-bec
 icerir "yazım: haritada yok" yz.txt "iş haritasında geçmiyor"
 icerir "yazım: iç IP" yz.txt "iç IP maskelenmemiş: 10.201.7.9"
 icerir "yazım: alan adı" yz.txt "sirketim.local"
+icerir "yazım: önce sor yok" yz.txt '"Önce sor" bölümü yok'
 icerir "yazım: bozuk kopyada rc=1" yz.txt "rc=1"
 
-# Düstur takibi (Alp, 2026-11-03): "Önce sor" listesi olan beceri sayısı + gövdesi büyük beceriler — bilgi, testi düşürmez
-# (sayım script/beceri-yazim-denetim.py'de; hepsi tamamlanınca zorunlu yapılacak)
+# Gövdesi büyük beceriler — bilgi, testi düşürmez. ("Önce sor" 2026-11-11'de 46/46 oldu → script/beceri-yazim-denetim.py'de zorunlu.)
 printf '\n'; grep '^BİLGİ' yazim.txt
 printf '\nSonuç: %d geçti · %d kaldı\n' "$GECEN" "$KALAN"
 [ "$KALAN" -eq 0 ]

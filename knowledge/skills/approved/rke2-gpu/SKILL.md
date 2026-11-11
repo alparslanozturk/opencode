@@ -10,6 +10,16 @@ Bir bayraktan emin değilsen önce `--help` / `nvidia-smi --help-query-gpu` çı
 Kaynak etiketi: **(Alp)** = kurum bilgisi · **(genel)** = NVIDIA/vLLM/Kubernetes genel bilgisi, sahada
 doğrulanmadı — raporda "öneri" olarak yaz, "kural" olarak değil.
 
+### Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Küme:** `gpu-dtx` mi, `gpu-prod` mu — `gpu-prod` yalnız açıkça istenirse (§0).
+2. **Kapsam:** uçtan uca mı, tek katman mı (GPU dağılımı, GPU Operator, vLLM pod'u, node işletim sistemi, `/models`, ölçüm).
+3. **Belirti varsa:** hangi model/pod, ne oluyor (OOMKilled, yavaşlık, açılmıyor), ne zamandan beri.
+4. **Ölçüm istenirse:** şu an gerçek yük var mı — bu beceri yük üretmez; ölçüm var olan yük altında okunur (§6).
+
+Sorma: GPU sayısı ve dağılımı, sürücü, pod limitleri, shm, depolama — `gpu-dagilim.py` ve §1–§5 okur. Run:ai nesnelerinin yorumu
+(proje kotası, kesir kararı) kullanıcıya sorulur (§0).
+
 ### 0. Ortam (Alp, 2026-10-14)
 
 - Rancher → RKE2 kümeleri; her kümede 3 master + worker'lar (sanal ya da fiziksel). İşletim sistemi genelde RHEL 9.

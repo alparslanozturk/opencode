@@ -23,6 +23,16 @@ Bilinen sınırlar (veri): GPU Operator **25.3 listesinde HGX B300 yok** (25.10+
 Run:ai 2.24 ↔ operator 25.3–25.10, 2.25/2.26 ↔ 25.10–26.3. Operator yaşam döngüsü: 26.7 destekli, 26.3 deprecated, 25.10 ve öncesi
 destek sonu (NVIDIA *Platform Support*, 2026-10-24); yükseltme yalnız aynı major içinde ya da **bir sonraki** major'a.
 
+## Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Küme** ve GPU node'ları.
+2. **İş:** ilk kurulum mu, yükseltme mi (hangi sürümden hangisine), yalnız containerd ayarı mı, yalnız doğrulama mı (§5).
+3. **Sürücü nerede:** host'ta kurulu mu, operator mü kuracak (§1 — `driver.enabled` buna göre).
+4. **Kapalı ağ:** imajlar hangi kayıt deposunda (§4; `kurum-registry`).
+5. **Zamanlama:** containerd ayarı RKE2'yi yeniden başlatır — bakım penceresi ve node sırası onayı.
+
+Sorma: kurulu operator sürümü, ClusterPolicy durumu, RKE2 sürümü — §0 okur; hedef sürüm uyumu `surum-uyum`.
+
 ## 1. Sürücü nerede olacak?
 
 | Seçenek | Değer | Ne zaman |

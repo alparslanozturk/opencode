@@ -26,6 +26,16 @@ between IdM and AD* (önkoşullar, DNS, portlar, trust kurulumu), *Managing cert
   sıkıştırmasız — ~40 GB). Kurulumda ön kontrol §1'de disk boyutunu da oku; mevcut sunucular için büyütme `rhel-depolama` (değişiklik — onay ekranı).
 - Kurulum dokümanı Alp'te var; kurum ayrıntısı gerekiyorsa sahada yerelde kaydettirilir (`kurum-bilgisi-yerelde`).
 
+## Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **İş:** yeni IdM sunucusu mu, replika mı, AD trust mı, sertifika işi mi (§6), yalnız ön kontrol/takip mi (§1, §7 — okuma).
+2. **Sunucu(lar):** aday sunucu adları ve hangi merkezde (§2a).
+3. **Ad planı:** IdM alan adı, realm, NetBIOS adı — geri dönüşsüz; kullanıcıdan/envanterden gelir, uydurulmaz (§2).
+4. **Sertifika:** kurum CA'sından alınan sertifika ve şifresiz anahtar hazır mı, dosya yolu (§3).
+5. **AD tarafı:** DNS kayıtlarını AD DNS'e kim girecek; trust için AD yöneticisi hazır mı (§0, §4).
+
+Sorma: IPv6, umask, saat, DNS çözümü, portlar — §1 okur. Kurulum komutu "kurulum yapacağım" + sunucu listesi gelmeden çalışmaz (§4).
+
 ## 1. Ön kontroller (okuma — her IdM sunucusu adayında)
 
 ```bash

@@ -10,7 +10,9 @@ Yalnız okur. Kurallar ve kaynakları:
   - SKILL.md'nin andığı beceri dosyası (approved/<beceri>/<dosya>, $B/<dosya>) yerinde                (kırık yönlendirme = saha hatası)
   - her beceri engine/AGENTS.md "İş haritası"nda geçer                                               (Alp 2026-11-03: yönlendirme haritadan)
   - maskeleme: iç IP ve kurum alan adı yazılmaz (knowledge/operations-notes/README.md, Alp 2026-10-14; depo GitHub'da public)
-BİLGİ satırları testi düşürmez: gövdesi büyük beceriler (öneri < 5000 token ≈ 20 bin karakter), "Önce sor" bölümü olmayanlar.
+  - her beceride "Önce sor" bölümü (## / ### başlık ya da kalın satır)                                (düstur, Alp 2026-11-03; 2026-11-11'de
+    46/46 tamamlandı → zorunlu; "güvenlik önemli, kararları insan alacak")
+BİLGİ satırı testi düşürmez: gövdesi büyük beceriler (öneri < 5000 token ≈ 20 bin karakter).
 """
 import os
 import re
@@ -59,7 +61,7 @@ def maske_tara(yol, metin, hata):
 
 
 def main():
-    hata, bilgi_buyuk, bilgi_sorsuz = [], [], []
+    hata, bilgi_buyuk = [], []
     harita = ""
     ajan = os.path.join(KOK, "engine", "AGENTS.md")
     if os.path.isfile(ajan):
@@ -91,8 +93,8 @@ def main():
             hata.append("%s: gövde %d satır ≥ 500 — ayrıntıyı aynı dizinde ek dosyaya taşı" % (b, satir))
         if len(govde) > 20000:
             bilgi_buyuk.append("%s (%d bin karakter)" % (b, len(govde) // 1000))
-        if not re.search(r"(?im)^(## .*|\*\*)(önce sor|sorulacak)", govde):
-            bilgi_sorsuz.append(b)
+        if not re.search(r"(?im)^(#{2,3} .*|\*\*)(önce sor|sorulacak)", govde):
+            hata.append('%s: "Önce sor" bölümü yok (başlık "## Önce sor …" — kullanıcıdan gelmesi gereken 3-5 soru + "Sorma:" satırı)' % b)
         # anılan beceri dosyaları: approved/<beceri>/<dosya> ve bu becerinin $B/<dosya>'sı
         for hedef, dosya in re.findall(r"approved/([a-z0-9-]+)/([A-Za-z0-9_.-]+\.(?:py|sh|md|json|ini|txt|ya?ml))", metin):
             if not os.path.isfile(os.path.join(ONAYLI, hedef, dosya)):
@@ -119,7 +121,6 @@ def main():
     print("BECERI=%d HATA=%d" % (len(beceriler), len(hata)))
     if bilgi_buyuk:
         print("BİLGİ gövdesi büyük (öneri < 20 bin karakter; bölünmeye aday): " + ", ".join(bilgi_buyuk))
-    print("BİLGİ \"Önce sor\" bölümü olan %d/%d — eksik: %s" % (len(beceriler) - len(bilgi_sorsuz), len(beceriler), " ".join(bilgi_sorsuz) or "-"))
     return 1 if hata else 0
 
 

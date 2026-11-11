@@ -3,6 +3,15 @@ name: rhel-yonetim
 description: RHEL sunucularda sistem yönetimi yaparken kullan — servis, log, paket, abonelik, Satellite (hammer), IdM (ipa). "servis", "systemctl", "journalctl", "dnf", "satellite", "hammer", "ipa", "idm", "abonelik", "repo", "kullanıcı ekle", "yerel kullanıcı", "sudo yetkisi" isteklerinde tetiklenir. Güncelleme ve yama için `rhel-guncelleme`.
 ---
 
+## Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Hedef:** hangi sunucu(lar).
+2. **İş:** okuma mı (durum, log), değişiklik mi (servis yeniden başlatma, paket, kullanıcı, Satellite kaydı) — değişiklikse CN/onay.
+3. **Nesne:** hangi servis / paket / kullanıcı; log ise hangi zaman aralığı.
+4. **Kullanıcı işi ise:** yerel kullanıcı mı, IdM/AD mi (→ `idm-erisim`).
+
+Sorma: işletim sistemi türü, servis durumu, kurulu paket — okunur.
+
 ## Önce: gerçekten Linux mu
 
 Filoda birkaç Solaris 11 sunucu var. Uzak bir sunucuda ilk komut:

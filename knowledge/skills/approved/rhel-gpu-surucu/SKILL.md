@@ -20,6 +20,16 @@ ssh root@<gpu-node> 'ls /usr/local/cuda* -d 2>/dev/null; ls /usr/bin/nvidia-unin
   installation methods").
 - Kart modeli `nvidia-smi -L`'den okunur. **"H300" adlı ürün NVIDIA belgelerinde yok** (2026-10-24) — B300 kastedilmiş olabilir; sor.
 
+## Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Node(lar):** hangi GPU sunucusu; küme node'u ise boşaltma (drain) kimde.
+2. **İş:** ilk kurulum mu, yükseltme mi, yalnız doğrulama mı (§4 — okuma).
+3. **Hedef sürüm:** sürücü dalı/sürümü — verilmediyse uyum `surum-uyum` ile sorulur, sürüm uydurulmaz.
+4. **Paket kaynağı:** Satellite deposu mu, yerel repo RPM mi, `.run` dosyası mı — hangisi hazır (§1 buna bağlı).
+5. **Sürücü nerede duracak:** host'ta mı, GPU Operator'de mi (küme node'u ise — `rke2-gpu-kurulum` §1).
+
+Sorma: GPU modeli, kurulu sürücü, çekirdek, mevcut depo — §0 okur.
+
 ## 1. Yol seçimi
 
 | Yol | Ne zaman | Not (kaynak) |

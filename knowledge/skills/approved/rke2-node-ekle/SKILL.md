@@ -8,6 +8,16 @@ description: Mevcut RKE2 kümesine yeni worker ya da sunucu (control-plane) ekle
 Playbook düzeni, sürüm seçimi ve kurum kararları **`rke2-kurulum`**'da; yeni node'un RHEL ara sürümünü ve sürüm uyumunu
 **`surum-uyum`** ile doğrula. Değişiklik kilidi: yeni makine için kullanıcı "kurulum yapacağım" + sunucuları yazar (biçim serbest).
 
+## Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Küme** ve eklenecek makineler (ad/IP, serbest metin); worker mı, sunucu (control-plane) mu — sunucuysa toplam tek sayı kalmalı (tuzak 5).
+2. **Yol:** sahadaki `rke2-node-addition` (`add-nodes.sh`) mi, rke2-ansible `--limit` mi, elle mi (fiziksel GPU worker).
+3. **Ekipler arası izinler (tuzak 7):** yeni IP'ler için firewall izni açıldı mı; NFS paylaşımlarının izin listesine eklendi mi.
+4. **Etiket / taint:** mevcut worker'larla aynı mı, farklı rol mü (GPU, Run:ai).
+5. **Onay:** "kurulum yapacağım" + sunucu listesi (biçim serbest); CN varsa.
+
+Sorma: kümenin sürümü, `server:` satırı, token yolu, Antrea imajı, yeni node'un işletim sistemi — "Prosedür" adım 0 okur.
+
 ## Node eklemeden ÖNCE — tuzaklar
 
 1. **`rke2_kubernetes_api_server_host` sabit olsun** (VIP/LB ya da bir sunucunun IP'si, `all.yml`). Boşsa

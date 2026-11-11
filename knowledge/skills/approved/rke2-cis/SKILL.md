@@ -14,6 +14,15 @@ Kaynak: RKE2 *CIS Hardening Guide* ve *CIS Self-Assessment Guide v1.12* (docs.rk
   zorunlu değil. Bu beceri seçimi hazırlar: hangi madde neyi kırar, kanıtı nedir. Karar Alp'in.
 - Kümeler canlı: tarama ve okuma serbest; `profile` eklemek, PSA/NetworkPolicy uygulamak değişikliktir (CN + sunucular).
 
+## Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Küme:** hangisi — bilinmiyorsa `kume-bul`.
+2. **İş:** ölçüm mü (§3 — Rancher Compliance / kube-bench), madde açıklaması mı, uygulanabilirlik tablosu mu (§5).
+3. **Tarama Rancher'dan ise:** tarama uygulaması kurulu mu — kurmak değişikliktir, izin ister.
+4. **Kümede ne çalışıyor:** GPU Operator, Run:ai, Antrea — `profile: cis` bunları kırabilir (§2); biliniyorsa.
+
+Sorma: RKE2 sürümü, `profile` satırı — okunur. `profile` eklemek, PSA/NetworkPolicy uygulamak karar + CN ister (§0).
+
 ## 1. Hangi rehber? (RKE2 sürümü → CIS sürümü)
 
 | RKE2 | Öz-değerlendirme rehberi | |

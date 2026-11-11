@@ -16,6 +16,16 @@ Etiketler: **(KB)** Veeam bilgi bankası · **(forum)** Veeam R&D forumu, resmi 
 -checkserver`; NFS bağlantısı yoksa `inactive (dead)` normaldir, hata değil. `systemctl status a b c` çıkış **3** = listedeki en az bir birim
 çalışmıyor (systemd) — tek başına sorun değil.
 
+## Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Sunucu:** hangi Linux sunucu ve Veeam'deki rolü (restore hedefi, repository, mount/transport sunucusu).
+2. **Hata:** yedekçiden restore/iş oturumunun **tam hata satırı** (§1 — asıl kanıt çoğu zaman VBR tarafında).
+3. **Restore türü** ve **hedef yol:** dosya/dizin geri yükleme · tam VM · Instant Recovery · Explorer (MongoDB ise §3).
+4. **Ne zamandan beri, ne değişti:** bugün OS yaması ya da reboot oldu mu; aynı iş daha önce çalışıyor muydu.
+
+Sorma: servis durumları, bağlama seçenekleri (`noexec`), boş alan, log satırları — `veeam-tani.py` okur. Servis yeniden başlatma kanıttan
+sonra ve onayla.
+
 ## 1. Kanıt (salt-okunur, onay sormaz)
 
 ```bash

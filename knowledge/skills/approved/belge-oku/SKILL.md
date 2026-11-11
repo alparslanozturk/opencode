@@ -9,6 +9,15 @@ Betik: `python3 /root/ai/opencode/knowledge/skills/approved/belge-oku/belge-oku.
 Yalnız Python standart kütüphanesi; ağ yok, belgeyi değiştirmez. Alp (2026-10-26): "bilgileri tuttuğumuz OneNote'umuz var …
 Excel'dir, OneNote'dur, PDF'dir — bunları inceleyebilirse iyi olur."
 
+## Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Belge:** yolu — verilmediyse sor; aynı ada uyan birden çok dosya varsa hangisi.
+2. **Ne aranıyor:** sunucu adı, IP, başlık, tarih — biliniyorsa `--ara` ile daraltılır; "tamamını özetle" ise öyle söylensin.
+3. **Hangi bölüm:** Excel'de sayfa adı, PDF/PowerPoint'te sayfa/slayt — biliniyorsa.
+4. **Karşılaştırma varsa:** belge mi esas, canlı sistem mi (§3 — belge ↔ canlı sistem ayrımı).
+
+Sorma: sayfa adları, boyut, biçim — `--bilgi` söyler.
+
 ## 1. Oku — önce özet, sonra daralt
 
 ```bash

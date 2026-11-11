@@ -13,6 +13,15 @@ kontrol dosyası ve RHEL `pci-dss` profili (PCI belgesinin kendisi indirilmedi).
 **Sınır:** bu beceri hukuki yorum yapmaz, "uyumlu/uyumsuz" hükmü vermez. Yalnız "bu madde şu teknik kontrolü ister → kanıtı şu komut/beceri →
 ölçülen değer" zincirini kurar; yorum ve kabul uyum/güvenlik biriminin.
 
+## Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Hangi düzenleme ve madde:** BDDK / KVKK / PCI DSS — denetçinin sorusu ya da madde numarası varsa aynen.
+2. **Kapsam:** hangi sunucu(lar) / küme; PCI ise kart ortamı (CDE) içinde mi (§3).
+3. **Çıktı:** kanıt toplama mı (§5), madde → teknik kontrol eşlemesi mi, istisna (sapma) kaydı mı (§4).
+4. **İstisna kaydı ise:** gerekçe, telafi edici kontrol, onaylayan ve süre kimden gelecek — bu alanlar uydurulmaz (§4).
+
+Sorma: ölçülebilen değerler — ilgili teknik beceri okur. "Uyumlu/uyumsuz" hükmü bu becerinin işi değil.
+
 ## 1. BDDK Yönetmeliği — altyapıya değen maddeler
 
 | Madde | Ne ister (özet) | Kanıt / beceri |

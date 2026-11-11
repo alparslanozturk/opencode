@@ -14,6 +14,15 @@ gidebiliyor mu?" Bu beceri o kontrolü zorunlu ve deterministik yapar.
 Başarı ancak `ca-dogrula.py tablo` çıktısında **TAMAM** ise yazılır. PLAY RECAP `ok/changed`, "dosya anchors'ta var", ajanın kendi
 tablosu kanıt **değildir** (dosya var ama extract edilmemiş = güvende değil; ölçüldü). Ölçemiyorsan "ölçülmedi" yaz.
 
+## Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Sertifika:** hangi CA dosyası (yolu) — kök mü, ara mı, zincirin tamamı mı.
+2. **Hedef:** hangi sunucu(lar) / grup.
+3. **İş:** yükleme mi (değişiklik — CN, §1), yalnız "yüklü mü" ölçümü mü (§2 — okuma).
+4. **Sınama adresi:** yüklemeden sonra sertifika hatasız erişilmesi beklenen URL(ler) — fonksiyonel kanıt bununla alınır (§2).
+
+Sorma: sertifikanın bitiş tarihi, parmak izi, güven deposunda olup olmadığı — `ca-dogrula.py` okur.
+
 ## 1. Yükle — playbook (`ansible` becerisi, `gomulu-dosya.py`)
 
 ```bash

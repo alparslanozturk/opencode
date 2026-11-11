@@ -15,6 +15,17 @@ Kullanıcılar MS AD'de. Linux sunucular IdM'e katılır; AD trust ile AD grupla
 kuralıyla** verilir. Bu, CIS'in "root ssh kapat" maddesinin (5.1.20) kurumdaki **telafi** düzenidir (`rhel-cis` §0) — denetimde kanıt bu becerinin
 çıktısıdır.
 
+## Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Kim:** kullanıcı (AD adı) ya da AD grubu.
+2. **Nereye:** hangi sunucu(lar) / host grubu.
+3. **Ne:** denetim mi ("kim girebilir" — §3, okuma), sorun mu ("giremiyor / sudo çalışmıyor" — hata metni aynen, ne zamandan beri),
+   yeni kural mı (§1–§2 — değişiklik, yetki).
+4. **Yeni kural ise:** ssh erişimi mi, sudo mu, ikisi mi; sudo'da hangi komutlar; kimin onayıyla.
+5. **Denetim kanıtı ise:** hangi madde / hangi dönem için (§4).
+
+Sorma: kural listesi, grup üyeliği, `hbactest` sonucu — §3 okur.
+
 ## 1. AD grubu → IdM (RH yordamı; değişiklik — yetki)
 
 1. AD'de grup (güvenlik grubu, kapsamı **global ya da universal**; `Domain users`/`Domain admins` gibi **domain local** gruplar kullanılamaz — RH).

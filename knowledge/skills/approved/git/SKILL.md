@@ -14,6 +14,16 @@ Doğrulandı: git 2.52, 2026-10-23 (yerel ölçüm; sahadaki sürüm `git --vers
   izleme vb.; bazılarında ortam başına dal var), dokümanlar (MD). Ansible playbook'ları **Semaphore** okur (`ansible` §9).
 - Depo adresleri ve sahadaki klon yerleri **[SAHA]** — uydurma, `git remote -v` ile oku; bilinmiyorsa kullanıcıya sor.
 
+## Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Depo:** hangisi (ad ya da `_git/` adresi) — adres uydurulmaz; klon varsa `git remote -v` okunur.
+2. **İş:** okuma mı (bilgi bulma, karşılaştırma), ekleme + `main`'e gönderme mi.
+3. **Gönderilecekse:** hangi dosya(lar), depoda nereye; commit mesajında CN/iş numarası geçecek mi.
+4. **Karşılaştırma ise:** hangi iki kaynak ve hangisi esas (§6).
+5. **Kimlik hazır mı:** erişim daha önce kuruldu mu — parolayı/PAT'ı **isteme**; kullanıcı kendi kurar (§1).
+
+Sorma: hangi dizinde/dalda olunduğu, uzak adres, değişmiş dosyalar — §2 okur.
+
 ## 1. Kimlik — parolaya ajan dokunmaz
 
 Parolayı **isteme, yazma, komuta/URL'ye koyma**. `https://kullanici:parola@…`, `credential.helper store`, `~/.git-credentials`

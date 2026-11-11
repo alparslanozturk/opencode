@@ -8,6 +8,14 @@ description: RHEL sunucuların (küme node'ları dahil) güvenlik sağlığını
 **İlkeler:** yalnız okuma. Her satır bu turdaki bir çıktıdan; çıktı yoksa "ölçülmedi". Çok sunucu → `ansible <grup> -m shell
 -a '…' -o` (tek izin; `filo-kontrol`). Sır değerini ekrana basma.
 
+## Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Hedef:** hangi sunucu(lar) / envanter grubu.
+2. **Kapsam:** tam puan kartı mı, tek konu mu (yama, reboot, ssh, auditd, chrony).
+3. **Çıktı:** ekrana kısa özet mi, rapor dosyası mı (`rapor`).
+
+Sorma: ölçülebilen her şey — §2 tek taramada okur. Kurum kararları (§1) bulgu diye yazılmaz.
+
 ## 1. Kurum kararları ve CIS (bulgu değil — Alp)
 
 - SELinux kapalı · firewalld kapalı · `net.ipv4.ip_forward=1` (RKE2 node'ları) · `/tmp` noexec (2026-09-29) · **root ssh kapatılmaz**

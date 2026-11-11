@@ -17,6 +17,16 @@ Ansible tek makineyi değil **filoyu** etkiler; eksik `--limit` yüzlerce
 sunucuya dokunur. Sıra: proje düzeni → hangi cfg etkin → envanter doğru mu →
 kimi kapsıyor → kuru çalıştırma → gerçek çalıştırma.
 
+## Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Hedef:** hangi sunucu(lar) ya da grup — serbest yazılan listeyi olduğu gibi al, biçim isteme (iş envanteri §1).
+2. **İş:** yalnız okuma mı (ad-hoc, kuru çalıştırma), değişiklik mi; değişiklikse CN/değişiklik numarası (zorunlu değil — §1).
+3. **Kaynak:** yeni playbook mu yazılacak, hazır (kurum/arkadaş) playbook mu çalışacak — hazırsa yolu (önce §8 ile okunur).
+4. **Nereden çalışacak:** bu makineden mi, Semaphore'dan mı (§9).
+5. **Başarı ölçütü:** iş bitince hedefte neye bakılacak (§1 "başarıyı hedefte doğrula").
+
+Sorma: etkin `ansible.cfg`, envanterin kimi kapsadığı, modül seçenekleri — §2, §3, §6 okur. Aynı oturumda verilmiş yetkiyi yeniden isteme.
+
 ## 1. Proje düzeni — ilk iş
 
 Ansible işleri kendi klasöründe durur; **her proje kendi yapılandırmasını ve

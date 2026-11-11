@@ -17,6 +17,16 @@ Kaynak: Red Hat *Upgrading from RHEL 8 to RHEL 9* (RHEL 9 belgesi) ve *Upgrading
 - Sunucular Satellite'a kayıtlı → Satellite tarafında **Content View hazırlığı** gerekir (§3).
 - Şimdilik **RHEL 9'da kalınıyor** (EOL değil); 9 → 10 ileride.
 
+## Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Sunucu(lar)** ve ortam — test/dev mi, canlı mı (§0: önce test).
+2. **Yol:** kaynak → hedef sürüm; hedef minor sürüm Satellite'ta hazır mı (§4).
+3. **Aşama:** ön koşul okuması mı (§3), `preupgrade` raporu mu (§6), yükseltmenin kendisi mi (§7 — değişiklik).
+4. **Geri dönüş:** snapshot/yedek alındı mı, kim aldı (§7 önkoşulu).
+5. **Bakım penceresi** ve uygulama sahibinin onayı var mı.
+
+Sorma: mimari, disk, kurulu paketler, FIPS/LUKS — §3 okur.
+
 ## 1. Desteklenen yollar (RH tablosu, 2026-10-25 — garanti yalnız RHSM/Satellite kayıtlı sistemlerde)
 
 - **8 → 9:** RHEL 8.10 → 9.6 (EUS) · 8.10 → 9.8

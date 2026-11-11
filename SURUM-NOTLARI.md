@@ -6,6 +6,15 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-11 — beceriler: "Önce sor" 46/46 (artık zorunlu)
+
+Sahada: `al.sh` → `./kur.sh`, **yeni oturum**. İkili değişmez. Alp (2026-11-11): "Güvenlik önemli. Kararları insan alacak. Projenin ana teması bu."
+- Kalan 30 beceriye **"Önce sor"** bölümü eklendi — her birinde o becerinin kendi bölümlerinden çıkan 3–5 soru (hedef, okuma mı
+  değişiklik mi, kapsam, onay/karar kimde) + "Sorma:" satırı (becerinin kendi okuduğu şeyler sorulmaz). `anthos-erisim`'de var olan
+  "Bilinmeyenler" bölümü bu başlığa çevrildi. Yeni kurum bilgisi eklenmedi; sorular yalnız becerinin kendi metnine dayanır.
+- `script/beceri-yazim-denetim.py`: "Önce sor" bölümü olmayan beceri artık **HATA** (önceden bilgi satırıydı); başlık `##` ya da
+  `###` olabilir. `beceri-betik-test.sh` bozuk kopyada bunu da sınar.
+
 ## 2026-11-11 — git geçmişi yeniden yazıldı (kurum alan adı + iç IP eski commit'lerden çıkarıldı)
 
 **Bir kerelik iş — `al.sh`'ın `git pull` yaptığı klonda:** `git fetch origin && git reset --hard origin/main` (yoksa `git pull`

@@ -21,7 +21,8 @@ sayı hedefi yok (eski "6-10" hedefi kaldırıldı; şu an **46**, 2026-11-11). 
 
 ## Düstur: önce sor, her şey kanıtlı (Alp, 2026-11-03 — "her yetenek için genel anlamda böyle sorması ve kanıtlı olması gerekir")
 
-Her `approved/` becerisi şu iki şeyi taşır (yeni beceride zorunlu; eskiler dokunuldukça tamamlanır — G118):
+Her `approved/` becerisi şu iki şeyi taşır ("Önce sor" 2026-11-11'de 46/46 tamamlandı, yazım denetimi eksikse HATA verir; kanıt
+etiketi eskilerde dokunuldukça tamamlanır — G118):
 - **"Önce sor" listesi** — o işte cevabı sonucu değiştiren, kullanıcıdan gelmesi gereken bilgiler (belirti, kapsam, zaman/önceki
   değişiklik, kısıt + işe özel olanlar). Ölçülebilen şey listeye girmez; betiğin `komut` adımı onu toplar.
 - **Kanıt etiketi** — her olgu/kural/ayar yanında kaynağı: `man <x>` · komut çıktısı (ölçüldü, sürümüyle) · üretici KB/belge ·
@@ -79,8 +80,8 @@ Betik yazarken:
   Baktıkları: `name` = dizin adı (1-64, `a-z0-9-`), `description` 1-1024 karakter ve içinde `<…>` yok (beceri listesi modele XML
   içinde verilir — `packages/core/src/skill/instructions.ts`; açıklamada yer tutucu `{x}` yazılır), gövde 500 satırın altında,
   SKILL.md'nin andığı beceri dosyası yerinde, beceri `engine/AGENTS.md` iş haritasında, maskeleme (iç IP / kurum alan adı —
-  `knowledge/operations-notes/README.md`). Sınırların kaynağı: agentskills.io/specification. Bilgi satırları (testi düşürmez):
-  gövdesi 20 bin karakteri aşan beceriler, "Önce sor" bölümü olmayanlar (2026-11-11: 16/46).
+  `knowledge/operations-notes/README.md`), **"Önce sor" bölümü** (2026-11-11: 46/46 → eksikse HATA). Sınırların kaynağı:
+  agentskills.io/specification. Bilgi satırı (testi düşürmez): gövdesi 20 bin karakteri aşan beceriler.
 
 ## Adlandırma: `<platform>-<iş>` (Alp onayı, 2026-10-17)
 

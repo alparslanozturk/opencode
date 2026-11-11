@@ -23,6 +23,15 @@ ENVANTER.md  KT-CA.md  NOTLAR.md …     doküman
 Klasör adından küme/ortam **türetme** — README/`.md` notu ve `kume-bul` ne diyorsa o. Bilinmeyen eşleme `[SAHA]`, kullanıcıya sor.
 Otomatik senkron **yok** → kümede elle yapılmış değişiklik ve git'te uygulanmamış commit olağandır; her uygulamadan önce `diff`.
 
+## Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Hangi küme:** adı — klasör adından türetilmez (§0); master/kubeconfig `kume-bul` ile bulunur ve kullanıcıya gösterilir (§1.2).
+2. **Hangi manifest(ler):** dosya adı/yolu; tek dosya mı, dizinin tamamı mı (toplu uygulama yalnız açıkça istenirse — §1.5).
+3. **İş:** yalnız karşılaştırma mı (`diff`, kayma taraması — okuma), uygulama mı (değişiklik — CN), yeni kümeye uyarlama mı (§2b).
+4. **Diff'te kümede elle yapılmış değişiklik çıkarsa:** ezilsin mi, önce git'e mi alınsın — karar kullanıcıda (§1.4).
+
+Sorma: deponun güncelliği, son commit, manifestin notu (`<ad>.md`) — §1 okur.
+
 ## 1. Sıra
 
 1. **Güncel ve temiz depo:** `git -C git/kubernetes pull --ff-only` · `git -C git/kubernetes status --short` boş olmalı. Commit

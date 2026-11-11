@@ -5,6 +5,17 @@ description: Kurumun RKE2 kümelerini rke2-ansible playbook'u (rancherfederal 2.
 
 # RKE2 kurulumu — rke2-ansible playbook'u, sürüm seçimi, kurum kararları
 
+## Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **İş:** yeni küme mi — mevcut kümeye node ise `rke2-node-ekle`, yükseltme ise `rke2-yukseltme` (kurumda yükseltmeyi SUC yapar).
+2. **Rancher sürümü** ve küme türü: Rancher'ın kendi `local` kümesi (upstream) mi, yönettiği küme (downstream) mi — RKE2 sürümü buna göre seçilir.
+3. **Sunucular:** master ve worker listesi (serbest metin), RHEL ara sürümü; sabit kayıt adresi (VIP/LB) var mı (`rke2-node-ekle` tuzak 1).
+4. **Kapalı ağ:** RKE2 tarball'ı ve Antrea imajları hazır mı, hangi kayıt aynasında.
+5. **Onay:** "kurulum yapacağım" + hangi sunuculara kurulacağının teyidi (numara istenmez — adım 4).
+
+Sorma: kurum kararları (SELinux/firewalld kapalı, CNI Antrea, SUC) — aşağıda yazılı. Sürüm uyumu → `surum-uyum` betiği; seçimi gerekçesiyle
+öner, kararı kullanıcı verir.
+
 ## Sürümü tespit et → matrise göre seç → kur (T31, Alp 2026-09-30)
 
 Terimler: **upstream** = Rancher'ın kendisinin çalıştığı `local` küme · **downstream** = Rancher'ın yönettiği kümeler.

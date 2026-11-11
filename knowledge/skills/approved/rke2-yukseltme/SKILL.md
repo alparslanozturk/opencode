@@ -17,6 +17,16 @@ python3 /root/ai/opencode/knowledge/skills/approved/surum-uyum/uyum.py kontrol -
 
 Çıktıyı **olduğu gibi** aktar (✅/⚠️/❌ + `[kaynak: …]`); satır ekleme, tarihi yeniden hesaplama. Çıkış kodu 1 = en az bir ❌.
 
+## Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Küme(ler):** hangisi; Rancher'ın `local` kümesi de planda mı.
+2. **Hedef:** hedef RKE2 hattı / Rancher sürümü — verilmediyse `uyum.py` çıktısı gösterilir, hedefi kullanıcı seçer.
+3. **Çıktı:** yükseltme planı mı (§4), danışman planının çapraz kontrolü mü (§5 — plan metni/ekranı), yalnız destek durumu mu.
+4. **Yükseltmeyi kim yapacak:** Rancher arayüzü mü, SUC mu, danışman mı — bu beceri plan yazar, uygulamaz.
+5. **Kısıt:** bakım penceresi; RHEL yükseltmesi ayrı iş kalemi mi.
+
+Sorma: kurulu sürümler, etcd snapshot, kaldırılan API, PDB, sertifika — §1 ve §3 okur. Uyum/EOL/gün hesabı → `uyum.py`.
+
 ## 1. Sürümleri topla (okuma)
 
 ```bash

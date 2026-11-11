@@ -22,7 +22,12 @@ description: Anthos (GKE on-prem) kümeleriyle ilgili soru ve incelemelerde kull
   Anthos için de geçerlidir (Rancher'a özgü kısım hariç).
 - Kullanıcı jumpbox/workstation'da komutu kendisi çalıştıracaksa: tam komutu ver, çıktıyı iste, sonra yorumla.
 
-## Bilinmeyenler — sor, tahmin etme
+## Önce sor — bilinmeyenler (tahmin etme)
+
+Tek mesajda, numaralı; oturumda cevabı varsa sorma:
+1. **Hangi küme ve ortam:** admin cluster mı, user cluster mı; prod / alt ortam / DRC.
+2. **Erişim:** kubeconfig yolu verilecek mi, yoksa komut çıktısı mı yapıştırılacak (ajan erişim zincirini kendi atlayamaz — "Ortam").
+3. **Soru:** belirti (hangi pod/iş yükü, ne zamandan beri) mi, bilgi sorusu mu.
 
 Admin workstation adları, kubeconfig dosya yolları, küme adları ve sürümleri, GKE on-prem sürümü: `[SAHA]`.
 Anthos'un RKE2 sürüm matrisi (`surum-uyum`) ile ilgisi yoktur — o matrisi Anthos için kullanma.

@@ -16,6 +16,16 @@ trafik büyütmede (amplification) kullanılabilir. Düzeltme: varsayılan eriş
 reddeder; **saat hizmeti (istemcilerin eşitlemesi) sürer** (genel). Etki: başka makineden `ntpq -p <sunucu>` ile izleyen araç varsa artık
 cevap alamaz → kullanıcıya sor `[SAHA]`. Sunucunun kendisinde `ntpq -p` çalışmaya devam eder (127.0.0.1 / ::1 serbest bırakılır).
 
+## Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Sunucular:** hangi Solaris sunucu(lar)ı (serbest liste).
+2. **Bulgu:** tarama raporundaki satır (araç, tarih) — "NTP Mode 6" mı, başka bir NTP bulgusu mu.
+3. **İş:** yalnız ölçüm mü (§1 — okuma), düzeltme mi (§2 — değişiklik; CN iş envanteri adı için, zorunlu değil).
+4. **İzleme etkisi:** bu sunucuları başka makineden `ntpq -p <sunucu>` ile izleyen araç var mı — `noquery` sonrası cevap alamaz (§0).
+5. **Yeniden başlatma:** `svcadm restart` için uygun zaman ve onay.
+
+Sorma: Solaris sürümü, `ntp.conf` içeriği, `restrict` satırları, servis durumu — §1 okur.
+
 ## 1. Önce gör (okuma)
 
 Bulgu sürüyor mu — bu makineden, ek araç kurmadan (RHEL'de ntpq yok):

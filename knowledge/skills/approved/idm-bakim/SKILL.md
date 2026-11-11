@@ -9,6 +9,15 @@ Saha G112 (Alp, 2026-10-27): iki IdM sunucusunda kök %95–96; `krb5kdc.log-*` 
 Alp: "SSSD debug açılıyor bazen kapanıyor, açık unutulmuş galiba." Etiketler: **(saha G…)** görüldü · **(genel)** RHEL/IdM genel bilgisi,
 ilk koşuda çıktıyla doğrula — değer yoksa `?`, uydurma.
 
+## Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Hangi IdM sunucu(lar)ı** — her biri ayrı okunur.
+2. **Belirti:** disk mi doldu (hangi bölüm), log mu şişti, SSSD debug mı açık kaldı.
+3. **Amaç:** yalnız teşhis mi, acil yer açma mı (§4 — değişiklik, onay), kalıcı ayar mı (§3 — yalnız kullanıcı isterse).
+4. **Silme/sıkıştırma istenirse:** kimlik doğrulama loglarının saklama süresi ve merkeze gidip gitmediği — süre uydurulmaz (§2b, §3).
+
+Sorma: disk doluluğu, dosya boyutları, logrotate ayarı, debug düzeyi — §1 okur.
+
 ## 1. Teşhis — hepsi okuma (her IdM sunucusunda ayrı)
 
 ```bash

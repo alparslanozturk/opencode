@@ -17,6 +17,14 @@ Bu beceri **bilgi kartıdır**, komut çalıştırmaz. Her satırın kaynağı y
 - **Azure'un on-prem çözümleri** ciddi biçimde değerlendiriliyor — Microsoft lisansları alınmış; **depolama (storage) kısmı hariç**
   kullanılması düşünülüyor. Hangi ürün (Azure Local, Arc, AKS Arc) ve "storage hariç"in tam anlamı `[SAHA]` — §4 soruları.
 
+## Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Hangi platform:** VCF, Google Distributed Cloud (Anthos), Azure Local — ya da karşılaştırma mı.
+2. **Soru türü:** teknoloji bilgisi mi, edinim/geçiş değerlendirmesi mi — değerlendirmeyse §4'teki soru listesi kullanılır.
+3. **Bağlam:** hangi iş yükü (RHEL VM, Kubernetes, GPU); bağlantısız çalışma şartı var mı.
+
+Uydurma: kurumun kararı, sürümü, lisans durumu `[SAHA]` — kullanıcı söylemediyse "bilinmiyor". Kart tarihi eskiyse söyle.
+
 ## 1. VMware Cloud Foundation (VCF 9.x)
 
 - Bileşenler (üretici, VCF 9.1 belgesi): vSphere (hesaplama), vSAN (depolama), NSX (ağ), **vSphere Kubernetes Service (VKS)**,

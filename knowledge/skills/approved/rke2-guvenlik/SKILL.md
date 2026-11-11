@@ -20,6 +20,15 @@ Okuma kısıtı yok (kapalı sistem): sır dosyası okunabilir ama **değerini e
 Erişim kalıbı (`rke2-denetim` §0): `K="/var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml"` bir
 master'da; aşağıda `kubectl` = bu.
 
+## Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Küme:** hangisi; Rancher'ın kendi (local) kümesi de bakılacak mı (§4).
+2. **Kapsam:** tam puan kartı mı, tek başlık mı (sürüm/EOL, etcd yedeği, sertifika, RBAC, privileged pod, açık servis …).
+3. **Node tarafı:** RHEL node'ları da taransın mı (§5 → `rhel-guvenlik`).
+4. **Danışman raporu varsa:** çapraz kontrol edilecek raporun yolu/ekranı (§7).
+
+Sorma: sürümler, yapılandırma, RBAC, pod ve servis listesi — §1–§4 okur. Kurum kararları (yukarıda) yeniden sorulmaz, bulgu yazılmaz.
+
 ## 1. Sürüm ve destek durumu (en yüksek ağırlık — EOL = güvenlik yaması yok)
 
 Sürümleri `rke2-yukseltme` §1 ile topla, sonra betik (kafadan hesaplama):

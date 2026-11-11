@@ -43,6 +43,15 @@ python3 /root/ai/opencode/knowledge/skills/approved/filo-kontrol/filo-tablo.py c
 çekirdek modülleri (servis durdurulsa da modül kalabilir — "kapalı" demek için ikisi de boş/`inactive` olmalı), `acik_gun` = son
 açılıştan beri gün (reboot sonrası modül gelmiş mi). Ölçüldü (ajansız makinede): `inactive · not-found · (boş)`. Kilitten geçiyor.
 
+## Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
+
+1. **Belirti:** node takılması mı, yüksek CPU/bellek mi, NFS yavaşlığı mı, donma mı — ne zaman, ne sıklıkta.
+2. **Nerede:** hangi node/sunucu(lar); küme node'u mu, düz RHEL sunucu mu.
+3. **Değişiklik oldu mu:** ajan kapatıldı / kaldırıldı / istisna eklendi mi, ne zaman ("kapatınca düzeldi" iddiası §4 ile doğrulanır).
+4. **Amaç:** "sebep ajan mı" sorusu mu (§3 kanıt), ilgili ekibe öneri / istisna listesi mi (§5).
+
+Sorma: hangi ajan kurulu, süreçleri, CPU payı — §1 okur. Ajanın modu/politikası konsoldadır; node'dan okunamıyorsa "bilinmiyor".
+
 ## 1. Envanter (okuma)
 
 Tek node (ssh):

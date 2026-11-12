@@ -65,9 +65,13 @@ değişiklik istediyse (güncelleme, ayar, servis, disk …) — **CN ve sunucu 
    --cn <CN> …` (dizin adını betik üretir; elle dizin/dosya açma, başka yol deneme), hedefler `python3 $B/ansible/is-envanter.py <CN>
    <sunucular>`. Betik "Envanterde yok" (`[is_ek]`) dediyse, ad/IP çözülmüyorsa ya da sunucuya bağlanılamıyorsa **o grupta değişikliğe
    başlamadan** adlarını yaz ve sor ("IP'si ya da envanter satırı?"). Eksik sunucuyu atlayıp gerisinde değişikliğe geçme.
-4. **Yalnız kullanıcının söylediği grup, söylediği sıra.** "Önce X grubundan" dediyse: X'te okuma → değişiklik → ölçüm (`rpm -q`,
-   `needs-restarting -r` çıkış kodu) → kısa tablo → **dur**. Sonraki gruba kullanıcı "devam" demeden başlama.
-5. Ölçmediğini yazma ("reboot gerekmiyor" yalnız ölçümle); yapılamayan sunucu tabloda "yapılmadı — neden" satırıdır, "tamam" denmez.
+4. **Yalnız kullanıcının söylediği grup, söylediği sıra — adım adım.** Becerideki adım sırasını başta kısa liste olarak göster. Her
+   adım (okuma, reboot, güncelleme … ayrı ayrı) bitince sunucu başına sonucu tablo ver ve **dur**: "sıradaki adım <…>, başlayayım mı?"
+   Bir adımın onayı sonrakini kapsamaz; bir grup bitince sonraki gruba kullanıcı "devam" demeden başlama.
+5. **Göremediğin sistemdeki ön koşul insanın işidir — sor: "yaptın mı?"** (ör. Satellite sync/Content View, sanallaştırma snapshot'ı, FW talebi, sahip
+   onayı …). Erişimin olmayan yerde durumu varsayma, yerine başka bir şey ölçüp "tamam" sayma; cevap gelmeden o adıma bağlı işe başlama.
+6. Ölçmediğini yazma ("reboot gerekmiyor" yalnız ölçümle; "o sunuculara dokunmadım" demeden önce oturumda çalıştırdığın komutlara
+   bak); yapılamayan sunucu tabloda "yapılmadı — neden" satırıdır, "tamam" denmez.
 
 ## Dil ve üslup
 - Kullanıcı her işi **root** olarak yapar — komutlarda `sudo` önerme/yazma (Alp, 2026-10-05).

@@ -16,8 +16,11 @@ bağdır (ölçüldü), yeni yazılan komutlarda `dnf` kullan.
 3. **Kısıt:** değişiklik kaydı (CN) ve pencere; reboot serbest mi; sunucu/uygulama sahibine haber verildi mi.
 4. **Hedef:** tam güncelleme mi, yalnız güvenlik mi, belirli paket/sürüm mü (ana sürüm yükseltmesi → `rhel-yukseltme`). Kullanıcı
    "dnf update" dediyse cevap verilmiştir (tam) — yapıştırılan nottaki paket adına göre daraltma.
+5. **Satellite içeriği — insanın işi, her güncelleme işinde sor:** "Satellite'ta sync ve Content View güncel mi (yayınlandı / bu ortama
+   terfi etti mi) — baktın mı?" Ajan Satellite'ı **göremez**; kontrolü kullanıcı yapar (Alp, 2026-11-12: "Adam onu bir sorar: yaptın mı
+   sen diye. Çünkü o kendisi göremiyor. Ben yapacağım o işi."). Cevap "evet" olmadan `dnf update` adımına geçme.
 
-Ölçülebileni sorma: bekleyen paket, çekirdek, reboot gerekir mi, depo/CV tarihi, fstab, konteynerler — aşağıdaki akış toplar.
+Ölçülebileni sorma: bekleyen paket, çekirdek, reboot gerekir mi, istemcideki depo tarihi, fstab, konteynerler — aşağıdaki akış toplar.
 
 Salt-okunur:
 
@@ -73,6 +76,12 @@ subscription-manager status           # YALNIZCA RHEL, AlmaLinux/Rocky'de yok
 Alp: "mount -av ile fstab kontrol, 1. restart, sonra subscription kontrol, dnf update, 2. restart. Bundan önce Red Hat Satellite CV güncel
 olduğunu kontrol etmek lazım — bazen sync geriden gelebiliyor." Sıra bu; adımlar arasında sonucu **ölç** (AGENTS "yaptım = ölçüldü").
 
+**Adım adım — her adım ayrı onay (Alp, 2026-11-12: "hemen dnf update başlama ya da restart başlama, adım adım gideceğiz"):**
+işe başlarken aşağıdaki sırayı kullanıcıya **kısa liste olarak göster** (0 Satellite sorusu → 1 fstab kontrol + `mount -av` çıktısı →
+2 1. reboot → 3 kayıt/repo → 4 `dnf update` → 5 2. reboot → 6 ölçüm). Her adımın sonunda sunucu başına sonucu tablo ver ve **dur**:
+"sıradaki adım <…>, başlayayım mı?" Kullanıcının bir adıma verdiği onay sonraki adımı kapsamaz; fstab okundu diye reboot, reboot bitti
+diye güncelleme başlamaz. Kullanıcı "yalnız şunu yap" dediyse (ör. "fstab kontrol ve mount -av çıktısı") yalnız onu yap, çıktıyı göster.
+
 **Kapsam ve grup sırası (saha G124, 2026-11-12 — Alp: "açıkça söyledim, bütün sunucularda tam bir update yapacağız"):**
 - Kullanıcı "dnf update / güncelle" dediyse iş **tam güncellemedir**. Yanına yapıştırılan güvenlik notu (RHSA, CVE, paket adı) gerekçedir,
   kapsam değildir — `dnf update <paket>` ile daraltma. Emin değilsen "Önce sor" 4'ü sor; kendin seçme.
@@ -82,7 +91,8 @@ olduğunu kontrol etmek lazım — bazen sync geriden gelebiliyor." Sıra bu; ad
 - Listede adı çözülmeyen / bağlanılamayan sunucu varsa o grupta 1. adımdan önce kullanıcıya adlarıyla sor (envanterde IP'si olabilir);
   kalanlarla sessizce devam etme. Hedefler `is-envanter.py` iş envanterinden gelir, elle `for h in …; do ssh` listesinden değil.
 
-0. **İçerik güncel mi (okuma — önce bu).** İstemciden, Satellite'ın sunduğu metadata'nın tarihi:
+0. **İçerik güncel mi (önce bu).** Önce kullanıcıya sor ("Önce sor" 5) — Satellite'taki sync/CV durumunu yalnız o görür. Senin
+   yapabildiğin destek okuması, istemciden Satellite'ın sunduğu metadata'nın tarihi (kullanıcının cevabının yerine geçmez):
    `ansible <grup> -i <env> -m shell -a 'dnf -q repoinfo --enabled 2>/dev/null | grep -E "^Repo-(id|updated)"' -t cikti/filo/repo` →
    `Repo-updated` = CV'nin bu ortama son yayınlandığı/terfi ettirildiği an. Haftalarca eskiyse ya da sunucular arasında farklıysa (farklı
    lifecycle environment/CV) güncellemeye başlamadan kullanıcıya söyle. Satellite'ta (genel — alan adlarını `hammer … --help` ile doğrula):

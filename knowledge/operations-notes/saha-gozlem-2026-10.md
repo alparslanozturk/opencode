@@ -1638,3 +1638,10 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Aksiyon: AGENTS.md başına "Değişiklik işi — ilk komuttan önce bu sıra" (5 madde); iş kaydı satırında tam yol; `is-kaydi.py` dizin adı
   `<YYYYMMDD-HHMM>-<CN>-<etiket>` (etiketteki tarih/CN yinelenmez, etiketsiz `--cn` kabul); `rhel-guncelleme` "Kapsam ve grup sırası".
   Kilit davranışı değişmedi — seçenekler Alp'te (SURUM-NOTLARI 2026-11-12).
+- **Devamı (Alp, 2026-11-12, 2 ekran; kit henüz eski sürümdeydi):** Alp düzeltince ajan durdu ve üç soru sordu — ama (1) "STL sunucularına
+  dokunmadım" yazdı; oysa aynı oturumda STL/SXL grubunda fstab + `mount -av` çalıştırmıştı (yanlış beyan, komut geçmişine bakmadan);
+  (2) Alp'in az önce söylediğini ("dnf update yapacağım") yeniden sordu; (3) güncelleme sırasını (fstab → 1. reboot → kayıt → güncelleme →
+  2. reboot) ve Satellite ön koşulunu hiç anmadı. Alp: "Adım adım gideceğimizi söyledik … Satellite'ın content verileri güncel mi diye
+  bakılacak. Adam onu bir sorar: yaptın mı sen diye. Çünkü o kendisi göremiyor. Ben yapacağım o işi. İnsan yapacak."
+  Aksiyon: `rhel-guncelleme` "Önce sor" 5 (Satellite — insanın işi, her işte sorulur) + "Adım adım — her adım ayrı onay"; AGENTS.md
+  değişiklik işi bölümüne 4 (adım adım, her adımda dur) ve 5 (göremediğin sistemdeki ön koşul: "yaptın mı?").

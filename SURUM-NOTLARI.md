@@ -11,13 +11,17 @@
 Sahada: `al.sh` → `./kur.sh`, **yeni oturum**. İkili değişmez.
 - **Olay:** CN'li güncelleme işinde ajan sormadan başladı, "dnf update"i yapıştırılan nottaki tek pakete daralttı, erişemediği 2 sunucuyu
   sormadan atladı, ilk grup bitince söylenmeden sonraki gruba geçti (ayrıntı: saha günlüğü G124).
-- `engine/AGENTS.md`: iş haritasının hemen altına **"Değişiklik işi — ilk komuttan önce bu sıra"** (5 madde: beceriyi yükle + sor ve bekle ·
+- `engine/AGENTS.md`: iş haritasının hemen altına **"Değişiklik işi — ilk komuttan önce bu sıra"** (ilk sürüm 5 madde: beceriyi yükle + sor ve bekle ·
   iş kullanıcının cümlesidir, not daraltmaz · iş kaydı + iş envanteri, çözülmeyen sunucu sorulur · yalnız söylenen grup, bitince dur ·
   ölçmediğini yazma). İş kaydı satırındaki kırık yol (`<rapor>/is-kaydi.py`) tam yola çevrildi — model yolu tahmin ediyordu.
 - `rapor/is-kaydi.py`: dizin adı **`<YYYYMMDD-HHMM>-<CN>-<etiket>`** (Alp: "yıl, ay, gün, saat; sonra tire; sonra change numarası").
   `--cn` artık ada girer; etikete yazılmış tarih/CN yinelenmez; etiketsiz `ac --cn <no>` kabul. Eski kayıt dizinleri yeniden adlandırılmaz.
 - `rhel-guncelleme`: "Kapsam ve grup sırası" — "dnf update" = tam güncelleme; grup sırası verildiyse ilk grupta tablo → dur; çözülmeyen
   sunucu değişiklikten önce sorulur; hedef iş envanterinden.
+- **Ek (aynı gün, 2. tur):** `rhel-guncelleme` "Önce sor" 5 — **Satellite sync / Content View güncel mi, baktın mı?** (ajan Satellite'ı
+  göremez; kontrol insanın işi, cevap "evet" olmadan `dnf update` başlamaz) + "Adım adım — her adım ayrı onay" (sıra başta gösterilir; her
+  adımın sonunda tablo → dur → "sıradaki adım …, başlayayım mı?"). AGENTS.md değişiklik işi bölümü 6 madde oldu: adım adım + "göremediğin
+  sistemdeki ön koşul insanın işidir — sor: yaptın mı?".
 - **Değişmeyen (karar Alp'te):** kilit — CN + sunucu verilince değişiklik onay ekranına düşmüyor (2026-10-27). Bu olayda 7 sunucudaki
   değişiklik bu yüzden ekrana gelmedi. İş envanteri dosya adı hâlâ CN önce (`hosts-<CN>-<tarih-saat>.ini`, 2026-10-22).
 - Denetimler: `beceri-yazim-denetim.py` BECERI=46 HATA=0 · `beceri-betik-test.sh` 290 geçti · 0 kaldı (is-kaydi 4 yeni + G124 cümlesi

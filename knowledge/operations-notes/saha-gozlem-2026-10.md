@@ -1661,3 +1661,9 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   sürümde kalır); son adım genel durumdur — işin hedeflediği birkaç RHSA'dan birinin kurulu olması Satellite repo/CV'nin güncel olduğunu
   gösterir, son kontroldür; çekirdek güncellendiyse son reboot sorulmalı. Aksiyon: `rhel-guncelleme` akışı buna göre (3 salt kontrol,
   5 sor, 6 RHSA son kontrolü — `dnf updateinfo list --installed <RHSA>` ölçüldü; erişilemeyen sunucu başka gruba taşınmaz).
+- **5. tur (Alp, 2026-11-12, 1 ekran):** iş dizinindeki `03-post-update.yaml` playbook'uyla son kontrol yapıldı (dn düzeni kullanıldı).
+  Tablo 7/7 "reboot gerekli, çalışan çekirdek ≠ son kurulu" dedi; ajan yine de "DTL bitti … STL'ye geçelim mi?" diye sordu, 2. reboot'u
+  sormadı. Alp: "reboot gerekli dedi ama reboot'a göndereyim mi diye sormadı. Hemen STL'ye geçeyim mi diye sordu." Ayrıca iki sunucuda
+  kalan eski çekirdek paketini sorun gibi listeledi (birden çok kurulu çekirdek normal). Aksiyon: AGENTS.md değişiklik işi 6 — grup,
+  tabloda açık iş (reboot gerekli, başarısız, doğrulanmamış) kalmayınca biter, sıradaki soru o iştir; `rhel-guncelleme` aynı kural +
+  `installonly_limit` notu. tahmin: oturum 4. tur kuralı (2. reboot sorulur) yüklenmeden açılmıştı — doğrulanmadı.

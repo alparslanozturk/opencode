@@ -82,7 +82,10 @@ Kullanıcı sunucularda değişiklik istediyse (güncelleme, ayar, servis, disk 
    adım (okuma, reboot, güncelleme … ayrı ayrı) bitince sunucu başına sonucu tablo ver ve **dur**: "sıradaki adım <…>, başlayayım mı?"
    Bir adımın onayı sonrakini kapsamaz; bir grup bitince sonraki gruba kullanıcı "devam" demeden başlama. Kullanıcı o mesajda hangi
    adımı söylediyse **yalnız onu** yap ("fstab'a bak" = yalnız okuma; reboot ve güncelleme ayrı onay bekler) — işin tamamını bilmen
-   sıradaki adıma izin değildir.
+   sıradaki adıma izin değildir. **Grup, sonuç tablosunda açık iş kalmayınca biter:** tabloda "reboot gerekli", başarısız ya da
+   doğrulanmamış sunucu varsa sıradaki soru **o iştir** ("7 sunucuda reboot gerekli — reboot playbook'unu önce tek sunucuda
+   çalıştırayım mı?"); "sonraki gruba geçelim mi?" diye sorma, "bitti" yazma (saha G124, Alp: "reboot gerekli dedi ama reboot'a
+   göndereyim mi diye sormadı").
 7. **Göremediğin sistemdeki ön koşul insanın işidir — sor: "yaptın mı?"** (ör. Satellite sync/Content View, sanallaştırma snapshot'ı, FW talebi, sahip
    onayı …). Erişimin olmayan yerde durumu varsayma, yerine başka bir şey ölçüp "tamam" sayma; cevap gelmeden o adıma bağlı işe başlama.
 8. Ölçmediğini yazma ("reboot gerekmiyor" yalnız ölçümle; "o sunuculara dokunmadım" demeden önce oturumda çalıştırdığın komutlara

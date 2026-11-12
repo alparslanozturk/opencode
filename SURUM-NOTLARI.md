@@ -6,6 +6,14 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-12 (5. tur) — grup, tabloda açık iş kalmayınca biter ("reboot gerekli" → sıradaki soru reboot)
+
+Sahada: `al.sh` → `./kur.sh`, **yeni oturum**. İkili değişmez.
+- Olay: son kontrol 7/7 "reboot gerekli" dedi, ajan 2. reboot'u sormadan "sonraki gruba geçelim mi?" diye sordu (saha G124 5. tur).
+- `engine/AGENTS.md` değişiklik işi 6 + `rhel-guncelleme`: sonuç tablosunda reboot gerekli / başarısız / doğrulanmamış sunucu varsa sıradaki
+  soru o iştir; "bitti" yazılmaz, sonraki grup önerilmez. Birden çok kurulu çekirdek normal (`installonly_limit`, varsayılan 3).
+- **Sahada denenmedi.**
+
 ## 2026-11-12 (4. tur) — güncelleme akışı sadeleşti: salt kontrol adımları, son RHSA kontrolü, 2. reboot sorulur
 
 Sahada: `al.sh` → `./kur.sh`, **yeni oturum**. İkili değişmez.

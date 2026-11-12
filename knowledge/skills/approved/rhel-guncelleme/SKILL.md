@@ -87,7 +87,9 @@ diye güncelleme başlamaz. Kullanıcı "yalnız şunu yap" dediyse (ör. "fstab
 - Kullanıcı "dnf update / güncelle" dediyse iş **tam güncellemedir**. Yanına yapıştırılan güvenlik notu (RHSA, CVE, paket adı) gerekçedir,
   kapsam değildir — `dnf update <paket>` ile daraltma. Emin değilsen "Önce sor" 4'ü sor; kendin seçme.
 - Kullanıcı ortam/grup sırası verdiyse (ör. "önce felaket-test, sonra test, sonra üretim") aşağıdaki 0-6 adımları **yalnız ilk grupta** yürüt,
-  6. adımın tablosunu ver ve **dur** — sonraki grup kullanıcının "devam"ıyla başlar. Bir gruptaki okuma (fstab) bitti diye diğer grubun
+  6. adımın tablosunu ver ve **dur** — sonraki grup kullanıcının "devam"ıyla başlar. Grup ancak 5. adım (2. reboot) kararı verilip 6. adım
+  temiz çıkınca **biter**: güncelleme sonrası tabloda `reboot_gerekli=EVET` / çalışan ≠ son kurulu çekirdek varsa sıradaki soru 2. reboot'tur,
+  sonraki grup değil (saha G124 5. tur). Birden çok kurulu çekirdek (eski sürümler) normaldir — `installonly_limit` kadar tutulur (varsayılan 3, ölçüldü AlmaLinux 10), sorun değil. Bir gruptaki okuma (fstab) bitti diye diğer grubun
   güncellemesine geçilmez.
 - Listede adı çözülmeyen / bağlanılamayan sunucu varsa o grupta 1. adımdan önce kullanıcıya adlarıyla sor (envanterde IP'si olabilir);
   kalanlarla sessizce devam etme. Hedefler `is-envanter.py` iş envanterinden gelir, elle `for h in …; do ssh` listesinden değil.

@@ -1,6 +1,6 @@
 ---
 name: ansible
-description: Ansible ile birden çok sunucuda iş yaparken kullan — proje düzeni kurma, CN/değişiklik numarasıyla iş envanteri (hosts-{CN}-{tarih}.ini) üretme, sertifika/ayar dosyasını playbook'a gömülü dağıtma, envanter doğrulama, tek sunucuya daraltma, ad-hoc komut, playbook yazma ve hazır playbook'u inceleme (`playbook-denetim.py`), playbook çalıştırma, kuru çalıştırma. "ansible", "playbook", "hosts dosyası", "tüm sunucularda", "şu sunucuda çalıştır", "ansible-playbook" isteklerinde tetiklenir.
+description: Ansible ile birden çok sunucuda iş yaparken kullan — proje düzeni kurma, CN/değişiklik numarasıyla iş dizini dn/{numara}/ (hosts.ini + numaralı playbook) kurma, sertifika/ayar dosyasını playbook'a gömülü dağıtma, envanter doğrulama, tek sunucuya daraltma, ad-hoc komut, playbook yazma ve hazır playbook'u inceleme (`playbook-denetim.py`), playbook çalıştırma, kuru çalıştırma. "ansible", "playbook", "hosts dosyası", "tüm sunucularda", "şu sunucuda çalıştır", "ansible-playbook" isteklerinde tetiklenir.
 ---
 
 Doğrulandı: ansible-core 2.16.16, AlmaLinux 10.2 — 2026-08-29
@@ -56,42 +56,62 @@ Host değişkeni satır sonuna, grup değişkeni `[web:vars]`, alt grup
 Düzenin karşılığı: doğru dizine `cd` ettiğin an doğru envanter etkin olur.
 `-i` verirsen cfg'deki envanteri **ezer**; ikisi farklıysa çalışan `-i`'dir.
 
-### Envanter düzeni ve iş envanteri (CN başına) — saha G100/G101
+### §0 Değişiklik işi akışı — iş dizini `dn/<numara>/` (Alp, 2026-11-12)
+
+Değişiklik numarası (CN/DN) verilen iş **tek dizinde** durur; tarih/saat ad'a girmez:
 
 ```
-ansible/
-  inventories/
-    hosts.ini                          ana envanter — KAYNAK, işe göre değiştirme
-    hosts-rke2.ini                     RKE2 kümeleri — KAYNAK
-    hosts-dn29000-20261022-1430.ini    iş envanteri: CN önce, tarih-saat arkada (YYYYMMDD-HHMM)
-    hosts-kriz-20261022-1515.ini       CN'siz: kriz / kurulum / is
-  playbooks/
-    12-google-captcha-cert.yaml
+<çalışma dizini>/
+  inventories/hosts.ini        ana envanter — KAYNAK, işe göre değiştirme
+  playbooks/                   hazır playbook'lar — okunur, iş dizinine kopyalanır
+  dn/29000/                    iş dizini (numara yazıldığı gibi; dn29000 → dn/29000)
+    hosts.ini                  iş envanteri (is-envanter.py)
+    hosts-stl.ini              aşama envanteri (--ad stl)
+    01-fstab-kontrol.yaml      playbook'lar: sıradaki numara + ad
+    02-update.yaml
+    README.md                  iş bilgisi (is-kaydi.py ac)
+    logs/plan.md  logs/sonuc.md  logs/okuma/
 ```
 
-- **Değişiklik işi (CN verildi) ya da kriz/kurulum** → o işin sunucularıyla iş envanteri üret. Elle INI yazma, IP kopyalama —
-  betik ana envanterden host satırını, grubunu, üst grubunu (`:children`) ve `[grup:vars]`'ı **aynen** alır; CN yazıldığı gibi kalır:
+Sıra — her adımda dur, kullanıcının o adım için onayını al:
+1. **İş envanteri:** `is-envanter.py <numara> <liste> [--ad <aşama>]` → `dn/<numara>/hosts.ini`; tabloyu kullanıcıya göster.
+   Envanterde IP'si olmayan sunucuyu **sor**, tahmin etme.
+2. **İş kaydı:** `is-kaydi.py ac … --cn <numara>` → `README.md` + `logs/`.
+3. **Okuma:** `ansible all -i dn/<numara>/hosts.ini -m shell -a '<okuma>' -t cikti/filo/<etiket>` — okuma için ad-hoc serbest.
+   `for … ssh` döngüsü yazma.
+4. **Playbook:** değişiklik (reboot, `dnf update`, dosya) **playbook'la** — `dn/<numara>/01-<ad>.yaml`. Hazırı varsa
+   `ansible/playbooks/`'tan oku (§8), kopyala. `ansible … -m shell -a "dnf update -y | tail"` değişiklik yolu **değil**
+   (`| tail` çıkış kodunu yutar — hata "ok" görünür, G26).
+5. **Denetim:** `playbook-denetim.py` + `--syntax-check` + `--list-hosts` → planı `logs/plan.md`'ye yaz, kullanıcıya göster, **onay bekle**.
+6. **Önce tek sunucu:** `ansible-playbook -i dn/<numara>/hosts.ini dn/<numara>/01-<ad>.yaml -l <sunucu>` → sonucu hedefte doğrula,
+   kullanıcıya göster. Olmadıysa playbook'u düzelt, yine tek sunucu.
+7. **Grup grup:** kullanıcı "devam" deyince sıradaki grup; bir grubun onayı sonrakini kapsamaz. Sonuç `logs/sonuc.md`.
+
+Ön koşulu (Satellite içeriği güncel mi, yedek alındı mı, kesinti duyuruldu mu) sen göremezsin — **kullanıcıya sor** ("yapıldı mı?").
+`ansible.cfg` iş dizinine **otomatik yazılmaz** (içeriği uydurulmuş olur); komutları çalışma dizininden yol ile ver. `cd dn/<numara>`
+yapılırsa o dizinde `ansible.cfg` varsa o etkin olur (§2). CN'siz iş (kriz/kurulum/is): `inventories/hosts-<YYYYMMDD>-<etiket>.ini`.
+
+### İş envanteri betiği — saha G100/G101
+
+- Betik ana envanterden host satırını, grubunu, üst grubunu (`:children`) ve `[grup:vars]`'ı **aynen** alır; elle INI yazma, IP kopyalama:
 
   ```bash
   python3 /root/ai/opencode/knowledge/skills/approved/ansible/is-envanter.py dn29000 wor07-14 stlweb01 10.0.0.12 --grup google_captcha_cert
-  printf '%s\n' "<kullanıcının yapıştırdığı liste>" | python3 …/is-envanter.py dn29000 - --grup <iş grubu>   # serbest biçim
-  python3 …/is-envanter.py --liste      # önceki iş envanterleri (etiket, tarih, host sayısı)
+  printf '%s\n' "<kullanıcının yapıştırdığı liste>" | python3 …/is-envanter.py 29000 - --ad stl   # serbest biçim, aşama envanteri
+  python3 …/is-envanter.py --liste      # önceki iş envanterleri
   ```
 
   Ad, kısa ad (`wor07`), IP, aralık (`wor07-14`, `10.0.9.127-134`, yalın `07-14`) ve grup adı kabul edilir. `--grup` tüm
-  host'ları playbook'un `hosts:` grubuna koyar (tire `_` olur — ansible tireli grup adında her komutta `[WARNING]: Invalid characters
-  were found in group names` basar; eski tireli envanterde uyarıyı `ansible.cfg` `[defaults]` `force_valid_group_names = ignore` kapatır, ölçüldü). Çıktıdaki tabloyu (ad · IP · `dosya:satır [grup]`) kullanıcıya **aynen**
-  göster. `❓ birden çok host'a uyuyor` → dosya yazılmaz, yalnız o adı sor. `⚠️ envanterde yok` → `[is_ek]`'e olduğu gibi
-  yazıldı, kullanıcıyla doğrula (kurulumda normal).
-- Çalıştırırken: `ansible-playbook -i inventories/hosts-<CN>-….ini <playbook>` — **`--limit` gerekmez** (Alp, G101: dosyada
-  yalnız değişikliğin sunucuları var). Kilit hedefi bu dosyadan okur: her host adı ve `ansible_host` IP'si yetkide olmalı
-  Değişiklikte opencode onay ekranı çıkar (kullanıcı onaylar). Dosya adındaki CN'yi bilmiyorsan kullanıcıya sor (zorunlu değil; yoksa
-  `hosts-is-<tarih>.ini`). Dosyaya kullanıcının vermediği host ekleme.
-  `[grup:vars]` altında `ansible_host` yazma (kilit hedefi belirleyemez). `-i` vermeden (ansible.cfg'nin ana envanteri) değişiklik
-  → `--limit` şart.
-- Ad ↔ IP eşlemesinde iş envanteri **kaynak sayılmaz** (desen `hosts-<x>-YYYYMMDD[-HHMM].ini` / `hosts-YYYYMMDD-<x>.ini`) — yetkiyi
-  ajanın yazdığı dosya genişletemez.
-- Aynı CN'ye sunucu eklenirse yeniden üret (yeni dakika → yeni dosya); eski dosya kayıt olarak kalır, üzerine yazılmaz.
+  host'ları playbook'un `hosts:` grubuna koyar (tire `_` olur — tireli grup adı her komutta `[WARNING]: Invalid characters` basar;
+  eski envanterde `ansible.cfg` `force_valid_group_names = ignore` kapatır, ölçüldü). Çıktıdaki tabloyu (ad · IP · `dosya:satır [grup]`)
+  kullanıcıya **aynen** göster. `❓ birden çok host'a uyuyor` → dosya yazılmaz, yalnız o adı sor. `⚠️ envanterde yok` → `[is_ek]`'e
+  yazıldı, kullanıcıyla doğrula.
+- Aynı numara + aynı ad, farklı sunucular → `hosts-2.ini` yazılır (⚠️ `--ad` kullan); aynı sunucular → yeniden yazılmaz. Eski dosya
+  kayıt olarak kalır.
+- Çalıştırırken `-i dn/<numara>/hosts.ini` — **`--limit` gerekmez** (G101: dosyada yalnız işin sunucuları var); ilk koşu yine `-l <sunucu>` (§0-6).
+  Kilit hedefi bu dosyadan okur: her host adı ve `ansible_host` IP'si yetkide olmalı; değişiklikte onay ekranı çıkar. `[grup:vars]`
+  altında `ansible_host` yazma. `-i` vermeden (ana envanter) değişiklik → `--limit` şart. Dosyaya kullanıcının vermediği host ekleme.
+- Ad ↔ IP eşlemesinde iş envanteri (`dn/` altı, `hosts-<tarih>-<x>.ini`) **kaynak sayılmaz** — yetkiyi ajanın yazdığı dosya genişletemez.
 - `group_vars/`/`host_vars/` uyarısı → o değişkenler iş envanterine gelmez; ana envanteri `-i` ile, hedefi `--limit` ile ver.
 - Ana envanterde düzeltme gerekiyorsa (yanlış IP, eksik host) bu ayrı bir iştir: kullanıcıya söyle, onayla düzelt.
 
@@ -153,7 +173,7 @@ Yazarken (betiğin denetlediği kurallar):
   sürüm ya da `present`; parola/token değişkenle (`no_log: true`), playbook'a değer yazma; `NOPASSWD: ALL` yazma (IdM — `rhel-yonetim`).
 - Her görevin `name:`'i olsun — rapordaki "web12 failed" satırı ancak adla okunur.
 - Dosya dağıtımı → aşağıdaki `gomulu-dosya.py` (içeriği sen yazma).
-- Dosya adı: dizindeki sıradaki numara (`13-…yaml`); var olan playbook'un üzerine yazma — yeni sürüm yeni numara.
+- Dosya adı: dizindeki sıradaki numara (`13-…yaml`; CN işinde `dn/<numara>/01-…`, `02-…` — §0); var olan playbook'un üzerine yazma — yeni sürüm yeni numara.
 
 ## 2. Hangi ansible.cfg etkin
 
@@ -308,7 +328,7 @@ Semaphore'un okuma kuralı (semaphoreui.com/docs, user-guide: repositories, inve
 
 - Playbook yolu **deponun köküne göre** (`playbooks/12-…yaml`). Envanter türü `file` ise **göreli yol şablonun kendi deposunu**
   gösterir, mutlak yol Semaphore sunucusundaki dosyayı — ayrı envanter deposu doğrudan okunamaz. Bu yüzden iş envanteri
-  (`inventories/hosts-<CN>-<tarih>.ini`) playbook'la **aynı ansible deposuna** yazılır ve push edilir (`git` §4).
+  (`dn/<numara>/hosts.ini`) playbook'la **aynı ansible deposuna** yazılır ve push edilir (`git` §4).
 - Semaphore yalnız depoda olanı görür: push edilmemiş playbook/envanter orada **yok**.
 - Kimlik (ssh kullanıcısı, sudo, depo için AD hesabı) Semaphore **Key Store**'da; playbook'a/depoya parola yazma, gerekiyorsa
   Variable Group **Secrets**'a koy ve playbook'ta değişken adıyla kullan.

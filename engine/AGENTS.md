@@ -54,23 +54,38 @@ Oturum sonunda kullanıcı `/kaydet` der → kurumsal bilgi güncellenir.
 
 ## Değişiklik işi — ilk komuttan önce bu sıra (Alp, 2026-11-12 — saha G124)
 
-Alp: "bir şey yapmadan önce işini yapabilmen için bilmen gerekenleri bana sor. Uydurma. Bu kesin kuraldır." Kullanıcı sunucularda
-değişiklik istediyse (güncelleme, ayar, servis, disk …) — **CN ve sunucu listesi verilmiş olsa da**:
+Alp: "bir şey yapmadan önce işini yapabilmen için bilmen gerekenleri bana sor. Uydurma. Bu kesin kuraldır." · "Önce ini dosyası, sonra
+playbook, sonra onay; playbook'u önce bir sunucuda deneriz, olmadıysa düzeltiriz. Bu güvenli çalışma yöntemi çok önemli — burası bir kurum."
+Kullanıcı sunucularda değişiklik istediyse (güncelleme, ayar, servis, disk …) — **CN ve sunucu listesi verilmiş olsa da**:
 
 1. **Beceriyi yükle** (yukarıdaki harita), "Önce sor" sorularından oturumda cevabı olmayanları **tek mesajda sor ve cevabı bekle**.
    CN + liste soruları atlatmaz; kilidin onay ekranı çıkmaması "sorma" demek değildir.
 2. **İş, kullanıcının kendi cümlesidir.** Yapıştırılan not, e-posta, RHSA/CVE listesi işi daraltmaz, genişletmez: kullanıcı "dnf update"
    dediyse tam güncellemedir — nottaki paket adıyla `dnf update <paket>` yapma. Not ile kullanıcının sözü çelişiyorsa **sor**.
-3. **İş kaydı + iş envanteri, sonra hedef** (`B=/root/ai/opencode/knowledge/skills/approved`): kayıt `python3 $B/rapor/is-kaydi.py ac <kısa-etiket>
-   --cn <CN> …` (dizin adını betik üretir; elle dizin/dosya açma, başka yol deneme), hedefler `python3 $B/ansible/is-envanter.py <CN>
-   <sunucular>`. Betik "Envanterde yok" (`[is_ek]`) dediyse, ad/IP çözülmüyorsa ya da sunucuya bağlanılamıyorsa **o grupta değişikliğe
-   başlamadan** adlarını yaz ve sor ("IP'si ya da envanter satırı?"). Eksik sunucuyu atlayıp gerisinde değişikliğe geçme.
-4. **Yalnız kullanıcının söylediği grup, söylediği sıra — adım adım.** Becerideki adım sırasını başta kısa liste olarak göster. Her
+3. **Önce iş dizini ve ini.** Her değişiklik numarasının **tek dizini** vardır: `dn/<numara>/` (çalışma dizininde) — iş envanteri
+   `hosts.ini`, playbook'lar `01-<ad>.yaml`, `02-…`, `README.md` (iş bilgisi), `logs/` (plan, sonuç, okuma kanıtı). İkisini betik kurar
+   (`B=/root/ai/opencode/knowledge/skills/approved`): `python3 $B/ansible/is-envanter.py <numara> <sunucular>` → `dn/<numara>/hosts.ini`
+   (elle INI yazma) · `python3 $B/rapor/is-kaydi.py ac <işin kısa adı> --cn <numara> --istek "<kullanıcının cümlesi>"` → `README.md` + `logs/`.
+   Başka dizin, başka ad düzeni uydurma; aynı numaranın dizini varsa onunla devam et. Betik "Envanterde yok" (`[is_ek]`) dediyse, ad/IP
+   çözülmüyorsa ya da sunucuya bağlanılamıyorsa **o grupta değişikliğe başlamadan** adlarını yaz ve sor ("IP'si ya da envanter satırı?").
+   Eksik sunucuyu kendin atlayıp gerisinde değişikliğe geçme — "atla" kararını kullanıcı verir.
+4. **Değişiklik playbook'la yapılır — `for … ssh` döngüsüyle ya da `ansible … -m shell -a "<değişiklik>"` ile uzaktan komut komut değil.**
+   Playbook işin dizinine yazılır (`dn/<numara>/01-reboot.yaml`, sonraki adım `02-…`); `ansible/playbooks/` içinde iş için hazırı varsa
+   onu **oku** ve iş dizinine kopyala. `ansible/playbook-denetim.py` + `--syntax-check` + `-i dn/<numara>/hosts.ini --list-hosts`.
+   **ssh / ansible ad-hoc yalnız okuma içindir**; playbook gerektirmeyen tek ufak komut varsa onu "playbook'suz, tek komutla
+   yapacağım: <komut>" diye söyle — karar kullanıcının. Ayrıntı: `ansible` becerisi §0.
+5. **Planı göster, onayı bekle, önce tek sunucu.** Tek mesajda: iş envanteri dosyası + sunucu sayısı, playbook yolu + görevleri, ilk
+   deneyeceğin sunucu; "başlayayım mı, hangi sunucularda?" diye sor. Cevap gelince playbook **önce tek sunucuda** (`-l <sunucu>`) çalışır:
+   hedefte ölç, sonucu göster, **dur**. Hata varsa playbook düzeltilir (hazır/kurum playbook'unda düzeltmeyi öner, kullanıcı karar verir)
+   ve aynı sunucuda yeniden denenir. Kalan sunucular kullanıcının "devam"ıyla — tek sunucunun onayı kalanları kapsamaz.
+6. **Yalnız kullanıcının söylediği grup, söylediği sıra — adım adım.** Becerideki adım sırasını başta kısa liste olarak göster. Her
    adım (okuma, reboot, güncelleme … ayrı ayrı) bitince sunucu başına sonucu tablo ver ve **dur**: "sıradaki adım <…>, başlayayım mı?"
-   Bir adımın onayı sonrakini kapsamaz; bir grup bitince sonraki gruba kullanıcı "devam" demeden başlama.
-5. **Göremediğin sistemdeki ön koşul insanın işidir — sor: "yaptın mı?"** (ör. Satellite sync/Content View, sanallaştırma snapshot'ı, FW talebi, sahip
+   Bir adımın onayı sonrakini kapsamaz; bir grup bitince sonraki gruba kullanıcı "devam" demeden başlama. Kullanıcı o mesajda hangi
+   adımı söylediyse **yalnız onu** yap ("fstab'a bak" = yalnız okuma; reboot ve güncelleme ayrı onay bekler) — işin tamamını bilmen
+   sıradaki adıma izin değildir.
+7. **Göremediğin sistemdeki ön koşul insanın işidir — sor: "yaptın mı?"** (ör. Satellite sync/Content View, sanallaştırma snapshot'ı, FW talebi, sahip
    onayı …). Erişimin olmayan yerde durumu varsayma, yerine başka bir şey ölçüp "tamam" sayma; cevap gelmeden o adıma bağlı işe başlama.
-6. Ölçmediğini yazma ("reboot gerekmiyor" yalnız ölçümle; "o sunuculara dokunmadım" demeden önce oturumda çalıştırdığın komutlara
+8. Ölçmediğini yazma ("reboot gerekmiyor" yalnız ölçümle; "o sunuculara dokunmadım" demeden önce oturumda çalıştırdığın komutlara
    bak); yapılamayan sunucu tabloda "yapılmadı — neden" satırıdır, "tamam" denmez.
 
 ## Dil ve üslup
@@ -113,8 +128,8 @@ En ağır hatalar ham çıktıyı kafadan tabloya/özete dökmekten çıktı (uy
 Bu işlerde betiği çalıştır, satırlarını **aynen** aktar; sayı/gün/süre hesaplama. Yol: `python3 /root/ai/opencode/knowledge/skills/approved/<beceri>/<betik>`,
 kullanım becerinin SKILL.md'sinde (önce beceriyi yükle):
 - sunucu/IP → hangi küme, Rancher'ın kümeleri, ingress, sertifika CN → `kume-bul/kume-bul.py`
-- CN (değişiklik numarası) / kriz / kurulum + sunucu listesi → iş envanteri `ansible/inventories/hosts-<CN>-<YYYYMMDD-HHMM>.ini`
-  → `ansible/is-envanter.py` (ana envanterden aynen türetir; elle INI yazma — `ansible` becerisi "Envanter düzeni")
+- değişiklik numarası + sunucu listesi → iş envanteri `dn/<numara>/hosts.ini` (CN'siz kriz/kurulum: `ansible/inventories/hosts-<YYYYMMDD>-<etiket>.ini`)
+  → `ansible/is-envanter.py` (ana envanterden aynen türetir; elle INI yazma — `ansible` becerisi §0)
 - sertifika/ayar dosyasını sunuculara dağıtma → içerik playbook'a gömülü (`copy content:`) → `ansible/gomulu-dosya.py`
   (PEM/base64'ü kendin yazma — betik bayt bayt gömer, sha256 doğrular)
 - çok sunucuda aynı komut → `ansible … -t cikti/filo/<etiket>` + `filo-kontrol/filo-tablo.py`
@@ -291,7 +306,8 @@ değerdi.
 ## Uzak işlem araç seçimi (A41 — anlık okuma vs. tekrarlanan iş vs. kalıcı durum)
 - **ssh tek satır:** anlık/tek seferlik okuma-teşhis. **ansible ad-hoc:** birkaç uçta
   tekrarlanan tek komut (yine okuma/düşük riskli). **playbook + onay:** kalıcı/tekrarlanabilir
-  durum (paket, kurulum, config) — onay olmadan çalıştırılmaz. Detay + örnekler:
+  durum (paket, güncelleme, reboot, kurulum, config) — onay olmadan çalıştırılmaz; CN'li değişiklik işinde yol budur
+  ("Değişiklik işi" 3-5). Değişikliği `for h in …; do ssh …` döngüsüyle yapma (saha G124). Detay + örnekler:
   `../knowledge/policy/UZAK-ISLEM-ARAC-SECIMI.md`.
 
 ## SSH ve Kubernetes erişimi (kullanıcı açıkça istediğinde — Alp kuralı, 2026-09-15)
@@ -348,7 +364,7 @@ ver ne demek?" Eski "CN + sunucular yoksa engel" kuralı **kalktı**. Şimdi Cla
   **isteme, format dayatma, yetki satırı önerme**. İşi yap; onay ekranı çıkar. Değişiklikten önce ne yapacağını ve riskini **tek
   cümleyle** söyle (ör. "18 sunucuda anchors'a sertifika koyup update-ca-trust çalıştıracağım").
 - **CN / sunucu listesi zorunlu değil; gerektiğinde SOR** (Alp, 2026-10-27: "gerekirse CN'yi ve sunucu listesini sorabilir; ben söylerim").
-  Örn. iş envanterinin adına (`hosts-<CN>-<tarih>.ini`) değişiklik numarası yazılacaksa: "Değişiklik numarası var mı, hangi sunucular?"
+  Örn. işin dizini değişiklik numarasıyla açılacaksa (`dn/<numara>/`): "Değişiklik numarası var mı, hangi sunucular?"
   diye bir kez sor. Cevap gelmezse ya da "yok" derse `is` etiketiyle devam et — bekleyip işi durdurma. Kullanıcı CN + sunucu verdiyse
   kilit kaydeder; o sunuculardaki değişiklik onay ekranına düşmeden geçer (toplu iş).
 - **Yetki oturum ömründedir:** kullanıcı mesajlarında ve oturum bağlamında geçen CN/değişiklik numarasını, sunucu adlarını, IP'leri,
@@ -361,7 +377,7 @@ ver ne demek?" Eski "CN + sunucular yoksa engel" kuralı **kalktı**. Şimdi Cla
 - **Yıkıcı disk komutu** (`mkfs`, silen `wipefs`, blok aygıtına `dd`/`>`, `blkdiscard`, `sgdisk --zap`): her seferinde ayrı onay ekranı
   ("her zaman izin ver" atlatamaz). Önermeden önce aynı sunucuda `disk-durum.py` çıktısını göster (aygıt BOŞ ADAY olmalı).
 - **Kullanıcı reddederse** aynı işi başka yazımla deneme (ansible → for → tek ssh gibi). Neden gerektiğini tek cümleyle söyle, bekle.
-- `ansible-playbook` değişikliğinde hedef `--limit` ya da iş envanteri (`-i inventories/hosts-<…>.ini`) ile belli olsun; `-i`'siz ve
+- `ansible-playbook` değişikliğinde hedef `--limit` ya da iş envanteri (`-i dn/<numara>/hosts.ini`) ile belli olsun; `-i`'siz ve
   `--limit`'siz değişiklik onay ekranında "hedef belirlenemedi — envanterin tamamı olabilir" der.
 - **İş sonucu doğrulaması:** Ansible'ın komutu kabul etmesi veya modelin "yüklendi" demesi tek başına başarı kanıtı değildir. Hazır
   playbook'u (özellikle `ansible/playbooks/12-*.yaml`) değiştirmeden çalıştır; play recap'te beklenen host'ların tamamını ve sıfır
@@ -448,11 +464,13 @@ yazma; ölçemediğin sunucuyu "ölçülmedi" diye ayrı göster. Bilmediğin de
   **sorma** — bulamıyorsan "önceki mesajlarda sunucu listesi göremiyorum" de, yalnız eksik olanı iste.
 - Liste yapıştırılınca (alt alta, numaralı, virgüllü, envanter satırı) ne olduğunu sen anla; biçim isteme.
 - CN + sunucular tamamlanınca değişiklik işinde ilk adım iş envanteridir (`ansible/is-envanter.py`, yukarıdaki betik listesi).
-- **Geçici iş kaydı (Alp, 2026-11-03):** değişiklik içeren her saha işinde kayıt aç — `K=/root/ai/opencode/knowledge/skills/approved/rapor/is-kaydi.py`;
-  `python3 $K ac <kısa-etiket> --cn <CN> --sunucular … --istek "<kullanıcının sözü>"` → dizin `~/ai/work/is-kayitlari/<YYYYMMDD-HHMM>-<CN>-<etiket>/`
-  (adı betik üretir; CN yoksa `--cn` yazma). Okuma çıktısı `<komut> | python3 $K ekle son <ad>`, bitince ölçülen sonuç `python3 $K sonuc son "…"`.
-  Kurum verisi — sahada kalır. Benzer iş için önce `python3 $K liste <sözcük>`.
-  Değişiklik **her adım ayrı komut, ayrı onay**; varsayılan ad-hoc SSH, playbook isteğe bağlı (ADR-0007 §7).
+- **İş kaydı (Alp, 2026-11-03; dizin düzeni 2026-11-12):** değişiklik içeren her saha işinde kayıt aç — `K=/root/ai/opencode/knowledge/skills/approved/rapor/is-kaydi.py`;
+  `python3 $K ac <işin kısa adı> --cn <numara> --sunucular … --istek "<kullanıcının sözü>"` → `dn/<numara>/README.md` + `logs/` (CN yoksa `--cn`
+  yazma → `~/ai/work/is-kayitlari/<YYYYMMDD>-<etiket>/`). Okuma çıktısı `<komut> | python3 $K ekle <numara|son> <ad>`, bitince ölçülen sonuç
+  `python3 $K sonuc <numara|son> "…"`. `README.md`'ye işin bilgisini yaz (istek, sunucular, adımlar ve hangi playbook, durum) — başka gün
+  açan kişi oradan anlar. Kurum verisi — sahada kalır. Benzer iş için önce `python3 $K liste <sözcük>`.
+  Değişiklik **her adım ayrı onay**; CN'li işte yol iş dizini + ini → playbook → onay → önce tek sunucu ("Değişiklik işi" 3-5; ADR-0007 §9).
+  ssh/ad-hoc: okuma ve playbook gerektirmeyen tek ufak komut.
 - **Kurumsal bilgi** (`~/ai/work/opencode/kurumsal-bilgi.ini`, sahada): DNS/NTP, DMZ, ağ blokları, erişim/izin akışı, süreç kuralı gerekince
   önce bunu oku (`grep -n -i <sözcük>`); satır sonundaki kaynak `[doğrula]` ise ölçmeden kesin bilgi gibi kullanma. Dosya ile ölçüm
   çelişirse ölçümü söyle, dosyayı kendin düzeltme — kullanıcı `/kaydet` ile günceller.
@@ -466,10 +484,13 @@ Kullanıcı bir tablo/liste yapıştırıp "sadece kontrol et, işlem yapma" der
 doğrulama gerekiyorsa **sonunda tek cümleyle öner** ("istersen NFS sunucusunda `exportfs -v` ile canlıdan bakarım"). Satır kesikse
 (ekranda değerin sonu görünmüyor) "şu satır kesik — tamamını yapıştır" de, kesik değerden sonuç çıkarma.
 
-## Dosya adlarında tarih (Alp, 2026-10-22)
-- Ürettiğin iş dosyası, çıktı, yedek adına tarih-saat ekle: **`YYYYMMDD-HHMM`** (`date +%Y%m%d-%H%M`), CN varsa önce CN:
-  `hosts-dn29000-20261022-1430.ini` (CN önce, tarih-saat arkada; yalnız gün değil), `fstab.20261022-1430`. Var olan dosyanın üzerine yazma; yeni ad üret.
-  İş kaydı **dizini** tersidir: `<YYYYMMDD-HHMM>-<CN>-<etiket>` (Alp, 2026-11-12) — adı `is-kaydi.py` üretir, elle yazma.
+## İş dizini ve dosya adlarında tarih (Alp, 2026-10-22; düzen 2026-11-12)
+- **Değişiklik numaralı iş:** `dn/<numara>/` — `hosts.ini`, `01-<ad>.yaml` …, `README.md`, `logs/`. Dizin ve dosya adında **tarih/saat yok**
+  (Alp: "saati niye ekliyorsun"; "her değişiklik numarası için dn dizininde numarayla bir dizin … daha sade, daha anlaşılır"). Eski işler
+  `dn/<numara>/hosts-<YYYYMMDD>-dn<numara>.ini` adıyla durur — yeniden adlandırma. CN'siz iş: `ansible/inventories/hosts-<YYYYMMDD>-<etiket>.ini`
+  ve `~/ai/work/is-kayitlari/<YYYYMMDD>-<etiket>/` (gün, saat yok). Adları betik üretir (`is-envanter.py`, `is-kaydi.py`) — elle yazma.
+- Yedek ve komut çıktısı (aynı gün birden çok olur): **`YYYYMMDD-HHMM`** (`date +%Y%m%d-%H%M`) — `fstab.20261022-1430`. Var olan dosyanın
+  üzerine yazma; yeni ad üret.
 
 ## Çalışma dizini boşsa (Alp kuralı — 2026-09-15)
 - Çalışma dizini boşsa ya da beklenen proje köküne (AGENTS.md/README/engine/knowledge gibi işaretler)

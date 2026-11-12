@@ -734,28 +734,42 @@ icerir "postgres kaynaksız aday" sio.txt "resmi PostgreSQL belgesi bulunamadı"
 icermez "sunucuda olmayan yol yok" sio.txt "/var/lib/kubelet"
 icerir "önek uyarısı" sio.txt "KB 250717"
 
-baslik "is-kaydi.py (geçici iş kaydı; 2026-11-03)"
-IK="$B/rapor/is-kaydi.py"; export IS_KAYIT_KOK="$PWD/iskok"
+baslik "is-kaydi.py (iş kaydı; 2026-11-03 · dn/<numara>/ düzeni 2026-11-12)"
+IK="$B/rapor/is-kaydi.py"; export IS_KAYIT_KOK="$PWD/iskok" IS_DN_KOK="$PWD/isdn/dn"
 d1=$(python3 "$IK" ac "Data → Root!" --sunucular a,b --istek "talep")
 [ -f "$d1/plan.md" ] && [ -d "$d1/okuma" ] && gecti "ac: plan.md + okuma/" || kaldi "ac: $d1"
-case "$(basename "$d1")" in *-data-root) gecti "etiket güvenli ada çevrildi";; *) kaldi "etiket: $d1";; esac
+case "$(basename "$d1")" in [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-data-root) gecti "CN'siz ad: <YYYYMMDD>-<etiket> (saat yok)";; *) kaldi "etiket: $d1";; esac
 icerir "CN verilmedi varsayılanı" "$d1/plan.md" "CN: verilmedi"
-# saha G124 (2026-11-12): dizin adı <tarih-saat>-<CN>-<etiket>; etikete yazılmış CN/tarih yinelenmez, etiketsiz --cn kabul
-d2=$(python3 "$IK" ac guncelleme --cn 29000 --sunucular c,d)
-case "$(basename "$d2")" in [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]-29000-guncelleme) gecti "ac --cn: <tarih-saat>-<CN>-<etiket>";; *) kaldi "ac --cn adı: $d2";; esac
-icerir "ac --cn: plan.md CN satırı" "$d2/plan.md" "CN: 29000"
-d3=$(python3 "$IK" ac 20261112-0853-29000-yama --cn 29000)
-case "$(basename "$d3")" in *-[0-9][0-9][0-9][0-9]-29000-yama) gecti "etiketteki tarih ve CN yinelenmez";; *) kaldi "yineleme: $d3";; esac
-d4=$(python3 "$IK" ac --cn CHG0012345 --sunucular e)
-case "$(basename "$d4")" in *-[0-9][0-9][0-9][0-9]-chg0012345) gecti "etiketsiz --cn: <tarih-saat>-<CN>";; *) kaldi "etiketsiz: $d4";; esac
-\rm -rf "$d2" "$d3" "$d4"
+# saha G124 (Alp, 2026-11-12): değişiklik numaralı iş → dn/<numara>/ (README.md + logs/); adında tarih/saat yok, aynı numara yeniden açılmaz
+d2=$(python3 "$IK" ac guncelleme --cn 29000 --sunucular c,d --istek "tam update" | head -1)
+[ "$d2" = "$IS_DN_KOK/29000" ] && gecti "ac --cn: dn/<numara>" || kaldi "ac --cn dizini: $d2"
+[ -f "$d2/README.md" ] && [ -f "$d2/logs/plan.md" ] && [ -f "$d2/logs/sonuc.md" ] && [ -d "$d2/logs/okuma" ] && gecti "ac --cn: README.md + logs/{plan,sonuc,okuma}" || kaldi "ac --cn içerik: $(ls -R "$d2" 2>&1 | head -8)"
+icerir "ac --cn: plan.md CN satırı" "$d2/logs/plan.md" "CN: 29000"
+icerir "README: istek kullanıcının sözüyle" "$d2/README.md" "tam update"
+echo "elle not" >> "$d2/README.md"
+python3 "$IK" ac 20261112-0853-dn29000-yama --cn dn29000 > ik2.txt
+icerir "aynı numara (dn önekli yazım) yeniden açılmaz" ik2.txt "zaten açık"
+[ "$(head -1 ik2.txt)" = "$d2" ] && [ "$(ls "$IS_DN_KOK" | wc -l)" -eq 1 ] && gecti "dn29000 = 29000 aynı dizin" || kaldi "ikinci dizin açıldı: $(ls "$IS_DN_KOK")"
+icerir "var olan README'ye dokunulmaz" "$d2/README.md" "elle not"
+d4=$(python3 "$IK" ac --cn CHG0012345 --sunucular e | head -1)
+[ "$d4" = "$IS_DN_KOK/chg0012345" ] && gecti "etiketsiz --cn, sayı olmayan numara" || kaldi "etiketsiz: $d4"
+# is-envanter önce çalışmışsa (dizin var, logs yok) ac eksikleri tamamlar
+mkdir -p "$IS_DN_KOK/29001" && echo "[w]" > "$IS_DN_KOK/29001/hosts.ini"
+python3 "$IK" ac reboot --cn 29001 > /dev/null; [ -f "$IS_DN_KOK/29001/logs/plan.md" ] && [ "$(cat "$IS_DN_KOK/29001/hosts.ini")" = "[w]" ] && gecti "var olan iş dizinine logs/ eklenir, hosts.ini'ye dokunulmaz" || kaldi "tamamlama"
+echo "fstab ok" | python3 "$IK" ekle 29000 fstab > ike.txt
+ls "$d2"/logs/okuma/*-fstab.txt > /dev/null 2>&1 && gecti "ekle <numara>: dn/<no>/logs/okuma/" || kaldi "ekle numara: $(cat ike.txt)"
+python3 "$IK" sonuc dn29000 "dtl tamam" > /dev/null; icerir "sonuc <dn+numara>" "$d2/logs/sonuc.md" "dtl tamam"
+python3 "$IK" sonuc "$d2" "yol ile" > /dev/null; icerir "sonuc <iş dizini yolu>" "$d2/logs/sonuc.md" "yol ile"
+echo y | python3 "$IK" ekle son y > ike.txt; icerir "son = en son AÇILAN kayıt (29001)" ike.txt "/29001/logs/okuma/"
+\rm -rf "$IS_DN_KOK"
 echo "Filesystem 365G" | python3 "$IK" ekle son df > ike.txt
 ls "$d1"/okuma/*-df.txt > /dev/null 2>&1 && gecti "ekle: stdin okuma/ altına" || kaldi "ekle: $(cat ike.txt)"
 echo x | python3 "$IK" ekle son df > /dev/null; [ "$(ls "$d1"/okuma | wc -l)" -eq 2 ] && gecti "ekle: üstüne yazmaz" || kaldi "ekle üstüne yazdı"
 python3 "$IK" sonuc son "root 365G" > /dev/null; icerir "sonuc satırı" "$d1/sonuc.md" "root 365G"
 if python3 "$IK" ekle ../../etc x < /dev/null > ikx.txt 2>&1; then kaldi "kök dışı kabul edildi"; else gecti "kök dışı dizin reddedilir"; fi
+if python3 "$IK" ekle /etc x < /dev/null > ikx.txt 2>&1; then kaldi "kök dışı mutlak yol kabul edildi"; else gecti "kök dışı mutlak yol reddedilir"; fi
 python3 "$IK" liste data > ikl.txt; icerir "liste sözcükle" ikl.txt "a,b"
-unset IS_KAYIT_KOK
+unset IS_KAYIT_KOK IS_DN_KOK
 
 baslik "oturum-ozet.py (oturum kanıtlı özeti; 2026-11-03)"
 cat > oz.json << 'JSON'
@@ -921,10 +935,39 @@ baslik "is-envanter --grup (tire → _, G116)"
 mkdir -p ie && printf '[web]\nweb01 ansible_host=10.0.0.1\n' > ie/ana.ini
 (cd ie && python3 "$B/ansible/is-envanter.py" dnt1 web01 --grup os-upgrade-29107 --dosya ana.ini >/dev/null 2>&1
  python3 "$B/ansible/is-envanter.py" dnt2 web01 --grup 29107-x --dosya ana.ini >/dev/null 2>&1)
-cat ie/ansible/inventories/hosts-dnt1-*.ini > ie1.txt 2>/dev/null; cat ie/ansible/inventories/hosts-dnt2-*.ini > ie2.txt 2>/dev/null
+cat ie/dn/dnt1/hosts.ini > ie1.txt 2>/dev/null; cat ie/dn/dnt2/hosts.ini > ie2.txt 2>/dev/null
 icerir "tireli grup adı _ ile" ie1.txt "[os_upgrade_29107]"
 icermez "tireli grup başlığı yok" ie1.txt "[os-upgrade-29107]"
 icerir "rakamla başlayan grup g_ önekli" ie2.txt "[g_29107_x]"
+
+baslik "is-envanter dn/<numara>/ düzeni (Alp, 2026-11-12: her değişiklik numarasına bir dizin; adında saat yok)"
+mkdir -p ied/ansible/inventories && printf '[dtl]\ndtlweb01 ansible_host=10.0.0.11\ndtlweb02 ansible_host=10.0.0.12\n[stl]\nstlweb01 ansible_host=10.0.0.21\n' > ied/ansible/inventories/hosts.ini
+IE="$B/ansible/is-envanter.py"
+(cd ied && python3 "$IE" 29000 dtlweb01 dtlweb02 > ../ied1.txt 2>&1)
+[ -f ied/dn/29000/hosts.ini ] && gecti "yalın numara → dn/<numara>/hosts.ini" || kaldi "dn yolu: $(cat ied1.txt | head -3)"
+icerir "çıktı: değişiklik playbook'la, iş dizininde" ied1.txt "dn/29000/01-<ad>.yaml"
+icerir "çıktı: önce tek sunucu" ied1.txt "-l <sunucu>"
+icerir "çıktı: for … ssh yok" ied1.txt "for … ssh döngüsü yazma"
+icerir "çıktı: iş kaydı komutu" ied1.txt "is-kaydi.py ac"
+(cd ied && python3 "$IE" dn29000 dtlweb02 dtlweb01 > ../ied2.txt 2>&1)
+icerir "aynı sunucular (dn önekli yazım) → yeniden yazılmaz" ied2.txt "zaten var (aynı sunucular): dn/29000/hosts.ini"
+(cd ied && python3 "$IE" 29000 stlweb01 > ../ied3.txt 2>&1)
+[ -f ied/dn/29000/hosts-2.ini ] && gecti "farklı sunucular → hosts-2.ini (üzerine yazmaz)" || kaldi "-2: $(head -2 ied3.txt)"
+icerir "farklı sunucularda aşama adı önerilir" ied3.txt "--ad <aşama>"
+icermez "ilk dosya değişmedi" ied/dn/29000/hosts.ini "stlweb01"
+(cd ied && python3 "$IE" 29000 stl --ad STL > ../ied4.txt 2>&1)
+[ -f ied/dn/29000/hosts-stl.ini ] && gecti "--ad → hosts-<aşama>.ini" || kaldi "--ad: $(head -2 ied4.txt)"
+(cd ied && python3 "$IE" kriz stlweb01 > ../ied5.txt 2>&1)
+ls ied/ansible/inventories/hosts-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-kriz.ini > /dev/null 2>&1 && gecti "CN'siz (kriz) → ansible/inventories/hosts-<YYYYMMDD>-kriz.ini" || kaldi "kriz: $(head -2 ied5.txt)"
+(cd ied/dn/29000 && python3 "$IE" 29000 dtlweb01 dtlweb02 > ../../../ied6.txt 2>&1)
+icerir "iş dizininin içinden çalıştırılınca kök aynı" ied6.txt "zaten var (aynı sunucular): dn/29000/hosts.ini"
+[ ! -d ied/dn/29000/dn ] && gecti "iç içe dn/ açılmadı" || kaldi "iç içe dn/"
+(cd ied && python3 "$IE" --liste > ../ied7.txt 2>&1)
+icerir "--liste: dn altı" ied7.txt "dn/29000/hosts-stl.ini"; icerir "--liste: CN'siz" ied7.txt "-kriz.ini"
+# iş envanteri kaynak sayılmaz: dn/ altı ana envanter aramasına girmez
+(cd ied && python3 "$B/kume-bul/kume-bul.py" stlweb01 > ../ied8.txt 2>&1)
+icermez "kume-bul dn/ altını kaynak saymaz" ied8.txt "dn/29000"
+icermez "kume-bul tarihli iş envanterini kaynak saymaz" ied8.txt "kriz.ini"
 
 # --------------------------------------------------------------------------- yazım denetimi
 baslik "Yazım denetimi (ad, açıklama ≤1024 ve etiketsiz, gövde <500 satır, anılan dosya, ek dosya, iş haritası, maskeleme, önce sor)"

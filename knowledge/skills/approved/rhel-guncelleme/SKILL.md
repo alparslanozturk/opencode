@@ -90,6 +90,9 @@ diye güncelleme başlamaz. Kullanıcı "yalnız şunu yap" dediyse (ör. "fstab
   güncellemesine geçilmez.
 - Listede adı çözülmeyen / bağlanılamayan sunucu varsa o grupta 1. adımdan önce kullanıcıya adlarıyla sor (envanterde IP'si olabilir);
   kalanlarla sessizce devam etme. Hedefler `is-envanter.py` iş envanterinden gelir, elle `for h in …; do ssh` listesinden değil.
+- **Değiştiren adımlar playbook'la, iş dizininde** (Alp, 2026-11-12; `ansible` §0): `dn/<numara>/hosts.ini` + `01-reboot.yaml`,
+  `02-update.yaml` … — hazırı `ansible/playbooks/`'tan kopyalanır. Her playbook'un ilk koşusu **tek sunucu** (`-l <sunucu>`), sonuç
+  gösterilir, sonra grup. `ansible … -m shell -a "dnf update -y | tail"` kullanma (`| tail` hatayı yutar). Okuma (0, 1, 1b, 3, 6) ad-hoc.
 
 0. **İçerik güncel mi (önce bu).** Önce kullanıcıya sor ("Önce sor" 5) — Satellite'taki sync/CV durumunu yalnız o görür. Senin
    yapabildiğin destek okuması, istemciden Satellite'ın sunduğu metadata'nın tarihi (kullanıcının cevabının yerine geçmez):
@@ -136,14 +139,14 @@ diye güncelleme başlamaz. Kullanıcı "yalnız şunu yap" dediyse (ör. "fstab
    taraması (root docker grubuna üye olmadan da docker'ı kullanır; history ne silinmeyi ne başka kullanıcıyı kanıtlar); history'deki
    komutu tekrar çalıştırmak/önermek (`docker compose down -v` adlı volume'ları **siler** — veri kaybı); host başına `ssh -o
    StrictHostKeyChecking=accept-new` döngüsü (known_hosts'a yazar) — tek ansible komutu yeter.
-2. **1. reboot** (onay ekranı) — temiz başlangıç: sunucu yamadan önce sorunsuz açılıyor mu. Ansible: `ansible.builtin.reboot` (reboot_timeout).
+2. **1. reboot** (playbook, onay ekranı) — temiz başlangıç: sunucu yamadan önce sorunsuz açılıyor mu. `ansible.builtin.reboot` (reboot_timeout).
    Sonra `uptime`, `systemctl --failed`.
 3. **Kayıt / repo** (okuma): `subscription-manager status; subscription-manager release --show; dnf -q repolist` — Satellite repoları açık mı,
    release kilidi beklenen mi.
-4. **Güncelleme**: önce `dnf -q check-update | wc -l` (kaç paket), sonra kurum playbook'u `06-dnf` (`rhel-teslim`) — elle ssh döngüsü değil (G26).
+4. **Güncelleme**: önce `dnf -q check-update | wc -l` (kaç paket), sonra kurum playbook'u `06-dnf` (`rhel-teslim`) iş dizinine kopyalanıp önce tek sunucuda — elle ssh döngüsü değil (G26).
    Uzun sürer → arka planda ve log'a (`ansible` §5b, `ANSIBLE_LOG_PATH=cikti/<iş>.log`). **"Şu an hangi sunucuda?"** sorusu = log'u okumak
    (`grep -E "^TASK|changed:|ok:|fatal:" cikti/<iş>.log | tail`) — okuma, onay gerekmez, playbook'u durdurmaz.
-5. **2. reboot** (onay ekranı) — yeni çekirdek.
+5. **2. reboot** (playbook, onay ekranı) — yeni çekirdek.
 6. **Ölç**: aşağıdaki durum tablosu (+ 1b'nin "sonra" fotoğrafı) — `cekirdek_calisan = cekirdek_son_kurulu`, `reboot_gerekli=hayir`, `systemctl --failed` boş. Sapan sunucuyu
    ayrı listele; tablo dışı "hepsi tamam" yazma.
 

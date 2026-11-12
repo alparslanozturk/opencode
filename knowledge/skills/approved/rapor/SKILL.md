@@ -25,9 +25,10 @@ Aşağıdaki elle Python örnekleri yalnız betiği olmayan küçük, kullanıc�
 
 ## İş kaydı — `is-kaydi.py` (Alp, 2026-11-03)
 
-Geçici saha işinin planı, kanıtı ve sonucu tek dizinde: `~/ai/work/is-kayitlari/<YYYYMMDD-HHMM>-<CN>-<etiket>/` (`plan.md`, `okuma/`,
-`sonuc.md`; CN yoksa `<YYYYMMDD-HHMM>-<etiket>`). Zamanla kurumun iş bilgi tabanı olur; kurum verisi içerir, sahada kalır.
-**Dizin adını betik üretir** (Alp, 2026-11-12: "yıl, ay, gün, saat; sonra tire; sonra change numarası"): CN'yi `--cn` ile ver, etikete
+Geçici saha işinin planı, kanıtı ve sonucu tek dizinde. **CN'li iş:** iş dizini `dn/<numara>/` (`README.md` + `logs/plan.md`,
+`logs/okuma/`, `logs/sonuc.md`; envanter ve playbook'lar aynı dizinde — `ansible` §0). **CN'siz:** `~/ai/work/is-kayitlari/<YYYYMMDD>-<etiket>/`.
+Ad'da saat yok. Zamanla kurumun iş bilgi tabanı olur; kurum verisi içerir, sahada kalır.
+**Dizini betik açar** (Alp, 2026-11-12: "her değişiklik numarası için DN dizininin içinde numarayla bir dizin"): CN'yi `--cn` ile ver, etikete
 tarih ya da CN yazma, kayıt dizinini/dosyalarını elle (`mkdir`, write) açma. Betiğin yolu aşağıdaki tam yoldur — başka yol deneme.
 
 ```bash
@@ -39,7 +40,7 @@ python3 $K liste data                                                           
 ```
 
 `plan.md`'yi doldur: önce sor cevapları, okuma kanıtı (dosya adıyla), adımlar (her biri ayrı komut), risk/geri dönüş. Verilmeyen alan
-"verilmedi" kalır. Betik yalnız bu köke yazar, var olan dosyanın üstüne yazmaz; kilitte onaysız.
+"verilmedi" kalır. Betik yalnız bu iki köke (`dn/`, `is-kayitlari/`) yazar, var olan dosyanın üstüne yazmaz; kilitte onaysız.
 
 **Biten oturumu kayda al, sonra listeden sil** (opencode 2.x'te arşiv yok; liste dizin başına, üst şeritteki sekme `ctrl+x w` ile
 kapanır ve oturum listede kalır — geri `ctrl+shift+t`):

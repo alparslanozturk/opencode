@@ -1645,3 +1645,12 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   bakılacak. Adam onu bir sorar: yaptın mı sen diye. Çünkü o kendisi göremiyor. Ben yapacağım o işi. İnsan yapacak."
   Aksiyon: `rhel-guncelleme` "Önce sor" 5 (Satellite — insanın işi, her işte sorulur) + "Adım adım — her adım ayrı onay"; AGENTS.md
   değişiklik işi bölümüne 4 (adım adım, her adımda dur) ve 5 (göremediğin sistemdeki ön koşul: "yaptın mı?").
+- **3. tur (Alp, 2026-11-12, 6 ekran; kit yine eski sürümde):** Alp: iş kaydı adında saat istemiyor ("daha öncekiler öyle değildi");
+  ajan uzak komutları `for` döngüsüyle veriyordu; değişiklik önce ini + playbook, onay, önce tek sunucu olmalı ("burası bir kurum").
+  Alp'in sahada kurduğu düzen: `dn/<numara>/` altında envanter, numaralı playbook'lar, README ve ayrı `logs/` — "böyle güzel oldu, daha
+  sade oldu". Bu düzenle "o iki sunucuyu atla … STL'de başlamadan onayımı al … adım adım" promptuyla ajan düzgün çalıştı. Kalan sapma:
+  "update yapalım" sonrası güncellemeyi playbook yerine ad-hoc `ansible <grup> -m shell -a "dnf update -y … | tail -15"` ile verdi
+  (`| tail` çıkış kodunu yutar — hata "ok" görünür, G26) ve önceki turda 7 sunucuda tek paket güncellediğini kendisi yazdı.
+  Aksiyon: `is-envanter.py` / `is-kaydi.py` `dn/<numara>/` düzenine geçti (saatsiz, `--ad` aşama envanteri); AGENTS.md değişiklik işi
+  3-4, `ansible` §0 "Değişiklik işi akışı", `rhel-guncelleme` (değiştiren adımlar playbook'la, önce tek sunucu); kilit ve `kume-bul`
+  `dn/` dizinini kaynak saymaz; ADR-0007 §9. Sahada yeni kitle denenmedi.

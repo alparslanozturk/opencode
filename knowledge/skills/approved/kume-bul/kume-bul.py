@@ -10,7 +10,7 @@ import re
 import sys
 
 KOKLER = ("ansible", "inventories", "inventory")
-ATLA = {"node_modules", "roles", "group_vars", "host_vars"}
+ATLA = {"node_modules", "roles", "group_vars", "host_vars", "dn"}  # dn/: CN iş dizinleri (dn/<numara>/hosts*.ini) — iş envanteri, kaynak değil (Alp 2026-11-12)
 # İş envanteri (CN/tarihli kopya: hosts-dn29000-20261022-1430.ini, hosts-20261022-dn29000.ini) ana envanterden türetilir — okunmaz
 IS_DESEN = re.compile(r"^hosts-(?:.+-\d{8}(?:-\d{4})?|\d{8}(?:-\d{4})?-.+)\.ini$", re.I)
 GIZLI = re.compile(r"pass|token|secret|key|vault", re.I)

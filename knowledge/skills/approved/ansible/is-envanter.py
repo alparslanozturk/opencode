@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
-# is-envanter.py — iş (değişiklik) envanteri: CN numarası (ya da kriz/kurulum/is etiketi) + sunucu listesi verilince ana
-# envanterlerden (ansible/inventories/hosts*.ini …) yalnız o sunucuları içeren ayrı bir INI üretir:
-#   ansible/inventories/hosts-<ETIKET>-<YYYYMMDD-HHMM>.ini   (ana envanterin yanında; CN önce, tarih-saat arkada)
+# is-envanter.py — iş (değişiklik) envanteri: değişiklik numarası (ya da kriz/kurulum/is etiketi) + sunucu listesi verilince ana
+# envanterlerden (ansible/inventories/hosts*.ini …) yalnız o sunucuları içeren ayrı bir INI üretir.
+#   değişiklik numarası → dn/<numara>/hosts.ini        (işin dizini: playbook'lar, README.md, logs/ da orada — rapor/is-kaydi.py)
+#                          dn/<numara>/hosts-<ad>.ini   (--ad ile aşama envanteri: aynı işin başka sunucu grubu, ör. --ad stl)
+#   CN'siz (kriz|kurulum|is) → ansible/inventories/hosts-<YYYYMMDD>-<etiket>.ini   (gün, saat YOK)
+# Düzen Alp'in sahadaki yapısıdır (2026-11-12, ADR-0007 §9): "her bir değişiklik numarası için dn dizininin içinde numarayla bir
+# dizin açıyoruz, playbook'ları oraya atıyoruz … daha sade, daha anlaşılır oldu"; dosya adında saat yok ("saati niye ekliyorsun").
+# Aynı adla dosya varsa: sunucular aynıysa yeniden yazılmaz (o dosya kullanılır), farklıysa -2, -3 … eklenir (üzerine yazmaz).
 # Host satırları, grupları, üst grupları (:children) ve grup değişkenleri ([g:vars]) kaynaktan AYNEN alınır — ad/IP
-# uydurulmaz; envanterde olmayan öğe [is_ek] grubuna olduğu gibi yazılır ve raporlanır. Var olan dosyanın üzerine yazmaz.
+# uydurulmaz; envanterde olmayan öğe [is_ek] grubuna olduğu gibi yazılır ve raporlanır.
 # Ana envantere dokunmaz. Ayrıştırma kume-bul.py ile aynı (engine/plugins/lib/envanter.ts kuralları).
 # Saha G100 (Alp, 2026-10-22): "değişiklik numarası verdiğim için hosts yerine hosts-<numara> ini dosyası oluştursa iyi olur".
 import datetime
@@ -18,18 +23,32 @@ _spec = importlib.util.spec_from_file_location(
 kb = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(kb)
 
-IS_DIZIN = os.path.join("ansible", "inventories")
-# İş envanteri adı (bu betiğin ya da elle/ajanla üretilmiş tarihli kopya: hosts-20261022-dn29000.ini) — kaynak sayılmaz.
-# Aynı desen kume-bul.py ve engine/plugins/lib/envanter.ts'te.
+IS_DIZIN = os.path.join("ansible", "inventories")  # CN'siz iş envanterleri (ana envanterin yanında)
+DN_DIZIN = "dn"  # değişiklik numaralı işler: dn/<numara>/
+CNSIZ = ("kriz", "kurulum", "is")
+# Ana envanter dizinindeki iş envanteri adı (tarihli kopya: hosts-20261022-dn29000.ini, hosts-20261112-kriz.ini) — kaynak sayılmaz.
+# Aynı desen kume-bul.py ve engine/plugins/lib/envanter.ts'te. dn/ zaten kaynak aranan dizinlerden değil.
 IS_DESEN = re.compile(r"^hosts-(?:.+-\d{8}(?:-\d{4})?|\d{8}(?:-\d{4})?-.+)\.ini$", re.I)
 KULLANIM = """kullanım:
-  is-envanter.py <ETIKET> <sunucu|kısa ad|IP|aralık|grup> ... [--grup <iş grubu>] [--dosya <ana.ini>]... [--not "<metin>"]
+  is-envanter.py <ETIKET> <sunucu|kısa ad|IP|aralık|grup> ... [--grup <iş grubu>] [--ad <aşama>] [--dosya <ana.ini>]... [--not "<metin>"]
   is-envanter.py <ETIKET> -            # sunucular stdin'den (yapıştırılan liste, serbest biçim)
-  is-envanter.py --liste               # ansible/inventories/ altındaki iş envanterleri
-ETIKET: CN numarası (dn29000, CHG0012345 — yazıldığı gibi) ya da kriz | kurulum | is (CN'siz iş).
+  is-envanter.py --liste               # iş envanterleri (dn/<numara>/ ve ansible/inventories/)
+ETIKET: değişiklik numarası (29000, dn29000, CHG0012345) ya da kriz | kurulum | is (CN'siz iş).
 --grup: tüm seçilen host'ları ayrıca bu gruba koyar (playbook "hosts: <grup>" için, ör. google_captcha_cert; tire → _).
+--ad:   aynı değişikliğin ayrı aşaması/sunucu grubu için ayrı dosya (dn/<numara>/hosts-<ad>.ini; ör. --ad stl).
 Aralık: wor07-14, 10.0.9.127-134, yalın 07-14 (envanterde tek önekle karşılanırsa).
-Çıktı: ansible/inventories/hosts-<ETIKET>-<YYYYMMDD-HHMM>.ini — ana envanter değişmez, üzerine yazılmaz."""
+Çıktı: değişiklik numarası → dn/<numara>/hosts.ini · CN'siz → ansible/inventories/hosts-<YYYYMMDD>-<etiket>.ini (saat yok).
+Ana envanter değişmez, var olan dosyanın üzerine yazılmaz. Çalışma dizininden çalıştır (dn/<numara> içinden de olur)."""
+
+
+def calisma_koku():
+    # komut iş dizininin içinden (…/dn/<no>[/logs]) çalıştırılsa da kök aynı kalır (rapor/is-kaydi.py ile aynı kural)
+    c = a = os.getcwd()
+    for _ in range(3):
+        if os.path.basename(a) == "dn" and any(os.path.isdir(os.path.join(os.path.dirname(a), k)) for k in ("ansible", "inventories", "inventory")):
+            return os.path.dirname(a)
+        a = os.path.dirname(a)
+    return c
 
 
 def aralik_ac(t):
@@ -128,13 +147,18 @@ def host_satiri(k):
 
 
 def liste():
-    if not os.path.isdir(IS_DIZIN):
-        print("%s yok — henüz iş envanteri üretilmemiş." % IS_DIZIN)
+    yollar = []
+    if os.path.isdir(DN_DIZIN):
+        for d in sorted(os.listdir(DN_DIZIN)):
+            alt = os.path.join(DN_DIZIN, d)
+            if os.path.isdir(alt):
+                yollar += [os.path.join(alt, g) for g in sorted(os.listdir(alt)) if re.match(r"^hosts.*\.ini$", g, re.I)]
+    if os.path.isdir(IS_DIZIN):
+        yollar += [os.path.join(IS_DIZIN, g) for g in sorted(os.listdir(IS_DIZIN)) if IS_DESEN.match(g)]
+    if not yollar:
+        print("iş envanteri yok (%s/<numara>/hosts*.ini, %s/hosts-<gün>-<etiket>.ini)." % (DN_DIZIN, IS_DIZIN))
         return 0
-    for g in sorted(os.listdir(IS_DIZIN)):
-        yol = os.path.join(IS_DIZIN, g)
-        if not IS_DESEN.match(g):
-            continue
+    for yol in yollar:
         bas, n = "", "?"
         for s in open(yol, encoding="utf-8", errors="replace"):
             if s.startswith("# İş envanteri"):
@@ -149,13 +173,19 @@ def main(argv):
     if not argv or argv[0] in ("-h", "--help"):
         print(KULLANIM)
         return 0
+    cwd, calisma = os.getcwd(), calisma_koku()
+    if calisma != cwd:
+        os.chdir(calisma)  # yollar çalışma dizinine göre basılır (dn/<no>/…)
     if argv[0] == "--liste":
         return liste()
-    dosya_arg, notu, is_grup, kalan = [], "", "", []
+    dosya_arg, notu, is_grup, asama, kalan = [], "", "", "", []
     i = 0
     while i < len(argv):
         if argv[i] == "--dosya" and i + 1 < len(argv):
-            dosya_arg.append(argv[i + 1])
+            dosya_arg.append(os.path.join(cwd, os.path.expanduser(argv[i + 1])))
+            i += 2
+        elif argv[i] == "--ad" and i + 1 < len(argv):
+            asama = re.sub(r"[^a-z0-9_-]+", "-", argv[i + 1].strip().lower()).strip("-")[:30]
             i += 2
         elif argv[i] == "--grup" and i + 1 < len(argv):
             # ansible grup adında yalnız harf/rakam/_ geçerli; tire uyarı bastırır ("Invalid characters were found in group names",
@@ -173,10 +203,15 @@ def main(argv):
         print(KULLANIM)
         return 1
     etiket = kalan[0].strip()
+    etiket = re.sub(r"^\d{8}(?:-\d{4})?-(?=.)", "", etiket)  # etikete yazılmış tarih yinelenmez (adı betik üretir)
     if not re.fullmatch(r"[A-Za-z0-9_-]{2,40}", etiket):
-        print("etiket geçersiz: %r — CN numarası (CHG0012345) ya da kriz/kurulum/is" % etiket)
+        print("etiket geçersiz: %r — değişiklik numarası (29000, CHG0012345) ya da kriz/kurulum/is" % etiket)
         return 1
-    # CN kullanıcının yazdığı gibi kalır (dn29000 / CHG0012345) — büyük/küçük harf değiştirilmez
+    cnsiz = etiket.lower() in CNSIZ
+    m = re.fullmatch(r"(?:dn[-_]?)?(\d+)", etiket, re.I)
+    is_dizin = None if cnsiz else os.path.join(DN_DIZIN, m.group(1) if m else etiket)  # dn29000 / 29000 → dn/29000
+    if m:
+        etiket = "dn" + m.group(1)  # başlık satırında sahadaki yazımıyla
     istenen = ogeler(kalan[1:])
     if not istenen:
         print("sunucu listesi boş")
@@ -203,11 +238,7 @@ def main(argv):
         return 1
 
     simdi = datetime.datetime.now()
-    os.makedirs(IS_DIZIN, exist_ok=True)
-    yol = os.path.join(IS_DIZIN, "hosts-%s-%s.ini" % (etiket, simdi.strftime("%Y%m%d-%H%M")))
-    if os.path.exists(yol):
-        print("var olan dosya: %s — üzerine yazılmadı (bir dakika sonra yeniden üret ya da eskisini kullan)" % yol)
-        return 1
+    os.makedirs(is_dizin or IS_DIZIN, exist_ok=True)
 
     sec = set(secilen)
     satirlar = [
@@ -259,10 +290,33 @@ def main(argv):
         satirlar += ["", "# envanterde yok — ad/IP'yi kullanıcıyla doğrula", "[is_ek]"] + bulunamayan
     if is_grup:
         satirlar += ["", "# iş grubu — playbook'ta hosts: %s" % is_grup, "[%s]" % is_grup] + secilen + bulunamayan
-    with open(yol, "w", encoding="utf-8") as f:
-        f.write("\n".join(satirlar) + "\n")
 
-    print("yazıldı: %s (%d host)" % (yol, len(secilen) + len(bulunamayan)))
+    # Ad: dn/<numara>/hosts.ini (aşama: hosts-<ad>.ini) · CN'siz: ansible/inventories/hosts-<gün>-<etiket>.ini. Aynı ad varsa
+    # üzerine yazılmaz: içerik (yorum dışı satırlar) aynıysa o dosya kullanılır, farklıysa -2, -3 … ile yeni dosya (eskisi kalır).
+    def govde(ss):
+        return [x.rstrip() for x in ss if x.strip() and not x.lstrip().startswith("#")]
+
+    if is_dizin:
+        taban = os.path.join(is_dizin, "hosts-" + asama if asama else "hosts")
+    else:
+        taban = os.path.join(IS_DIZIN, "hosts-%s-%s" % (simdi.strftime("%Y%m%d"), "-".join(x for x in (etiket, asama) if x)))
+    yol, no, ayni = taban + ".ini", 1, False
+    while os.path.exists(yol):
+        with open(yol, encoding="utf-8", errors="replace") as f:
+            if govde(f.read().split("\n")) == govde(satirlar):
+                ayni = True
+                break
+        no += 1
+        yol = "%s-%d.ini" % (taban, no)
+    if ayni:
+        print("zaten var (aynı sunucular): %s — yeniden yazılmadı, bu dosyayı kullan (%d host)" % (yol, len(secilen) + len(bulunamayan)))
+    else:
+        with open(yol, "w", encoding="utf-8") as f:
+            f.write("\n".join(satirlar) + "\n")
+        print("yazıldı: %s (%d host)" % (yol, len(secilen) + len(bulunamayan)))
+        if no > 1:
+            print("⚠️ aynı adla %d dosya daha var, sunucuları farklı — eskilere dokunulmadı; bu çağrının sunucuları yalnız bu dosyada, "
+                  "kullanıcıya söyle%s" % (no - 1, " (aynı işin ayrı aşamasıysa adını ver: --ad <aşama>, ör. --ad stl)" if is_dizin and not asama else ""))
     for n in notlar:
         print("  aralık: " + n)
     for a in secilen:
@@ -274,7 +328,17 @@ def main(argv):
         print("  %-28s %-16s ⚠️ envanterde yok — doğrula" % (b, "-"))
     for u in uyarilar:
         print("⚠️ " + u)
-    print("kullanım: ansible-playbook -i %s <playbook.yml>   (--limit gerekmez: dosyada yalnız bu işin sunucuları var)" % yol)
+    pb = os.path.join(is_dizin, "01-<ad>.yaml") if is_dizin else "ansible/playbooks/<NN>-<ad>.yaml"
+    if calisma != cwd:
+        print("çalışma dizini: %s (yollar buna göre)" % calisma)
+    print("okuma (çok sunucu, tek komut — for … ssh döngüsü yazma): ansible all -i %s -m shell -a '<okuma>' -t cikti/filo/<etiket>" % yol)
+    print("değişiklik = playbook (ansible becerisi §0): %s — %s" % (pb, "işin playbook'ları bu dizinde, sıra numarasıyla (01-, 02- …); "
+          "ansible/playbooks/ içinde hazırı varsa buraya kopyala" if is_dizin else "dizinde hazırı varsa onu kullan, yoksa sıradaki numarayla yaz"))
+    print("  → playbook-denetim.py + --syntax-check → planı kullanıcıya göster, onayını bekle →")
+    print("  önce TEK sunucu: ansible-playbook -i %s %s -l <sunucu> → hedefte ölç → kalan sunucular kullanıcının \"devam\"ıyla" % (yol, pb))
+    if is_dizin and not os.path.isfile(os.path.join(is_dizin, "logs", "plan.md")):
+        print("iş kaydı (README.md + logs/): python3 %s ac <işin kısa adı> --cn %s --istek \"<kullanıcının cümlesi>\"" % (
+            os.path.normpath(os.path.join(BURASI, "..", "rapor", "is-kaydi.py")), etiket))
     return 0
 
 

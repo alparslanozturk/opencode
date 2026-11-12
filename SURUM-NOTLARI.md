@@ -6,6 +6,23 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-12 (3. tur) — CN işi tek dizinde: `dn/<numara>/` (envanter + playbook + README + logs), değişiklik playbook'la, önce tek sunucu
+
+Sahada: `al.sh` → `./kur.sh`, **yeni oturum** (AGENTS.md oturum başında yüklenir). İkili değişmez.
+- **Düzen (Alp'in sahada kurduğu):** `dn/<numara>/hosts.ini` · `01-<ad>.yaml`, `02-…` · `README.md` · `logs/plan.md`, `logs/sonuc.md`,
+  `logs/okuma/`. Ad'larda tarih/saat yok. `dn29000` → `dn/29000`.
+- `ansible/is-envanter.py`: iş envanteri `dn/<numara>/hosts.ini`; `--ad <aşama>` → `hosts-<aşama>.ini`; aynı ad farklı sunucu → `hosts-2.ini`
+  (+ uyarı), aynı sunucu → yeniden yazılmaz; iş dizininin içinden çalıştırılsa da kök aynı; çıktı sıradaki adımları basar (okuma ad-hoc,
+  değişiklik playbook, onay, önce tek sunucu).
+- `rapor/is-kaydi.py`: `ac --cn` → `dn/<numara>/README.md` + `logs/`; aynı numara yeniden açılırsa dokunmaz; `ekle/sonuc <numara|son>`.
+  CN'siz kayıt eski yerde (`~/ai/work/is-kayitlari/<YYYYMMDD>-<etiket>/`, saatsiz). Eski dosyalar yeniden adlandırılmaz.
+- `ansible.cfg` iş dizinine yazılmaz; komutlar çalışma dizininden: `ansible-playbook -i dn/<no>/hosts.ini dn/<no>/01-<ad>.yaml -l <sunucu>`.
+- `engine/AGENTS.md` değişiklik işi 3-4 + "yalnız söylenen adım"; `ansible` §0 "Değişiklik işi akışı"; `rhel-guncelleme` değiştiren
+  adımlar playbook'la (`dnf update | tail` yok); `rapor`, `git`, GUVENLIK-KILITLERI ad'ları; ADR-0007 §9; saha günlüğü G124 3. tur.
+- Kilit/`kume-bul`: `dn/` dizini ad ↔ IP kaynağı sayılmaz (önceden `ansible/dn/<no>/hosts.ini` kaynak olarak okunabilirdi). Onay
+  davranışı değişmedi (CN + sunucu → değişiklik onaysız, 2026-10-27).
+- **Sahada denenmedi.**
+
 ## 2026-11-12 — değişiklik işi: önce sor / kapsamı daraltma / grup bitince dur (saha G124)
 
 Sahada: `al.sh` → `./kur.sh`, **yeni oturum**. İkili değişmez.

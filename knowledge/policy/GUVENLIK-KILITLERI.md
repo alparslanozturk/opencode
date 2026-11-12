@@ -58,7 +58,7 @@ Nasıl okunur (`engine/plugins/lib/kilit.ts` `yetkiSatirlariniOku`, testleri `ki
   kullanıcı mesajlarını kullan; tekrar "nerede verdin?" deme. Yalın liste tek başına yetki vermez, ancak aynı session'da kullanıcının
   yetki beyanıyla ilişkilendirilebilir. Yetki verildikten sonra session boyunca korunur; yeni CN/hedef açıkça verilirse kapsamı
   güncelle ve anladığını özetle.
-- **İş envanteri eşlemeye girmez (G101):** `hosts-<x>-YYYYMMDD[-HHMM].ini` / `hosts-YYYYMMDD-<x>.ini` (ajanın yazdığı türetilmiş
+- **İş envanteri eşlemeye girmez (G101):** `dn/` dizini altındaki her dosya (`dn/<numara>/hosts*.ini`, 2026-11-12) ve `hosts-<x>-YYYYMMDD[-HHMM].ini` / `hosts-YYYYMMDD-<x>.ini` (ajanın yazdığı türetilmiş
   kopya) ad ↔ IP kaynağı değildir; içindeki iş grubu yetkiyi genişletmez — yetki kullanıcının verdiği adlarla.
 - **`--limit`'siz ansible-playbook (G101, Alp: "yeni dosyada sadece değişiklik yapılan sunucular var"):** hedef `-i` ile verilen INI
   dosya(lar)ının host'ları; her host adı ve `ansible_host` değeri ayrı hedef (ikisi de yetkide olmalı — yetkili ada başka IP yazılamaz).

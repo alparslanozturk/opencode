@@ -62,7 +62,7 @@ export function envanterAyristir(metin: string, env: Envanter): void {
   }
 }
 
-// İş envanteri (CN/tarihli kopya: hosts-dn29000-20261022-1430.ini, hosts-20261022-dn29000.ini) ana envanterden türetilir; ajan
+// İş envanteri (dn/<numara>/ altı — dizin atlanır — ya da CN/tarihli kopya: hosts-dn29000-20261022-1430.ini, hosts-20261022-dn29000.ini) ana envanterden türetilir; ajan
 // yazar → ad ↔ IP eşlemesine kaynak olmaz (G100/G101). Aynı desen kume-bul.py ve ansible/is-envanter.py'de.
 export const IS_DESEN = /^hosts-(?:.+-\d{8}(?:-\d{4})?|\d{8}(?:-\d{4})?-.+)\.ini$/i
 
@@ -80,7 +80,8 @@ export function envanterDosyalari(workdir: string): string[] {
       return
     }
     for (const g of girdiler.sort()) {
-      if (g.startsWith(".") || g === "node_modules" || g === "roles" || g === "group_vars" || g === "host_vars") continue
+      // dn/: CN iş dizinleri (dn/<numara>/hosts*.ini, Alp 2026-11-12) — ajanın yazdığı iş envanteri, kaynak değil
+      if (g.startsWith(".") || g === "node_modules" || g === "roles" || g === "group_vars" || g === "host_vars" || g === "dn") continue
       const yol = join(dizin, g)
       let st
       try {

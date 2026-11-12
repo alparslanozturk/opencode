@@ -194,7 +194,7 @@ Aynı bilgi birden çok depoda/dosyada tutulur: dokümandaki `ENVANTER.md`, ansi
 
   Çıktı: `ip-farkli` (aynı ad, farklı IP — `dosya:satır` iki taraf), `yalnız-kaynakta`, `yalnız-karşıda`. MD biçimi varsayılmaz
   (INI'deki ad/IP metinde aranır); MD'de IP'siz yazılmış ve INI'de olmayan ad yakalanmaz — o satırları kullanıcı okur. İş envanterleri
-  (`hosts-<CN>-<tarih>.ini`) kaynak verme — bir işin kaydıdır, envanter değil (`ansible`).
+  (`dn/<numara>/hosts*.ini`, `hosts-<tarih>-<etiket>.ini`) kaynak verme — bir işin kaydıdır, envanter değil (`ansible`).
 - Önce her depoda `pull --ff-only` (§3) — eski klonla karşılaştırma yanlış fark üretir.
 - **Listelerden yeni envanter derleme** (saha 2026-11-04, `notlar/Sunucu-Envanter-Listesi/KTBULUT-*` → tek INI): satırları elle
   yazma — yüzlerce satırda yazım hatası ve yarım dosya çıkar. Kaynak zaten `AD ansible_host=IP` biçimindeyse dosyadan üret, her

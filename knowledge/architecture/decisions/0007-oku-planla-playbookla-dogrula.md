@@ -133,3 +133,21 @@ bekliyor), kilitte betik işareti + statik denetim, AGENTS.md kısaltma + yönle
   oturumdan günceller ve düzenler; iş kaydı `rapor/is-kaydi.py`; süzgeç `rapor/oturum-ozet.py`.
 - İş haritası `engine/AGENTS.md` başında; gerçek saha cümleleriyle test edilir. Kilitte iz bırakan "okuma" biçimleri kapandı (G122).
 - Rafta: kontrol merkezi, playbook kataloğu (§7 — isteğe bağlı), betik işaretiyle kilit listesinin otomatik denetimi.
+
+## 9. CN'li değişiklik işi — iş dizini + playbook (Alp, 2026-11-12, saha G124)
+
+Alp: "Öncelikle bir ini dosyası oluşturması lazım. Ondan sonra update etmek için gerekli playbook'u hazırlaması lazım … Ondan sonra
+bir onay soracak … Playbook oluştuktan sonra bir sunucuda deneriz. Baktık olmadı, playbook'u düzeltiriz. Yani bu güvenli çalışma yöntemi
+çok önemli. Burası bir kurum." ve "Her bir değişiklik numarası için DN dizininin içerisinde bir numara ile birlikte bir dizin açıyoruz ve
+playbook'ları oraya atıyoruz."
+
+- **CN'li değişiklik işinde §7'deki "varsayılan ad-hoc SSH" geçersiz.** Sıra: iş dizini `dn/<numara>/` + `hosts.ini` (`is-envanter.py`)
+  → iş kaydı (`README.md`, `logs/`; `is-kaydi.py ac --cn`) → okuma (ad-hoc `ansible … -t cikti/…` serbest) → playbook
+  (`dn/<numara>/01-<ad>.yaml`; hazırı `ansible/playbooks/`'tan kopyalanır) → denetim + `--syntax-check` → plan → **onay** → **önce tek
+  sunucu** (`-l <sunucu>`) → sonuç gösterilir → grup grup, her grup ayrı "devam".
+- Dosya adlarında tarih/saat yok (yalnız yedek ve komut çıktısında). Aşama envanteri `--ad <aşama>` → `hosts-<aşama>.ini`.
+- `dn/` altı ad ↔ IP kaynağı değildir: kilit (`envanter.ts`) ve `kume-bul.py` `dn` dizinini taramaz.
+- `ansible.cfg` iş dizinine otomatik yazılmaz (içerik uydurulmuş olur); komutlar çalışma dizininden yol ile verilir.
+- CN'siz tek seferlik iş (kriz/kurulum) için §7 geçerli: ad-hoc, adım başına onay.
+- Kilit değişmedi: CN + sunucu verildiğinde değişiklik onay ekranına düşmüyor (2026-10-27). Kilitte "CN altında yalnız
+  `ansible-playbook -i <iş envanteri>` onaysız, ssh/for/ad-hoc uzak değişiklik her zaman onay" seçeneği Alp'in kararını bekliyor.

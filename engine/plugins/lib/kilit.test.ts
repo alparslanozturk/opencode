@@ -780,6 +780,19 @@ describe("G101: iş envanteri (hosts-<CN>-<tarih>.ini) ad ↔ IP eşlemesine kay
     expect(envanterDosyalari(dz).map((d) => d.split("/").pop()).sort()).toEqual(["hosts-rke2.ini", "hosts.ini"])
     expect(IS_DESEN.test("hosts-rke2.ini")).toBe(false)
   })
+  test("dn/<numara>/ iş dizini (ansible/ altında da) kaynak olmaz", () => {
+    const { mkdirSync, writeFileSync } = require("fs")
+    const { envanterDosyalari } = require("./envanter") as typeof import("./envanter")
+    const dz = workdir + "-g101dn"
+    mkdirSync(dz + "/ansible/inventories", { recursive: true })
+    mkdirSync(dz + "/ansible/dn/29000", { recursive: true })
+    mkdirSync(dz + "/dn/29001", { recursive: true })
+    writeFileSync(dz + "/ansible/inventories/hosts.ini", "[g]\nx01\n")
+    writeFileSync(dz + "/ansible/dn/29000/hosts.ini", "[g]\nx01 ansible_host=10.0.5.99\n")
+    writeFileSync(dz + "/ansible/dn/29000/hosts-stl.ini", "[g]\nx02\n")
+    writeFileSync(dz + "/dn/29001/hosts.ini", "[g]\nx03\n")
+    expect(envanterDosyalari(dz).map((d) => d.slice(dz.length))).toEqual(["/ansible/inventories/hosts.ini"])
+  })
 })
 
 describe("G101: --limit'siz ansible-playbook — hedef -i ile verilen (iş) envanterinin host'ları", () => {

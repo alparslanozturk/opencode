@@ -65,8 +65,7 @@ Değişiklik numarası (CN/DN) verilen iş **tek dizinde** durur; tarih/saat ad'
   inventories/hosts.ini        ana envanter — KAYNAK, işe göre değiştirme
   playbooks/                   hazır playbook'lar — okunur, iş dizinine kopyalanır
   dn/29000/                    iş dizini (numara yazıldığı gibi; dn29000 → dn/29000)
-    hosts.ini                  iş envanteri (is-envanter.py)
-    hosts-stl.ini              aşama envanteri (--ad stl)
+    hosts.ini                  iş envanteri (is-envanter.py) — işin TÜM sunucuları, gruplarla: [dtl], [stl] …
     01-fstab-kontrol.yaml      playbook'lar: sıradaki numara + ad
     02-update.yaml
     README.md                  iş bilgisi (is-kaydi.py ac)
@@ -74,8 +73,8 @@ Değişiklik numarası (CN/DN) verilen iş **tek dizinde** durur; tarih/saat ad'
 ```
 
 Sıra — her adımda dur, kullanıcının o adım için onayını al:
-1. **İş envanteri:** `is-envanter.py <numara> <liste> [--ad <aşama>]` → `dn/<numara>/hosts.ini`; tabloyu kullanıcıya göster.
-   Envanterde IP'si olmayan sunucuyu **sor**, tahmin etme.
+1. **İş envanteri:** `is-envanter.py <numara> <liste>` → `dn/<numara>/hosts.ini` (kullanıcının verdiği gruplar dosyada grup olur);
+   tabloyu (ad · IP · ssh · kaynak) kullanıcıya göster. DNS'te olmayan (⚠️) ya da ssh'ı açılmayan (❌) sunucuyu **sor**, tahmin etme.
 2. **İş kaydı:** `is-kaydi.py ac … --cn <numara>` → `README.md` + `logs/`.
 3. **Okuma:** `ansible all -i dn/<numara>/hosts.ini -m shell -a '<okuma>' -t cikti/filo/<etiket>` — okuma için ad-hoc serbest.
    `for … ssh` döngüsü yazma.
@@ -97,17 +96,25 @@ yapılırsa o dizinde `ansible.cfg` varsa o etkin olur (§2). CN'siz iş (kriz/k
 
   ```bash
   python3 /root/ai/opencode/knowledge/skills/approved/ansible/is-envanter.py dn29000 wor07-14 stlweb01 10.0.0.12 --grup google_captcha_cert
-  printf '%s\n' "<kullanıcının yapıştırdığı liste>" | python3 …/is-envanter.py 29000 - --ad stl   # serbest biçim, aşama envanteri
+  printf '%s\n' "<kullanıcının yapıştırdığı liste>" | python3 …/is-envanter.py 29000 -   # serbest biçim; "DTL:" başlıkları grup olur
+  python3 …/is-envanter.py 29000 <sonradan verilen sunucular> --ad stl   # aynı hosts.ini'ye [stl] grubu eklenir
   python3 …/is-envanter.py --liste      # önceki iş envanterleri
   ```
 
   Ad, kısa ad (`wor07`), IP, aralık (`wor07-14`, `10.0.9.127-134`, yalın `07-14`) ve grup adı kabul edilir. `--grup` tüm
   host'ları playbook'un `hosts:` grubuna koyar (tire `_` olur — tireli grup adı her komutta `[WARNING]: Invalid characters` basar;
   eski envanterde `ansible.cfg` `force_valid_group_names = ignore` kapatır, ölçüldü). Çıktıdaki tabloyu (ad · IP · `dosya:satır [grup]`)
-  kullanıcıya **aynen** göster. `❓ birden çok host'a uyuyor` → dosya yazılmaz, yalnız o adı sor. `⚠️ envanterde yok` → `[is_ek]`'e
-  yazıldı, kullanıcıyla doğrula.
-- Aynı numara + aynı ad, farklı sunucular → `hosts-2.ini` yazılır (⚠️ `--ad` kullan); aynı sunucular → yeniden yazılmaz. Eski dosya
-  kayıt olarak kalır.
+  kullanıcıya **aynen** göster. `❓ birden çok host'a uyuyor` → dosya yazılmaz, yalnız o adı sor.
+- **Tek dosya, gruplar** (Alp, 2026-11-12: "verdiğim bütün dosyaları aynı host dosyasına koyabilirsin … gruplandırabilirsin"): listedeki
+  başlık (`DTL:`, `STL sunucuları (9):`) ya da `--ad <ad>` → aynı `hosts.ini` içinde `[dtl]`, `[stl]`; grup grup çalıştırma `-l dtl`.
+  Sonraki çağrı yeni grubu ekler, öncekileri korur. Aynı grup farklı sunucularla → dosya yazılmaz (rc=2); değiştirmek kullanıcının
+  kararıyla `--yenile`. Aynı sunucular → yeniden yazılmaz.
+- **DNS ve erişim** (Alp: "DNS'ten sorgulayıp host dosyasına düzgün giremiyor … en azından bir ping de kontrol edebiliriz"): ana
+  envanterde olmayan ad DNS'ten doğrulanır → `[is_ek]`'e **adıyla** yazılır, IP yorumda (`ansible_host` yazılmaz: ansible adı kendisi
+  çözer; kilit `ansible_host`'u ayrı hedef sayar, kullanıcının vermediği IP her adımda onay açardı). DNS'te yoksa `⚠️ DNS'te yok — doğrula`.
+  Her host'a ssh portu TCP ile denenir (`ssh ✅/❌`) — giriş/sudo değildir; tam kontrol `ansible all -i dn/<numara>/hosts.ini -m ping -o`
+  (okuma). Ana envanter hiç yoksa sunucuların hepsi DNS'ten gelir. `nslookup`/`for … ping` döngüsü yazma, INI'yi elle düzeltme — betiği
+  yeniden çalıştır.
 - Çalıştırırken `-i dn/<numara>/hosts.ini` — **`--limit` gerekmez** (G101: dosyada yalnız işin sunucuları var); ilk koşu yine `-l <sunucu>` (§0-6).
   Kilit hedefi bu dosyadan okur: her host adı ve `ansible_host` IP'si yetkide olmalı; değişiklikte onay ekranı çıkar. `[grup:vars]`
   altında `ansible_host` yazma. `-i` vermeden (ana envanter) değişiklik → `--limit` şart. Dosyaya kullanıcının vermediği host ekleme.

@@ -933,8 +933,8 @@ fi
 
 baslik "is-envanter --grup (tire → _, G116)"
 mkdir -p ie && printf '[web]\nweb01 ansible_host=10.0.0.1\n' > ie/ana.ini
-(cd ie && python3 "$B/ansible/is-envanter.py" dnt1 web01 --grup os-upgrade-29107 --dosya ana.ini >/dev/null 2>&1
- python3 "$B/ansible/is-envanter.py" dnt2 web01 --grup 29107-x --dosya ana.ini >/dev/null 2>&1)
+(cd ie && python3 "$B/ansible/is-envanter.py" dnt1 web01 --grup os-upgrade-29107 --dosya ana.ini --erisim-yok >/dev/null 2>&1
+ python3 "$B/ansible/is-envanter.py" dnt2 web01 --grup 29107-x --dosya ana.ini --erisim-yok >/dev/null 2>&1)
 cat ie/dn/dnt1/hosts.ini > ie1.txt 2>/dev/null; cat ie/dn/dnt2/hosts.ini > ie2.txt 2>/dev/null
 icerir "tireli grup adı _ ile" ie1.txt "[os_upgrade_29107]"
 icermez "tireli grup başlığı yok" ie1.txt "[os-upgrade-29107]"
@@ -943,31 +943,78 @@ icerir "rakamla başlayan grup g_ önekli" ie2.txt "[g_29107_x]"
 baslik "is-envanter dn/<numara>/ düzeni (Alp, 2026-11-12: her değişiklik numarasına bir dizin; adında saat yok)"
 mkdir -p ied/ansible/inventories && printf '[dtl]\ndtlweb01 ansible_host=10.0.0.11\ndtlweb02 ansible_host=10.0.0.12\n[stl]\nstlweb01 ansible_host=10.0.0.21\n' > ied/ansible/inventories/hosts.ini
 IE="$B/ansible/is-envanter.py"
-(cd ied && python3 "$IE" 29000 dtlweb01 dtlweb02 > ../ied1.txt 2>&1)
+(cd ied && python3 "$IE" 29000 dtlweb01 dtlweb02 --erisim-yok > ../ied1.txt 2>&1)
 [ -f ied/dn/29000/hosts.ini ] && gecti "yalın numara → dn/<numara>/hosts.ini" || kaldi "dn yolu: $(cat ied1.txt | head -3)"
 icerir "çıktı: değişiklik playbook'la, iş dizininde" ied1.txt "dn/29000/01-<ad>.yaml"
 icerir "çıktı: önce tek sunucu" ied1.txt "-l <sunucu>"
 icerir "çıktı: for … ssh yok" ied1.txt "for … ssh döngüsü yazma"
 icerir "çıktı: iş kaydı komutu" ied1.txt "is-kaydi.py ac"
-(cd ied && python3 "$IE" dn29000 dtlweb02 dtlweb01 > ../ied2.txt 2>&1)
-icerir "aynı sunucular (dn önekli yazım) → yeniden yazılmaz" ied2.txt "zaten var (aynı sunucular): dn/29000/hosts.ini"
-(cd ied && python3 "$IE" 29000 stlweb01 > ../ied3.txt 2>&1)
-[ -f ied/dn/29000/hosts-2.ini ] && gecti "farklı sunucular → hosts-2.ini (üzerine yazmaz)" || kaldi "-2: $(head -2 ied3.txt)"
-icerir "farklı sunucularda aşama adı önerilir" ied3.txt "--ad <aşama>"
+(cd ied && python3 "$IE" dn29000 dtlweb02 dtlweb01 --erisim-yok > ../ied2.txt 2>&1)
+icerir "aynı sunucular (dn önekli yazım, sıra farklı) → yeniden yazılmaz" ied2.txt "zaten var (aynı sunucular): dn/29000/hosts.ini"
+(cd ied && python3 "$IE" 29000 stlweb01 --erisim-yok > ../ied3.txt 2>&1; echo "rc=$?" >> ../ied3.txt)
+icerir "aynı grup farklı sunucular → yazılmaz (rc=2)" ied3.txt "rc=2"
+icerir "farklı sunucularda grup adı önerilir" ied3.txt "--ad <ad>"
 icermez "ilk dosya değişmedi" ied/dn/29000/hosts.ini "stlweb01"
-(cd ied && python3 "$IE" 29000 stl --ad STL > ../ied4.txt 2>&1)
-[ -f ied/dn/29000/hosts-stl.ini ] && gecti "--ad → hosts-<aşama>.ini" || kaldi "--ad: $(head -2 ied4.txt)"
-(cd ied && python3 "$IE" kriz stlweb01 > ../ied5.txt 2>&1)
+(cd ied && python3 "$IE" 29000 stl --ad STL --erisim-yok > ../ied4.txt 2>&1)
+icerir "--ad → aynı hosts.ini içinde grup" ied/dn/29000/hosts.ini "[stl]"
+icerir "--ad: önceki sunucular korunur" ied/dn/29000/hosts.ini "dtlweb01"
+[ ! -f ied/dn/29000/hosts-stl.ini ] && gecti "--ad ayrı dosya açmaz" || kaldi "hosts-stl.ini açıldı"
+(cd ied && python3 "$IE" 29000 dtlweb01 --ad stl --erisim-yok > ../ied4b.txt 2>&1; echo "rc=$?" >> ../ied4b.txt)
+icerir "var olan grup farklı sunucu → yazılmaz" ied4b.txt "rc=2"
+(cd ied && python3 "$IE" 29000 dtlweb01 --ad stl --yenile --erisim-yok > ../ied4c.txt 2>&1)
+(cd ied && grep -A3 '^\[stl\]$' dn/29000/hosts.ini | tail -n +2 > ../ied4d.txt)
+icerir "--yenile grubu değiştirir" ied4d.txt "dtlweb01"
+# yapıştırılan liste: başlık satırları grup olur, CN satırı sunucu sayılmaz (Alp 2026-11-12: "aynı host dosyasına … gruplandırabilirsin")
+printf 'CN: 29001\nDTL sunucuları (2):\n- DTLWEB01\n- dtlweb02\nSTL:\n stlweb01\n' | (cd ied && python3 "$IE" 29001 - --erisim-yok > ../ied9.txt 2>&1)
+icerir "başlık → [dtl]" ied/dn/29001/hosts.ini "[dtl]"
+icerir "başlık → [stl]" ied/dn/29001/hosts.ini "[stl]"
+icermez "CN satırı sunucu değil" ied/dn/29001/hosts.ini "29001  #"
+icermez "envanterde olmayan yok (hepsi bulundu)" ied/dn/29001/hosts.ini "[is_ek]"
+# DNS: envanterde olmayan ad çözülür (IP yorumda, ansible_host yazılmaz — kilit yetkisi ad ile), çözülmeyen işaretlenir; ssh TCP denemesi
+(cd ied && python3 "$IE" 29002 localhost yok-boyle-sunucu-x9 > ../ied10.txt 2>&1)
+icerir "DNS: localhost çözüldü" ied/dn/29002/hosts.ini "localhost  # DNS: localhost"
+icermez "DNS IP'si ansible_host olarak yazılmaz" ied/dn/29002/hosts.ini "localhost ansible_host="
+icerir "çözülmeyen işaretlenir" ied/dn/29002/hosts.ini "yok-boyle-sunucu-x9  # DNS'te yok"
+icerir "çıktı: erişim özeti" ied10.txt "erişim: ssh portu açık"
+icerir "çıktı: ansible ping önerisi" ied10.txt "-m ping -o"
+(cd ied && python3 "$IE" kriz stlweb01 --erisim-yok > ../ied5.txt 2>&1)
 ls ied/ansible/inventories/hosts-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-kriz.ini > /dev/null 2>&1 && gecti "CN'siz (kriz) → ansible/inventories/hosts-<YYYYMMDD>-kriz.ini" || kaldi "kriz: $(head -2 ied5.txt)"
-(cd ied/dn/29000 && python3 "$IE" 29000 dtlweb01 dtlweb02 > ../../../ied6.txt 2>&1)
-icerir "iş dizininin içinden çalıştırılınca kök aynı" ied6.txt "zaten var (aynı sunucular): dn/29000/hosts.ini"
+(cd ied/dn/29000 && python3 "$IE" 29000 dtlweb01 dtlweb02 --erisim-yok > ../../../ied6.txt 2>&1)
+icerir "iş dizininin içinden çalıştırılınca kök aynı" ied6.txt "dn/29000/hosts.ini"
 [ ! -d ied/dn/29000/dn ] && gecti "iç içe dn/ açılmadı" || kaldi "iç içe dn/"
 (cd ied && python3 "$IE" --liste > ../ied7.txt 2>&1)
-icerir "--liste: dn altı" ied7.txt "dn/29000/hosts-stl.ini"; icerir "--liste: CN'siz" ied7.txt "-kriz.ini"
+icerir "--liste: dn altı" ied7.txt "dn/29001/hosts.ini"; icerir "--liste: CN'siz" ied7.txt "-kriz.ini"
 # iş envanteri kaynak sayılmaz: dn/ altı ana envanter aramasına girmez
 (cd ied && python3 "$B/kume-bul/kume-bul.py" stlweb01 > ../ied8.txt 2>&1)
 icermez "kume-bul dn/ altını kaynak saymaz" ied8.txt "dn/29000"
 icermez "kume-bul tarihli iş envanterini kaynak saymaz" ied8.txt "kriz.ini"
+
+baslik "rhsa-kontrol (Alp 2026-11-12: RHSA kurulu mu — updateinfo --installed depoda yok ile kurulu değil'i ayıramıyor)"
+RK="$B/rhel-guncelleme/rhsa-kontrol.py"
+python3 "$RK" --komut RHSA-2025:1234 rhsa-2025-5678 -i dn/1/hosts.ini > rk1.txt 2>&1
+icerir "--komut: repoquery --advisory" rk1.txt "dnf -q repoquery --advisory=RHSA-2025:1234"
+icerir "--komut: kimlik düzeltilir (küçük harf, tire)" rk1.txt "--advisory=RHSA-2025:5678"
+icerir "--komut: rpm -qa" rk1.txt "rpm -qa --qf"
+mkdir -p rkt && python3 - rkt <<'PY'
+import json, sys
+d = sys.argv[1]
+adv = "@@adv RHSA-2025:1111\nbrotli x86_64 0:1.0.6-5.el8_10\nbrotli i686 0:1.0.6-5.el8_10\n@@adv RHSA-2025:2222\nkernel-core x86_64 0:4.18.0-553.184.1.el8_10\n@@adv RHSA-2025:3333\n@@adv RHSA-2025:4444\nhttpd x86_64 0:2.4.37-65.el8_10\n"
+rpm = "@@rpm\nbrotli x86_64 (none):%s\nkernel-core x86_64 (none):4.18.0-553.170.1.el8_10\nkernel-core x86_64 (none):4.18.0-553.184.1.el8_10\nbash x86_64 (none):4.4.20-5.el8\n"
+json.dump({"rc": 0, "stdout": "@@calisan\n4.18.0-553.170.1.el8_10.x86_64\n" + adv + rpm % "1.0.6-5.el8_10"}, open(d + "/a1", "w"))
+json.dump({"rc": 0, "stdout": "@@calisan\n4.18.0-553.184.1.el8_10.x86_64\n" + adv + rpm % "1.0.6-3.el8"}, open(d + "/a2", "w"))
+json.dump({"unreachable": True, "msg": "ssh: connect to host a3 port 22: Connection timed out"}, open(d + "/a3", "w"))
+PY
+python3 "$RK" rkt RHSA-2025:1111 RHSA-2025:2222 RHSA-2025:3333 RHSA-2025:4444 > rk2.txt 2>&1; echo "rc=$?" >> rk2.txt
+icerir "kurulu (sürüm eşit, i686 kurulu değil → sayılmaz)" rk2.txt "✅ a1 — kurulu (1 paket: brotli)"
+icerir "eksik (kurulu < gereken)" rk2.txt "❌ a2 — eksik: brotli.x86_64 kurulu 1.0.6-3.el8 < 1.0.6-5.el8_10"
+icerir "çekirdek kurulu ama çalışan eski → reboot bekliyor" rk2.txt "🔄 a1 — kurulu, reboot bekliyor"
+icerir "çekirdek çalışan güncel → kurulu" rk2.txt "✅ a2 — kurulu (1 paket: kernel-core)"
+icerir "advisory depoda yok ayrı sonuç" rk2.txt "⚠️ a1 — depoda yok"
+icerir "paketi kurulu değil → ilgisiz" rk2.txt "➖ a1 — ilgisiz"
+icerir "erişilemeyen sunucu ❓" rk2.txt "❓ a3 — ERİŞİLEMEZ"
+icerir "okunamayan varsa rc=2" rk2.txt "rc=2"
+python3 "$RK" rkt CVE-2025-1 > rk3.txt 2>&1
+icerir "CVE kimliği reddedilir" rk3.txt "advisory kimliği geçersiz"
 
 # --------------------------------------------------------------------------- yazım denetimi
 baslik "Yazım denetimi (ad, açıklama ≤1024 ve etiketsiz, gövde <500 satır, anılan dosya, ek dosya, iş haritası, maskeleme, önce sor)"

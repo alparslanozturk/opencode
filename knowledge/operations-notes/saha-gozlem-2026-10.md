@@ -1667,3 +1667,11 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   kalan eski çekirdek paketini sorun gibi listeledi (birden çok kurulu çekirdek normal). Aksiyon: AGENTS.md değişiklik işi 6 — grup,
   tabloda açık iş (reboot gerekli, başarısız, doğrulanmamış) kalmayınca biter, sıradaki soru o iştir; `rhel-guncelleme` aynı kural +
   `installonly_limit` notu. tahmin: oturum 4. tur kuralı (2. reboot sorulur) yüklenmeden açılmıştı — doğrulanmadı.
+- **6. tur (Alp, 2026-11-12, ekransız — sözlü):** "RHSA'lardan düzgün kontrol edemiyor … RHEL 8.10 oldu ve bu RHSA'ları yüklemiş olmasına
+  rağmen onu kontrol edemedi." ve "sunucuların isimlerini DNS'ten sorgulayıp host dosyasına düzgün bir şekilde giremiyor … verdiğim bütün
+  dosyaları aynı host dosyasına koyabilirsin, gruplandırabilirsin … en azından bir ping de kontrol edebiliriz önceden erişim." Ölçüldü
+  (dnf 4.20): `dnf updateinfo list --installed <ID>` bilinmeyen ID'de ve depoda olmayan advisory'de de boş döner, rc=0 — "kurulu değil"
+  ile "depoda yok" ayrılamaz. Modelin sahada tam olarak hangi komutu çalıştırdığı ekranda yok (tahmin değil, bilinmiyor). Aksiyon:
+  `rhel-guncelleme/rhsa-kontrol.py` (repoquery --advisory + rpm -qa + rpmvercmp; ✅/🔄/❌/⚠️/➖/❓; kilitte okuma betiği) ve
+  `is-envanter.py` tek `hosts.ini` + gruplar (başlık satırı / `--ad`), envanterde olmayan ad DNS'ten doğrulanır (IP yorumda), ssh portu
+  TCP ile denenir. `repoquery --advisory` RHEL 8 dnf 4.7'de ölçülmedi.

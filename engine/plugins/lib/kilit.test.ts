@@ -1142,6 +1142,11 @@ describe("filo-kontrol §7 erişim kontrolü salt-okunur (Alp 2026-11-04)", () =
   test("ansible -m raw -a true onaysız", () => expect(kesinOkuma(komut.replace("<grup>", "all").replace("<envanter>", "hosts.ini"), workdir)).toBe(true))
   test("erisim-blok okuma", () =>
     expect(kesinOkuma("python3 /root/ai/opencode/knowledge/skills/approved/filo-kontrol/erisim-blok.py cikti/filo/erisim -i hosts.ini --grup all --kaynak 192.0.2.1", workdir)).toBe(true))
+  test("rhsa-kontrol okuma (betik + bastığı ansible komutu)", () => {
+    expect(kesinOkuma("python3 /root/ai/opencode/knowledge/skills/approved/rhel-guncelleme/rhsa-kontrol.py cikti/filo/rhsa RHSA-2025:1234", workdir)).toBe(true)
+    expect(kesinOkuma("python3 /root/ai/opencode/knowledge/skills/approved/rhel-guncelleme/rhsa-kontrol.py --komut RHSA-2025:1234 -i dn/29000/hosts.ini", workdir)).toBe(true)
+    expect(kesinOkuma(`ansible all -i dn/29000/hosts.ini -m shell -f 20 -T 10 --task-timeout 300 -t cikti/filo/rhsa -a "echo @@calisan; uname -r; echo @@adv RHSA-2025:1234; dnf -q repoquery --advisory=RHSA-2025:1234 --qf '%{name} %{arch} %{epoch}:%{version}-%{release}' 2>&1; echo @@rpm; rpm -qa --qf '%{name} %{arch} %{epoch}:%{version}-%{release}\\n'"`, workdir)).toBe(true)
+  })
   test("uzak-ozet okuma", () =>
     expect(kesinOkuma("python3 /root/ai/opencode/knowledge/skills/approved/uzak-envanter/uzak-ozet.py uzak/uzak-ktbulut-20261104-1445", workdir)).toBe(true))
   test("uzak-topla okuma sayılmaz (dizin + tgz yazar; uzakta kullanıcı çalıştırır)", () =>

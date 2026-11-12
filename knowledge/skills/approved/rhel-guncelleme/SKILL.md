@@ -156,11 +156,21 @@ diye güncelleme başlamaz. Kullanıcı "yalnız şunu yap" dediyse (ör. "fstab
    `reboot_gerekli=EVET` (aşağıdaki tablo). Hiçbirinde yoksa "2. reboot gerekmiyor (ölçüldü)" yaz, atlama kararını yine kullanıcıya bırak.
 6. **Son kontrol** (okuma): (a) aşağıdaki durum tablosu (+ 1b'nin "sonra" fotoğrafı) — `cekirdek_calisan = cekirdek_son_kurulu`,
    `reboot_gerekli=hayir`, `systemctl --failed` boş; (b) **işin hedeflediği RHSA/paketler** (kullanıcının yapıştırdığı not — bir ya da
-   birkaç RHSA) kurulu mu: `rpm -q <paket>` sürümü nottaki düzeltilmiş sürüme eşit/büyük mü, ya da `dnf -q updateinfo list --installed
-   <RHSA-…>` (kuruluysa advisory + paket satırı basar, boş = kurulu değil; ölçüldü dnf 4.20, AlmaLinux 10). Alp: "birinin test edilmesiyle Satellite tarafından en güncel repolar ve CV'ler güncel mi anlaşılıyor — bir son kontrol".
-   Not burada **kontrol** içindir, güncellemeyi daraltmaz (yukarıdaki "Kapsam"). RHSA kurulu değilse ve `dnf update` "Nothing to do"
-   dediyse → içerik sunucuya gelmemiş: Satellite CV/terfi gerisinde (0. adım) — kullanıcıya söyle. Sapan sunucuyu ayrı listele; tablo
-   dışı "hepsi tamam" yazma.
+   birkaç RHSA) kurulu mu → **yalnız `rhsa-kontrol.py`** (bu dizinde; okuma, onay gerekmez):
+   ```bash
+   python3 /root/ai/opencode/knowledge/skills/approved/rhel-guncelleme/rhsa-kontrol.py --komut RHSA-2025:1234 RHSA-2025:5678 -i dn/<numara>/hosts.ini --hedef <grup>
+   # basılan ansible komutunu çalıştır (sunucu başına: uname -r, dnf repoquery --advisory, rpm -qa → cikti/filo/rhsa), sonra:
+   python3 /root/ai/opencode/knowledge/skills/approved/rhel-guncelleme/rhsa-kontrol.py cikti/filo/rhsa RHSA-2025:1234 RHSA-2025:5678
+   ```
+   Sonuç sunucu × RHSA: ✅ kurulu · 🔄 kurulu ama çalışan çekirdek eski (reboot bekliyor) · ❌ eksik (kurulu < gereken sürüm) · ⚠️ depoda
+   yok · ➖ ilgisiz (paketi kurulu değil) · ❓ okunamadı. Çıktıyı **aynen** aktar. `dnf updateinfo list --installed <RHSA>` ile karar
+   **verme** (saha 2026-11-12, RHEL 8.10: RHSA'lar kurulu olduğu hâlde model doğrulayamadı; ölçüldü dnf 4.20: bu komut yanlış/bilinmeyen
+   ID'de ve depoda olmayan advisory'de de boş döner, rc=0 — "kurulu değil" ile "depoda yok" ayrılamaz). Betik paket listesini sunucunun
+   kendi depolarından alır, sürümü rpm kuralıyla karşılaştırır (rpm'in kendisiyle 200.000 karşılaştırmada aynı). `repoquery --advisory`
+   RHEL 8 (dnf 4.7) üzerinde burada ölçülmedi — dnf seçeneği tanımazsa sonuç ❓ "dnf hatası" olur, ✅ uydurulmaz.
+   Alp: "birinin test edilmesiyle Satellite tarafından en güncel repolar ve CV'ler güncel mi anlaşılıyor — bir son kontrol".
+   Not burada **kontrol** içindir, güncellemeyi daraltmaz (yukarıdaki "Kapsam"). ⚠️ depoda yok → içerik sunucuya gelmemiş: Satellite
+   CV/terfi gerisinde (0. adım) ya da kimlik yanlış — kullanıcıya söyle. Sapan sunucuyu ayrı listele; tablo dışı "hepsi tamam" yazma.
 
 ## Güncelleme durumu tablosu — tek sunucu ya da filo (saha G34/G36/G37)
 

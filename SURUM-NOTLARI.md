@@ -6,6 +6,17 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-12 (6. tur) — RHSA kontrolü betikte; iş envanteri tek dosyada gruplu, DNS'ten doğrulanır, ssh denenir
+
+Sahada: `al.sh` → `./kur.sh`, **yeni oturum**. İkili değişmez (kilit eklentisi değişti: okuma betiği listesi).
+- `rhel-guncelleme/rhsa-kontrol.py` (yeni): `--komut <RHSA…> -i dn/<no>/hosts.ini` ansible okuma komutunu basar (uname, `dnf repoquery
+  --advisory`, `rpm -qa`); tree çıktısından sunucu × RHSA: ✅ kurulu · 🔄 reboot bekliyor · ❌ eksik · ⚠️ depoda yok · ➖ ilgisiz · ❓.
+  Sebep: `updateinfo list --installed` depoda olmayan advisory'de de boş, rc=0. Kilitte okuma (`OKUYAN_BETIKLER`).
+- `ansible/is-envanter.py`: işin bütün sunucuları tek `dn/<no>/hosts.ini`'de; başlık satırları (`DTL:`) ve `--ad <grup>` → `[dtl]`, `[stl]`;
+  sonraki çağrı grup ekler; aynı grup farklı sunucu → yazmaz (`--yenile`). `hosts-<aşama>.ini` / `hosts-2.ini` artık açılmaz (eskiler
+  yerinde). Envanterde olmayan ad DNS'ten doğrulanır (IP yorumda, `ansible_host` yazılmaz), her host'a ssh portu TCP denenir.
+- `repoquery --advisory` RHEL 8 (dnf 4.7) üzerinde ölçülmedi. **Sahada denenmedi.**
+
 ## 2026-11-12 (5. tur) — grup, tabloda açık iş kalmayınca biter ("reboot gerekli" → sıradaki soru reboot)
 
 Sahada: `al.sh` → `./kur.sh`, **yeni oturum**. İkili değişmez.

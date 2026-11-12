@@ -66,8 +66,9 @@ Kullanıcı sunucularda değişiklik istediyse (güncelleme, ayar, servis, disk 
    `hosts.ini`, playbook'lar `01-<ad>.yaml`, `02-…`, `README.md` (iş bilgisi), `logs/` (plan, sonuç, okuma kanıtı). İkisini betik kurar
    (`B=/root/ai/opencode/knowledge/skills/approved`): `python3 $B/ansible/is-envanter.py <numara> <sunucular>` → `dn/<numara>/hosts.ini`
    (elle INI yazma) · `python3 $B/rapor/is-kaydi.py ac <işin kısa adı> --cn <numara> --istek "<kullanıcının cümlesi>"` → `README.md` + `logs/`.
-   Başka dizin, başka ad düzeni uydurma; aynı numaranın dizini varsa onunla devam et. Betik "Envanterde yok" (`[is_ek]`) dediyse, ad/IP
-   çözülmüyorsa ya da sunucuya bağlanılamıyorsa **o grupta değişikliğe başlamadan** adlarını yaz ve sor ("IP'si ya da envanter satırı?").
+   Başka dizin, başka ad düzeni uydurma; aynı numaranın dizini varsa onunla devam et. Kullanıcının grupları (DTL, STL …) aynı `hosts.ini`'de
+   grup olur (`--ad <grup>` ekler). Betik DNS'i ve ssh portunu kendisi dener: `⚠️ DNS'te yok` ya da `ssh ❌` olan sunucuda
+   **o grupta değişikliğe başlamadan** adlarını yaz ve sor ("IP'si ya da envanter satırı?").
    Eksik sunucuyu kendin atlayıp gerisinde değişikliğe geçme — "atla" kararını kullanıcı verir.
 4. **Değişiklik playbook'la yapılır — `for … ssh` döngüsüyle ya da `ansible … -m shell -a "<değişiklik>"` ile uzaktan komut komut değil.**
    Playbook işin dizinine yazılır (`dn/<numara>/01-reboot.yaml`, sonraki adım `02-…`); `ansible/playbooks/` içinde iş için hazırı varsa
@@ -136,6 +137,7 @@ kullanım becerinin SKILL.md'sinde (önce beceriyi yükle):
 - sertifika/ayar dosyasını sunuculara dağıtma → içerik playbook'a gömülü (`copy content:`) → `ansible/gomulu-dosya.py`
   (PEM/base64'ü kendin yazma — betik bayt bayt gömer, sha256 doğrular)
 - çok sunucuda aynı komut → `ansible … -t cikti/filo/<etiket>` + `filo-kontrol/filo-tablo.py`
+- işin RHSA'ları sunucularda kurulu mu (son kontrol) → `rhel-guncelleme/rhsa-kontrol.py` (`updateinfo --installed` ile karar verme)
 - envanterdeki sunuculara erişim / IP bloğu başına FW talebi gerekir mi → `filo-kontrol/erisim-blok.py` (playbook yazma)
 - buradan erişilemeyen ortamın envanteri (kullanıcı orada toplar, .tgz getirir) → `uzak-envanter/uzak-ozet.py`
 - geçmiş kapasite (sar, "son N gün") → `rhel-performans/sar-ozet.py`

@@ -145,7 +145,8 @@ playbook'ları oraya atıyoruz."
   → iş kaydı (`README.md`, `logs/`; `is-kaydi.py ac --cn`) → okuma (ad-hoc `ansible … -t cikti/…` serbest) → playbook
   (`dn/<numara>/01-<ad>.yaml`; hazırı `ansible/playbooks/`'tan kopyalanır) → denetim + `--syntax-check` → plan → **onay** → **önce tek
   sunucu** (`-l <sunucu>`) → sonuç gösterilir → grup grup, her grup ayrı "devam".
-- Dosya adlarında tarih/saat yok (yalnız yedek ve komut çıktısında). Aşama envanteri `--ad <aşama>` → `hosts-<aşama>.ini`.
+- Dosya adlarında tarih/saat yok (yalnız yedek ve komut çıktısında). İşin bütün sunucuları tek `hosts.ini`'de, gruplarla (`[dtl]`, `[stl]`; başlık
+  satırı ya da `--ad <grup>`); envanterde olmayan ad DNS'ten doğrulanır, ssh portu denenir (Alp 2026-11-12, G124 6. tur).
 - `dn/` altı ad ↔ IP kaynağı değildir: kilit (`envanter.ts`) ve `kume-bul.py` `dn` dizinini taramaz.
 - `ansible.cfg` iş dizinine otomatik yazılmaz (içerik uydurulmuş olur); komutlar çalışma dizininden yol ile verilir.
 - CN'siz tek seferlik iş (kriz/kurulum) için §7 geçerli: ad-hoc, adım başına onay.

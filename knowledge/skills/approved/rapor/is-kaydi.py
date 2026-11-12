@@ -69,7 +69,7 @@ BENIOKU = """# Değişiklik {cn} — {etiket}
 
 """ + BASLIK + """
 ## Bu dizinde
-- `hosts.ini` — iş envanteri: yalnız bu işin sunucuları (is-envanter.py üretir; aşama için `hosts-<aşama>.ini`)
+- `hosts.ini` — iş envanteri: yalnız bu işin sunucuları (is-envanter.py üretir; DTL/STL gibi aşamalar dosyada grup: `-l <grup>`)
 - `01-<ad>.yaml`, `02-<ad>.yaml` … — bu işin playbook'ları, çalışma sırasıyla
 - `logs/plan.md` plan ve soruların cevapları · `logs/sonuc.md` ölçülen sonuç · `logs/okuma/` okuma kanıtı
 

@@ -163,7 +163,9 @@ diye güncelleme başlamaz. Kullanıcı "yalnız şunu yap" dediyse (ör. "fstab
    python3 /root/ai/opencode/knowledge/skills/approved/rhel-guncelleme/rhsa-kontrol.py cikti/filo/rhsa RHSA-2025:1234 RHSA-2025:5678
    ```
    Sonuç sunucu × RHSA: ✅ kurulu · 🔄 kurulu ama çalışan çekirdek eski (reboot bekliyor) · ❌ eksik (kurulu < gereken sürüm) · ⚠️ depoda
-   yok · ➖ ilgisiz (paketi kurulu değil) · ❓ okunamadı. Çıktıyı **aynen** aktar. `dnf updateinfo list --installed <RHSA>` ile karar
+   yok · ➖ ilgisiz (paketi kurulu değil — RHSA o sunucuya uygulanmaz, eksik değil) · ❓ okunamadı. Çıktı RHSA başına tek satırdır
+   (`✅ 7/8 · ➖ 1/8`), farklı sunucular adıyla altında — **aynen** aktar; kendi RHSA tablonu kurma, tek sunucunun sonucunu "tüm
+   sunucularda aynı" diye genelleme (saha 2026-11-12: 27 RHSA'lık tablo tek sunucudan kuruldu, grubun RHSA adımı yapılmamışken). `dnf updateinfo list --installed <RHSA>` ile karar
    **verme** (saha 2026-11-12, RHEL 8.10: RHSA'lar kurulu olduğu hâlde model doğrulayamadı; ölçüldü dnf 4.20: bu komut yanlış/bilinmeyen
    ID'de ve depoda olmayan advisory'de de boş döner, rc=0 — "kurulu değil" ile "depoda yok" ayrılamaz). Betik paket listesini sunucunun
    kendi depolarından alır, sürümü rpm kuralıyla karşılaştırır (rpm'in kendisiyle 200.000 karşılaştırmada aynı). `repoquery --advisory`

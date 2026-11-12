@@ -1004,7 +1004,14 @@ json.dump({"rc": 0, "stdout": "@@calisan\n4.18.0-553.170.1.el8_10.x86_64\n" + ad
 json.dump({"rc": 0, "stdout": "@@calisan\n4.18.0-553.184.1.el8_10.x86_64\n" + adv + rpm % "1.0.6-3.el8"}, open(d + "/a2", "w"))
 json.dump({"unreachable": True, "msg": "ssh: connect to host a3 port 22: Connection timed out"}, open(d + "/a3", "w"))
 PY
-python3 "$RK" rkt RHSA-2025:1111 RHSA-2025:2222 RHSA-2025:3333 RHSA-2025:4444 > rk2.txt 2>&1; echo "rc=$?" >> rk2.txt
+python3 "$RK" rkt RHSA-2025:1111 RHSA-2025:2222 RHSA-2025:3333 RHSA-2025:4444 --ayrinti > rk2.txt 2>&1; echo "rc=$?" >> rk2.txt
+python3 "$RK" rkt RHSA-2025:1111 RHSA-2025:2222 RHSA-2025:3333 RHSA-2025:4444 > rk4.txt 2>&1
+icerir "kısa: RHSA başına dağılım x/N" rk4.txt "RHSA-2025:3333    ⚠️ 2/3 · ❓ 1/3"
+icerir "kısa: erişilemeyen sunucu bir kez" rk4.txt "  ❓ a3 — ERİŞİLEMEZ"
+icermez "kısa: erişilemeyen RHSA satırlarında tekrar edilmez" rk4.txt "    ❓ a3"
+icerir "kısa: çoğunluktan farklı sunucu adıyla" rk4.txt "    ❌ a2 — eksik: brotli.x86_64"
+icermez "kısa: çoğunluktaki sunucu tekrar yazılmaz" rk4.txt "    ⚠️ a1 — depoda yok"
+icerir "kısa: sunucu listesi başta" rk4.txt "Sunucu: 3 (a1, a2, a3)"
 icerir "kurulu (sürüm eşit, i686 kurulu değil → sayılmaz)" rk2.txt "✅ a1 — kurulu (1 paket: brotli)"
 icerir "eksik (kurulu < gereken)" rk2.txt "❌ a2 — eksik: brotli.x86_64 kurulu 1.0.6-3.el8 < 1.0.6-5.el8_10"
 icerir "çekirdek kurulu ama çalışan eski → reboot bekliyor" rk2.txt "🔄 a1 — kurulu, reboot bekliyor"

@@ -6,6 +6,13 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-12 (7. tur) — RHSA sonucu RHSA başına tek satır (x/N)
+
+Sahada: `al.sh` → `./kur.sh`, **yeni oturum**. İkili değişmez.
+- `rhsa-kontrol.py`: varsayılan çıktı RHSA başına bir satır (`✅ 7/8 · ➖ 1/8`), sapan sunucu adıyla altında, erişilemeyen sunucu bir kez;
+  her sunucu ayrı satır için `--ayrinti`. Olay: ajan 27 RHSA'yı kendi tablosunda tek sunucudan genelledi (saha G124 7. tur).
+- **Sahada denenmedi.**
+
 ## 2026-11-12 (6. tur) — RHSA kontrolü betikte; iş envanteri tek dosyada gruplu, DNS'ten doğrulanır, ssh denenir
 
 Sahada: `al.sh` → `./kur.sh`, **yeni oturum**. İkili değişmez (kilit eklentisi değişti: okuma betiği listesi).

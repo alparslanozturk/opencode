@@ -7,7 +7,8 @@
 #
 # kullanım:
 #   rhsa-kontrol.py --komut <RHSA-…> [<RHSA-…> …] [-i <envanter>] [--hedef <grup|ad1,ad2,>]   → çalıştırılacak ansible komutunu basar
-#   rhsa-kontrol.py <tree-dizini> <RHSA-…> [<RHSA-…> …]                                         → sunucu başına sonuç
+#   rhsa-kontrol.py <tree-dizini> <RHSA-…> [<RHSA-…> …] [--ayrinti]                              → RHSA başına tek satır (x/N);
+#                                                                     farklı sunucular adıyla; --ayrinti: her sunucu ayrı satır
 # Sonuçlar: ✅ kurulu · 🔄 kurulu, çalışan çekirdek eski (reboot bekliyor) · ❌ eksik (kurulu sürüm düşük) · ⚠️ depoda yok (advisory bu
 # sunucunun depolarında yok: Satellite CV/terfi gerisinde ya da ID yanlış) · ➖ ilgisiz (advisory'nin hiçbir paketi kurulu değil) ·
 # ❓ okunamadı (erişilemez / dnf hatası).
@@ -192,9 +193,12 @@ def main(argv):
         return 0 if argv else 2
     komut = argv[0] == "--komut"
     kalan = argv[1:] if komut else argv
-    envanter, hedef, ham = "", "all", []
+    envanter, hedef, ham, ayrinti = "", "all", [], False
     i = 0
     while i < len(kalan):
+        if kalan[i] == "--ayrinti":
+            ayrinti, i = True, i + 1
+            continue
         if kalan[i] == "-i" and i + 1 < len(kalan):
             envanter, i = kalan[i + 1], i + 2
         elif kalan[i] == "--hedef" and i + 1 < len(kalan):
@@ -247,20 +251,33 @@ def main(argv):
                 continue
             isaret, aciklama = degerlendir(k, calisan, adv, hata, kurulu)
             sonuc[k].append((host, isaret, aciklama))
+    # Kısa biçim (saha 2026-11-12: 27 RHSA × 8 sunucu = 216 satır → model tabloyu kendisi kurdu, tek sunucunun sonucunu "tüm STL
+    # sunucularında aynı" diye genelledi). RHSA başına bir satır: sonuç dağılımı (x/N); çoğunluktan farklı sunucular adıyla altında.
+    hostlar = sorted(veri)
+    print("Sunucu: %d (%s)" % (len(hostlar), ", ".join(hostlar)))
+    # sunucunun tamamı okunamadıysa (erişilemez/rpm yok) bir kez yazılır, RHSA satırlarında yalnız ❓ sayısı olarak görünür
+    okunamayan = {h for h in hostlar if all(any(x[0] == h and x[1] == "❓" for x in sonuc[k]) for k in kimlikler)}
+    for h in sorted(okunamayan):
+        print("  ❓ %s — %s" % (h, next(x[2] for x in sonuc[kimlikler[0]] if x[0] == h)))
     for k in kimlikler:
-        print("%s" % k)
+        dagilim, ilk = {}, {}
         for host, isaret, aciklama in sonuc[k]:
-            print("  %s %s — %s" % (isaret, host, aciklama))
-            say[isaret] = say.get(isaret, 0) + 1
-        dagilim = {}
-        for _, isaret, _ in sonuc[k]:
             dagilim[isaret] = dagilim.get(isaret, 0) + 1
-        print("  özet: " + " · ".join("%s %d" % (x, dagilim[x]) for x in ("✅", "🔄", "❌", "⚠️", "➖", "❓") if x in dagilim))
+            ilk.setdefault(isaret, aciklama)
+            say[isaret] = say.get(isaret, 0) + 1
+        cogu = max(dagilim, key=lambda x: dagilim[x])
+        m = re.search(r"\(\d+ paket: ([^)]*)\)", ilk.get("✅", ""))
+        ek = (" (%s)" % m.group(1)) if m and cogu == "✅" else ("" if cogu == "✅" else " — " + ilk[cogu].split(" — ")[0])
+        print("%-17s %s%s" % (k, " · ".join("%s %d/%d" % (x, dagilim[x], len(hostlar)) for x in ("✅", "🔄", "❌", "⚠️", "➖", "❓")
+                                           if x in dagilim), ek))
+        for host, isaret, aciklama in sonuc[k]:
+            if ayrinti or (isaret != cogu and host not in okunamayan):
+                print("    %s %s — %s" % (isaret, host, aciklama))
     if "⚠️" in say:
         print("⚠️ depoda yok: içerik sunucuya gelmemiş (Satellite CV yayın/terfi gerisinde) ya da kimlik yanlış — kullanıcıya söyle, düzeltme önerme")
     if "🔄" in say:
         print("🔄 paket kurulu ama çalışan çekirdek eski: düzeltme reboot'tan sonra etkin — reboot kararı kullanıcının")
-    print("Tabloyu AYNEN aktar; sunucu atlama, sayı uydurma.")
+    print("Tabloyu AYNEN aktar; sunucu atlama, sayı uydurma, kendi tablonu kurma. ➖ = paket o sunucuda kurulu değil, RHSA uygulanmaz (eksik değil).")
     if "❓" in say:
         return 2
     return 1 if any(x in say for x in ("❌", "🔄", "⚠️")) else 0

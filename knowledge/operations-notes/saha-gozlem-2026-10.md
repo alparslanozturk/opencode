@@ -1675,3 +1675,9 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   `rhel-guncelleme/rhsa-kontrol.py` (repoquery --advisory + rpm -qa + rpmvercmp; ✅/🔄/❌/⚠️/➖/❓; kilitte okuma betiği) ve
   `is-envanter.py` tek `hosts.ini` + gruplar (başlık satırı / `--ad`), envanterde olmayan ad DNS'ten doğrulanır (IP yorumda), ssh portu
   TCP ile denenir. `repoquery --advisory` RHEL 8 dnf 4.7'de ölçülmedi.
+- **7. tur (Alp, 2026-11-12, 1 ekran):** ajan 27 RHSA'lık tabloyu kendisi kurdu ("updateinfo listesi çekildi", sütunlarda elle yazılmış
+  sürüm karşılaştırmaları), başlığında "tüm STL sunucularında aynı paketler" yazdı; aynı ekrandaki özet STL için "RHSA doğrulama henüz
+  yapılmadı" diyordu. Bir RHSA'yı "kapsam dışı (kurulu değil)" bıraktı — paket o sunucuda kurulu değilse RHSA uygulanmaz, bu doğru
+  sonuçtur. Alp tekrar sorunca sunucu başına çıkardı. Ekranda `rhsa-kontrol.py` kullanıldığına dair iz yok; tahmin: oturum 6. tur kitinden
+  önce açılmıştı ya da beceri yüklenmedi — doğrulanmadı. Aksiyon: `rhsa-kontrol.py` çıktısı RHSA başına tek satır (x/N), sapan sunucu
+  adıyla, erişilemeyen bir kez (`--ayrinti` eski uzun biçim); beceriye "kendi tablonu kurma, genelleme yapma, ➖ eksik değildir".

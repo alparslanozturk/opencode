@@ -78,17 +78,61 @@ Sıra — her adımda dur, kullanıcının o adım için onayını al:
 2. **İş kaydı:** `is-kaydi.py ac … --cn <numara>` → `README.md` + `logs/`.
 3. **Okuma:** `ansible all -i dn/<numara>/hosts.ini -m shell -a '<okuma>' -t cikti/filo/<etiket>` — okuma için ad-hoc serbest.
    `for … ssh` döngüsü yazma.
-4. **Playbook:** değişiklik (reboot, `dnf update`, dosya) **playbook'la** — `dn/<numara>/01-<ad>.yaml`. Hazırı varsa
-   `ansible/playbooks/`'tan oku (§8), kopyala. `ansible … -m shell -a "dnf update -y | tail"` değişiklik yolu **değil**
+4. **Playbook:** değişiklik (reboot, `dnf update`, dosya) **playbook'la** — `dn/<numara>/01-<ad>.yaml`, **şablondan** (§1c):
+   reboot → `sablon/reboot.yaml` kopyası, diğerleri `sablon/iskelet.yaml`. Hazırı varsa `ansible/playbooks/`'tan oku (§8), kopyala. `ansible … -m shell -a "dnf update -y | tail"` değişiklik yolu **değil**
    (`| tail` çıkış kodunu yutar — hata "ok" görünür, G26).
 5. **Denetim:** `playbook-denetim.py` + `--syntax-check` + `--list-hosts` → planı `logs/plan.md`'ye yaz, kullanıcıya göster, **onay bekle**.
-6. **Önce tek sunucu:** `ansible-playbook -i dn/<numara>/hosts.ini dn/<numara>/01-<ad>.yaml -l <sunucu>` → sonucu hedefte doğrula,
-   kullanıcıya göster. Olmadıysa playbook'u düzelt, yine tek sunucu.
-7. **Grup grup:** kullanıcı "devam" deyince sıradaki grup; bir grubun onayı sonrakini kapsamaz. Sonuç `logs/sonuc.md`.
+6. **Önce tek sunucu:** §1c standart komutu `-l <sunucu>` ile → `is-durum.py dn/<numara>` + hedefte doğrula, kullanıcıya göster.
+   Olmadıysa playbook'u düzelt, yine tek sunucu. **Yarıda bırakıp `ssh`/`sleep` ile elle devam etme** — playbook'u düzelt, yeniden koş.
+7. **Kalanlar kullanıcının dediği hızda** (§1c tablo): "devam/sırayla", "ilk 3'ü", "%10'u", "hızlı". Bir onay sonrakini kapsamaz.
 
 Ön koşulu (Satellite içeriği güncel mi, yedek alındı mı, kesinti duyuruldu mu) sen göremezsin — **kullanıcıya sor** ("yapıldı mı?").
 `ansible.cfg` iş dizinine **otomatik yazılmaz** (içeriği uydurulmuş olur); komutları çalışma dizininden yol ile ver. `cd dn/<numara>`
 yapılırsa o dizinde `ansible.cfg` varsa o etkin olur (§2). CN'siz iş (kriz/kurulum/is): `inventories/hosts-<YYYYMMDD>-<etiket>.ini`.
+
+### §1c Standart — playbook yazma, çalıştırma, izleme (Alp, 2026-11-12)
+
+Alp: "Ansible playbook yazmanın belli standartları olsun, çalıştırmanın belli standartları olsun … hataya mahal olmasın."
+Saha G124: model kendi INI'sini (`stl-sxl-ini.ini`) ve grup adını (`sxl-eri`) uydurdu, playbook'ta başka grup yazdı (eşleşmedi),
+reboot'u `shell` + `wait_for` ile yazdı (sunucu açılmadan döndü), sonra `sleep 60 && ssh` ile elle devam etti. Bunların hiçbiri:
+
+**Yazma**
+- **Şablondan başla:** `cp <beceri>/ansible/sablon/reboot.yaml dn/<numara>/01-reboot.yaml` (reboot) · başka iş → `sablon/iskelet.yaml`.
+  Şablonda yalnız `<numara>` ve `<…>` yerlerini doldur; `hosts`, `serial`, `max_fail_percentage` satırlarına dokunma.
+- **`hosts: all`** — iş envanteri zaten yalnız işin sunucuları. Grup/sunucu adı playbook'a yazılmaz; hedef komutta `-l`.
+- **Envanter tek:** `dn/<numara>/hosts.ini` (is-envanter.py). Başka `.ini` yazma; grup lazımsa `is-envanter.py <numara> … --ad <grup>`.
+  Grup adı kullanıcının sözcüğü: "STL/SXL" → `stl_sxl`, "DTL" → `dtl` (betik üretir; sen ad uydurma).
+- **Bir playbook = bir iş:** `01-reboot.yaml`, `02-dnf-guncelle.yaml` ayrı. Okuma (`dnf check-update`, `rpm -q`, RHSA) playbook'a
+  girmez — ad-hoc ya da betik (rhsa-kontrol.py).
+- **Reboot yalnız `ansible.builtin.reboot`** — `shell: reboot`, `wait_for`, `sleep` YAZMA (denetim ENGEL verir).
+- Görev adları Türkçe, ne yaptığını söyler; son görev `Özet` (sunucu başına tek satır). Yazınca `playbook-denetim.py` ENGEL'siz olmalı.
+
+**Çalıştırma — tek biçim** (çalışma dizininden; `cd dn/<numara>` yapma):
+
+```bash
+ANSIBLE_LOG_PATH=dn/<numara>/logs/01-reboot.log ANSIBLE_TASK_TIMEOUT=1800 ANSIBLE_RETRY_FILES_ENABLED=1 \
+ANSIBLE_RETRY_FILES_SAVE_PATH=dn/<numara>/logs ansible-playbook -i dn/<numara>/hosts.ini dn/<numara>/01-reboot.yaml -l '<hedef>' -T 10
+```
+
+Önce **aynı komut** `--list-hosts` ekiyle → sayı ve adları kullanıcıya göster. Gerçek koşu komut aracında `background: true`
+(süre sınırına takılıp yarıda kalmasın). Log adı = playbook adı (`01-reboot.yaml` → `logs/01-reboot.log`).
+
+**Hedef (`-l`) ve hız — kullanıcının sözü belirler:**
+- "önce biri / dene" → `-l <tek ad>`
+- "şu sunucular" → adları **tek tek** yaz: `-l 'sxl01,sxl02,sxl05'` · desen verdiyse joker: `-l 'sxl*'` · grup: `-l stl_sxl`
+  (birden çok desen tek `-l` içinde `:` ile; `-l` iki kez yazılmaz — §4)
+- "ilk 3'ü / %10'u" → `python3 <beceri>/ansible/is-durum.py dn/<numara> --sec 3 --pb 01-reboot` (`--sec 10%`, `--grup stl`) →
+  basılan `-l '…'` adlarını komuta **aynen** koy. Seçilen = o adımda henüz hiç koşmamış sunucular, envanter sırasıyla.
+- "sırayla / adım adım" → varsayılan (şablonda `serial` 1: tek tek; biri düşerse kalanına dokunulmaz)
+- "3'er 3'er / %10'ar %10'ar" → `-e dilim=3` / `-e dilim=10%`
+- "hızlı / hepsi birden" → `-e dilim=100% -f 50` (`-f` aynı anda bağlantı sayısı; varsayılan 5)
+- Hız söylenmediyse **varsayılan** (tek tek) — kendin hızlandırma.
+
+**İzleme — "çalışma ne durumda?"**
+- `python3 <beceri>/ansible/is-durum.py dn/<numara>` — her playbook için ✅ bitti · ▶ çalışıyor · ❌ düştü (görev + hata) ·
+  🔌 erişilemedi · ⏳ bekliyor, grup grup. Çıktıyı **aynen** aktar; kendi durum tablonu kurma. Elle yazılmış `.ini` varsa uyarır.
+- Kullanıcı canlı izlemek isterse: `tail -f dn/<numara>/logs/01-reboot.log` (kendi terminalinde; her satır saatli).
+- Düşen/erişilemeyen düzeltildikten sonra: aynı komut `-l @dn/<numara>/logs/01-reboot.retry` (bitenlere dokunmaz).
 
 ### İş envanteri betiği — saha G100/G101
 
@@ -176,7 +220,8 @@ Yazarken (betiğin denetlediği kurallar):
 - **Boru varsa** `set -o pipefail` (`executable: /bin/bash`); `| tail` çıkış kodunu yutar (G26).
 - **Başarıyı komut basmaz:** `echo "Update complete."` yok — `register:` + `failed_when:`/`assert` (G26, G12 sınıfı).
 - **İndirme:** `get_url` + `checksum:`; shell'de zorunluysa `curl -fsS` (G43). Yıkıcı sıra: indir → doğrula → kaldır → kur (G93).
-- `hosts:` iş grubunun adı (`google-captcha-cert`), `all` değil; play düzeyinde `ignore_errors` yok; `state: latest` yerine
+- `hosts:` iş dizininde (`dn/<numara>/`) **`all`** (§1c); `ansible/playbooks/` gibi ana envanterle koşan playbook'ta iş grubunun adı
+  (`google-captcha-cert`), `all` değil; play düzeyinde `ignore_errors` yok; `state: latest` yerine
   sürüm ya da `present`; parola/token değişkenle (`no_log: true`), playbook'a değer yazma; `NOPASSWD: ALL` yazma (IdM — `rhel-yonetim`).
 - Her görevin `name:`'i olsun — rapordaki "web12 failed" satırı ancak adla okunur.
 - Dosya dağıtımı → aşağıdaki `gomulu-dosya.py` (içeriği sen yazma).

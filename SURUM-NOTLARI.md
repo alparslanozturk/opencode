@@ -6,6 +6,23 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-12 (8. tur) — Ansible standardı: şablon playbook, tek çalıştırma biçimi, log + iş durumu, hız seçimi
+
+Sahada: `al.sh` → `./kur.sh`, **yeni oturum**. İkili değişmez (kilit eklentisi değişti).
+- `ansible/sablon/reboot.yaml` + `iskelet.yaml` (yeni): `hosts: all` (hedef komutta `-l`), `serial: "{{ dilim | default(1) }}"` +
+  `max_fail_percentage: 0` (tek tek; biri düşerse kalanına dokunmaz), reboot yalnız `ansible.builtin.reboot`, son görev `Özet`.
+- `ansible` §1c: tek çalıştırma biçimi (`ANSIBLE_LOG_PATH=dn/<no>/logs/<playbook>.log` + retry + `-l`); hız kullanıcının sözüyle:
+  tek / adlar tek tek / joker / grup / "ilk 3'ü" / "%10'u" / "3'er 3'er" (`-e dilim=3`) / "hızlı" (`-e dilim=100% -f 50`).
+- `ansible/is-durum.py` (yeni, okuma): `dn/<no>` için playbook başına ✅ ▶ ❌ 🔌 ⏳, grup grup, düşenin görevi + hatası; yarıda kalan
+  koşuyu söyler; elle yazılmış `.ini`'yi uyarır; `--sec 3|10% --pb 01-reboot [--grup stl]` → bekleyen ilk N sunucu `-l '…'`.
+- `playbook-denetim.py`: iş dizininde `hosts:` hosts.ini'de yoksa ENGEL; `shell: reboot` (+ `wait_for`) ENGEL; serial yoksa UYARI.
+- `is-envanter.py`: "STL/SXL sunucuları (8):" başlığı grup olur (`stl_sxl`; önce "stl/sxl" ve "sunucuları" host satırı oluyordu);
+  Türkçe harf ASCII; ad olmayan sözcük dosyaya yazılmaz, ekranda söylenir.
+- Kilit: `ansible-playbook -l` içindeki grup, joker ve `@….retry` iş envanterinden host'lara çözülür (yetki host başına; grup adı artık
+  "listede yok" onayı açmaz, yetkisiz host'a uyan joker yine onaya düşer).
+- **Sahada denenmedi.** Reboot şablonunun başarılı yolu burada ölçülemedi (yalnız yerelde "kontrol düğümünü reboot etmez" düşüşü ve
+  serial'ın kalanı durdurması görüldü).
+
 ## 2026-11-12 (7. tur) — RHSA sonucu RHSA başına tek satır (x/N)
 
 Sahada: `al.sh` → `./kur.sh`, **yeni oturum**. İkili değişmez.

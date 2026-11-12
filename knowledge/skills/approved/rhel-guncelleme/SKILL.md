@@ -95,7 +95,8 @@ diye güncelleme başlamaz. Kullanıcı "yalnız şunu yap" dediyse (ör. "fstab
   kalanlarla sessizce devam etme. Hedefler `is-envanter.py` iş envanterinden gelir, elle `for h in …; do ssh` listesinden değil.
   Erişilemeyen sunucuyu kendiliğinden başka gruba taşıma ("sonraki grupla yaparız") — ne olacağına kullanıcı karar verir.
 - **Değiştiren adımlar playbook'la, iş dizininde** (Alp, 2026-11-12; `ansible` §0): `dn/<numara>/hosts.ini` + `01-reboot.yaml`,
-  `02-update.yaml` … — hazırı `ansible/playbooks/`'tan kopyalanır. Her playbook'un ilk koşusu **tek sunucu** (`-l <sunucu>`), sonuç
+  `02-update.yaml` … — reboot `ansible/sablon/reboot.yaml`'dan, hazırı `ansible/playbooks/`'tan kopyalanır; çalıştırma, hız ve durum
+  `ansible` §1c (log + `is-durum.py`). Her playbook'un ilk koşusu **tek sunucu** (`-l <sunucu>`), sonuç
   gösterilir, sonra grup. `ansible … -m shell -a "dnf update -y | tail"` kullanma (`| tail` hatayı yutar). Okuma (0, 1, 1b, 3, 6) ad-hoc.
 
 0. **İçerik güncel mi (önce bu).** Önce kullanıcıya sor ("Önce sor" 5) — Satellite'taki sync/CV durumunu yalnız o görür. Senin
@@ -143,7 +144,8 @@ diye güncelleme başlamaz. Kullanıcı "yalnız şunu yap" dediyse (ör. "fstab
    taraması (root docker grubuna üye olmadan da docker'ı kullanır; history ne silinmeyi ne başka kullanıcıyı kanıtlar); history'deki
    komutu tekrar çalıştırmak/önermek (`docker compose down -v` adlı volume'ları **siler** — veri kaybı); host başına `ssh -o
    StrictHostKeyChecking=accept-new` döngüsü (known_hosts'a yazar) — tek ansible komutu yeter.
-2. **1. reboot** (playbook, onay ekranı) — temiz başlangıç: sunucu yamadan önce sorunsuz açılıyor mu. `ansible.builtin.reboot` (reboot_timeout).
+2. **1. reboot** (playbook, onay ekranı) — temiz başlangıç: sunucu yamadan önce sorunsuz açılıyor mu. `ansible/sablon/reboot.yaml` kopyası
+   (`ansible.builtin.reboot`; `shell: reboot` + `wait_for`/`sleep` + `ssh` yok — saha G124 erken döndü, iş yarıda kaldı).
    Sonra `uptime`, `systemctl --failed` — bu reboot'un sonucudur, ayrı adım değil.
 3. **Kayıt / repo — salt kontrol** (okuma): `subscription-manager status; subscription-manager release --show; dnf -q repolist` — Satellite
    repoları açık mı, release kilidi var mı. Alp (2026-11-12): release set edildiyse güncelleme doğal olarak o sürümde kalır — bu hata

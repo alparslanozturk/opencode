@@ -4,6 +4,8 @@
 #   G26: shell'de `| tail` çıkış kodunu yutar, koşulsuz "complete" yankısı, --skip-broken
 #   G43: curl -s (-f yok) HTTP hatasını dosyaya yazar, sessiz kalır
 #   G93: hosts: all, play düzeyi ignore_errors, yorumdaki ön koşul, kaldır → sonra indir sırası, NOPASSWD, düz parola
+#   G124 (Alp, 2026-11-12 "host kısmına abuk subuk isimler"): iş dizininde (dn/<numara>/, yanında hosts.ini) hosts: all ya da
+#     hosts.ini'deki grup; shell: reboot + wait_for yerine ansible.builtin.reboot; serial + max_fail_percentage (şablon)
 # Yalnız okur; dosya değiştirmez. Bulgu ≠ hata: kullanıcıya liste olarak söylenir, düzeltme kararı onun.
 import os
 import re
@@ -96,6 +98,25 @@ def gorevler(liste, yol=""):
                     yield x
 
 
+def is_envanter_adlari(yol):
+    # dn/<numara>/hosts.ini (is-envanter.py) → grup ve host adları; dosya yoksa None (iş dizini değil)
+    if not os.path.isfile(yol):
+        return None
+    adlar = set()
+    try:
+        with open(yol, encoding="utf-8", errors="replace") as f:
+            for ham in f:
+                t = ham.split("#")[0].strip()
+                m = re.match(r"^\[([^\]:]+)(:children)?\]$", t)
+                if m:
+                    adlar.add(m.group(1))
+                elif t and not t.startswith("[") and "=" not in t.split()[0]:
+                    adlar.add(t.split()[0])
+    except OSError:
+        return None
+    return adlar
+
+
 def denetle(dosya):
     bulgular = []
     ekle = lambda satir, onem, kod, mesaj: bulgular.append((satir or 0, onem, kod, mesaj))
@@ -111,6 +132,8 @@ def denetle(dosya):
         return None, "playbook değil (en üstte play listesi yok)"
 
     yorumlar = [(i + 1, s) for i, s in enumerate(ham.split("\n")) if s.strip().startswith("#")]
+    is_gruplari = is_envanter_adlari(os.path.join(os.path.dirname(dosya) or ".", "hosts.ini"))
+    kabuk_reboot = None
     etkin_yollar = set()  # etkin görevlerin ürettiği dosyalar (dest/path/creates)
 
     tum = []
@@ -121,7 +144,17 @@ def denetle(dosya):
             continue
         ps = play.get("__satir__")
         hosts = str(play.get("hosts", ""))
-        if hosts.strip() in ("all", "*"):
+        if is_gruplari is not None:
+            desenler = [x.strip() for x in re.split(r"[,:]", hosts) if x.strip()]
+            yok = [x for x in desenler if x not in ("all", "*") and x not in is_gruplari and not re.search(r"[*?\[{]", x)]
+            if yok:
+                ekle(ps, "ENGEL", "hosts-grup-yok", "hosts: %s → %s yanındaki hosts.ini'de böyle grup/sunucu yok (var: %s); "
+                     "iş dizininde hosts: all yaz, hedefi komutta -l ile ver (sablon/reboot.yaml)" % (
+                         hosts, os.path.dirname(dosya) or ".", ", ".join(sorted(is_gruplari)) or "-"))
+            if "serial" not in play or "max_fail_percentage" not in play:
+                ekle(ps, "UYARI", "serial-yok", "iş playbook'unda serial / max_fail_percentage yok → tüm sunucular aynı anda, biri "
+                     "düşse de diğerleri sürer; şablondaki serial: \"{{ dilim | default(1) }}\" + max_fail_percentage: 0 (§1c)")
+        elif hosts.strip() in ("all", "*"):
             ekle(ps, "UYARI", "hosts-all", "hosts: %s → --limit ya da iş envanteri (-i hosts-<CN>-….ini) olmadan TÜM envantere "
                  "çalışır; önce --list-hosts (§7)" % hosts)
         if play.get("ignore_errors") in (True, "yes", "true"):
@@ -142,6 +175,10 @@ def denetle(dosya):
         kisa, tam, arg = modul_ve_arg(g)
         if kisa is None:
             continue  # yalnız block
+        if kisa in ("wait_for", "wait_for_connection") and kabuk_reboot is not None:
+            ekle(s, "ENGEL", "elle-reboot", "shell/command ile reboot (satır %s) + %s → bağlantı kopunca görev erken döner ya da düşer, "
+                 "sunucu açılmadan sonraki göreve geçilir (saha G124); tek görev: ansible.builtin.reboot (sablon/reboot.yaml)"
+                 % (kabuk_reboot, kisa))
         ad = g.get("name")
         if not ad:
             ekle(s, "NOT", "ad-yok", "görevin name: satırı yok → çıktıda ve raporda neyin düştüğü okunmaz")
@@ -168,6 +205,10 @@ def denetle(dosya):
                      "(G43); get_url + checksum daha iyi")
             if re.search(r"--skip-broken", metin):
                 ekle(s, "UYARI", "skip-broken", "--skip-broken bağımlılığı bozuk paketi sessizce atlar (G26)")
+            if re.search(r"(^|[;&|]\s*)(sudo\s+)?(reboot|init\s+6)\b|\bshutdown\s+-r\b|\bsystemctl\s+reboot\b", metin):
+                kabuk_reboot = s
+                ekle(s, "ENGEL", "elle-reboot", "%s ile reboot → ansible bağlantısı kopar, sunucunun açılmasını beklemez; "
+                     "ansible.builtin.reboot kullan (sablon/reboot.yaml — bekler, açılışı doğrular)" % kisa)
             for desen, modul in MODUL_KARSILIGI:
                 if re.search(desen, metin):
                     ekle(s, "NOT", "modul-var", "%s ile yapılabilir (tekrar çalıştırılabilir, --check destekli)" % modul)

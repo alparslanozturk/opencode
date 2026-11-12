@@ -1,0 +1,57 @@
+---
+# ŞABLON — yeniden başlatma (Alp, 2026-11-12: "Ansible playbook'u insan gibi yaz, loglarını görebil").
+# Kopyala: cp <bu dosya> dn/<numara>/01-reboot.yaml  → yalnız aşağıdaki "name:" satırına CN'yi yaz; başka yeri değiştirme.
+#
+# hosts: all — iş envanteri (dn/<numara>/hosts.ini) zaten yalnız bu işin sunucularını içerir. HANGİ sunucuda çalışacağı
+# playbook'a yazılmaz, komutta -l ile verilir (tek ad, virgüllü adlar, grup, joker):
+#   -l sxl01   ·   -l 'sxl01,sxl02'   ·   -l stl   ·   -l 'sxl*'   ·   -l @dn/<numara>/logs/01-reboot.retry  (yalnız düşenler)
+#
+# Çalıştırma (çalışma dizininden; log dosyaya, kalanlar retry'a; önce aynı komut --list-hosts ile):
+#   ANSIBLE_LOG_PATH=dn/<numara>/logs/01-reboot.log ANSIBLE_TASK_TIMEOUT=1800 ANSIBLE_RETRY_FILES_ENABLED=1 \
+#   ANSIBLE_RETRY_FILES_SAVE_PATH=dn/<numara>/logs ansible-playbook -i dn/<numara>/hosts.ini dn/<numara>/01-reboot.yaml -l <hedef> -T 10
+# Durum: python3 <beceri>/ansible/is-durum.py dn/<numara>
+#
+# Varsayılan: sunucular TEK TEK; biri düşerse (max_fail_percentage: 0) sonraki dilime HİÇ geçilmez.
+# Hız kullanıcının sözüyle seçilir (ansible becerisi §1c): "önce biri" -l <tek ad> · "sırayla" varsayılan ·
+# "ilk 3'ünü / %10'unu yap" → önce is-durum.py dn/<numara> --sec 3 (ya da 10%) --pb 01-reboot, basılan adları -l'ye AYNEN yaz ·
+# "%10'ar %10'ar / 3'er 3'er" -e dilim=10% (ya da 3) ·
+# "hızlı/hepsi birden" -e dilim=100% -f 50.
+
+- name: "CN <numara> — yeniden başlatma"
+  hosts: all
+  become: true
+  gather_facts: false
+  serial: "{{ dilim | default(1) }}"   # hız: -e dilim=1 | 5 | 10% | 100% (§1c)
+  max_fail_percentage: 0
+
+  tasks:
+    - name: Reboot öncesi — çalışan çekirdek
+      ansible.builtin.command: uname -r
+      register: once
+      changed_when: false
+      check_mode: false   # okuma — --check'te de çalışır
+
+    - name: Yeniden başlat ve sunucu açılana kadar bekle (en çok 20 dk)
+      ansible.builtin.reboot:
+        msg: "CN <numara> — planlı yeniden başlatma"
+        reboot_timeout: 1200
+        post_reboot_delay: 30
+
+    - name: Reboot sonrası — çekirdek ve açılış zamanı
+      ansible.builtin.shell: echo "$(uname -r) $(uptime -s)"
+      register: sonra
+      changed_when: false
+      check_mode: false   # okuma — --check'te de çalışır
+
+    - name: Reboot sonrası — çökmüş servis var mı
+      ansible.builtin.command: systemctl --failed --no-legend --plain
+      register: cokuk
+      changed_when: false
+      check_mode: false   # okuma — --check'te de çalışır
+
+    - name: Özet
+      ansible.builtin.debug:
+        msg: >-
+          {{ inventory_hostname }}: çekirdek {{ once.stdout }} → {{ sonra.stdout.split()[0] }},
+          açılış {{ sonra.stdout.split()[1:] | join(' ') }},
+          çökmüş servis: {{ (cokuk.stdout_lines | map('split') | map('first') | join(', ')) or 'yok' }}

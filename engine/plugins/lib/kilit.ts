@@ -6,7 +6,7 @@ import { readFileSync } from "fs"
 import { hostname, userInfo } from "os"
 import { dirname, isAbsolute, join, resolve } from "path"
 import { isInside } from "./maskele"
-import { envanterAyristir, type Envanter } from "./envanter"
+import { envanterAyristir, grupHostlari, type Envanter } from "./envanter"
 
 // Audit log yolu: ajanın kendi kaydı K6 ile korunur. Adaptörle aynı kaynaktan (ortam değişkeni) okunur.
 export const auditLogYolu = () => process.env.OPS_AGENT_AUDIT_LOG ?? "/var/log/ops-agent/audit.jsonl"
@@ -1169,7 +1169,8 @@ const OKUYAN_BETIKLER = ["kurum-registry/imaj-yol.py", "rhel-ca-guven/ca-dogrula
   "rke2-edr/sep-istisna.py", "rhel-depolama/disk-durum.py", "k8s-sorun/k8s-ozet.py", "rhel-sorun/olay-penceresi.py",
   "rhel-yukseltme/leapp-rapor.py", "rke2-gpu/gpu-dagilim.py", "surum-uyum/uyum.py", "rapor/oturum-ozet.py", "kurum-envanter/envanter-harita.py",
   "kesinti-sonrasi/kesinti-ozet.py", "git/envanter-fark.py", "filo-kontrol/erisim-blok.py", "uzak-envanter/uzak-ozet.py",
-  "rhel-aide/aide-ozet.py", "rhel-guncelleme/rhsa-kontrol.py"]
+  "rhel-aide/aide-ozet.py", "rhel-guncelleme/rhsa-kontrol.py",
+  "ansible/is-durum.py"]
 export const OKUYAN_BECERI_BETIGI = new Set(
   OKUYAN_BETIKLER.flatMap((x) => {
     const home = userInfo().homedir
@@ -1591,7 +1592,7 @@ export function tekKomut(k: Komut, b: Baglam): Bulgu[] {
     }
     if (cokluLimit(a)) return [...out, sert(COKLU_LIMIT)]
     const limit = secenekDegeri(a, "-l", "--limit")
-    const hedefler = limit ? limitHedefleri(limit) : envanterHedefleri(a, b)
+    const hedefler = limit ? limitCoz(limit, a, b) : envanterHedefleri(a, b)
     return [...out, degisiklik(`ansible-playbook ${a.filter(secenekDegil).find((x) => /\.ya?ml$/.test(x)) ?? ""} (--check yok)`.trim(), hedefler)]
   }
   if (p === "ansible") {
@@ -1846,6 +1847,56 @@ export function envanterHedefleri(a: string[], b: Baglam): string[] {
       out.add(normHost(h))
       for (const e of esler) if (e !== h && e !== h.split(".")[0]) out.add(normHost(e))
     }
+  }
+  return out.size ? [...out] : ["?"]
+}
+
+// G124 §1c (Alp, 2026-11-12): -l'de grup adı (`-l stl_sxl`), joker (`-l 'sxl*'`) ve `@…retry` dosyası, -i ile verilen .ini
+// envanterden host'lara çözülür → yetki host başına denetlenir (önceden grup adı "listede yok" sayılıp her seferinde onay açıyordu).
+// Çözülemeyen (envanter okunamadı, joker hiçbir host'a uymadı, retry dosyası yok) → eski davranış: terim olduğu gibi / "?" (onay).
+export function limitCoz(limit: string, a: string[], b: Baglam): string[] {
+  const iler: string[] = []
+  for (let i = 0; i < a.length; i++) {
+    const m = /^(?:-i|--inventory|--inventory-file)(?:=(.+))?$/.exec(a[i])
+    if (m) iler.push(m[1] ?? a[++i] ?? "")
+    else if (/^-i./.test(a[i])) iler.push(a[i].slice(2))
+  }
+  let env: Envanter | null = { hostlar: new Map(), gruplar: new Map(), altGruplar: new Map(), dosyalar: [] }
+  for (const inv of iler) {
+    if (!/\.ini$/i.test(inv) && !/(^|\/)hosts[^/]*$/i.test(inv)) { env = null; break }
+    try {
+      const metin = readFileSync(yolCoz(inv, b), "utf8")
+      if (metin.length > 2 * 1024 * 1024 || /^\s*ansible_(?:ssh_)?host\s*=/im.test(metin)) { env = null; break }
+      envanterAyristir(metin, env)
+    } catch { env = null; break }
+  }
+  if (!iler.length || !env || !env.hostlar.size) return limitHedefleri(limit)
+  const e = env
+  const ekle = (out: Set<string>, h: string) => {
+    out.add(normHost(h))
+    for (const x of e.hostlar.get(h) ?? []) if (x !== h && x !== h.split(".")[0]) out.add(normHost(x))
+  }
+  const out = new Set<string>()
+  for (const ham of limit.split(/[,:]/).map((x) => x.trim()).filter((x) => x && !x.startsWith("!"))) {
+    const t = ham.replace(/^&/, "")
+    if (t.startsWith("@")) {
+      let satirlar: string[]
+      try { satirlar = readFileSync(yolCoz(t.slice(1), b), "utf8").split("\n").map((x) => x.trim()).filter(Boolean) } catch { return ["?"] }
+      if (!satirlar.length) return ["?"]
+      for (const h of satirlar) ekle(out, h)
+      continue
+    }
+    const g = t.toLowerCase()
+    if (g === "all" || g === "*") { for (const h of e.hostlar.keys()) ekle(out, h); continue }
+    if (e.gruplar.has(g) || e.altGruplar.has(g)) { for (const h of grupHostlari(e, g)) ekle(out, h); continue }
+    if (/[*?]/.test(t)) {
+      const re = new RegExp("^" + t.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*").replace(/\?/g, ".") + "$", "i")
+      const uyan = [...e.hostlar.keys()].filter((h) => re.test(h))
+      if (!uyan.length) return ["?"]
+      for (const h of uyan) ekle(out, h)
+      continue
+    }
+    out.add(normHost(t))
   }
   return out.size ? [...out] : ["?"]
 }

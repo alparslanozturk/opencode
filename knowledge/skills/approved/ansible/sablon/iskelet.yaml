@@ -1,0 +1,41 @@
+---
+# ŞABLON — her değişiklik playbook'unun iskeleti. Kopyala: dn/<numara>/0N-<ne-yaptigi>.yaml (ör. 02-dnf-guncelle.yaml).
+# Kurallar (ansible becerisi §1b-std):
+# - hosts: all (iş envanteri yalnız işin sunucuları) — hedef komutta -l ile. Grup adı uydurma, envanter dosyası yazma.
+# - Bir playbook = bir iş (reboot ayrı, güncelleme ayrı). Okuma (dnf check-update, rpm -q) playbook'a girmez, ad-hoc'tur.
+# - Modül önce (dnf, systemd_service, reboot, lineinfile); shell gerekiyorsa changed_when/failed_when ve pipefail.
+# - Reboot = ansible.builtin.reboot (sablon/reboot.yaml). shell: reboot + wait_for YAZMA.
+# - Her görevin adı Türkçe ve ne yaptığını söyler; son görev "Özet" — sunucu başına tek satır sonuç.
+
+- name: "CN <numara> — <ne yapılıyor>"
+  hosts: all
+  become: true
+  gather_facts: false
+  serial: "{{ dilim | default(1) }}"   # hız: -e dilim=1 | 5 | 10% | 100% (§1c)
+  max_fail_percentage: 0
+
+  tasks:
+    - name: Önce — <ölçülen değer>
+      ansible.builtin.command: <okuyan komut>
+      register: once
+      changed_when: false
+      check_mode: false   # okuma — --check'te de çalışır
+
+    - name: <değişikliği yapan görev — modülle>
+      ansible.builtin.<modul>:
+        <secenek>: <deger>
+
+    - name: Sonra — <aynı ölçüm>
+      ansible.builtin.command: <okuyan komut>
+      register: sonra
+      changed_when: false
+      check_mode: false   # okuma — --check'te de çalışır
+
+    - name: Doğrula
+      ansible.builtin.assert:
+        that: <beklenen koşul>
+        fail_msg: "{{ inventory_hostname }}: <ne olmadı>"
+
+    - name: Özet
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}: {{ once.stdout }} → {{ sonra.stdout }}"

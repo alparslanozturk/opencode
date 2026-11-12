@@ -1681,3 +1681,12 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   sonuçtur. Alp tekrar sorunca sunucu başına çıkardı. Ekranda `rhsa-kontrol.py` kullanıldığına dair iz yok; tahmin: oturum 6. tur kitinden
   önce açılmıştı ya da beceri yüklenmedi — doğrulanmadı. Aksiyon: `rhsa-kontrol.py` çıktısı RHSA başına tek satır (x/N), sapan sunucu
   adıyla, erişilemeyen bir kez (`--ayrinti` eski uzun biçim); beceriye "kendi tablonu kurma, genelleme yapma, ➖ eksik değildir".
+
+- **8. tur (Alp, 2026-11-12, 2 ekran):** ajan reboot'u `ssh … "reboot"` ile verdi, `sleep 90 && ssh` ile bekledi; sonra kendi INI'sini
+  (`dn/<no>/stl-sxl-ini.ini`, grup `stl-eri`) yazdı, playbook'a başka grup (`sxl-eri`) koydu → eşleşmedi; reboot'u `shell` + `wait_for`
+  ile yazdı, sunucu açılmadan döndü, yine `sleep 60 && ssh` ile elle devam etti. Kilit boşluğu: CN + liste verilince listedeki sunucuya
+  `ssh reboot` da onaysız geçiyor (`kilit.ts` toplu iş). Alp: "Ansible script'leri insan gibi yaz … loglarını görebil … sunucu adlarını
+  gerekirse tek tek, gerekirse wildcard … host grubuna insan gibi isim ver … önce birini dene, hızlı de dersem hızlı, %10 / ilk 3'ü."
+  Aksiyon (8. tur): şablon playbook'lar, `ansible` §1c tek çalıştırma biçimi + hız tablosu, `is-durum.py`, denetimde uydurma grup /
+  elle reboot ENGEL, is-envanter başlık düzeltmesi, kilitte `-l` grup/joker çözümü. CN altında ssh değişikliğini onaya düşürme önerisi
+  Alp'in kararını bekliyor.

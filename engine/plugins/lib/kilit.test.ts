@@ -822,6 +822,37 @@ describe("G101: --limit'siz ansible-playbook — hedef -i ile verilen (iş) enva
   })
 })
 
+describe("G124 §1c: standart çalıştırma (log öneki, iş envanteri, -l adlar/joker)", () => {
+  const { mkdirSync, writeFileSync, readFileSync } = require("fs")
+  const dz = workdir + "-g124std"
+  mkdirSync(dz + "/dn/29000/logs", { recursive: true })
+  writeFileSync(dz + "/dn/29000/hosts.ini", "[is_ek]\nsxl01\nsxl02\nsxl03\n[stl_sxl]\nsxl01\nsxl02\nsxl03\n")
+  writeFileSync(dz + "/dn/29000/01-reboot.yaml",
+    readFileSync(`${import.meta.dir}/../../../knowledge/skills/approved/ansible/sablon/reboot.yaml`, "utf8").replaceAll("<numara>", "29000"))
+  const y = (s: string[]): Yetki => ({ tur: "CN", cn: "29000", krizMetni: false, sunucular: s, zaman: Date.now(), esler: s })
+  const env = "ANSIBLE_LOG_PATH=dn/29000/logs/01-reboot.log ANSIBLE_TASK_TIMEOUT=1800 ANSIBLE_RETRY_FILES_ENABLED=1 ANSIBLE_RETRY_FILES_SAVE_PATH=dn/29000/logs"
+  const k = (l: string, yy?: Yetki) => kilitDenetle("bash", { command: `${env} ansible-playbook -i dn/29000/hosts.ini dn/29000/01-reboot.yaml ${l} -T 10` }, dz, yy)
+  test("şablon reboot playbook'u değişiklik sayılır (yetkisiz → onay)", () => expect(k("-l sxl01")?.kilit).toBe("K1"))
+  test("yetkili adlar tek tek / grup → onaysız (toplu iş)", () => {
+    const yy = y(["sxl01", "sxl02", "sxl03"])
+    expect(k("-l 'sxl01,sxl02'", yy)).toBeNull()
+    expect(k("-l stl_sxl", yy)).toBeNull()
+  })
+  test("listede olmayan ad → K1", () => expect(k("-l 'sxl01,sxl09'", y(["sxl01", "sxl02", "sxl03"]))?.kilit).toBe("K1"))
+  test("joker iş envanterinden çözülür; yetkisiz host'a uyarsa K1", () => {
+    expect(k("-l 'sxl*'", y(["sxl01", "sxl02", "sxl03"]))).toBeNull()
+    expect(k("-l 'sxl*'", y(["sxl01", "sxl02"]))?.kilit).toBe("K1")
+    expect(k("-l 'yok*'", y(["sxl01", "sxl02", "sxl03"]))?.kilit).toBe("K1")
+  })
+  test("grup yetkiyi aşan host içeriyorsa K1", () => expect(k("-l stl_sxl", y(["sxl01"]))?.kilit).toBe("K1"))
+  test("@retry dosyası okunur", () => {
+    writeFileSync(dz + "/dn/29000/logs/01-reboot.retry", "sxl02\n")
+    expect(k("-l @dn/29000/logs/01-reboot.retry", y(["sxl01", "sxl02", "sxl03"]))).toBeNull()
+    expect(k("-l @dn/29000/logs/01-reboot.retry", y(["sxl01"]))?.kilit).toBe("K1")
+    expect(k("-l @dn/29000/logs/yok.retry", y(["sxl01", "sxl02", "sxl03"]))?.kilit).toBe("K1")
+  })
+})
+
 describe("G102: playbook zaman sınırı öneki ve raw ilk yardım", () => {
   const karar = (c: string) => kilitDenetle("bash", { command: c }, workdir, undefined)
   const env = "ANSIBLE_TASK_TIMEOUT=120 ANSIBLE_RETRY_FILES_ENABLED=1 ANSIBLE_RETRY_FILES_SAVE_PATH=cikti/retry"
@@ -1146,6 +1177,10 @@ describe("filo-kontrol §7 erişim kontrolü salt-okunur (Alp 2026-11-04)", () =
     expect(kesinOkuma("python3 /root/ai/opencode/knowledge/skills/approved/rhel-guncelleme/rhsa-kontrol.py cikti/filo/rhsa RHSA-2025:1234", workdir)).toBe(true)
     expect(kesinOkuma("python3 /root/ai/opencode/knowledge/skills/approved/rhel-guncelleme/rhsa-kontrol.py --komut RHSA-2025:1234 -i dn/29000/hosts.ini", workdir)).toBe(true)
     expect(kesinOkuma(`ansible all -i dn/29000/hosts.ini -m shell -f 20 -T 10 --task-timeout 300 -t cikti/filo/rhsa -a "echo @@calisan; uname -r; echo @@adv RHSA-2025:1234; dnf -q repoquery --advisory=RHSA-2025:1234 --qf '%{name} %{arch} %{epoch}:%{version}-%{release}' 2>&1; echo @@rpm; rpm -qa --qf '%{name} %{arch} %{epoch}:%{version}-%{release}\\n'"`, workdir)).toBe(true)
+  })
+  test("is-durum okuma (iş durumu + --sec seçimi)", () => {
+    expect(kesinOkuma("python3 /root/ai/opencode/knowledge/skills/approved/ansible/is-durum.py dn/29000", workdir)).toBe(true)
+    expect(kesinOkuma("python3 /root/ai/opencode/knowledge/skills/approved/ansible/is-durum.py dn/29000 --sec 10% --pb 01-reboot --grup stl", workdir)).toBe(true)
   })
   test("uzak-ozet okuma", () =>
     expect(kesinOkuma("python3 /root/ai/opencode/knowledge/skills/approved/uzak-envanter/uzak-ozet.py uzak/uzak-ktbulut-20261104-1445", workdir)).toBe(true))

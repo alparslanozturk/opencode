@@ -945,8 +945,10 @@ mkdir -p ied/ansible/inventories && printf '[dtl]\ndtlweb01 ansible_host=10.0.0.
 IE="$B/ansible/is-envanter.py"
 (cd ied && python3 "$IE" 29000 dtlweb01 dtlweb02 --erisim-yok > ../ied1.txt 2>&1)
 [ -f ied/dn/29000/hosts.ini ] && gecti "yalın numara → dn/<numara>/hosts.ini" || kaldi "dn yolu: $(cat ied1.txt | head -3)"
-icerir "çıktı: değişiklik playbook'la, iş dizininde" ied1.txt "dn/29000/01-<ad>.yaml"
-icerir "çıktı: önce tek sunucu" ied1.txt "-l <sunucu>"
+icerir "çıktı: değişiklik şablondan, iş dizininde" ied1.txt "sablon/reboot.yaml dn/29000/01-reboot.yaml"
+icerir "çıktı: önce tek sunucu" ied1.txt "önce -l <tek sunucu>"
+icerir "çıktı: standart komut log'lu" ied1.txt "ANSIBLE_LOG_PATH=dn/29000/logs/01-reboot.log"
+icerir "çıktı: durum betiği" ied1.txt "is-durum.py"
 icerir "çıktı: for … ssh yok" ied1.txt "for … ssh döngüsü yazma"
 icerir "çıktı: iş kaydı komutu" ied1.txt "is-kaydi.py ac"
 (cd ied && python3 "$IE" dn29000 dtlweb02 dtlweb01 --erisim-yok > ../ied2.txt 2>&1)
@@ -988,6 +990,60 @@ icerir "--liste: dn altı" ied7.txt "dn/29001/hosts.ini"; icerir "--liste: CN'si
 (cd ied && python3 "$B/kume-bul/kume-bul.py" stlweb01 > ../ied8.txt 2>&1)
 icermez "kume-bul dn/ altını kaynak saymaz" ied8.txt "dn/29000"
 icermez "kume-bul tarihli iş envanterini kaynak saymaz" ied8.txt "kriz.ini"
+
+baslik "§1c standart (Alp 2026-11-12: \"insan gibi yaz, loglarını görebil, ilk 3'ü / %10'u / hızlı\")"
+# başlıkta / ve Türkçe harf: "STL/SXL sunucuları (8):" sunucu sayılmaz, grup stl_sxl olur; ad olmayan sözcük dosyaya girmez
+printf 'STL/SXL sunucuları (2):\nstlweb01\ndtlweb01 sunucuları\nDTL ERİŞİM:\ndtlweb02\n' | (cd ied && python3 "$IE" 29003 - --erisim-yok > ../std1.txt 2>&1)
+icerir "STL/SXL başlığı → [stl_sxl]" ied/dn/29003/hosts.ini "[stl_sxl]"
+icermez "stl/sxl host satırı olmaz" ied/dn/29003/hosts.ini "stl/sxl"
+icermez "Türkçe sözcük host olmaz" ied/dn/29003/hosts.ini "sunucuları  #"
+icerir "alınmayan sözcük ekranda söylenir" std1.txt "sunucu adı değil, alınmadı: sunucuları"
+icerir "DTL ERİŞİM → [dtl]" ied/dn/29003/hosts.ini "[dtl]"
+# şablonlar: sözdizimi, denetim temiz, hosts: all + serial + reboot modülü
+SB="$B/ansible/sablon"
+mkdir -p std/dn/29000/logs && printf '[stl]\nsx01\nsx02\nsx03\nsx04\n[dtl]\ndt01\ndt02\n' > std/dn/29000/hosts.ini
+sed 's/<numara>/29000/g' "$SB/reboot.yaml" > std/dn/29000/01-reboot.yaml
+(cd std && ansible-playbook -i dn/29000/hosts.ini dn/29000/01-reboot.yaml --syntax-check > ../std2.txt 2>&1; echo "rc=$?" >> ../std2.txt)
+icerir "reboot şablonu --syntax-check" std2.txt "rc=0"
+python3 "$B/ansible/playbook-denetim.py" std/dn/29000/01-reboot.yaml > std3.txt 2>&1
+icerir "reboot şablonu iş dizininde denetim temiz" std3.txt "bulgu yok"
+icerir "şablon: hosts all" "$SB/reboot.yaml" "hosts: all"
+icerir "şablon: dilim (hız)" "$SB/reboot.yaml" 'serial: "{{ dilim | default(1) }}"'
+icerir "şablon: max_fail_percentage 0" "$SB/reboot.yaml" "max_fail_percentage: 0"
+icerir "şablon: reboot modülü" "$SB/reboot.yaml" "ansible.builtin.reboot:"
+icerir "iskelet: hosts all" "$SB/iskelet.yaml" "hosts: all"
+(cd std && ANSIBLE_LOG_PATH=dn/29000/logs/01-reboot.log ANSIBLE_RETRY_FILES_ENABLED=1 ANSIBLE_RETRY_FILES_SAVE_PATH=dn/29000/logs \
+  ansible-playbook -i dn/29000/hosts.ini dn/29000/01-reboot.yaml -l dt01 -c local -T 3 > ../std4.txt 2>&1)
+icerir "yerel bağlantıda reboot modülü kontrol düğümünü reboot etmez (düşer)" std4.txt "would reboot the control node"
+# saha G124 playbook'u: uydurma grup, shell reboot + wait_for
+printf -- '- name: x\n  hosts: sxl-eri\n  tasks:\n    - name: r\n      shell: reboot\n    - name: b\n      wait_for_connection:\n        timeout: 300\n' > std/dn/29000/07-x.yaml
+python3 "$B/ansible/playbook-denetim.py" std/dn/29000/07-x.yaml > std5.txt 2>&1
+icerir "denetim: hosts.ini'de olmayan grup ENGEL" std5.txt "hosts-grup-yok"
+icerir "denetim: shell reboot ENGEL" std5.txt "elle-reboot"
+icerir "denetim: shell reboot + wait_for" std5.txt "wait_for_connection"
+icerir "denetim: serial yok uyarısı" std5.txt "serial-yok"
+\rm -f std/dn/29000/07-x.yaml
+# is-durum: gerçek ansible logu (yukarıdaki koşu dt01 düştü) + elle yazılmış ini uyarısı + --sec
+touch std/dn/29000/stl-sxl-ini.ini
+python3 "$B/ansible/is-durum.py" std/dn/29000 > std6.txt 2>&1; echo "rc=$?" >> std6.txt
+icerir "is-durum: düşen sunucu" std6.txt "❌ düştü: dt01"
+icerir "is-durum: hata satırı (görev — mesaj)" std6.txt "dt01: Yeniden başlat ve sunucu açılana kadar bekle"
+icerir "is-durum: bekleyenler" std6.txt "⏳ bekliyor: sx01, sx02, sx03, sx04, dt02"
+icerir "is-durum: grup özeti" std6.txt "[stl] ⏳ 4/4"
+icerir "is-durum: elle yazılmış ini" std6.txt "elle yazılmış envanter: stl-sxl-ini.ini"
+icerir "is-durum: bitmemiş → rc=1" std6.txt "rc=1"
+python3 "$B/ansible/is-durum.py" std/dn/29000 --sec 3 --pb 01-reboot > std7.txt 2>&1
+icerir "--sec 3: bekleyen ilk 3 (düşen hariç)" std7.txt "-l 'sx01,sx02,sx03'"
+python3 "$B/ansible/is-durum.py" std/dn/29000 --sec 10% --pb 01-reboot.yaml --grup stl > std8.txt 2>&1
+icerir "--sec 10% grup içinde en az 1" std8.txt "-l 'sx01'"
+python3 "$B/ansible/is-durum.py" std/dn/29000 --sec 3 > std9.txt 2>&1; echo "rc=$?" >> std9.txt
+icerir "--sec --pb'siz → rc=2" std9.txt "rc=2"
+# önce düşen, sonra yeniden koşup biten → ✅ (son koşu geçerli)
+P='u=root n=ansible |'
+printf '2026-11-12 11:00:00,1 p=1 %s PLAY RECAP ****\n2026-11-12 11:00:00,1 p=1 %s dt01                  : ok=5    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0\n' "$P" "$P" >> std/dn/29000/logs/01-reboot.log
+python3 "$B/ansible/is-durum.py" std/dn/29000 > std10.txt 2>&1
+icermez "yeniden koşup biten artık düşmüş görünmez" std10.txt "❌ düştü: dt01"
+icerir "son koşu ✅" std10.txt "01-reboot — ✅ 1/6"
 
 baslik "rhsa-kontrol (Alp 2026-11-12: RHSA kurulu mu — updateinfo --installed depoda yok ile kurulu değil'i ayıramıyor)"
 RK="$B/rhel-guncelleme/rhsa-kontrol.py"

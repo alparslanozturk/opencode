@@ -112,7 +112,7 @@ export function envanterOku(workdir: string): Envanter {
   return env
 }
 
-function grupHostlari(env: Envanter, grup: string, gorulen = new Set<string>()): string[] {
+export function grupHostlari(env: Envanter, grup: string, gorulen = new Set<string>()): string[] {
   if (gorulen.has(grup)) return []
   gorulen.add(grup)
   return [

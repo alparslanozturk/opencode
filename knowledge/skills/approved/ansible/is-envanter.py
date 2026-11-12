@@ -87,15 +87,20 @@ def ogeler(argv_sunucular):
 
 # Başlık satırı → grup (Alp, 2026-11-12: "işle birlikte verdiğim bütün dosyaları aynı host dosyasına koyabilirsin … gruplandırabilirsin").
 # "DTL:", "STL sunucuları (9):", "dtl: a b c" → grup dtl. Grup adı yalnız harf/_/- (rakam yok — rakamlı söz sunucu adıdır).
-BASLIK = re.compile(r"^\s*[-*•#>]*\s*([^\W\d][\w-]*)((?:\s+[^\s:=]+){0,3})\s*:(?!\S)(.*)$")
+BASLIK = re.compile(r"^\s*[-*•#>]*\s*([^\W\d][\w/+&-]*)((?:\s+[^\s:=]+){0,3})\s*:(?!\S)(.*)$")
 SATIR_ICI = re.compile(r"(?:^|\s)([^\W\d][\w-]*):(?=\s|$)")
 GENEL = {"sunucu", "sunucular", "sunucuları", "sunucu_listesi", "liste", "hostlar", "host", "hosts", "server", "servers",
          "makineler", "hedef", "hedefler"}  # başlık ama grup değil
 YOKSAY = {"cn", "dn", "chg", "değişiklik", "degisiklik", "not", "açıklama", "aciklama", "tarih", "saat"}  # satırın kalanı sunucu değil
 
 
+TR_ASCII = {ord(a): b for a, b in zip("çğıöşüÇĞIİÖŞÜ", "cgiosucgiiosu")}
+
+
 def grup_adi(t):
-    g = re.sub(r"\W", "_", t.strip().lower())
+    # İnsanın yazdığı başlık → okunur grup adı: "STL/SXL" → stl_sxl, "DTL ERİŞİM" → dtl_erisim (Türkçe harf ASCII'ye; "İ".lower()
+    # birleşik nokta bırakır). Tire/boşluk/eğik çizgi tek "_" olur (tireli grup adı ansible'da uyarı basar).
+    g = re.sub(r"[^a-z0-9]+", "_", t.strip().translate(TR_ASCII).lower()).strip("_")
     return "g_" + g if g[:1].isdigit() else g
 
 
@@ -123,7 +128,7 @@ def gruplu_ogeler(metin, varsayilan=""):
 
 
 def ad_gibi(o):
-    # DNS'e sorulacak öğe: harf içeren ad ya da IPv4. Saf sayı (29330) sorulmaz — getaddrinfo onu IP sayar (0.0.114.170).
+    # DNS'e sorulacak öğe: harf içeren ad ya da IPv4. Saf sayı (29000) sorulmaz — getaddrinfo onu IP sayar (0.0.113.72).
     return bool(re.fullmatch(r"\d{1,3}(?:\.\d{1,3}){3}", o)) or bool(re.fullmatch(r"(?=.*[a-z])[a-z0-9][a-z0-9.-]*", o))
 
 
@@ -376,6 +381,19 @@ def main(argv):
     # envanterde olmayanlar DNS'ten doğrulanır. Dosyaya kullanıcının verdiği öğe AYNEN yazılır (ad → ad, IP → IP); çözülen IP/PTR yalnız
     # yorumdadır. ansible_host=<DNS IP> YAZILMAZ: ansible adı kendisi çözer, ve kilit (envanter.ts) ansible_host'u ayrı hedef sayar —
     # kullanıcının vermediği IP her değişiklikte "listede yok" onayı açardı (yetki ad ile verildi). Çözülmeyen yazılır ama işaretlenir.
+    # Sunucu adı olamayan sözcük ("sunucuları", "stl/sxl", "(8)") dosyaya HİÇ yazılmaz — host satırı olarak girerse playbook o adı
+    # sunucu sanıp bağlanmaya çalışır (Alp, 2026-11-12: "host kısmına abuk subuk isimler yazılıyor"). Yalnız ekranda listelenir.
+    adsiz = [b for b in bulunamayan if not ad_gibi(b)]
+    if adsiz:
+        bulunamayan = [b for b in bulunamayan if b not in adsiz]
+        grup_hostlari = {g: (s_, [x for x in b_ if x not in adsiz]) for g, (s_, b_) in grup_hostlari.items()}
+        tum = {g: [x for x in v if x not in adsiz] for g, v in tum.items()}
+        tum = {g: v for g, v in tum.items() if v}
+        grup_hostlari = {g: v for g, v in grup_hostlari.items() if g in tum}
+        print("⚠️ sunucu adı değil, alınmadı: %s — sunucuysa kullanıcıya sor" % ", ".join(adsiz))
+        if not tum:
+            print("sunucu listesi boş")
+            return 1
     kayit_ip = {k["ad"]: sorted(k["ipler"]) for k in kayitlar}
     sor = list(bulunamayan) + [a for a in secilen if not any(re.fullmatch(r"[\d.]+", x) for x in kayit_ip.get(a, []))]
     dns = dns_coz(sor) if sor else {}
@@ -504,10 +522,18 @@ def main(argv):
     if calisma != cwd:
         print("çalışma dizini: %s (yollar buna göre)" % calisma)
     print("okuma (çok sunucu, tek komut — for … ssh döngüsü yazma): ansible all -i %s -m shell -a '<okuma>' -t cikti/filo/<etiket>" % yol)
-    print("değişiklik = playbook (ansible becerisi §0): %s — %s" % (pb, "işin playbook'ları bu dizinde, sıra numarasıyla (01-, 02- …); "
-          "ansible/playbooks/ içinde hazırı varsa buraya kopyala" if is_dizin else "dizinde hazırı varsa onu kullan, yoksa sıradaki numarayla yaz"))
-    print("  → playbook-denetim.py + --syntax-check → planı kullanıcıya göster, onayını bekle →")
-    print("  önce TEK sunucu: ansible-playbook -i %s %s -l <sunucu> → hedefte ölç → kalan sunucular kullanıcının \"devam\"ıyla" % (yol, pb))
+    print("değişiklik = playbook, ŞABLONDAN (ansible becerisi §1c): reboot → cp %s %s · diğer → sablon/iskelet.yaml; hosts: all, "
+          "başka .ini yazma" % (os.path.join(BURASI, "sablon", "reboot.yaml"), pb.replace("<ad>", "reboot")) if is_dizin else
+          "değişiklik = playbook (ansible becerisi §0): %s — dizinde hazırı varsa onu kullan, yoksa sıradaki numarayla yaz" % pb)
+    print("  → playbook-denetim.py + --syntax-check + aynı komut --list-hosts → planı kullanıcıya göster, onayını bekle →")
+    if is_dizin:
+        lg = os.path.join(is_dizin, "logs")
+        print("  çalıştır (tek biçim, önce -l <tek sunucu>): ANSIBLE_LOG_PATH=%s/01-reboot.log ANSIBLE_TASK_TIMEOUT=1800 "
+              "ANSIBLE_RETRY_FILES_ENABLED=1 ANSIBLE_RETRY_FILES_SAVE_PATH=%s ansible-playbook -i %s %s -l '<hedef>' -T 10"
+              % (lg, lg, yol, pb.replace("<ad>", "reboot")))
+        print("  durum: python3 %s %s   ·   \"ilk 3'ü\": … --sec 3 --pb 01-reboot" % (os.path.join(BURASI, "is-durum.py"), is_dizin))
+    else:
+        print("  önce TEK sunucu: ansible-playbook -i %s %s -l <sunucu> → hedefte ölç → kalan sunucular kullanıcının \"devam\"ıyla" % (yol, pb))
     if is_dizin and not os.path.isfile(os.path.join(is_dizin, "logs", "plan.md")):
         print("iş kaydı (README.md + logs/): python3 %s ac <işin kısa adı> --cn %s --istek \"<kullanıcının cümlesi>\"" % (
             os.path.normpath(os.path.join(BURASI, "..", "rapor", "is-kaydi.py")), etiket))

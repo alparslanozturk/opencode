@@ -71,14 +71,18 @@ Kullanıcı sunucularda değişiklik istediyse (güncelleme, ayar, servis, disk 
    **o grupta değişikliğe başlamadan** adlarını yaz ve sor ("IP'si ya da envanter satırı?").
    Eksik sunucuyu kendin atlayıp gerisinde değişikliğe geçme — "atla" kararını kullanıcı verir.
 4. **Değişiklik playbook'la yapılır — `for … ssh` döngüsüyle ya da `ansible … -m shell -a "<değişiklik>"` ile uzaktan komut komut değil.**
-   Playbook işin dizinine yazılır (`dn/<numara>/01-reboot.yaml`, sonraki adım `02-…`); `ansible/playbooks/` içinde iş için hazırı varsa
-   onu **oku** ve iş dizinine kopyala. `ansible/playbook-denetim.py` + `--syntax-check` + `-i dn/<numara>/hosts.ini --list-hosts`.
+   Playbook **şablondan** işin dizinine yazılır: reboot → `cp $B/ansible/sablon/reboot.yaml dn/<numara>/01-reboot.yaml`, başka iş →
+   `sablon/iskelet.yaml` (`hosts: all`, hedef komutta `-l`; grup adı/INI uydurma; reboot yalnız `ansible.builtin.reboot`, `shell: reboot`
+   + `wait_for` + `sleep` yok). `ansible/playbooks/` içinde hazırı varsa onu **oku** ve kopyala. `ansible/playbook-denetim.py` (ENGEL'siz)
+   + `--syntax-check` + aynı komut `--list-hosts`. **Çalıştırma tek biçim** (log `dn/<numara>/logs/<playbook>.log`, hız kullanıcının
+   sözüyle: tek / "ilk 3'ü" / "%10'u" / sırayla / hızlı) ve **durum** `python3 $B/ansible/is-durum.py dn/<numara>` → `ansible` §1c.
    **ssh / ansible ad-hoc yalnız okuma içindir**; playbook gerektirmeyen tek ufak komut varsa onu "playbook'suz, tek komutla
    yapacağım: <komut>" diye söyle — karar kullanıcının. Ayrıntı: `ansible` becerisi §0.
 5. **Planı göster, onayı bekle, önce tek sunucu.** Tek mesajda: iş envanteri dosyası + sunucu sayısı, playbook yolu + görevleri, ilk
    deneyeceğin sunucu; "başlayayım mı, hangi sunucularda?" diye sor. Cevap gelince playbook **önce tek sunucuda** (`-l <sunucu>`) çalışır:
    hedefte ölç, sonucu göster, **dur**. Hata varsa playbook düzeltilir (hazır/kurum playbook'unda düzeltmeyi öner, kullanıcı karar verir)
-   ve aynı sunucuda yeniden denenir. Kalan sunucular kullanıcının "devam"ıyla — tek sunucunun onayı kalanları kapsamaz.
+   ve aynı sunucuda yeniden denenir — **playbook yarıda kalınca `sleep`/`ssh` ile elle devam etme** (saha G124). Kalan sunucular
+   kullanıcının "devam"ıyla — tek sunucunun onayı kalanları kapsamaz.
 6. **Yalnız kullanıcının söylediği grup, söylediği sıra — adım adım.** Becerideki adım sırasını başta kısa liste olarak göster. Her
    adım (okuma, reboot, güncelleme … ayrı ayrı) bitince sunucu başına sonucu tablo ver ve **dur**: "sıradaki adım <…>, başlayayım mı?"
    Bir adımın onayı sonrakini kapsamaz; bir grup bitince sonraki gruba kullanıcı "devam" demeden başlama. Kullanıcı o mesajda hangi
@@ -163,6 +167,7 @@ kullanım becerinin SKILL.md'sinde (önce beceriyi yükle):
 - NFS açılışta dizin boş / yeniden mount ile geliyor / konteyner NFS'ten önce başladı (kaynaklı: man systemd.mount/unit) → `rhel-nfs/nfs-tani.py`
 - kümede imaj nereden çekilecek (düğümün registries.yaml aynaları) / kurulum sonrası çekme hatası → `kurum-registry/imaj-yol.py`
 - playbook'u çalıştırmadan denetle (yazdığın ya da hazır) → `ansible/playbook-denetim.py`
+- işin durumu ("ne durumda", "kaç sunucu bitti", "ilk 3'ünü / %10'unu seç") → `ansible/is-durum.py dn/<numara> [--sec N|N% --pb <playbook>]`
 Uzak okuma borunun başında kalır (`ssh … "<okuma>" | python3 <betik> -`), betiğe gömülmez. Betik hata verirse hatayı oku; iki denemede
 olmuyorsa dur ve söyle — elle ayrıştırmaya geçme.
 

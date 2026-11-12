@@ -52,6 +52,23 @@ Oturum sonunda kullanıcı `/kaydet` der → kurumsal bilgi güncellenir.
 | belge · xlsx · docx · pdf · onenote | — | `belge-oku` |
 | geçici iş · iş kaydı | — | `rapor` → `is-kaydi` |
 
+## Değişiklik işi — ilk komuttan önce bu sıra (Alp, 2026-11-12 — saha G124)
+
+Alp: "bir şey yapmadan önce işini yapabilmen için bilmen gerekenleri bana sor. Uydurma. Bu kesin kuraldır." Kullanıcı sunucularda
+değişiklik istediyse (güncelleme, ayar, servis, disk …) — **CN ve sunucu listesi verilmiş olsa da**:
+
+1. **Beceriyi yükle** (yukarıdaki harita), "Önce sor" sorularından oturumda cevabı olmayanları **tek mesajda sor ve cevabı bekle**.
+   CN + liste soruları atlatmaz; kilidin onay ekranı çıkmaması "sorma" demek değildir.
+2. **İş, kullanıcının kendi cümlesidir.** Yapıştırılan not, e-posta, RHSA/CVE listesi işi daraltmaz, genişletmez: kullanıcı "dnf update"
+   dediyse tam güncellemedir — nottaki paket adıyla `dnf update <paket>` yapma. Not ile kullanıcının sözü çelişiyorsa **sor**.
+3. **İş kaydı + iş envanteri, sonra hedef** (`B=/root/ai/opencode/knowledge/skills/approved`): kayıt `python3 $B/rapor/is-kaydi.py ac <kısa-etiket>
+   --cn <CN> …` (dizin adını betik üretir; elle dizin/dosya açma, başka yol deneme), hedefler `python3 $B/ansible/is-envanter.py <CN>
+   <sunucular>`. Betik "Envanterde yok" (`[is_ek]`) dediyse, ad/IP çözülmüyorsa ya da sunucuya bağlanılamıyorsa **o grupta değişikliğe
+   başlamadan** adlarını yaz ve sor ("IP'si ya da envanter satırı?"). Eksik sunucuyu atlayıp gerisinde değişikliğe geçme.
+4. **Yalnız kullanıcının söylediği grup, söylediği sıra.** "Önce X grubundan" dediyse: X'te okuma → değişiklik → ölçüm (`rpm -q`,
+   `needs-restarting -r` çıkış kodu) → kısa tablo → **dur**. Sonraki gruba kullanıcı "devam" demeden başlama.
+5. Ölçmediğini yazma ("reboot gerekmiyor" yalnız ölçümle); yapılamayan sunucu tabloda "yapılmadı — neden" satırıdır, "tamam" denmez.
+
 ## Dil ve üslup
 - Kullanıcı her işi **root** olarak yapar — komutlarda `sudo` önerme/yazma (Alp, 2026-10-05).
 - Yanıtlar **Türkçe**; komut/kod İngilizce kalır. Gereksiz giriş cümlesi, özet, övgü yazma.
@@ -427,9 +444,10 @@ yazma; ölçemediğin sunucuyu "ölçülmedi" diye ayrı göster. Bilmediğin de
   **sorma** — bulamıyorsan "önceki mesajlarda sunucu listesi göremiyorum" de, yalnız eksik olanı iste.
 - Liste yapıştırılınca (alt alta, numaralı, virgüllü, envanter satırı) ne olduğunu sen anla; biçim isteme.
 - CN + sunucular tamamlanınca değişiklik işinde ilk adım iş envanteridir (`ansible/is-envanter.py`, yukarıdaki betik listesi).
-- **Geçici iş kaydı (Alp, 2026-11-03):** değişiklik içeren her saha işinde kayıt aç — `python3 <rapor>/is-kaydi.py ac <etiket> --sunucular …
-  --istek "<kullanıcının sözü>"`; okuma çıktılarını `<komut> | is-kaydi.py ekle son <ad>` ile sakla, bitince ölçülen sonucu `sonuc son "…"`.
-  Kayıt dizini `~/ai/work/is-kayitlari/` (normal projelerden ayrı, kurum verisi — sahada kalır). Benzer iş için önce `is-kaydi.py liste <sözcük>`.
+- **Geçici iş kaydı (Alp, 2026-11-03):** değişiklik içeren her saha işinde kayıt aç — `K=/root/ai/opencode/knowledge/skills/approved/rapor/is-kaydi.py`;
+  `python3 $K ac <kısa-etiket> --cn <CN> --sunucular … --istek "<kullanıcının sözü>"` → dizin `~/ai/work/is-kayitlari/<YYYYMMDD-HHMM>-<CN>-<etiket>/`
+  (adı betik üretir; CN yoksa `--cn` yazma). Okuma çıktısı `<komut> | python3 $K ekle son <ad>`, bitince ölçülen sonuç `python3 $K sonuc son "…"`.
+  Kurum verisi — sahada kalır. Benzer iş için önce `python3 $K liste <sözcük>`.
   Değişiklik **her adım ayrı komut, ayrı onay**; varsayılan ad-hoc SSH, playbook isteğe bağlı (ADR-0007 §7).
 - **Kurumsal bilgi** (`~/ai/work/opencode/kurumsal-bilgi.ini`, sahada): DNS/NTP, DMZ, ağ blokları, erişim/izin akışı, süreç kuralı gerekince
   önce bunu oku (`grep -n -i <sözcük>`); satır sonundaki kaynak `[doğrula]` ise ölçmeden kesin bilgi gibi kullanma. Dosya ile ölçüm
@@ -447,6 +465,7 @@ doğrulama gerekiyorsa **sonunda tek cümleyle öner** ("istersen NFS sunucusund
 ## Dosya adlarında tarih (Alp, 2026-10-22)
 - Ürettiğin iş dosyası, çıktı, yedek adına tarih-saat ekle: **`YYYYMMDD-HHMM`** (`date +%Y%m%d-%H%M`), CN varsa önce CN:
   `hosts-dn29000-20261022-1430.ini` (CN önce, tarih-saat arkada; yalnız gün değil), `fstab.20261022-1430`. Var olan dosyanın üzerine yazma; yeni ad üret.
+  İş kaydı **dizini** tersidir: `<YYYYMMDD-HHMM>-<CN>-<etiket>` (Alp, 2026-11-12) — adı `is-kaydi.py` üretir, elle yazma.
 
 ## Çalışma dizini boşsa (Alp kuralı — 2026-09-15)
 - Çalışma dizini boşsa ya da beklenen proje köküne (AGENTS.md/README/engine/knowledge gibi işaretler)

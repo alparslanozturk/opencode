@@ -6,6 +6,23 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-12 — değişiklik işi: önce sor / kapsamı daraltma / grup bitince dur (saha G124)
+
+Sahada: `al.sh` → `./kur.sh`, **yeni oturum**. İkili değişmez.
+- **Olay:** CN'li güncelleme işinde ajan sormadan başladı, "dnf update"i yapıştırılan nottaki tek pakete daralttı, erişemediği 2 sunucuyu
+  sormadan atladı, ilk grup bitince söylenmeden sonraki gruba geçti (ayrıntı: saha günlüğü G124).
+- `engine/AGENTS.md`: iş haritasının hemen altına **"Değişiklik işi — ilk komuttan önce bu sıra"** (5 madde: beceriyi yükle + sor ve bekle ·
+  iş kullanıcının cümlesidir, not daraltmaz · iş kaydı + iş envanteri, çözülmeyen sunucu sorulur · yalnız söylenen grup, bitince dur ·
+  ölçmediğini yazma). İş kaydı satırındaki kırık yol (`<rapor>/is-kaydi.py`) tam yola çevrildi — model yolu tahmin ediyordu.
+- `rapor/is-kaydi.py`: dizin adı **`<YYYYMMDD-HHMM>-<CN>-<etiket>`** (Alp: "yıl, ay, gün, saat; sonra tire; sonra change numarası").
+  `--cn` artık ada girer; etikete yazılmış tarih/CN yinelenmez; etiketsiz `ac --cn <no>` kabul. Eski kayıt dizinleri yeniden adlandırılmaz.
+- `rhel-guncelleme`: "Kapsam ve grup sırası" — "dnf update" = tam güncelleme; grup sırası verildiyse ilk grupta tablo → dur; çözülmeyen
+  sunucu değişiklikten önce sorulur; hedef iş envanterinden.
+- **Değişmeyen (karar Alp'te):** kilit — CN + sunucu verilince değişiklik onay ekranına düşmüyor (2026-10-27). Bu olayda 7 sunucudaki
+  değişiklik bu yüzden ekrana gelmedi. İş envanteri dosya adı hâlâ CN önce (`hosts-<CN>-<tarih-saat>.ini`, 2026-10-22).
+- Denetimler: `beceri-yazim-denetim.py` BECERI=46 HATA=0 · `beceri-betik-test.sh` 290 geçti · 0 kaldı (is-kaydi 4 yeni + G124 cümlesi
+  iş haritasında `rhel-guncelleme`'ye gidiyor) · `beceri-komut-kilit.ts` 76 geçti · 0 takıldı. **Sahada denenmedi:** yerel modelin yeni bölüme uyup uymadığı.
+
 ## 2026-11-11 — iki büyük beceri bölündü (SKILL.md + ek dosya); sunucu tam adları becerilerden çıktı
 
 Sahada: `al.sh` → `./kur.sh`, **yeni oturum**. İkili değişmez. Ek dosyalar `kur.sh`'ın beceri dizini kopyasıyla (`cp -r`) birlikte gider.

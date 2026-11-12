@@ -25,12 +25,14 @@ Aşağıdaki elle Python örnekleri yalnız betiği olmayan küçük, kullanıc�
 
 ## İş kaydı — `is-kaydi.py` (Alp, 2026-11-03)
 
-Geçici saha işinin planı, kanıtı ve sonucu tek dizinde: `~/ai/work/is-kayitlari/<YYYYMMDD-HHMM>-<etiket>/` (`plan.md`, `okuma/`, `sonuc.md`).
-Zamanla kurumun iş bilgi tabanı olur; kurum verisi içerir, sahada kalır.
+Geçici saha işinin planı, kanıtı ve sonucu tek dizinde: `~/ai/work/is-kayitlari/<YYYYMMDD-HHMM>-<CN>-<etiket>/` (`plan.md`, `okuma/`,
+`sonuc.md`; CN yoksa `<YYYYMMDD-HHMM>-<etiket>`). Zamanla kurumun iş bilgi tabanı olur; kurum verisi içerir, sahada kalır.
+**Dizin adını betik üretir** (Alp, 2026-11-12: "yıl, ay, gün, saat; sonra tire; sonra change numarası"): CN'yi `--cn` ile ver, etikete
+tarih ya da CN yazma, kayıt dizinini/dosyalarını elle (`mkdir`, write) açma. Betiğin yolu aşağıdaki tam yoldur — başka yol deneme.
 
 ```bash
 K=/root/ai/opencode/knowledge/skills/approved/rapor/is-kaydi.py
-python3 $K ac data-to-root --sunucular sxl1,sxl2 --istek "/data alanını köke ver"   # yolu basar
+python3 $K ac data-to-root --cn <CN> --sunucular sxl1,sxl2 --istek "/data alanını köke ver"   # yolu basar; CN yoksa --cn yazma
 ssh root@<sunucu> 'df -h /; lsblk' | python3 $K ekle son <sunucu>-once            # okuma kanıtı
 python3 $K sonuc son "<sunucu>: root 53G → 365G (df -h /)"                          # yalnız ölçülen
 python3 $K liste data                                                               # eski benzer işler

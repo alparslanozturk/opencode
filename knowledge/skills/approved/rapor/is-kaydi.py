@@ -5,6 +5,8 @@
 # Kurum verisi içerir — sahada kalır, opencode deposuna kopyalanmaz.
 #
 #   is-kaydi.py ac <etiket> [--cn <no>] [--sunucular a,b] [--istek "<metin>"]   → yeni kayıt dizini, yolunu basar
+#       dizin adını betik üretir: <YYYYMMDD-HHMM>-<CN>-<etiket> (CN yoksa <YYYYMMDD-HHMM>-<etiket>). Tarih-saati ve CN'yi etikete
+#       yazma; etiket işin kısa adıdır (Alp, 2026-11-12: "yıl, ay, gün, saat; sonra tire; sonra change numarası").
 #   <komut> | is-kaydi.py ekle <dizin|son> <ad>                                 → stdin'i okuma/<tarih>-<ad>.txt olarak saklar
 #   is-kaydi.py sonuc <dizin|son> "<satır>"                                     → sonuc.md'ye zaman damgalı satır ekler
 #   is-kaydi.py liste [<sözcük>]                                                → kayıtları listeler (okuma)
@@ -85,11 +87,20 @@ def main(argv):
         print(open(__file__, encoding="utf-8").read().split("import datetime")[0].replace("# ", "").replace("#!/usr/bin/env python3\n", ""))
         return 0
     if argv[0] == "ac" and len(argv) > 1:
-        ad = "%s-%s" % (zaman(), guvenli_ad(argv[1]))
+        cn = secenek(argv, "--cn", "")
+        cn_ad = guvenli_ad(cn) if cn.strip() else ""
+        etiket = "" if argv[1].startswith("--") else guvenli_ad(argv[1])
+        # etikete yazılmış tarih-saat ve CN yinelenmez: "20261112-0853-29000-guncelleme" + --cn 29000 → "guncelleme"
+        etiket = re.sub(r"^\d{8}(-\d{4})?-?", "", etiket)
+        if cn_ad and (etiket == cn_ad or etiket.startswith(cn_ad + "-")):
+            etiket = etiket[len(cn_ad):].strip("-")
+        ad = "-".join(x for x in (zaman(), cn_ad, etiket) if x)
+        if not cn_ad and not etiket:
+            ad += "-is"
         dizin = yeni_dosya(os.path.join(KOK, ad))
         os.makedirs(os.path.join(dizin, "okuma"))
         with open(os.path.join(dizin, "plan.md"), "w", encoding="utf-8") as f:
-            f.write(PLAN.format(ad=os.path.basename(dizin), zaman=zaman("%Y-%m-%d %H:%M"), cn=secenek(argv, "--cn", "verilmedi"),
+            f.write(PLAN.format(ad=os.path.basename(dizin), zaman=zaman("%Y-%m-%d %H:%M"), cn=cn.strip() or "verilmedi",
                                 sunucular=secenek(argv, "--sunucular", "verilmedi"), istek=secenek(argv, "--istek", "verilmedi")))
         with open(os.path.join(dizin, "sonuc.md"), "w", encoding="utf-8") as f:
             f.write(SONUC.format(ad=os.path.basename(dizin)))

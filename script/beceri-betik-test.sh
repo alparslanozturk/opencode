@@ -740,6 +740,15 @@ d1=$(python3 "$IK" ac "Data → Root!" --sunucular a,b --istek "talep")
 [ -f "$d1/plan.md" ] && [ -d "$d1/okuma" ] && gecti "ac: plan.md + okuma/" || kaldi "ac: $d1"
 case "$(basename "$d1")" in *-data-root) gecti "etiket güvenli ada çevrildi";; *) kaldi "etiket: $d1";; esac
 icerir "CN verilmedi varsayılanı" "$d1/plan.md" "CN: verilmedi"
+# saha G124 (2026-11-12): dizin adı <tarih-saat>-<CN>-<etiket>; etikete yazılmış CN/tarih yinelenmez, etiketsiz --cn kabul
+d2=$(python3 "$IK" ac guncelleme --cn 29000 --sunucular c,d)
+case "$(basename "$d2")" in [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]-29000-guncelleme) gecti "ac --cn: <tarih-saat>-<CN>-<etiket>";; *) kaldi "ac --cn adı: $d2";; esac
+icerir "ac --cn: plan.md CN satırı" "$d2/plan.md" "CN: 29000"
+d3=$(python3 "$IK" ac 20261112-0853-29000-yama --cn 29000)
+case "$(basename "$d3")" in *-[0-9][0-9][0-9][0-9]-29000-yama) gecti "etiketteki tarih ve CN yinelenmez";; *) kaldi "yineleme: $d3";; esac
+d4=$(python3 "$IK" ac --cn CHG0012345 --sunucular e)
+case "$(basename "$d4")" in *-[0-9][0-9][0-9][0-9]-chg0012345) gecti "etiketsiz --cn: <tarih-saat>-<CN>";; *) kaldi "etiketsiz: $d4";; esac
+\rm -rf "$d2" "$d3" "$d4"
 echo "Filesystem 365G" | python3 "$IK" ekle son df > ike.txt
 ls "$d1"/okuma/*-df.txt > /dev/null 2>&1 && gecti "ekle: stdin okuma/ altına" || kaldi "ekle: $(cat ike.txt)"
 echo x | python3 "$IK" ekle son df > /dev/null; [ "$(ls "$d1"/okuma | wc -l)" -eq 2 ] && gecti "ekle: üstüne yazmaz" || kaldi "ekle üstüne yazdı"
@@ -791,6 +800,7 @@ VAKALAR = [  # (G kaydı, saha cümlesi, beklenen beceri)
     ("G119", "Açık sistem 2. onay işlemleri yapacak. Sunucular: dpd1intsube1.<kurum-dmz>.local", "rhel-teslim"),
     ("G122", "rke-prod NS kapasite ve kaynak analizi", "kume-bul"),
     ("G116", "OS upgrade sunucu IP ve sürüm listesi", "rhel-guncelleme"),
+    ("G124", "önce dtl (disaster test) sunucularından başlayacağız. dnf update yapacağız ama önce fstab kontrol ve mount -av", "rhel-guncelleme"),
     ("G121", "sunucularda disk konfigürasyonu hatalı olmuş /data diye ayrı diskler verilmiş", "rhel-depolama"),
     ("G118", "NFS performans artışı için ne yapılabilir", "rhel-nfs"),
     ("G118", "son zamanlarda SEP'in etkilerini anlamaya çalışıyoruz", "rke2-edr"),

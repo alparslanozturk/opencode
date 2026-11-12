@@ -14,7 +14,8 @@ bağdır (ölçüldü), yeni yazılan komutlarda `dnf` kullan.
 1. **Amaç:** yalnız durum (ne güncellenecek, hangi sürümde) mu, güncelleme + reboot mu, yoksa güncelleme/depo hatası mı (hata metni).
 2. **Kapsam:** hangi sunucu(lar) / envanter grubu; sıra ya da aynı anda kapanmaması gerekenler var mı (küme üyeleri).
 3. **Kısıt:** değişiklik kaydı (CN) ve pencere; reboot serbest mi; sunucu/uygulama sahibine haber verildi mi.
-4. **Hedef:** tam güncelleme mi, yalnız güvenlik mi, belirli paket/sürüm mü (ana sürüm yükseltmesi → `rhel-yukseltme`).
+4. **Hedef:** tam güncelleme mi, yalnız güvenlik mi, belirli paket/sürüm mü (ana sürüm yükseltmesi → `rhel-yukseltme`). Kullanıcı
+   "dnf update" dediyse cevap verilmiştir (tam) — yapıştırılan nottaki paket adına göre daraltma.
 
 Ölçülebileni sorma: bekleyen paket, çekirdek, reboot gerekir mi, depo/CV tarihi, fstab, konteynerler — aşağıdaki akış toplar.
 
@@ -71,6 +72,15 @@ subscription-manager status           # YALNIZCA RHEL, AlmaLinux/Rocky'de yok
 
 Alp: "mount -av ile fstab kontrol, 1. restart, sonra subscription kontrol, dnf update, 2. restart. Bundan önce Red Hat Satellite CV güncel
 olduğunu kontrol etmek lazım — bazen sync geriden gelebiliyor." Sıra bu; adımlar arasında sonucu **ölç** (AGENTS "yaptım = ölçüldü").
+
+**Kapsam ve grup sırası (saha G124, 2026-11-12 — Alp: "açıkça söyledim, bütün sunucularda tam bir update yapacağız"):**
+- Kullanıcı "dnf update / güncelle" dediyse iş **tam güncellemedir**. Yanına yapıştırılan güvenlik notu (RHSA, CVE, paket adı) gerekçedir,
+  kapsam değildir — `dnf update <paket>` ile daraltma. Emin değilsen "Önce sor" 4'ü sor; kendin seçme.
+- Kullanıcı ortam/grup sırası verdiyse (ör. "önce felaket-test, sonra test, sonra üretim") aşağıdaki 0-6 adımları **yalnız ilk grupta** yürüt,
+  6. adımın tablosunu ver ve **dur** — sonraki grup kullanıcının "devam"ıyla başlar. Bir gruptaki okuma (fstab) bitti diye diğer grubun
+  güncellemesine geçilmez.
+- Listede adı çözülmeyen / bağlanılamayan sunucu varsa o grupta 1. adımdan önce kullanıcıya adlarıyla sor (envanterde IP'si olabilir);
+  kalanlarla sessizce devam etme. Hedefler `is-envanter.py` iş envanterinden gelir, elle `for h in …; do ssh` listesinden değil.
 
 0. **İçerik güncel mi (okuma — önce bu).** İstemciden, Satellite'ın sunduğu metadata'nın tarihi:
    `ansible <grup> -i <env> -m shell -a 'dnf -q repoinfo --enabled 2>/dev/null | grep -E "^Repo-(id|updated)"' -t cikti/filo/repo` →

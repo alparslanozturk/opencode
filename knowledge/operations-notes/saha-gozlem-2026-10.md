@@ -1618,3 +1618,23 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - Aksiyon: kume-bul çıktısı "IP: envantere yazılmaz (normal — ad DNS'ten çözülür; bağlan: ssh root@<ad>)"; SKILL §1 kuralı; k8s-sorun:
   secret'tan kubeconfig çıkarmak da yasak listede. Açık öneri: Rancher haritası (`kume-bul §3 --kaydet`) bir kez alınırsa küme adıyla
   sorgu da bulur.
+
+### G124 — CN'li güncelleme işi: ajan sormadan başladı, işi nottaki pakete daralttı, çözülmeyen sunucuyu atladı, sonraki gruba geçti (Alp, 2026-11-12, 7 ekran)
+
+- İstek (Alp'in sözü): CN + sunucu listesi + "önce dtl (disaster test) sunucularından başlayacağız. dnf update yapacağız ama önce fstab
+  kontrol ve mount -av". Yanında bir iş arkadaşının güvenlik notu (RHSA, paket adı) yapıştırılmıştı. Arayüz `opencode mini`, model Qwen 35B.
+- Ajan: (1) hiçbir soru sormadı, beceri yüklemedi (`rhel-guncelleme` / `filo-kontrol` yalnız düşüncesinde geçti); (2) işi nottaki pakete
+  daralttı — `dnf update -y <paket>`; Alp: "ben burada açıkça söyledim, bütün sunucularda tam bir update yapacağız"; (3) `is-kaydi.py`
+  yolunu iki kez tahmin etti (ikisi de yok), sonra kayıt dizinini ve dosyalarını elle yazdı; etikete CN'yi kendisi ekledi; (4) iş envanteri
+  üretmedi — ad listesiyle `for … ssh` döngüsü; (5) 9 DTL sunucusundan 2'sine erişemedi (biri "Connection refused", biri DNS'te yok),
+  sormadan kalan 7'de değişikliğe geçti; Alp: "sunucunun IP adresi olmayabilir … onu bana sorabilirdi, envanterde vardır"; (6) "reboot
+  gerektiren yok" yazdı — ölçmeden; (7) DTL bitince söylenmeden sonraki gruba (STL/SXL) geçti, fstab + `mount -av` 8/8 çalıştı, güncellemeye
+  başlarken Alp durdurdu. CN + sunucu verildiği için kilit onay ekranı çıkarmadı (2026-10-27 kararı: toplu iş).
+- Alp'in sahadaki modele yazdığı: "bir şey yapmadan önce işini yapabilmen için bilmen gerekenleri bana sor. uydurma bu kesin kuraldır."
+- Kök nedenler (ölçülen): `engine/AGENTS.md` iş kaydı satırında yol yer tutucuydu (`<rapor>/is-kaydi.py`) — model tam yolu bilemedi.
+  `is-kaydi.py --cn` yalnız `plan.md`'ye yazıyordu, dizin adına girmiyordu. Kurallar (önce sor, beceri yükle, iş envanteri, ayrı onay)
+  AGENTS.md'de vardı ama farklı bölümlere dağınıktı. tahmin: 50 bin karakterlik AGENTS.md + kurumsal bilgi 33-39K bağlamın büyük kısmını
+  tutuyor, kural seyreliyor — ölçülmedi.
+- Aksiyon: AGENTS.md başına "Değişiklik işi — ilk komuttan önce bu sıra" (5 madde); iş kaydı satırında tam yol; `is-kaydi.py` dizin adı
+  `<YYYYMMDD-HHMM>-<CN>-<etiket>` (etiketteki tarih/CN yinelenmez, etiketsiz `--cn` kabul); `rhel-guncelleme` "Kapsam ve grup sırası".
+  Kilit davranışı değişmedi — seçenekler Alp'te (SURUM-NOTLARI 2026-11-12).

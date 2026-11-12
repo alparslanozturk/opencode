@@ -6,6 +6,15 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-12 (4. tur) — güncelleme akışı sadeleşti: salt kontrol adımları, son RHSA kontrolü, 2. reboot sorulur
+
+Sahada: `al.sh` → `./kur.sh`, **yeni oturum**. İkili değişmez.
+- `rhel-guncelleme` (Alp'in sahadaki düzeltmesi): "reboot sonrası mount kontrolü" ayrı adım değil; `subscription-manager release` salt
+  kontrol (set edildiyse güncelleme o sürümde kalır — bilgi, ajan değiştirmez); çekirdek/reboot isteyen paket güncellendiyse 2. reboot
+  **sorulur**; son kontrol = durum tablosu + işin hedeflediği RHSA'lar kurulu mu (`dnf updateinfo list --installed <RHSA>`) — Satellite
+  CV'nin güncel geldiğini gösterir; not güncellemeyi daraltmaz. Erişilemeyen sunucu kendiliğinden başka gruba taşınmaz.
+- Saha günlüğü G124 4. tur. **Sahada denenmedi.**
+
 ## 2026-11-12 (3. tur) — CN işi tek dizinde: `dn/<numara>/` (envanter + playbook + README + logs), değişiklik playbook'la, önce tek sunucu
 
 Sahada: `al.sh` → `./kur.sh`, **yeni oturum** (AGENTS.md oturum başında yüklenir). İkili değişmez.

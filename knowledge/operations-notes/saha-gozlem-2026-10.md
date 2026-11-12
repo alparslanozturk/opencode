@@ -1654,3 +1654,10 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   Aksiyon: `is-envanter.py` / `is-kaydi.py` `dn/<numara>/` düzenine geçti (saatsiz, `--ad` aşama envanteri); AGENTS.md değişiklik işi
   3-4, `ansible` §0 "Değişiklik işi akışı", `rhel-guncelleme` (değiştiren adımlar playbook'la, önce tek sunucu); kilit ve `kume-bul`
   `dn/` dizinini kaynak saymaz; ADR-0007 §9. Sahada yeni kitle denenmedi.
+- **4. tur (Alp, 2026-11-12, 1 ekran):** ajan ilk grubu (7/9) bitirip tek tabloda özetledi ve sonraki gruba geçmeden onay istedi
+  (beklenen davranış). Adım listesi 6 adımdı: fstab + `mount -av` · reboot · reboot sonrası mount kontrolü · `subscription-manager release`
+  · `dnf update -y` ("Nothing to do") · nottaki paketin sürüm kontrolü. Sapmalar: 2. reboot sorulmadı; erişilemeyen bir sunucuyu kendiliğinden
+  sonraki grubun listesine taşıdı. Alp'in modele yazdığı: 3. adım gereksiz; `release` adımı salt kontroldür (set edildiyse güncelleme o
+  sürümde kalır); son adım genel durumdur — işin hedeflediği birkaç RHSA'dan birinin kurulu olması Satellite repo/CV'nin güncel olduğunu
+  gösterir, son kontroldür; çekirdek güncellendiyse son reboot sorulmalı. Aksiyon: `rhel-guncelleme` akışı buna göre (3 salt kontrol,
+  5 sor, 6 RHSA son kontrolü — `dnf updateinfo list --installed <RHSA>` ölçüldü; erişilemeyen sunucu başka gruba taşınmaz).

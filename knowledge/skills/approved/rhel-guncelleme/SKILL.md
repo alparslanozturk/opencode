@@ -78,7 +78,8 @@ olduğunu kontrol etmek lazım — bazen sync geriden gelebiliyor." Sıra bu; ad
 
 **Adım adım — her adım ayrı onay (Alp, 2026-11-12: "hemen dnf update başlama ya da restart başlama, adım adım gideceğiz"):**
 işe başlarken aşağıdaki sırayı kullanıcıya **kısa liste olarak göster** (0 Satellite sorusu → 1 fstab kontrol + `mount -av` çıktısı →
-2 1. reboot → 3 kayıt/repo → 4 `dnf update` → 5 2. reboot → 6 ölçüm). Her adımın sonunda sunucu başına sonucu tablo ver ve **dur**:
+2 1. reboot → 3 kayıt/repo kontrolü → 4 `dnf update` → 5 2. reboot (çekirdek güncellendiyse, sor) → 6 son kontrol). Listeye
+"reboot sonrası mount kontrolü" gibi ayrı adım ekleme (Alp, 2026-11-12: "gereksiz" — fstab reboot'tan önce doğrulandı). Her adımın sonunda sunucu başına sonucu tablo ver ve **dur**:
 "sıradaki adım <…>, başlayayım mı?" Kullanıcının bir adıma verdiği onay sonraki adımı kapsamaz; fstab okundu diye reboot, reboot bitti
 diye güncelleme başlamaz. Kullanıcı "yalnız şunu yap" dediyse (ör. "fstab kontrol ve mount -av çıktısı") yalnız onu yap, çıktıyı göster.
 
@@ -90,6 +91,7 @@ diye güncelleme başlamaz. Kullanıcı "yalnız şunu yap" dediyse (ör. "fstab
   güncellemesine geçilmez.
 - Listede adı çözülmeyen / bağlanılamayan sunucu varsa o grupta 1. adımdan önce kullanıcıya adlarıyla sor (envanterde IP'si olabilir);
   kalanlarla sessizce devam etme. Hedefler `is-envanter.py` iş envanterinden gelir, elle `for h in …; do ssh` listesinden değil.
+  Erişilemeyen sunucuyu kendiliğinden başka gruba taşıma ("sonraki grupla yaparız") — ne olacağına kullanıcı karar verir.
 - **Değiştiren adımlar playbook'la, iş dizininde** (Alp, 2026-11-12; `ansible` §0): `dn/<numara>/hosts.ini` + `01-reboot.yaml`,
   `02-update.yaml` … — hazırı `ansible/playbooks/`'tan kopyalanır. Her playbook'un ilk koşusu **tek sunucu** (`-l <sunucu>`), sonuç
   gösterilir, sonra grup. `ansible … -m shell -a "dnf update -y | tail"` kullanma (`| tail` hatayı yutar). Okuma (0, 1, 1b, 3, 6) ad-hoc.
@@ -140,15 +142,23 @@ diye güncelleme başlamaz. Kullanıcı "yalnız şunu yap" dediyse (ör. "fstab
    komutu tekrar çalıştırmak/önermek (`docker compose down -v` adlı volume'ları **siler** — veri kaybı); host başına `ssh -o
    StrictHostKeyChecking=accept-new` döngüsü (known_hosts'a yazar) — tek ansible komutu yeter.
 2. **1. reboot** (playbook, onay ekranı) — temiz başlangıç: sunucu yamadan önce sorunsuz açılıyor mu. `ansible.builtin.reboot` (reboot_timeout).
-   Sonra `uptime`, `systemctl --failed`.
-3. **Kayıt / repo** (okuma): `subscription-manager status; subscription-manager release --show; dnf -q repolist` — Satellite repoları açık mı,
-   release kilidi beklenen mi.
+   Sonra `uptime`, `systemctl --failed` — bu reboot'un sonucudur, ayrı adım değil.
+3. **Kayıt / repo — salt kontrol** (okuma): `subscription-manager status; subscription-manager release --show; dnf -q repolist` — Satellite
+   repoları açık mı, release kilidi var mı. Alp (2026-11-12): release set edildiyse güncelleme doğal olarak o sürümde kalır — bu hata
+   değil, bilgi; sonucu tabloda göster, kendin değiştirme (`release --set/--unset` kullanıcının kararı).
 4. **Güncelleme**: önce `dnf -q check-update | wc -l` (kaç paket), sonra kurum playbook'u `06-dnf` (`rhel-teslim`) iş dizinine kopyalanıp önce tek sunucuda — elle ssh döngüsü değil (G26).
    Uzun sürer → arka planda ve log'a (`ansible` §5b, `ANSIBLE_LOG_PATH=cikti/<iş>.log`). **"Şu an hangi sunucuda?"** sorusu = log'u okumak
    (`grep -E "^TASK|changed:|ok:|fatal:" cikti/<iş>.log | tail`) — okuma, onay gerekmez, playbook'u durdurmaz.
-5. **2. reboot** (playbook, onay ekranı) — yeni çekirdek.
-6. **Ölç**: aşağıdaki durum tablosu (+ 1b'nin "sonra" fotoğrafı) — `cekirdek_calisan = cekirdek_son_kurulu`, `reboot_gerekli=hayir`, `systemctl --failed` boş. Sapan sunucuyu
-   ayrı listele; tablo dışı "hepsi tamam" yazma.
+5. **2. reboot** (playbook, onay ekranı) — çekirdek (ya da glibc/systemd gibi reboot isteyen paket) güncellendiyse **kullanıcıya sor**
+   (Alp, 2026-11-12: "kernel update vb. olduğunda son reboot sorulması lazım"). Ölçüt: `cekirdek_calisan ≠ cekirdek_son_kurulu` ya da
+   `reboot_gerekli=EVET` (aşağıdaki tablo). Hiçbirinde yoksa "2. reboot gerekmiyor (ölçüldü)" yaz, atlama kararını yine kullanıcıya bırak.
+6. **Son kontrol** (okuma): (a) aşağıdaki durum tablosu (+ 1b'nin "sonra" fotoğrafı) — `cekirdek_calisan = cekirdek_son_kurulu`,
+   `reboot_gerekli=hayir`, `systemctl --failed` boş; (b) **işin hedeflediği RHSA/paketler** (kullanıcının yapıştırdığı not — bir ya da
+   birkaç RHSA) kurulu mu: `rpm -q <paket>` sürümü nottaki düzeltilmiş sürüme eşit/büyük mü, ya da `dnf -q updateinfo list --installed
+   <RHSA-…>` (kuruluysa advisory + paket satırı basar, boş = kurulu değil; ölçüldü dnf 4.20, AlmaLinux 10). Alp: "birinin test edilmesiyle Satellite tarafından en güncel repolar ve CV'ler güncel mi anlaşılıyor — bir son kontrol".
+   Not burada **kontrol** içindir, güncellemeyi daraltmaz (yukarıdaki "Kapsam"). RHSA kurulu değilse ve `dnf update` "Nothing to do"
+   dediyse → içerik sunucuya gelmemiş: Satellite CV/terfi gerisinde (0. adım) — kullanıcıya söyle. Sapan sunucuyu ayrı listele; tablo
+   dışı "hepsi tamam" yazma.
 
 ## Güncelleme durumu tablosu — tek sunucu ya da filo (saha G34/G36/G37)
 

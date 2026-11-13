@@ -88,6 +88,7 @@ Log alırken `--tail` **her zaman** ver. Sınırsız log bağlamı doldurur.
 | `OOMKilled` | Bellek limitini aştı | `describe` → Last State; limit artır ya da sızıntı ara |
 | `Evicted` | Node kaynağı bitti | Node'da disk/bellek baskısı |
 | `ContainerCreating` uzun sürüyor | Volume ya da ağ | Events; PVC, CNI |
+| Bir node'da **tüm** pod'lar Init/ContainerCreating, olay `FailedCreatePodSandBox … nvidia-container-runtime: no such file` | containerd varsayılan runtime'ı `nvidia`, ikili yok (GPU node) | `rke2-gpu-kurulum` §6 |
 | `Terminating` takıldı | Finalizer, ya da node'da konteyner öldürülemiyor | **Aşağıdaki "Takılı Terminating" bölümü** — force delete'ten önce |
 
 `Running` görmek yeterli değil — `READY` sütununa bak. `1/2` demek bir kabın

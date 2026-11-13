@@ -124,7 +124,7 @@ swap kapalı, tekil hostname → `INSTALL_RKE2_TYPE=agent INSTALL_RKE2_ARTIFACT_
 paketini elle `/var/lib/rancher/rke2/agent/images/`'a kopyala (install.sh yalnız tam paketi tanır) →
 `/etc/rancher/rke2/registries.yaml` + `config.yaml` (`server: https://<API>:9345`, `token:` yöneticideki
 `/var/lib/rancher/rke2/server/node-token`, isteğe bağlı `node-label`/`node-taint`) → `systemctl enable --now rke2-agent`.
-GPU sürücü/GPU Operator ayrı kurulum; SUC planlarının nodeSelector'ı GPU sunucusunu da kapsayabilir.
+GPU sürücü/GPU Operator ayrı kurulum — node kümeye **nvidia'sız containerd şablonuyla** katılır, varsayılan runtime toolkit ikilisi diske gelmeden `nvidia` yapılmaz (`rke2-gpu-kurulum` §6, saha 2026-11-13); SUC planlarının nodeSelector'ı GPU sunucusunu da kapsayabilir.
 **Fiziksel GPU sunucusu disk düzeni (işletim sistemi katmanı, RKE2 ayarı değil — RKE2 kurulmadan önce):** RAID10 NVMe (Alp, 2026-10-08: 16 × 1.7 TB NVMe — 12'si RAID10, 2'si spare; RAID **yazılım (mdadm)**, RHEL 9 — Alp aynı gün; kalan 2 diskin işi `[SAHA]`. Sağlık kontrolü: `rhel-depolama` A §8. 12 diskli RAID10 ≈ 10.2 TB eder, aşağıdaki LV planı ~14 TB — `vgs vg_gpu` ile gerçek boyutu doğrula, boyutları ona göre ver) → LVM `vg_gpu` (plan; sahadaki h200w1'de gerçek ad `vg_models/lv_models`, `relatime` — 2026-10-15): `lv_rke2` 2T →
 `/var/lib/rancher/rke2`, `lv_kubelet` 2T → `/var/lib/kubelet`, `lv_models` kalan (~10T) → `/models` (xfs, `noatime`,
 noexec YOK). Cihaz adını varsayma — boş olduğunu `rhel-depolama` B §1 `disk-durum.py` ile gör (`wipefs -n` okuma; silen `wipefs -a` K5). Kilit:

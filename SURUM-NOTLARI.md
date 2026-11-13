@@ -6,6 +6,14 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-13 — GPU node kilidi: varsayılan runtime `nvidia`, ikili yok (G125)
+
+Sahada: `al.sh` → `./kur.sh`, yeni oturum. Yalnız beceri metni değişti.
+- `rke2-gpu-kurulum` §6 (yeni): bir GPU node'unda tüm pod'lar `FailedCreatePodSandBox … nvidia-container-runtime: no such file` →
+  teşhis komutları + karar tablosu, kalıcı çözüm (şablondan nvidia varsayılanını çıkar → rke2-agent restart, playbook ile, CN + onay),
+  geçici çıkış (aynı sürüm toolkit dizinini kopyalamak) ve sıra kuralı (ikili diske gelmeden varsayılan `nvidia` yapılmaz).
+- `k8s-sorun` pod durum tablosuna ve `rke2-node-ekle` GPU worker satırına yönlendirme.
+
 ## 2026-11-12 (8. tur) — Ansible standardı: şablon playbook, tek çalıştırma biçimi, log + iş durumu, hız seçimi
 
 Sahada: `al.sh` → `./kur.sh`, **yeni oturum**. İkili değişmez (kilit eklentisi değişti).

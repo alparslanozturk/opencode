@@ -1690,3 +1690,9 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   Aksiyon (8. tur): şablon playbook'lar, `ansible` §1c tek çalıştırma biçimi + hız tablosu, `is-durum.py`, denetimde uydurma grup /
   elle reboot ENGEL, is-envanter başlık düzeltmesi, kilitte `-l` grup/joker çözümü. CN altında ssh değişikliğini onaya düşürme önerisi
   Alp'in kararını bekliyor.
+
+- **G125 (Alp, 2026-11-13, 5 ekran — Rancher + MobaXterm):** bir GPU prod node'unda Antrea `install-cni`, kube-proxy ve GPU Operator
+  pod'ları 6–7 saattir Init'te; olay `FailedCreatePodSandBox … fork/exec /usr/local/nvidia/toolkit/nvidia-container-runtime: no such file or
+  directory`. Alp: containerd toml'unu node ayağa kalkmadan değiştirdi (zamanlama); geçici olarak `toolkit.tgz`'yi (1.17.8) node'da açtı.
+  Aksiyon: `rke2-gpu-kurulum` §6 (teşhis, kalıcı çözüm, geçici çıkış, sıra kuralı) + `k8s-sorun`/`rke2-node-ekle` yönlendirmesi.
+  Sahada denenmedi.

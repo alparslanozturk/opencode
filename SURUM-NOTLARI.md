@@ -6,6 +6,17 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-22 — Motor: opencode 2.1.4 → 2.3.2 (11 sürüm)
+
+Sahada: `al.sh` → `./kur.sh` (ikili yeniden derlenir), **yeni oturum**.
+- **Kabuk 2 dk kesmesi kalktı (upstream):** ön plandaki komut süresini (varsayılan 2 dk) aşınca artık **öldürülmez, arka plana
+  alınır** ve bitince ajana bildirilir (`packages/core/src/tool/plugin/shell.ts`). 2.1.4'te komut kesiliyordu ("Command exceeded
+  timeout"). Uzun `dnf update` / `ansible-playbook` için kilit ya da fork yaması gerekmiyor — açık karar kapandı.
+- Yama A35 (sınır yalnız açılış dizini, `file-access.ts`) korundu; upstream aynı dosyada kardeş yolu "iç" sayan testi ekledi —
+  `tool-patch.test.ts`'de bizim beklentimiz (dış dizin izni) upstream'in yeni test yardımcısıyla tutuldu.
+- Doğrulama: typecheck 19/19 · eklenti testleri 412/412 · core 7235 geçti / 7 kaldı (3 bilinen + 4 `HOME` sızıntısı: testler
+  gerçek `~/.claude/CLAUDE.md`'yi okuyor; geçici `HOME` ile 25/25) · `smoke-ikili` GEÇTİ · kilit: `rm -rf /` K5 ret, `uname -r` çalıştı.
+
 ## 2026-11-13 — Bulgu kapatma: CN yok, onay yok (G126)
 
 Sahada: `al.sh` → `./kur.sh`, **yeni oturum** (kilit eklentisi değişti).

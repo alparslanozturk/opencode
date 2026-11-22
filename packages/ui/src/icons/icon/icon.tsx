@@ -1,15 +1,15 @@
 import { onMount, type ComponentProps, splitProps } from "solid-js"
-import { iconNames, isIconName, getIcon, type IconName } from "../catalog"
+import { artworkNames, isIconName, getIcon, resolveIconName, type IconName } from "../catalog"
 import "./icon.css"
 
 const spriteID = "opencode-v2-icon-sprite"
 
-const symbol = (name: IconName) => `opencode-v2-icon-${name}`
+const symbol = (name: string) => `opencode-v2-icon-${name}`
 
 let spriteInserted = false
 
 function spriteContent() {
-  return iconNames()
+  return artworkNames()
     .map((name) => `<symbol id="${symbol(name)}" viewBox="${getIcon(name).viewBox}">${getIcon(name).body}</symbol>`)
     .join("")
 }
@@ -48,12 +48,9 @@ export interface IconProps extends ComponentProps<"svg"> {
 export function Icon(props: IconProps) {
   const [split, rest] = splitProps(props, ["name", "size"])
 
-  const iconName = (): IconName => {
-    return isIconName(split.name) ? split.name : "plus"
-  }
+  const iconName = () => resolveIconName(isIconName(split.name) ? split.name : "plus")
 
-  const icon = () => getIcon(iconName())
-  const pixelSize = split.size === "small" ? 14 : split.size === "large" ? 20 : 16
+  const pixelSize = () => (split.size === "large" ? 20 : split.size === "small" ? 14 : 16)
   onMount(ensureSprite)
 
   return (
@@ -63,16 +60,14 @@ export function Icon(props: IconProps) {
       data-directional={
         iconName() === "arrow-left" ||
         iconName() === "arrow-right" ||
-        iconName() === "outline-arrow-left" ||
-        iconName() === "outline-arrow-right" ||
         iconName() === "chevron-left" ||
         iconName() === "chevron-right"
           ? ""
           : undefined
       }
-      width={pixelSize}
-      height={pixelSize}
-      viewBox={icon().viewBox}
+      width={pixelSize()}
+      height={pixelSize()}
+      viewBox={getIcon(iconName()).viewBox}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden={rest["aria-hidden"] ?? "true"}

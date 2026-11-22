@@ -25,6 +25,8 @@
 - `engine/plugins` testleri → 0 basarisiz.
 - `cd packages/core && bun test` → yalniz bilinen 3 basarisizlik kabul: "fails on unwritable lock roots" (2, root
   ortami) + "isolates global home and XDG roots". Baska basarisizlik varsa main'e alma.
+  2.3.2 (2026-11-22) itibarıyla +4: `ConfigInstructionPlugin` (3) ve `ConfigSkillPlugin > follows missing source directories` —
+  testler gercek `HOME`'u (`/root/.claude/CLAUDE.md`) okuyor; `HOME=$(mktemp -d) bun test <dosya>` ile gecmeli, gecmiyorsa gercek hata.
 - `./kur.sh derle` **sonra** `bash script/smoke-ikili.sh packages/cli/dist/cli-linux-x64/bin/opencode` → `GECTI`.
 - Kilit testi `opencode run --standalone` ile (`rm -rf /` reddedilmeli, `uname -r` calismali); **`OPS_AGENT_AUDIT_LOG`'u
   gecici dosyaya ver**, yoksa test kaydi gercek `/var/log/ops-agent/audit.jsonl`'a yazilir.

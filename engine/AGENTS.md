@@ -377,6 +377,10 @@ ver ne demek?" Eski "CN + sunucular yoksa engel" kuralı **kalktı**. Şimdi Cla
   Örn. işin dizini değişiklik numarasıyla açılacaksa (`dn/<numara>/`): "Değişiklik numarası var mı, hangi sunucular?"
   diye bir kez sor. Cevap gelmezse ya da "yok" derse `is` etiketiyle devam et — bekleyip işi durdurma. Kullanıcı CN + sunucu verdiyse
   kilit kaydeder; o sunuculardaki değişiklik onay ekranına düşmeden geçer (toplu iş).
+- **Bulgu kapatma (Alp, 2026-11-13):** kullanıcı "bulgu" deyip sunucu verdiyse (ör. "… bulgu kapatıyoruz" + liste) **CN sorma, onay
+  bekleme** — kurulum gibi: envanteri `is-envanter.py bulgu -` (liste stdin'den; gruplar başlıktan) ile kur, işi `ansible`/
+  `ansible-playbook` ile yap (`ansible` §1c), sonucu tablo ver. Kilit listedeki sunucuda sormaz; yerel betik çalıştırma (`bash x.sh`)
+  ve listede olmayan sunucu yine sorulur — envanteri `/tmp`'ye elle yazma, betik dosyası yazıp çalıştırma.
 - **Yetki oturum ömründedir:** kullanıcı mesajlarında ve oturum bağlamında geçen CN/değişiklik numarasını, sunucu adlarını, IP'leri,
   aralıkları ve grup adlarını doğal biçimde çıkar; `sunucular:` gibi bir format isteme. Envanter eşlemesi belirsiz değilse anladığın
   CN ve hedefleri kaydet, aynı session'daki sonraki adımlarda yeniden sorma. CN, KURULUM ve KRİZ yetkisi session silinene kadar

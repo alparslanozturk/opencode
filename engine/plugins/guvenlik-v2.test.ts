@@ -223,3 +223,23 @@ describe("Disk yıkıcı komut adaptörde: her seferinde ONAY sorar, saved allow
     expect(var_.message).toContain("YIKICI DİSK")
   })
 })
+
+describe("G126 BULGU yetkisinde onay ekranı çıkmaz (Alp, 2026-11-13)", () => {
+  const evaluate = async (k: Record<string, any>, id: string, command: string) => {
+    await k["tool.execute.before"]({ tool: "shell", sessionID: "s7", id, agent: "build", messageID: "m1", input: { command } })
+    const olay = { sessionID: "s7", action: "shell", resources: ["x"], source: { type: "tool", messageID: "m1", id }, effect: "ask" as string, message: undefined as string | undefined }
+    await k["permission.evaluate"](olay)
+    return olay.effect
+  }
+  test("listedeki sunucu ve /tmp iş dosyası sorusuz; liste dışı ve yerel betik sorulur; yetkisiz eskisi gibi", async () => {
+    const s = sahteBaglam()
+    await guvenlikKur(s.ctx)
+    const k = s.kancalar
+    expect(await evaluate(k, "b0", "ssh web01 'systemctl restart sisamdagent'")).toBe("ask")
+    await k["session.prompt"]({ sessionID: "s7", prompt: { text: "Bu sunucularda sep sınırını kontrol et, bulgu kapatıyoruz:\nweb01  10.0.0.1\nweb02  10.0.0.2" } })
+    expect(await evaluate(k, "b1", "ssh web01 'systemctl restart sisamdagent'")).toBe("allow")
+    expect(await evaluate(k, "b2", "mkdir -p /tmp/sep && cat > /tmp/sep/hosts.ini << 'EOF'\n[x]\nweb01\nEOF")).toBe("allow")
+    expect(await evaluate(k, "b3", "ssh web09 'systemctl restart sisamdagent'")).toBe("ask")
+    expect(await evaluate(k, "b4", "bash /tmp/x.sh")).toBe("ask")
+  })
+})

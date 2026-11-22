@@ -940,6 +940,16 @@ icerir "tireli grup adı _ ile" ie1.txt "[os_upgrade_29107]"
 icermez "tireli grup başlığı yok" ie1.txt "[os-upgrade-29107]"
 icerir "rakamla başlayan grup g_ önekli" ie2.txt "[g_29107_x]"
 
+baslik "is-envanter bulgu: 'ad  IP' satırı ansible_host, cümle sözcüğü alınmaz (Alp, 2026-11-13, G126)"
+mkdir -p ieb
+(cd ieb && printf 'Bu sunucular da sep calisiyor mu? abcmaster1  127.0.0.11\nabcmaster2  127.0.0.12\nbulgu kapatiyoruz.\n' |
+  python3 "$B/ansible/is-envanter.py" bulgu - --erisim-yok > ../ieb.txt 2>&1)
+cat ieb/ansible/inventories/hosts-*-bulgu.ini > ieb1.txt 2>/dev/null
+icerir "ad + IP → ansible_host" ieb1.txt "abcmaster1 ansible_host=127.0.0.11"
+grep -q '^127\.0\.0\.12 ' ieb1.txt && kaldi "IP ayrı host yazıldı" || gecti "IP ayrı host değil"
+grep -q -e '^sep ' -e '^bu ' -e '^bulgu ' ieb1.txt && kaldi "cümle sözcüğü host yazıldı" || gecti "cümle sözcüğü host değil"
+icerir "bulgu: onay bekleme" ieb.txt "bulgu: CN yok, onay bekleme"
+
 baslik "is-envanter dn/<numara>/ düzeni (Alp, 2026-11-12: her değişiklik numarasına bir dizin; adında saat yok)"
 mkdir -p ied/ansible/inventories && printf '[dtl]\ndtlweb01 ansible_host=10.0.0.11\ndtlweb02 ansible_host=10.0.0.12\n[stl]\nstlweb01 ansible_host=10.0.0.21\n' > ied/ansible/inventories/hosts.ini
 IE="$B/ansible/is-envanter.py"

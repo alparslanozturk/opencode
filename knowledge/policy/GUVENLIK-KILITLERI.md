@@ -110,6 +110,13 @@ kriz var, db01 ve wor07-08'de ödeme servisi durdu
 - **KURULUM** (ya da `YENİ KURULUM`): yeni makinelerde kurulum — **değişiklik numarası (CN) istenmez**. Hedefler session
   bağlamından anlaşılır; belirsizse yalnız eksik hedef açıklığa kavuşturulur. Ajan yeni kurulumda CN önermez (T28 — Alp,
   2026-09-30: "yeni kurulumda değişiklik numarasına ihtiyaç yok"). Beyan harf duyarsız ve doğal cümlede tanınır.
+- **BULGU** (Alp, 2026-11-13, saha G126: "Bulgu işlemleri yaparken de kurulum yapar gibi … Ansible scriptlerini çalıştırmak ve işlemler
+  yapmak gerekir. Bunun için onaya gerek yoktur, change number'a."): denetim bulgusu kapatma — "bulgu", "bulgular", "bulguyu" + sunucu
+  listesi (aynı mesajda; "ad  IP" satırları alt alta olabilir). **CN istenmez ve onay ekranı çıkmaz:** kilidin geçirdiği çağrı (hedef
+  listede; K5/K6/yıkıcı disk yok) sorusuz çalışır — `ssh`/`ansible`/`ansible-playbook`, okuma, iş dosyası yazımı (`cat >`/`tee`/`mkdir`,
+  yazma aracı — yalnız `/tmp`, `/var/tmp`, çalışma dizini), `is-envanter.py`. Yerel betik çalıştırmak (`bash x.sh`, `python3 x.py`)
+  yine sorulur (betik listede olmayan sunucuya gidebilir); listede olmayan hedef de sorulur. "bulgu yok/değil" beyan değildir; aynı
+  mesajda CN/KURULUM/KRİZ varsa o geçerlidir.
 - **KRİZ**: kriz beyanı + hedef kapsamı yeter (G74, Alp 2026-10-20: "kriz cümlesi yeterli olsun" — eskiden mail/toplantı
   notu şarttı; yapıştırılırsa audit'e kaydedilir, şart değil).
   Beyan **cümle içinde** de tanınır (G73, Alp 2026-10-20): "kriz var", "krizdeyiz", "kriz durumundayız", "acil kriz",

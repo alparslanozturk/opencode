@@ -88,7 +88,8 @@ Sıra — her adımda dur, kullanıcının o adım için onayını al:
 
 Ön koşulu (Satellite içeriği güncel mi, yedek alındı mı, kesinti duyuruldu mu) sen göremezsin — **kullanıcıya sor** ("yapıldı mı?").
 `ansible.cfg` iş dizinine **otomatik yazılmaz** (içeriği uydurulmuş olur); komutları çalışma dizininden yol ile ver. `cd dn/<numara>`
-yapılırsa o dizinde `ansible.cfg` varsa o etkin olur (§2). CN'siz iş (kriz/kurulum/is): `inventories/hosts-<YYYYMMDD>-<etiket>.ini`.
+yapılırsa o dizinde `ansible.cfg` varsa o etkin olur (§2). CN'siz iş (kriz/kurulum/bulgu/is): `inventories/hosts-<YYYYMMDD>-<etiket>.ini`. **Bulgu kapatma** ("bulgu" + liste): CN ve onay
+yok (`engine/AGENTS.md`) — `is-envanter.py bulgu -` ile envanter, okuma `ansible -m shell -a '…'` ya da playbook, düzeltme playbook ile (§1c).
 
 ### §1c Standart — playbook yazma, çalıştırma, izleme (Alp, 2026-11-12)
 

@@ -1696,3 +1696,9 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   directory`. Alp: containerd toml'unu node ayağa kalkmadan değiştirdi (zamanlama); geçici olarak `toolkit.tgz`'yi (1.17.8) node'da açtı.
   Aksiyon: `rke2-gpu-kurulum` §6 (teşhis, kalıcı çözüm, geçici çıkış, sıra kuralı) + `k8s-sorun`/`rke2-node-ekle` yönlendirmesi.
   Sahada denenmedi.
+
+- **G126 (Alp, 2026-11-13, 1 ekran):** Alp sunucu listesini "ad  IP" satırlarıyla verip "sep çalışıyor mu, sep sınırı var mı … tablo …
+  bulgu kapatıyoruz" dedi; ajan envanteri `/tmp/…/hosts.ini`'ye `cat > … << EOF` ile yazmak istedi → onay ekranı. Alp: "Bulgu işlemleri
+  yaparken de kurulum yapar gibi … Ansible scriptlerini çalıştırmak ve işlemler yapmak gerekir. Bunun için onaya gerek yoktur, change
+  number'a." Aksiyon: kilitte BULGU yetkisi (listedeki sunucu + yerel iş dosyası sorusuz; yerel betik ve liste dışı sorulur), "ad  IP"
+  liste ayrıştırması, `is-envanter.py bulgu` + ansible_host eşlemesi. Sahada denenmedi.

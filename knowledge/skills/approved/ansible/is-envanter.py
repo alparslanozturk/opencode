@@ -25,7 +25,7 @@ _spec.loader.exec_module(kb)
 
 IS_DIZIN = os.path.join("ansible", "inventories")  # CN'siz iş envanterleri (ana envanterin yanında)
 DN_DIZIN = "dn"  # değişiklik numaralı işler: dn/<numara>/
-CNSIZ = ("kriz", "kurulum", "is")
+CNSIZ = ("kriz", "kurulum", "bulgu", "is")  # bulgu: denetim bulgusu kapatma (Alp, 2026-11-13 — CN yok, onay yok)
 # Ana envanter dizinindeki iş envanteri adı (tarihli kopya: hosts-20261022-dn29000.ini, hosts-20261112-kriz.ini) — kaynak sayılmaz.
 # Aynı desen kume-bul.py ve engine/plugins/lib/envanter.ts'te. dn/ zaten kaynak aranan dizinlerden değil.
 IS_DESEN = re.compile(r"^hosts-(?:.+-\d{8}(?:-\d{4})?|\d{8}(?:-\d{4})?-.+)\.ini$", re.I)
@@ -33,7 +33,7 @@ KULLANIM = """kullanım:
   is-envanter.py <ETIKET> <sunucu|kısa ad|IP|aralık|grup> ... [--ad <grup>] [--grup <iş grubu>] [--dosya <ana.ini>]... [--not "<metin>"]
   is-envanter.py <ETIKET> -            # sunucular stdin'den (yapıştırılan liste, serbest biçim; "DTL:" gibi başlıklar grup olur)
   is-envanter.py --liste               # iş envanterleri (dn/<numara>/ ve ansible/inventories/)
-ETIKET: değişiklik numarası (29000, dn29000, CHG0012345) ya da kriz | kurulum | is (CN'siz iş).
+ETIKET: değişiklik numarası (29000, dn29000, CHG0012345) ya da kriz | kurulum | bulgu | is (CN'siz iş).
 --ad:    sunucuları aynı hosts.ini içinde bu gruba koyar (ör. --ad stl → [stl]); önceki gruplar korunur.
 --yenile: var olan grubu farklı sunucularla değiştirir (kullanıcı istediyse).
 --grup:  tüm seçilen host'ları ayrıca bu gruba koyar (playbook "hosts: <grup>" için; tire → _).
@@ -104,6 +104,25 @@ def grup_adi(t):
     return "g_" + g if g[:1].isdigit() else g
 
 
+IPV4 = re.compile(r"\d{1,3}(?:\.\d{1,3}){3}")
+VERILEN_IP = {}  # kullanıcının "ad  IP" diye yan yana verdiği eş (saha 2026-11-13: "sdl…master1  10.x.x.x" alt alta) → ansible_host
+
+
+def ad_ip_eslestir(liste):
+    # ["web01", "10.0.0.1", "web02"] → ["web01", "web02"]; VERILEN_IP["web01"] = "10.0.0.1". Yalnız harfli ad + hemen ardından IPv4.
+    out, i = [], 0
+    while i < len(liste):
+        o = liste[i]
+        if i + 1 < len(liste) and re.search(r"[a-z]", o) and IPV4.fullmatch(liste[i + 1]):
+            VERILEN_IP[o] = liste[i + 1]
+            out.append(o)
+            i += 2
+            continue
+        out.append(o)
+        i += 1
+    return out
+
+
 def gruplu_ogeler(metin, varsayilan=""):
     # → {grup: [öğe]} (sıra korunur); "" = grupsuz. Başlık satırı ya da satır içi "dtl:" sonrakileri o gruba alır.
     out, grup = {}, varsayilan
@@ -120,7 +139,7 @@ def gruplu_ogeler(metin, varsayilan=""):
             if i % 2 == 1:
                 grup = varsayilan if p.lower() in GENEL else grup_adi(p)
                 continue
-            for o in ogeler([x for x in p.split() if x != "-"]):
+            for o in ad_ip_eslestir(ogeler([x for x in p.split() if x != "-"])):
                 if o not in out.setdefault(grup, []):
                     out[grup].append(o)
         out = {g: v for g, v in out.items() if v or g == grup}
@@ -395,13 +414,36 @@ def main(argv):
             print("sunucu listesi boş")
             return 1
     kayit_ip = {k["ad"]: sorted(k["ipler"]) for k in kayitlar}
+    for a in secilen:
+        if a in VERILEN_IP and kayit_ip.get(a) and VERILEN_IP[a] not in kayit_ip[a]:
+            print("⚠️ %s: verilen IP %s, envanterde %s — envanterdeki kullanıldı; kullanıcıya sor" % (a, VERILEN_IP[a], " ".join(kayit_ip[a])))
     sor = list(bulunamayan) + [a for a in secilen if not any(re.fullmatch(r"[\d.]+", x) for x in kayit_ip.get(a, []))]
     dns = dns_coz(sor) if sor else {}
+    # Rakamsız + DNS'te yok + IP'siyle verilmemiş öğe cümle sözcüğüdür ("bu sunucular da sep çalışıyor mu" yapıştırıldı, saha
+    # 2026-11-13) → dosyaya yazılmaz, ekranda söylenir. Rakamsız gerçek ad (srvsatellite) DNS'te çözülür, kalır.
+    sozcuk = [b for b in bulunamayan if not re.search(r"\d", b) and b not in VERILEN_IP and dns.get(b, ("", [], "x"))[2]]
+    if sozcuk:
+        bulunamayan = [b for b in bulunamayan if b not in sozcuk]
+        grup_hostlari = {g: (s_, [x for x in b_ if x not in sozcuk]) for g, (s_, b_) in grup_hostlari.items()}
+        tum = {g: [x for x in v if x not in sozcuk] for g, v in tum.items()}
+        tum = {g: v for g, v in tum.items() if v}
+        grup_hostlari = {g: v for g, v in grup_hostlari.items() if g in tum}
+        print("⚠️ DNS'te yok ve rakamsız — cümle sözcüğü sayıldı, alınmadı: %s (sunucuysa kullanıcıya sor)" % ", ".join(sozcuk))
+        if not tum:
+            print("sunucu listesi boş")
+            return 1
     ek_ad, ek_satir = {}, []
     for b in bulunamayan:
         fqdn, ipler, hata = dns.get(b, ("", [], "ad değil"))
         ip_ogesi = bool(re.fullmatch(r"\d{1,3}(?:\.\d{1,3}){3}", b))
         ek_ad[b] = b
+        if b in VERILEN_IP:  # kullanıcı adı IP'siyle verdi → o IP ansible_host (uydurma değil; yetkide ikisi de var)
+            v = VERILEN_IP[b]
+            fark = " ⚠️ DNS farklı: %s" % " ".join(ipler) if ipler and v not in ipler else ""
+            ek_satir.append("%s ansible_host=%s  # kullanıcı verdi%s" % (b, v, fark or ("; DNS: %s" % fqdn if fqdn else "")))
+            if fark:
+                print("⚠️ %s: verilen IP %s, DNS %s — kullanıcıya sor" % (b, v, " ".join(ipler)))
+            continue
         if hata:
             ek_satir.append("%s  # %s" % (b, "DNS PTR yok (IP ile bağlanılır)" if ip_ogesi else hata + " — ad/IP'yi kullanıcıyla doğrula"))
         elif ip_ogesi:
@@ -496,7 +538,7 @@ def main(argv):
         hedef[a] = (adres, int(k["vars"].get("ansible_port", 22)) if str(k["vars"].get("ansible_port", 22)).isdigit() else 22)
     for b in bulunamayan:
         ipler = dns.get(b, ("", [], ""))[1]
-        hedef[ek_ad[b]] = (ipler[0] if ipler else "", 22)
+        hedef[ek_ad[b]] = (VERILEN_IP.get(b) or (ipler[0] if ipler else ""), 22)
     ssh = {} if erisim_yok else erisim(hedef)
     for g, liste_ in tum.items():
         s_, b_ = grup_hostlari[g]
@@ -509,8 +551,8 @@ def main(argv):
             print("  %-26s %-15s %-24s envanter %s" % (a, ip or "-", ssh.get(a, ""), yer))
         for b in b_:
             fqdn, ipler, hata = dns.get(b, ("", [], ""))
-            print("  %-26s %-15s %-24s %s" % (ek_ad[b], " ".join(ipler[:1]) or "-", ssh.get(ek_ad[b], ""),
-                                              ("DNS: " + fqdn) if fqdn and not hata else "PTR yok (IP ile bağlanılır)"
+            print("  %-26s %-15s %-24s %s" % (ek_ad[b], VERILEN_IP.get(b) or " ".join(ipler[:1]) or "-", ssh.get(ek_ad[b], ""),
+                                              "IP kullanıcıdan" if b in VERILEN_IP else ("DNS: " + fqdn) if fqdn and not hata else "PTR yok (IP ile bağlanılır)"
                                               if re.fullmatch(r"[\d.]+", b) else "⚠️ " + (hata or "DNS'te yok") + " — doğrula"))
     if ssh:
         kapali = [h for h, v in ssh.items() if "✅" not in v]
@@ -525,7 +567,10 @@ def main(argv):
     print("değişiklik = playbook, ŞABLONDAN (ansible becerisi §1c): reboot → cp %s %s · diğer → sablon/iskelet.yaml; hosts: all, "
           "başka .ini yazma" % (os.path.join(BURASI, "sablon", "reboot.yaml"), pb.replace("<ad>", "reboot")) if is_dizin else
           "değişiklik = playbook (ansible becerisi §0): %s — dizinde hazırı varsa onu kullan, yoksa sıradaki numarayla yaz" % pb)
-    print("  → playbook-denetim.py + --syntax-check + aynı komut --list-hosts → planı kullanıcıya göster, onayını bekle →")
+    if etiket.lower() == "bulgu":  # Alp, 2026-11-13: bulgu kapatmada CN ve onay yok — yine önce tek sunucu (kural, 2026-11-12)
+        print("  bulgu: CN yok, onay bekleme → playbook-denetim.py + --syntax-check + --list-hosts → önce TEK sunucu, olduysa kalanlar")
+    else:
+        print("  → playbook-denetim.py + --syntax-check + aynı komut --list-hosts → planı kullanıcıya göster, onayını bekle →")
     if is_dizin:
         lg = os.path.join(is_dizin, "logs")
         print("  çalıştır (tek biçim, önce -l <tek sunucu>): ANSIBLE_LOG_PATH=%s/01-reboot.log ANSIBLE_TASK_TIMEOUT=1800 "

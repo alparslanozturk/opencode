@@ -25,7 +25,7 @@ export const auditLogYolu = () => process.env.OPS_AGENT_AUDIT_LOG ?? "/var/log/o
 //      anahtarı okuyamaz, kilitsiz ikinci bir opencode başlatamaz.
 //   (K2 dizin dışı, K3 okuma, K4 izin listesi = engine/opencode.json `permission` bloğu.)
 
-export type YetkiTur = "CN" | "KURULUM" | "KRIZ"
+export type YetkiTur = "CN" | "KURULUM" | "KRIZ" | "BULGU"
 export interface Yetki {
   tur: YetkiTur | null
   cn: string | null
@@ -114,7 +114,9 @@ function sunucuBicimli(ham: string): boolean {
 function listeSatiri(satir: string): string[] | null {
   const toks = satir.split(/[\s,;]+/).map(temizTok).filter((t) => t && !DOLGU.has(t.toLowerCase()))
   if (!toks.length) return null
-  return toks.every((t) => /^[a-z0-9][a-z0-9._*-]*$/i.test(t) && !DOSYA_UZANTI.test(t.toLowerCase()) && !/^v?\d+(\.\d+)*$/.test(t)) ? toks : null
+  // "ad  IP" satırı (saha 2026-11-13: "sdl…master1  10.x.x.x" alt alta): dört oktetli IPv4 sürüm numarası sayılmaz
+  return toks.every((t) => /^[a-z0-9][a-z0-9._*-]*$/i.test(t) && !DOSYA_UZANTI.test(t.toLowerCase()) &&
+    (!/^v?\d+(\.\d+)*$/.test(t) || /^\d{1,3}(\.\d{1,3}){3}$/.test(t))) ? toks : null
 }
 
 // Aralık yazımı (Alp serbest yazar): "wor07-14" → wor07 … wor14, "10.0.0.127-134" → son okteti aralık. Sıfır dolgusu ilk
@@ -165,6 +167,7 @@ export function yetkiSatirlariniOku(text: string): YetkiSatiri {
   const serbest: string[] = [] // cümle içinden / alt alta listeden — KRİZ değilse eklenir
   const acik: string[] = [] // "sunucular: …" satırları
   let krizVar = false
+  let bulguVar = false
   const krizSerbest: string[] = [] // KRİZ beyan satırındaki ve altındaki listedeki adlar (mail satırlarındaki değil)
   let devamKriz = false
   let devam: "acik" | "serbest" | null = null // önceki satır sunucu başlığı / CN satırıydı → alt alta liste olabilir
@@ -199,6 +202,13 @@ export function yetkiSatirlariniOku(text: string): YetkiSatiri {
       out.tur = "KURULUM"
       anahtar = true
     }
+    // Alp (2026-11-13, saha G126): "Bulgu işlemleri yaparken de kurulum yapar gibi … Ansible scriptlerini çalıştırmak ve işlemler yapmak
+    // gerekir. Bunun için onaya gerek yoktur, change number'a." → "bulgu" + sunucu listesi = BULGU yetkisi (CN'siz, onaysız; §onaysizYetki).
+    const bulguSatiri = BULGU_RE.test(b)
+    if (bulguSatiri) {
+      bulguVar = true
+      anahtar = true
+    }
     const krizSatiri = krizBeyani(b)
     if (krizSatiri) {
       krizVar = true
@@ -221,13 +231,13 @@ export function yetkiSatirlariniOku(text: string): YetkiSatiri {
       continue
     }
     const sunucuSatiri = SUNUCU_SOZ.test(satir)
-    if (sunucuSatiri || cnSatiri || krizSatiri) {
+    if (sunucuSatiri || cnSatiri || krizSatiri || bulguSatiri) {
       if (olumsuz && sunucuSatiri) {
         olumsuzUyar()
         devam = null
       } else {
         const adlar = satir.split(/[\s,;]+/).map(temizTok).filter(sunucuBicimli)
-        if (sunucuSatiri || cnSatiri) serbest.push(...adlar)
+        if (sunucuSatiri || cnSatiri || bulguSatiri) serbest.push(...adlar)
         if (krizSatiri) krizSerbest.push(...adlar)
         devam = "serbest"
       }
@@ -251,12 +261,14 @@ export function yetkiSatirlariniOku(text: string): YetkiSatiri {
   if (cnler.length) out.cn = [...new Set(cnler)].join(",")
   // KRİZ, aynı mesajda CN ya da KURULUM beyanı yoksa geçerlidir (CN daha güçlü yetki; mesajda "kriz" geçmesi onu ezmez).
   if (krizVar && !out.tur) out.tur = "KRIZ"
+  // BULGU yalnız başka beyan yoksa (CN/KURULUM/KRİZ daha açık beyandır; aynı mesajda "bulgu" geçmesi onları ezmez).
+  if (bulguVar && !out.tur) out.tur = "BULGU"
   // Serbest adlar yalnız AYNI mesajda CN/KURULUM/KRİZ beyanı varsa sayılır: yoksa sıradan bir soru ("web05 sunucusunda disk
   // dolu") açık yetkinin listesini sessizce değiştirirdi. KRİZ'de yalnız kriz cümlesindeki (ve altındaki listedeki) adlar ve
   // yalnız mesajda yapıştırılmış metin YOKSA (kullanıcının kısa cümlesi: "kriz var, wor14 ve wor07'de …"); mail/toplantı
   // notu yapıştırılan mesajda yalnız açık "sunucular:" satırı (yapıştırılan metin yetki açmaz).
   const hepsi =
-    out.tur === "CN" || out.tur === "KURULUM"
+    out.tur === "CN" || out.tur === "KURULUM" || out.tur === "BULGU"
       ? [...acik, ...serbest]
       : out.tur === "KRIZ" && out.govde < KRIZ_METNI_MIN
         ? [...acik, ...krizSerbest]
@@ -289,8 +301,17 @@ export function yetkiAktif(y: Yetki | undefined, _now?: number): y is Yetki & { 
   return true
 }
 
+// "bulgu", "bulgular", "bulguyu", "bulguları" (büyük harfe çekilmiş satırda); "bulgu yok/değil" beyan değildir.
+export const BULGU_RE = /(^|[^A-Z0-9ÇĞÖŞÜ])BULGU(LAR|YU|LARI|LARINI)?(?![A-Z0-9ÇĞÖŞÜ])(?!\s+(YOK|DEGIL|DEĞIL))/
+
+// BULGU yetkisinde (Alp, 2026-11-13) kilidin geçirdiği çağrı (hedef listede, K5/K6/disk yok; yerel iş dosyası /tmp, çalışma dizini)
+// onay ekranına DÜŞMEZ. CN/KURULUM/KRİZ'de davranış değişmedi (ADR-0007 §6: değişiklik adımı başına onay).
+export function onaysizYetki(y: Yetki | undefined): boolean {
+  return yetkiAktif(y) && y.tur === "BULGU"
+}
+
 export function yetkiOzeti(y: Yetki): string {
-  const bas = y.tur === "CN" ? `CN ${y.cn}` : y.tur === "KRIZ" ? "KRİZ" : "KURULUM"
+  const bas = y.tur === "CN" ? `CN ${y.cn}` : y.tur === "KRIZ" ? "KRİZ" : y.tur === "BULGU" ? "BULGU" : "KURULUM"
   return `${bas}: ${y.sunucular.join(", ")}`
 }
 
@@ -1179,10 +1200,12 @@ export const OKUYAN_BECERI_BETIGI = new Set(
   }),
 )
 
+// is-envanter.py (2026-11-13, G126): yalnız çalışma dizininde dn/<no>/hosts.ini ya da ansible/inventories/hosts-<gün>-<etiket>.ini yazar
+// (ana envantere dokunmaz); dışarıya yalnız DNS sorgusu + ssh portuna TCP denemesi (okuma).
 // Yalnız yerel iş kaydı köküne (~/ai/work/is-kayitlari) yazan betik (kaynağı denetlendi: kök dışına yazmaz, üstüne yazmaz) — sunucu
 // değişikliği değil, onay ekranına düşmez (Alp, 2026-11-03, ADR-0007 §6). Okuma sayılmaz; yalnız kesinOkuma'nın onaysız geçişinde kabul.
 export const YEREL_KAYIT_BETIGI = new Set(
-  ["rapor/is-kaydi.py"].flatMap((x) => {
+  ["rapor/is-kaydi.py", "ansible/is-envanter.py"].flatMap((x) => {
     const home = userInfo().homedir
     return ["/root/ai/opencode/knowledge/skills/approved/" + x, join(home, ".config", "opencode", "skills", x), "~/.config/opencode/skills/" + x]
   }),
@@ -1992,6 +2015,37 @@ export function kesinOkuma(command: string, workdir: string): boolean {
     if (/(\.ssh\/id_|\/etc\/g?shadow|\.git-credentials|\.(key|pfx|p12|jks|keytab)\b|pass(word)?s?\.txt|rke2\.yaml|token|secret|parola|sifre)/i.test(temiz))
       return false
     return komutIncele(command, b).length === 0
+  } catch {
+    return false
+  }
+}
+
+// BULGU yetkisinde sorusuz geçebilecek bash biçimi (kilit ayrıca null döndürmüş olmalı). Hedefi kilidin çözdüğü komutlar (ssh, ansible,
+// ansible-playbook — hedef listede değilse kilit zaten sorar), kesin okuma, kitin yerel iş betikleri ve iş dosyası yazımı (cat/echo/printf
+// yönlendirmesi, tee/mkdir/touch — yalnız serbest alana: /tmp, /var/tmp, çalışma dizini). Yerel betik/yorumlayıcı çalıştırmak (bash x.sh,
+// python3 x.py) hedefi görünmeyen iş olduğundan SORULUR: betik içinden listede olmayan sunucuya gidebilir.
+const BULGU_YAZICI = new Set(["tee", "mkdir", "touch"])
+export function bulguOnaysizKomut(command: string, workdir: string): boolean {
+  const b: Baglam = { workdir, cwd: workdir, home: userInfo().homedir, uzak: null, derinlik: 0 }
+  try {
+    const ic: string[] = []
+    const komutlar = ayristir(command, ic)
+    if (!komutlar.length) return false
+    if (/\b(nohup|setsid|disown|screen|tmux)\b/.test(command)) return false
+    if (/(^|[^&>|])&(?![&>\d])/.test(command)) return false
+    for (const k of komutlar) {
+      if (k.yazilan.some((y) => !serbestYazmaAlani(yolCoz(y, b), b))) return false
+      const govde = k.argv.slice(k.argv.findIndex((x) => !["do", "then", "else", "{", "!"].includes(x)))
+      if (govde.length > 0 && govde.every((x) => /^[A-Za-z_][A-Za-z0-9_]*=/.test(x))) continue
+      const argv = sarmalayiciSoy(k.argv).argv
+      const ad = taban(argv[0] ?? "")
+      if (["ssh", "ansible", "ansible-playbook"].includes(ad)) continue
+      if (saltOkunur(argv) || yerelKayitBetigi(argv)) continue
+      if (BULGU_YAZICI.has(ad) && argv.slice(1).filter(secenekDegil).every((y) => serbestYazmaAlani(yolCoz(y, b), b))) continue
+      return false
+    }
+    for (const i of ic) if (!bulguOnaysizKomut(i, workdir)) return false
+    return true
   } catch {
     return false
   }

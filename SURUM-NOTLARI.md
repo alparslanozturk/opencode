@@ -6,6 +6,19 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-13 — Bulgu kapatma: CN yok, onay yok (G126)
+
+Sahada: `al.sh` → `./kur.sh`, **yeni oturum** (kilit eklentisi değişti).
+- Kilit: kullanıcı mesajında "bulgu" + sunucu listesi → **BULGU** yetkisi (kurulum gibi, CN'siz). Bu yetkide kilidin geçirdiği çağrı
+  **onay ekranına düşmez**: listedeki sunucuya `ssh`/`ansible`/`ansible-playbook`, okuma, `/tmp`·`/var/tmp`·çalışma dizinine iş dosyası
+  (`cat >`, `tee`, `mkdir`, yazma aracı), `is-envanter.py`. Yine sorulan: listede olmayan sunucu, yerel betik çalıştırma (`bash x.sh`,
+  `python3 x.py`), yıkıcı disk komutu; K5/K6 değişmedi. CN/KURULUM/KRİZ davranışı aynı.
+- Yetki listesi alt alta "ad  IP" satırlarını okur (IP önceden sürüm numarası sayılıp liste kesiliyordu — CN'de de).
+- `is-envanter.py`: `bulgu` etiketi (`ansible/inventories/hosts-<gün>-bulgu.ini`); "ad  IP" → `ad ansible_host=IP` (DNS farkı uyarılır);
+  yapıştırılan cümlenin rakamsız, DNS'te olmayan sözcükleri host yazılmaz. `is-envanter.py` artık her yetkide sorusuz (yalnız yerel iş
+  envanteri yazar).
+- `engine/AGENTS.md`, `GUVENLIK-KILITLERI.md`, `ansible` SKILL: bulgu akışı.
+
 ## 2026-11-13 — GPU node kilidi: varsayılan runtime `nvidia`, ikili yok (G125)
 
 Sahada: `al.sh` → `./kur.sh`, yeni oturum. Yalnız beceri metni değişti.

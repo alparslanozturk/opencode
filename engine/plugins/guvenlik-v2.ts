@@ -20,7 +20,7 @@ import { readFileSync } from "fs"
 import { homedir } from "os"
 import { join } from "path"
 import { deriveTarget, truncate } from "./lib/maskele"
-import { kesinOkuma, kilitDenetle } from "./lib/kilit"
+import { bulguOnaysizKomut, kesinOkuma, kilitDenetle, onaysizYetki } from "./lib/kilit"
 import type { KilitKarari, Yetki } from "./lib/kilit"
 import { STALE_PENDING_MS, beceriCommit, denetimYazici, oneriyleTamamla, sha256, sonAsistanMetni, yetkiIsle, yetkiSakla, yetkiYukle } from "./lib/denetim"
 
@@ -220,6 +220,10 @@ export async function guvenlikKur(ctx: Baglam) {
       sorulanlar.delete(`${e.sessionID}:${e.id}`)
       okumalar.delete(`${e.sessionID}:${e.id}`)
       if (!kilit && tool === "bash" && typeof args.command === "string" && kesinOkuma(args.command, calismaDizini))
+        okumalar.add(`${e.sessionID}:${e.id}`)
+      // BULGU yetkisi (Alp, 2026-11-13): kilidin geçirdiği her çağrı (listedeki sunucu, yerel iş dosyası) sorusuz çalışır.
+      else if (!kilit && onaysizYetki(yetki) &&
+        (tool === "bash" ? typeof args.command === "string" && bulguOnaysizKomut(args.command, calismaDizini) : ["edit", "write", "patch"].includes(e.tool)))
         okumalar.add(`${e.sessionID}:${e.id}`)
       if (kilit) {
         // "sor" yalnız izin soran araçta (shell) mümkün; başka araçta belirsiz karar da engeldir (şüphede kilit)

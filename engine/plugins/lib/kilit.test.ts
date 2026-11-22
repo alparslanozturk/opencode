@@ -2,7 +2,7 @@
 // yükleyicisi ya da audit dosyası yok; yalnız girdi → karar. 2.x adaptörü de aynı sözleşmeyi kullanacak.
 // Davranışın 2.x adaptörü üzerinden geniş testi ../guvenlik-v2.test.ts'te.
 import { describe, expect, test } from "bun:test"
-import { aralikAc, kesinOkuma, kilitDenetle, yetkiAktif, yetkiSatirlariniOku, type Yetki } from "./kilit"
+import { aralikAc, bulguOnaysizKomut, kesinOkuma, kilitDenetle, onaysizYetki, yetkiAktif, yetkiSatirlariniOku, type Yetki } from "./kilit"
 
 const workdir = "/tmp/kilit-cekirdek-proje"
 const yetkiVer = (metin: string): Yetki => {
@@ -1186,4 +1186,40 @@ describe("filo-kontrol §7 erişim kontrolü salt-okunur (Alp 2026-11-04)", () =
     expect(kesinOkuma("python3 /root/ai/opencode/knowledge/skills/approved/uzak-envanter/uzak-ozet.py uzak/uzak-ktbulut-20261104-1445", workdir)).toBe(true))
   test("uzak-topla okuma sayılmaz (dizin + tgz yazar; uzakta kullanıcı çalıştırır)", () =>
     expect(kesinOkuma("bash /root/ai/opencode/knowledge/skills/approved/uzak-envanter/uzak-topla.sh hosts.ini ktbulut", workdir)).toBe(false))
+})
+
+describe("G126 BULGU yetkisi (Alp, 2026-11-13: bulgu kapatma — CN yok, onay yok)", () => {
+  const mesaj = `Bu sunucular da sep çalışıyor mu ve sep sınırı var mı diye kontrol eder misin? tablo olarak ver. abcmaster1  10.1.3.62
+abcmaster2  10.1.3.63
+xyzwor01  10.1.9.71
+rabbit2  10.1.4.79  bulgu kapatıyoruz.`
+  test("'bulgu' + alt alta 'ad  IP' satırları → BULGU, tüm adlar ve IP'ler", () => {
+    const s = yetkiSatirlariniOku(mesaj)
+    expect(s.tur).toBe("BULGU")
+    expect(s.sunucular).toEqual(["abcmaster1", "10.1.3.62", "abcmaster2", "10.1.3.63", "xyzwor01", "10.1.9.71", "rabbit2", "10.1.4.79"])
+    expect(onaysizYetki(yetkiVer(mesaj))).toBe(true)
+  })
+  test("'bulgu yok' beyan değil; CN varsa CN geçerli; CN yetkisi onaysız değil", () => {
+    expect(yetkiSatirlariniOku("bulgu yok, web01 temiz").tur).toBeUndefined()
+    expect(yetkiSatirlariniOku("CN 29000 bulgu kapatıyoruz sunucular: web01").tur).toBe("CN")
+    expect(onaysizYetki(yetkiVer("CN 29000\nsunucular: web01"))).toBe(false)
+  })
+  test("CN'de de 'ad  IP' alt alta liste okunur (IPv4 sürüm sayılmaz)", () => {
+    expect(yetkiSatirlariniOku("CN 29000 sunucular:\nweb01  10.0.0.1\nweb02  10.0.0.2").sunucular).toEqual(["web01", "10.0.0.1", "web02", "10.0.0.2"])
+  })
+  test("sorusuz biçim: iş dosyası yazımı, ansible, ssh; yerel betik çalıştırma ve sistem dosyası değil", () => {
+    expect(bulguOnaysizKomut("mkdir -p /tmp/sep && cat > /tmp/sep/hosts.ini << 'EOF'\n[x]\nweb01\nEOF", workdir)).toBe(true)
+    expect(bulguOnaysizKomut("ansible all -i /tmp/sep/hosts.ini -m shell -a 'systemctl is-active sisamdagent'", workdir)).toBe(true)
+    expect(bulguOnaysizKomut("ansible-playbook -i /tmp/sep/hosts.ini /tmp/sep/01-sinir.yaml", workdir)).toBe(true)
+    expect(bulguOnaysizKomut("ssh web01 'systemctl restart sisamdagent'", workdir)).toBe(true)
+    expect(bulguOnaysizKomut("bash /tmp/x.sh", workdir)).toBe(false)
+    expect(bulguOnaysizKomut("python3 /tmp/x.py", workdir)).toBe(false)
+    expect(bulguOnaysizKomut("cat > /etc/hosts << 'EOF'\nx\nEOF", workdir)).toBe(false)
+    expect(bulguOnaysizKomut("tee /etc/x.conf < /tmp/a", workdir)).toBe(false)
+  })
+  test("kilit: listede olmayan sunucu yine sorulur, listedeki geçer", () => {
+    const y = yetkiVer(mesaj)
+    expect(kilitDenetle("bash", { command: "ssh abcmaster1 'systemctl restart sisamdagent'" }, workdir, y)).toBeNull()
+    expect(kilitDenetle("bash", { command: "ssh baska9 'systemctl restart sisamdagent'" }, workdir, y)?.sor).toBe(true)
+  })
 })

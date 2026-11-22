@@ -81,7 +81,7 @@ if [ "${1:-}" != "uygula" ]; then
   exit "$kod"
 fi
 
-[ -z "$(git status --porcelain)" ] || hata "calisma agaci temiz degil — once commit/stash"
+[ -z "$(git status --porcelain --untracked-files=no)" ] || hata "calisma agaci temiz degil — once commit/stash (izlenmeyen dosyalar sayilmaz)"
 dal="upstream-$son"
 git switch -c "$dal" >/dev/null || hata "$dal dali acilamadi (zaten var mi?)"
 yama="$(mktemp)"

@@ -1055,6 +1055,13 @@ describe("2026-11-23: node-cpu okuma (saha G127)", () => {
     expect(kesinOkuma(k[3].replace("<node_ip>", "10.14.3.63"), workdir)).toBe(true)
     expect(kesinOkuma("cat a.txt | python3 /root/ai/opencode/knowledge/skills/approved/rke2-edr/node-cpu.py tani sdlgpumaster2 -", workdir)).toBe(true)
   })
+  test("sar-ozet uzak komutu (ssh + boru, ansible -t) kesin okuma (2026-11-23)", () => {
+    const { execSync } = require("node:child_process")
+    const S = "/root/ai/opencode/knowledge/skills/approved/rhel-performans/sar-ozet.py"
+    const k = execSync(`python3 ${S} komut --gun 1`).toString().trim()
+    expect(kesinOkuma(`ssh root@h '${k}' | python3 ${S} - --ad h --son 5h`, workdir)).toBe(true)
+    expect(kesinOkuma(`ansible g -i hosts.ini -m shell -f 20 -T 10 --task-timeout 60 -t cikti/sar/x -a '${k}'`, workdir)).toBe(true)
+  })
   test("node-durum iki ssh komutu + tani kesin okuma", () => {
     const { execSync } = require("node:child_process")
     const k = execSync("python3 /root/ai/opencode/knowledge/skills/approved/rke2-edr/node-durum.py komut splgpumaster1 --saat 5").toString().split("\n")

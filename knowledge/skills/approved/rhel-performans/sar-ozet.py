@@ -5,13 +5,15 @@
 # sunucular arasında kopyaladı ("uydurma kapasite raporu"). Sütun sırası sysstat sürümüne göre değişir — burada ada göre
 # okunur; tarih saklama gününden (saDD) değil ölçümün kendi damgasından gelir; hostname verinin içinden doğrulanır.
 #
-# Uzak komut (SABİT — değiştirme; SKILL.md §6):
-#   echo "#NPROC $(nproc)"; echo "#TZ $(date +%z)"; echo "#HISTORY $(grep -h ^HISTORY /etc/sysconfig/sysstat)";
-#   for f in /var/log/sa/sa[0-9][0-9]; do for o in -u -r -q; do LC_ALL=C sadf -d $f -- $o; done; done
+# Uzak komut (SABİT — elle yazma; `sar-ozet.py komut [--gun N]` basar; SKILL.md §6). 2026-11-23 (Alp: "CPU, RAM, disk, network …
+# SAR'la zamana dönük — bir haftalık, bir günlük ya da 5 saatlik"): disk (-d -p), ağ (-n DEV, -n EDEV), swap (-W), sayfa hatası (-B)
+# eklendi; eski komutun çıktısı da okunur (yeni alanlar "alan yok" görünür).
 #
 # kullanım:
+#   sar-ozet.py komut [--gun N]                            → uzak komut (N: en yeni N+1 sa dosyası; yoksa hepsi)
 #   sar-ozet.py <ansible-tree-dizini> [--gun] [--csv]      (çok sunucu: ansible ... -t <dizin>)
-#   ssh root@<h> '<uzak komut>' | sar-ozet.py - [--ad <h>] [--gun] [--csv]
+#   ssh root@<h> '<uzak komut>' | sar-ozet.py - [--ad <h>] [--gun] [--csv]     (ya da çıktı dosyası: sar-ozet.py <dosya> --ad <h>)
+#   --son 5h | 24h | 1g | 7g : pencere (uç = son ölçüm) · --bas "YYYY-MM-DD HH:MM" [--bit …] : mutlak pencere (sunucu saati)
 #   --gun : gün başına tablo · --csv : gün başına CSV'yi ekrana · --csv-dosya <yol> : aynı CSV'yi dosyaya (utf-8-sig, ';')
 #   HTML/XLSX için: rapor becerisi `tablo-cevir.py <csv>` (değerler elle yazılmaz)
 import datetime
@@ -19,6 +21,12 @@ import json
 import os
 import re
 import sys
+
+
+def uzak_komut(gun=None):
+    dosyalar = ("$(ls -t /var/log/sa/sa[0-9][0-9] 2>/dev/null | head -%d)" % (int(gun) + 1)) if gun else "/var/log/sa/sa[0-9][0-9]"
+    return ('echo "#NPROC $(nproc)"; echo "#TZ $(date +%%z)"; echo "#HISTORY $(grep -h ^HISTORY /etc/sysconfig/sysstat)"; '
+            'for f in %s; do for o in -u -r -q -W -B "-d -p" "-n DEV" "-n EDEV"; do LC_ALL=C sadf -d $f -- $o; done; done' % dosyalar)
 
 
 def yuzdelik(liste, p):
@@ -52,12 +60,34 @@ def ayristir(metin):
         host_veri.add(d.get("hostname", "?"))
         z = d.get("timestamp", "")
         kayit = olcum.setdefault(z, {})
-        for alan in ("%idle", "%memused", "%commit", "ldavg-1", "ldavg-5", "ldavg-15", "%iowait"):
+
+        def f(alan):
+            try:
+                return float(d[alan].replace(",", "."))
+            except (KeyError, ValueError):
+                return None
+        if "DEV" in d:  # disk (-d -p): zaman damgası başına en yüksek %util ve await, cihazıyla
+            u, a = f("%util"), f("await")
+            if u is not None and u >= kayit.get("disk_util", -1):
+                kayit["disk_util"], kayit["disk_util_dev"] = u, d["DEV"]
+            if a is not None and a >= kayit.get("disk_await", -1):
+                kayit["disk_await"], kayit["disk_await_dev"] = a, d["DEV"]
+            continue
+        if "IFACE" in d:  # ağ: lo hariç arayüz toplamı
+            if d["IFACE"] == "lo":
+                continue
+            if "rxkB/s" in d:
+                kayit["net_rx"] = kayit.get("net_rx", 0.0) + (f("rxkB/s") or 0.0) / 1024.0
+                kayit["net_tx"] = kayit.get("net_tx", 0.0) + (f("txkB/s") or 0.0) / 1024.0
+            if "rxerr/s" in d:
+                kayit["net_hata"] = kayit.get("net_hata", 0.0) + sum(f(k) or 0.0 for k in ("rxerr/s", "txerr/s", "rxdrop/s", "txdrop/s"))
+            continue
+        for alan in ("%idle", "%memused", "%commit", "ldavg-1", "ldavg-5", "ldavg-15", "%iowait", "pswpout/s", "majflt/s",
+                     "runq-sz", "blocked"):
             if alan in d:
-                try:
-                    kayit[alan] = float(d[alan].replace(",", "."))
-                except ValueError:
-                    pass
+                v = f(alan)
+                if v is not None:
+                    kayit[alan] = v
     return meta, olcum, host_veri
 
 
@@ -73,7 +103,27 @@ def zaman_coz(z, tz):
     return t
 
 
-def ozet(ad, metin, gun_tablo, csv):
+def pencere_coz(son, bas, bit, seri):
+    """seri'yi pencereye süz; (süzülmüş seri, açıklama). Uç = son ölçüm (sunucu saati) — bu makinenin saati değil."""
+    if not seri or not (son or bas):
+        return seri, ""
+    if son:
+        m = re.fullmatch(r"(\d+)\s*(s|h|saat|g|d|gün|gun)", son.strip().lower())
+        if not m:
+            raise SystemExit("--son biçimi: 5h, 24h, 1g, 7g (saat: h/s, gün: g/d)")
+        delta = datetime.timedelta(hours=int(m.group(1))) if m.group(2) in ("s", "h", "saat") else datetime.timedelta(days=int(m.group(1)))
+        bitis = seri[-1][0]
+        baslangic = bitis - delta
+        aciklama = "son %s (pencere ucu = son ölçüm %s)" % (son, bitis.strftime("%Y-%m-%d %H:%M"))
+    else:
+        cevir = lambda x: datetime.datetime.strptime(x.strip(), "%Y-%m-%d %H:%M")
+        baslangic = cevir(bas)
+        bitis = cevir(bit) if bit else seri[-1][0]
+        aciklama = "%s → %s (sunucu saati)" % (baslangic.strftime("%Y-%m-%d %H:%M"), bitis.strftime("%Y-%m-%d %H:%M"))
+    return [x for x in seri if baslangic <= x[0] <= bitis], aciklama
+
+
+def ozet(ad, metin, gun_tablo, csv, son=None, bas=None, bit=None):
     meta, olcum, host_veri = ayristir(metin)
     tz = meta.get("TZ", "")
     nproc = meta.get("NPROC", "")
@@ -84,6 +134,12 @@ def ozet(ad, metin, gun_tablo, csv):
             continue
         seri.append((t, k))
     seri.sort(key=lambda x: x[0])
+    tum = len(seri)
+    seri, pen = pencere_coz(son, bas, bit, seri)
+    if tum and not seri:
+        print("\n== %s · PENCEREDE ÖLÇÜM YOK (%s; arşivde %d ölçüm var) — pencereyi ya da arşivin kapsadığı günleri kontrol et." % (
+            ad, pen, tum))
+        return None
     if not seri:
         print("\n== %s · VERİ YOK — sa dosyası yok/okunamadı ya da sysstat toplamıyor (systemctl is-enabled "
               "sysstat-collect.timer). Bu sunucu için sayı YAZMA." % ad)
@@ -96,6 +152,9 @@ def ozet(ad, metin, gun_tablo, csv):
     gunler = sorted({t.date() for t, _ in seri})
     print("\n== %s (veri hostname: %s) · %s CPU · %s → %s (%d gün verisi, %d ölçüm; %s; saat sunucunun yerel saati %s)" % (
         ad, hostlar, nproc or "?", gunler[0], gunler[-1], len(gunler), len(seri), meta.get("HISTORY", "HISTORY=?"), tz or "UTC"))
+    if pen:
+        print("  pencere: %s · %d ölçüm (sysstat aralığı ~%s dk — kısa tepeler görünmeyebilir)" % (
+            pen, len(seri), aralik_dk(seri)))
     if uyari:
         print(uyari)
 
@@ -114,7 +173,16 @@ def ozet(ad, metin, gun_tablo, csv):
     satir("iowait %", "%iowait")
     satir("Bellek %memused (sar -r)", "%memused")
     satir("Bellek %commit", "%commit")
+    satir("Swap çıkışı pswpout/s (-W)", "pswpout/s")
+    satir("Büyük sayfa hatası majflt/s", "majflt/s")
     yuk_max = satir("Yük ldavg-5", "ldavg-5")
+    satir("Çalışma kuyruğu runq-sz", "runq-sz")
+    satir("G/Ç'de bloklu blocked", "blocked")
+    satir("Disk %util (en yüksek cihaz)", "disk_util")
+    satir("Disk await ms (en yüksek)", "disk_await")
+    satir("Ağ rx MB/s (lo hariç toplam)", "net_rx")
+    satir("Ağ tx MB/s (lo hariç toplam)", "net_tx")
+    satir("Ağ hata+düşen /s", "net_hata")
     try:
         n = int(nproc)
         if yuk_max is not None and n > 0:
@@ -123,6 +191,16 @@ def ozet(ad, metin, gun_tablo, csv):
         pass
     if cpu_max is not None and (cpu_max > 100.5 or cpu_max < 0):
         print("  ⚠ CPU yüzdesi 0-100 dışında — veri bozuk, bu sunucu için rapor YAZMA, ham `sadf` çıktısını göster")
+    # tepe anları: penceredeki en yüksek CPU'lu 3 an, bütün eksenleriyle (ölçüm ne diyorsa o — yorum yok)
+    tepe = sorted([(100.0 - k["%idle"], t, k) for t, k in seri if "%idle" in k], key=lambda x: -x[0])[:3]
+    if tepe:
+        print("  tepe anları (en yüksek CPU):")
+        g = lambda k, a, b="%.1f": (b % k[a]) if a in k else "-"
+        for c, t, k in tepe:
+            print("    %s · cpu %.1f · iowait %s · mem %s · yük5 %s · disk %%util %s (%s) await %s · ağ rx/tx %s/%s MB/s · ağ hata %s · "
+                  "swapout %s" % (t.strftime("%Y-%m-%d %H:%M"), c, g(k, "%iowait"), g(k, "%memused"), g(k, "ldavg-5", "%.2f"),
+                                  g(k, "disk_util"), k.get("disk_util_dev", "-"), g(k, "disk_await"), g(k, "net_rx"), g(k, "net_tx"),
+                                  g(k, "net_hata"), g(k, "pswpout/s")))
 
     gunluk = []
     for g in gunler:
@@ -146,10 +224,26 @@ def ozet(ad, metin, gun_tablo, csv):
     return gunluk
 
 
+def aralik_dk(seri):
+    if len(seri) < 2:
+        return "?"
+    farklar = sorted((b[0] - a[0]).total_seconds() / 60.0 for a, b in zip(seri, seri[1:]))
+    return "%.0f" % farklar[len(farklar) // 2]
+
+
 def main(argv):
     if not argv or argv[0] in ("-h", "--help"):
         print(open(__file__, encoding="utf-8").read().split("import datetime")[0])
         return 0 if argv else 2
+    if argv[0] == "komut":
+        gun = argv[argv.index("--gun") + 1] if "--gun" in argv and argv.index("--gun") + 1 < len(argv) else None
+        if gun is not None and not gun.isdigit():
+            print("--gun sayı olmalı")
+            return 2
+        print(uzak_komut(gun))
+        return 0
+    deger = lambda ad: argv[argv.index(ad) + 1] if ad in argv and argv.index(ad) + 1 < len(argv) else None
+    son, bas, bit = deger("--son"), deger("--bas"), deger("--bit")
     kaynak, ad, gun, csv_iste = argv[0], "-", "--gun" in argv, ("--csv" in argv or "--csv-dosya" in argv)
     csv_dosya = argv[argv.index("--csv-dosya") + 1] if "--csv-dosya" in argv else None
     if "--ad" in argv:
@@ -173,13 +267,15 @@ def main(argv):
                     else "ERİŞİLEMEZ" if d.get("unreachable") else "ÇIKTI YOK", (d.get("msg") or "").strip()[:150]))
                 continue
             girdiler.append((h, d.get("stdout") or ""))
+    elif os.path.isfile(kaynak):
+        girdiler.append((ad if ad != "-" else os.path.basename(kaynak), open(kaynak, encoding="utf-8", errors="replace").read()))
     else:
         print("kaynak yok: %s" % kaynak)
         return 2
     csv = [] if csv_iste else None
     sonuc = {}
     for h, metin in girdiler:
-        sonuc[h] = ozet(h, metin, gun, csv)
+        sonuc[h] = ozet(h, metin, gun, csv, son, bas, bit)
     dolu = {h: g for h, g in sonuc.items() if g}
     imzalar = {}
     for h, g in dolu.items():

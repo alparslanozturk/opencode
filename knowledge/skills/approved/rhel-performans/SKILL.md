@@ -163,19 +163,28 @@ ayrıştırıldı (CPU %243599121, load 3823620335846), G22'de 7 günlük tablo 
 uydurma bir kapasite raporu çıktı. Sabit uzak komut + betik:
 
 ```bash
-ansible <grup|ip1,ip2,> -i <envanter> -m shell -f 20 -T 10 --task-timeout 60 -t cikti/sar/<etiket> -a 'echo "#NPROC $(nproc)"; echo "#TZ $(date +%z)"; echo "#HISTORY $(grep -h ^HISTORY /etc/sysconfig/sysstat)"; for f in /var/log/sa/sa[0-9][0-9]; do for o in -u -r -q; do LC_ALL=C sadf -d $f -- $o; done; done'
-python3 /root/ai/opencode/knowledge/skills/approved/rhel-performans/sar-ozet.py cikti/sar/<etiket> [--gun] [--csv]
+SO=/root/ai/opencode/knowledge/skills/approved/rhel-performans/sar-ozet.py
+python3 $SO komut [--gun N]          # uzak komutu basar — ELLE YAZMA (N: en yeni N+1 günün dosyası; kısa pencerede küçük çıktı)
+ansible <grup|ip1,ip2,> -i <envanter> -m shell -f 20 -T 10 --task-timeout 60 -t cikti/sar/<etiket> -a '<basılan komut>'
+python3 $SO cikti/sar/<etiket> [--son 5h|24h|7g | --bas "YYYY-MM-DD HH:MM" --bit "…"] [--gun] [--csv]
 ```
 
-Tek sunucu: `ssh root@<h> '<aynı tırnak içi komut>' | python3 …/sar-ozet.py - --ad <h> --gun`. (Ölçüldü: sysstat 12.7, 30 günlük
-arşiv, 3 hedef ~10 sn; tree dosyası host başına ~2 MB — bağlama girmez.)
+Tek sunucu: `ssh root@<h> '<basılan komut>' | python3 $SO - --ad <h> --son 5h` (ya da çıktı dosyası: `python3 $SO <dosya> --ad <h>`).
+**Pencere (Alp, 2026-11-23: "bir haftalık, bir günlük ya da 5 saatlik"):** `--son 5h` / `--son 1g` / `--son 7g` — pencere ucu **son ölçüm**
+(sunucu saati); `--bas/--bit` mutlak aralık. Pencerede ölçüm yoksa betik söyler (arşiv 28 gün — `HISTORY`). sysstat aralığı (çoğunlukla
+10 dk) betik tarafından basılır: kısa tepeler bu aralıkta görünmeyebilir. (Ölçüldü: sysstat 12.7, bu makinenin arşivi, 2026-11-23.)
+
+**Eksenler:** CPU, iowait, %memused, %commit, swap çıkışı (`-W pswpout/s`), büyük sayfa hatası (`-B majflt/s`), yük, çalışma kuyruğu,
+bloklu süreç, disk (`-d -p`: zaman başına en yüksek %util ve await, cihazıyla), ağ (`-n DEV` lo hariç rx/tx MB/s, `-n EDEV` hata+düşen/s).
+**Tepe anları:** penceredeki en yüksek CPU'lu 3 an, bütün eksenleriyle aynı satırda — "o an disk mi ağ mı" sorusu buradan okunur.
+Eski uzak komutla toplanmış çıktıda yeni eksenler "alan yok" görünür. Anlık beş eksen için `rke2-edr/node-durum.py`.
 
 Betik ne yapar, ne basar:
 - `sadf -d` **sütun adlarıyla** okur (`%idle`, `%memused`, `%commit`, `ldavg-5`) — sysstat sürümü (RHEL 7/8/9/10) sütun sırasını
   değiştirse de doğru alan;
 - tarih **ölçümün kendi damgasından**, sunucunun saat dilimine çevrilmiş (`saDD` numarası ayın günüdür, tarih değildir);
-- sunucu başına: dönem (ilk → son gün, gün ve ölçüm sayısı, `HISTORY`), CPU % (100−%idle), iowait, %memused, %commit, ldavg-5 —
-  her biri **ort · p95 · en yüksek (zamanıyla)**, yük/CPU oranı; `--gun` gün başına tablo, `--csv` gün başına CSV (`rapor` becerisine);
+- sunucu başına: dönem (ilk → son gün, gün ve ölçüm sayısı, `HISTORY`), CPU % (100−%idle), iowait, %memused, %commit, ldavg-5 ve
+  yukarıdaki diğer eksenler — her biri **ort · p95 · en yüksek (zamanıyla)**, yük/CPU oranı; `--gun` gün başına tablo, `--csv` gün başına CSV (`rapor` becerisine);
 - **uyarılar**: verideki hostname ≠ hedef adı (G21'de komutta host yoktu → yerel makine okundu), iki sunucunun günlük değerleri
   birebir aynı (G22), CPU 0-100 dışı (bozuk veri), ERİŞİLEMEZ / VERİ YOK sunucular ("bu sunucu için sayı YAZMA").
 

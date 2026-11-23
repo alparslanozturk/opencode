@@ -373,6 +373,27 @@ icerir "disk-durum: disk dolu ayrı" dd-dolu.txt "f2 · DİSK DOLU"
 
 # --------------------------------------------------------------------------- sar-ozet
 baslik "sar-ozet.py (G21, G22)"
+# pencere + disk/ağ/swap (Alp 2026-11-23): bu makinenin gerçek sar arşiviyle; arşiv yoksa atla
+SO="$B/rhel-performans/sar-ozet.py"
+if ls /var/log/sa/sa[0-9][0-9] > /dev/null 2>&1; then
+  bash -c "$(python3 "$SO" komut --gun 1)" > sarw.txt 2>&1
+  python3 "$SO" sarw.txt --ad "$(hostname)" --son 5h > sarwo.txt 2>&1
+  icerir "sar: pencere satırı" sarwo.txt "pencere: son 5h (pencere ucu = son ölçüm"
+  icerir "sar: disk ekseni" sarwo.txt "Disk %util (en yüksek cihaz)"
+  icerir "sar: ağ ekseni" sarwo.txt "Ağ rx MB/s"
+  icerir "sar: swap ekseni" sarwo.txt "Swap çıkışı pswpout/s"
+  icerir "sar: tepe anları" sarwo.txt "tepe anları (en yüksek CPU):"
+  python3 "$SO" sarw.txt --ad "$(hostname)" --bas "1999-01-01 00:00" --bit "1999-01-02 00:00" > sarw2.txt 2>&1
+  icerir "sar: boş pencere söylenir" sarw2.txt "PENCEREDE ÖLÇÜM YOK"
+  # eski uzak komutun (yalnız -u -r -q) çıktısı da okunur, yeni alanlar "alan yok"
+  f=$(ls -t /var/log/sa/sa[0-9][0-9] | head -1); { echo "#NPROC 2"; echo "#TZ +0300"; for o in -u -r -q; do LC_ALL=C sadf -d "$f" -- $o; done; } > sarw3.txt
+  python3 "$SO" sarw3.txt --ad "$(hostname)" > sarw3o.txt 2>&1
+  icerir "sar: eski komut çıktısı — disk alan yok" sarw3o.txt "Disk %util (en yüksek cihaz): alan yok"
+  icermez "sar: eski komut çıktısı çökmez" sarw3o.txt "Traceback"
+else
+  printf '  ATLANDI sar arşivi yok (/var/log/sa)\n'
+fi
+python3 "$SO" komut --gun 1 > sark.txt; icerir "sar komut: son N+1 dosya" sark.txt "head -2"; icerir "sar komut: disk+ağ seçenekleri" sark.txt '"-d -p" "-n DEV" "-n EDEV"'
 sadf() { # <host> <cpu-idle> <mem%> <ldavg5>
   printf '#NPROC 4\n#TZ +0300\n#HISTORY HISTORY=28\n'
   printf '# hostname;interval;timestamp;CPU;%%user;%%nice;%%system;%%iowait;%%steal;%%idle\n'

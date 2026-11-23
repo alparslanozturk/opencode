@@ -826,6 +826,16 @@ ls "$d2"/logs/okuma/*-fstab.txt > /dev/null 2>&1 && gecti "ekle <numara>: dn/<no
 python3 "$IK" sonuc dn29000 "dtl tamam" > /dev/null; icerir "sonuc <dn+numara>" "$d2/logs/sonuc.md" "dtl tamam"
 python3 "$IK" sonuc "$d2" "yol ile" > /dev/null; icerir "sonuc <iş dizini yolu>" "$d2/logs/sonuc.md" "yol ile"
 echo y | python3 "$IK" ekle son y > ike.txt; icerir "son = en son AÇILAN kayıt (29001)" ike.txt "/29001/logs/okuma/"
+# not (Alp, 2026-11-23): iş içinde "kaydet" → işin README.md'si, "## Notlar" altına ekleme; parola reddedilir
+python3 "$IK" not 29000 "STL ile SX arası 26379 kapalı" > /dev/null; python3 "$IK" not 29000 "ikinci not" > /dev/null
+icerir "not: README Notlar bölümü" "$d2/README.md" "## Notlar"
+icerir "not: satır + kaynak" "$d2/README.md" "STL ile SX arası 26379 kapalı [Alp]"
+[ "$(grep -c '^## Notlar' "$d2/README.md")" -eq 1 ] && gecti "not: bölüm başlığı tek" || kaldi "not: başlık tekrarlandı"
+icerir "not: var olan README satırı korunur" "$d2/README.md" "elle not"
+python3 "$IK" not 29000 "REDIS_PASSWORD = gizli123" > ikn.txt; rc=$?
+[ "$rc" -eq 3 ] && gecti "not: parola değeri reddedilir (çıkış 3)" || kaldi "not parola çıkış $rc"
+icermez "not: parola README'ye girmez" "$d2/README.md" "gizli123"
+python3 "$IK" not 29000 "parola: <sunucudaki .env>" > /dev/null; icerir "not: parolanın YERİ yazılabilir" "$d2/README.md" "parola: <sunucudaki .env>"
 \rm -rf "$IS_DN_KOK"
 echo "Filesystem 365G" | python3 "$IK" ekle son df > ike.txt
 ls "$d1"/okuma/*-df.txt > /dev/null 2>&1 && gecti "ekle: stdin okuma/ altına" || kaldi "ekle: $(cat ike.txt)"

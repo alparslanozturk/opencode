@@ -6,6 +6,14 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-23 — "Kaydet" bağlamla: iş README'si; kurumsal bilgi yalnız "kurumsal bilgi çalışması"nda
+
+Sahada: `al.sh` → `./kur.sh`, **yeni oturum**.
+- Alp: "her işin içinde bir README koyuyoruz, oraya kaydetmesi daha güzel olur". İş sırasında "kaydet / not al" → `is-kaydi.py not
+  <numara|son> "<bilgi>"`: işin README'sine "## Notlar" altına zaman damgalı satır (ekleme; parola reddedilir, çıkış 3).
+- Kurumsal bilgiye yalnız kullanıcı "kurumsal bilgi çalışması" deyip kaynak işi (CN / tarih) gösterince; kaynak `[dn<no> README · Alp <tarih>]`.
+- Tek başına "kaydet" sözcüğü kurumsal bilgi talimatı değildir.
+
 ## 2026-11-23 — `/kaydet` kaldırıldı
 
 Sahada: `al.sh` → `./kur.sh` (kurulu `opencode.json` şablondan yeniden yazılır, komut düşer), **yeni oturum**.

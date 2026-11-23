@@ -14,6 +14,9 @@
 #   <komut> | is-kaydi.py ekle <kayıt> <ad>      → stdin'i okuma/<tarih-saat>-<ad>.txt olarak saklar
 #   is-kaydi.py sonuc <kayıt> "<satır>"          → sonuc.md'ye zaman damgalı satır ekler
 #   is-kaydi.py liste [<sözcük>]                 → kayıtları listeler (okuma)
+#   is-kaydi.py not <kayıt> "<bilgi>"            → işin README.md'sine "## Notlar" altına zaman damgalı satır EKLER (başka satıra dokunmaz).
+#       Alp (2026-11-23): iş içinde "kaydet" = bu işin README'si; kurumsal bilgiye ancak "kurumsal bilgi çalışması" deyince, işten alınarak.
+#       Parola/token/anahtar içeren not reddedilir (çıkış 3).
 #   <kayıt> = değişiklik numarası (29000) | dizin yolu/adı | son   ("son" = en son AÇILAN kayıt; emin değilsen numarayı yaz)
 import datetime
 import os
@@ -202,6 +205,33 @@ def ac(argv):
     return 0
 
 
+GIZLI = re.compile(r"(?i)(pass(word)?|parola|şifre|sifre|token|secret|api[_-]?key|anahtar)\s*[=:]\s*(?!<)\S")
+
+
+def not_ekle(arg, metin):
+    metin = " ".join(metin.split())
+    if not metin:
+        raise SystemExit("not boş")
+    if GIZLI.search(metin):
+        print("REDDEDİLDİ: notta parola/token/anahtar değeri var — gizli değer iş kaydına yazılmaz (yerini yaz: \"parola: <sunucudaki .env>\")")
+        return 3
+    dizin = kayit_dizini(arg)
+    is_dizini = os.path.dirname(dizin) if os.path.basename(dizin) == "logs" else dizin  # dn/<no>/logs → dn/<no>
+    readme = os.path.join(is_dizini, "README.md")
+    if not os.path.exists(readme):
+        with open(readme, "w", encoding="utf-8") as f:
+            f.write("# %s\n" % gorunen_ad(dizin))
+    eski = open(readme, encoding="utf-8").read()
+    ek = "" if eski.endswith("\n") else "\n"
+    if not re.search(r"^## Notlar\b", eski, re.M):
+        ek += "\n## Notlar (kullanıcının kaydettirdiği bilgi)\n"
+    ek += "- %s %s [Alp]\n" % (zaman("%Y-%m-%d %H:%M"), metin)
+    with open(readme, "a", encoding="utf-8") as f:
+        f.write(ek)
+    print("%s ← %s" % (readme, metin))
+    return 0
+
+
 def main(argv):
     if not argv or argv[0] in ("-h", "--help"):
         print(open(__file__, encoding="utf-8").read().split("import datetime")[0].replace("# ", "").replace("#!/usr/bin/env python3\n", ""))
@@ -223,6 +253,8 @@ def main(argv):
             f.write("- %s %s\n" % (zaman("%Y-%m-%d %H:%M"), " ".join(argv[2:])))
         print(os.path.join(dizin, "sonuc.md"))
         return 0
+    if argv[0] == "not" and len(argv) > 2:
+        return not_ekle(argv[1], " ".join(argv[2:]))
     if argv[0] == "liste":
         hepsi = sorted(kayitlar(), key=acilis)
         if not hepsi:
@@ -236,7 +268,7 @@ def main(argv):
             sun = re.search(r"^- Sunucular: (.*)$", metin, re.M)
             print("%-45s %s" % (gorunen_ad(d), sun.group(1) if sun else ""))
         return 0
-    print("alt komut: ac | ekle | sonuc | liste")
+    print("alt komut: ac | ekle | sonuc | not | liste")
     return 2
 
 

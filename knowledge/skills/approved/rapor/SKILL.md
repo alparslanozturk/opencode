@@ -36,6 +36,7 @@ K=/root/ai/opencode/knowledge/skills/approved/rapor/is-kaydi.py
 python3 $K ac data-to-root --cn <CN> --sunucular sxl1,sxl2 --istek "/data alanını köke ver"   # yolu basar; CN yoksa --cn yazma
 ssh root@<sunucu> 'df -h /; lsblk' | python3 $K ekle son <sunucu>-once            # okuma kanıtı
 python3 $K sonuc son "<sunucu>: root 53G → 365G (df -h /)"                          # yalnız ölçülen
+python3 $K not son "STL ile SX arası 26379 kapalı"                                 # kullanıcı "kaydet" dedi → README Notlar (Alp 2026-11-23)
 python3 $K liste data                                                               # eski benzer işler
 ```
 

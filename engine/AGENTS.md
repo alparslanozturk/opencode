@@ -5,7 +5,7 @@
 Her oturumda iki şey otomatik yüklü: bu dosya (kurallar) ve **kurumsal bilgi** (`~/ai/work/opencode/kurumsal-bilgi.ini` — DNS/NTP, DMZ,
 ağ blokları, erişim akışı, süreçler; satırdaki `[doğrula]` kesin bilgi değildir). İş gelince: isteğin sözcüklerini aşağıda **yukarıdan
 aşağı** ara, ilk eşleşen satır → o kurumsal bilgi bölümüne bak → beceriyi yükle → betiği kullan. Eşleşme yoksa sor; tahminle beceri seçme.
-Kurumsal bilgiye ajan **yalnız kullanıcı açıkça "kaydet / kurumsal bilgiye ekle" deyince** yazar ("Kurumsal bilgi" kuralı, aşağıda).
+İş sırasında "kaydet" → o işin README'si (`is-kaydi.py not`); kurumsal bilgiye yalnız kullanıcı "kurumsal bilgi çalışması" deyip kaynak işi gösterince ("Kaydet — bağlamla", aşağıda).
 
 | İsteğin sözcükleri | Kurumsal bilgi | Beceri → betik |
 |---|---|---|
@@ -116,7 +116,7 @@ Kullanıcı sunucularda değişiklik istediyse (güncelleme, ayar, servis, disk 
   ("1. dk = ? 2. vms = ? …"); cevaba kadar o hücreyi başka yerde kullanma. Kullanıcı cevaplayınca kaynak "kullanıcı, <tarih>" olur.
 - Kurum bilgisi (önek/proje açılımı, ortam kodu) **AGENTS.md'ye yazılmaz** (kurulu ayar, ajana kapalı) ve `kurumsal-bilgi.ini`'ye de
   ajan kendiliğinden yazmaz — kalıcı olması gereken bilgiyi kullanıcıya tek satır öner ("kurumsal bilgiye şu satır eklenebilir: …");
-  kullanıcı "kaydet" derse aşağıdaki "Kurumsal bilgi" kuralıyla eklenir.
+  kullanıcı kurumsal bilgi çalışmasında isterse aşağıdaki "Kaydet — bağlamla" kuralıyla eklenir.
 - Doğrulanmamış bir kuralı dosyaya **yazma** — önce doğrula; doğrulayamıyorsan yazma, boş bırak.
 - Gün farkı, toplam, yüzde **kafadan hesaplanmaz** — `date -d` / `echo $((…))` ile hesapla (saha G65).
 - **Sürüm/uyumluluk (Rancher, RKE2/Kubernetes, Antrea, RHEL) — tahmin YASAK (T33, 2026-09-30):** bu ortam
@@ -492,18 +492,22 @@ yazma; ölçemediğin sunucuyu "ölçülmedi" diye ayrı göster. Bilmediğin de
 - **Kurumsal bilgi** (`~/ai/work/opencode/kurumsal-bilgi.ini`, sahada): DNS/NTP, DMZ, ağ blokları, erişim/izin akışı, süreç kuralı gerekince
   önce bunu oku (`grep -n -i <sözcük>`); satır sonundaki kaynak `[doğrula]` ise ölçmeden kesin bilgi gibi kullanma. Dosya ile ölçüm
   çelişirse ölçümü söyle, dosyayı kendin düzeltme.
-- **Kurumsal bilgiye yazma — yalnız açık talimatla (Alp, 2026-11-23: "ben diyeceğim şu bilgiyi kaydet, o kaydedecek; kontrollü olur"):**
-  kullanıcı açıkça istemeden dosyaya dokunma. İstek doğal cümleyle gelir — "kurumsal bilgiye kaydet", "hafızaya kaydet", "kurumsal
-  hafızana yaz", "bunu şu şekilde kaydet", "şu satırı düzelt" ve benzerleri. Yalnız "kaydet" geçiyor ama hedef belli değilse (dosya mı,
-  çıktı mı, kurumsal bilgi mi) **tek soru sor**: "kurumsal bilgiye mi kaydedeyim?". Dediğinde:
-  1. Yalnız **kullanıcının verdiği bilgiyi** yaz — kendi çıkarımını, oturumdaki başka bilgiyi ekleme. Belirsizse önce sor.
-  2. İlgili bölümün sonuna ekle (kullanıcı bölüm söylediyse oraya); satır sonuna `[Alp YYYY-MM-DD]`, "sanırım" denmişse `[doğrula]`.
-  3. Başka satırı silme, taşıma, yeniden numaralama, "düzenleme" yapma — yalnız kullanıcının gösterdiği satır değişir.
-  4. **Parola, token, anahtar yazma** — o kısmı yazmadan "parola dosyaya yazılmaz" de.
-  5. Önce yedek: `cp -p <dosya> <dosya>.$(date +%Y%m%d-%H%M)`; sonra edit aracıyla değiştir; bitince `diff -u <yedek> <dosya>` göster.
+- **"Kaydet" — bağlamla (Alp, 2026-11-23: "her işin içinde bir README koyuyoruz, oraya kaydetmesi daha güzel olur … kurumsal bilgi
+  çalışması yapıyorum dediğimde şu change numarası, şu tarihte yapılan çalışmadaki şu bilgiyi al kaydet").** Yalnız "kaydet" sözcüğü
+  geçti diye kurumsal bilgiye yazma; neyin nereye kaydedileceğini cümlenin bütününden çıkar:
+  1. **İş sırasında** ("bunu kaydet", "not al", "şunu yaz") → **o işin README'si**:
+     `python3 /root/ai/opencode/knowledge/skills/approved/rapor/is-kaydi.py not <numara|son> "<kullanıcının verdiği bilgi>"` — betik
+     README'nin "## Notlar" bölümüne zaman damgalı satır ekler, başka satıra dokunmaz, parolayı reddeder. Yalnız kullanıcının verdiği
+     bilgiyi yaz (kendi yorumun yok); belirsizse önce sor. İş kaydı açık değilse önce `is-kaydi.py ac` (CN varsa `--cn`).
+  2. **Kurumsal bilgiye** (`~/ai/work/opencode/kurumsal-bilgi.ini`) yalnız kullanıcı **kurumsal bilgi çalışması** yaptığını açıkça söyleyip
+     kaynağı gösterince ("şu CN'deki / şu tarihli işteki şu bilgiyi kurumsal bilgiye al"): o işin README'sini/kaydını oku
+     (`is-kaydi.py liste <sözcük>`), alınacak satırı göster, kullanıcı onaylayınca ilgili bölümün sonuna ekle — kaynak
+     `[dn<numara> README · Alp YYYY-MM-DD]`; "sanırım" denmişse `[doğrula]`. Önce yedek (`cp -p <dosya> <dosya>.$(date +%Y%m%d-%H%M)`),
+     edit aracıyla yalnız o satır, sonra `diff -u <yedek> <dosya>`. Başka satırı silme/taşıma/yeniden numaralama; **parola, token, anahtar yazma**.
+  3. Bağlam başka bir şeyse ("çıktıyı dosyaya kaydet", "playbook'u kaydet") o iştir — iş kaydı/kurumsal bilgi değil.
 - **Kurumsal bilgiyi sorma** ("kurumsal hafızanda X ile ilgili ne var?", "DMZ için ne biliyorsun?"): dosyada ara
   (`grep -n -i <sözcük> ~/ai/work/opencode/kurumsal-bilgi.ini`), bulduğunu **satır numarasıyla** aynen ver, yorumu ayrı ve "tahmin:" ile;
-  yoksa "kurumsal bilgide yok" de. Bu sohbetten sonra kullanıcı düzeltip "böyle kaydet" derse yukarıdaki kural.
+  yoksa "kurumsal bilgide yok" de. Sonra kullanıcı düzeltip "böyle kaydet" derse "Kaydet — bağlamla" kuralı.
 
 ## "Yalnız metni kontrol et, işlem yapma" (saha G111, 2026-10-27)
 

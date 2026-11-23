@@ -5,7 +5,7 @@
 Her oturumda iki şey otomatik yüklü: bu dosya (kurallar) ve **kurumsal bilgi** (`~/ai/work/opencode/kurumsal-bilgi.ini` — DNS/NTP, DMZ,
 ağ blokları, erişim akışı, süreçler; satırdaki `[doğrula]` kesin bilgi değildir). İş gelince: isteğin sözcüklerini aşağıda **yukarıdan
 aşağı** ara, ilk eşleşen satır → o kurumsal bilgi bölümüne bak → beceriyi yükle → betiği kullan. Eşleşme yoksa sor; tahminle beceri seçme.
-Oturum sonunda kullanıcı `/kaydet` der → kurumsal bilgi güncellenir.
+Kurumsal bilgiyi yalnız kullanıcı (Alp) değiştirir; ajan dosyaya yazmaz (`/kaydet` 2026-11-23'te kaldırıldı).
 
 | İsteğin sözcükleri | Kurumsal bilgi | Beceri → betik |
 |---|---|---|
@@ -114,8 +114,8 @@ Kullanıcı sunucularda değişiklik istediyse (güncelleme, ayar, servis, disk 
   makineler", `os` → "Osmanlı", `sp` → "Spatilay/Saglampay" yazıldı; hiçbiri sorulmadı). Kısaltmanın açılımı, sözlükte makul görünse
   de **tahmindir**. Kaynağı yoksa hücreye `?` yaz, tabloyu bitir, hemen altında **tek numaralı liste** ile sor
   ("1. dk = ? 2. vms = ? …"); cevaba kadar o hücreyi başka yerde kullanma. Kullanıcı cevaplayınca kaynak "kullanıcı, <tarih>" olur.
-- Kurum bilgisi (önek/proje açılımı, ortam kodu) **AGENTS.md'ye yazılmaz** (kurulu ayar, ajana kapalı) — `/kaydet` ile
-  `kurumsal-bilgi.ini`'ye girer; kullanıcıya bunu öner.
+- Kurum bilgisi (önek/proje açılımı, ortam kodu) **AGENTS.md'ye yazılmaz** (kurulu ayar, ajana kapalı) ve `kurumsal-bilgi.ini`'ye de
+  ajan yazmaz — kalıcı olması gereken bilgiyi kullanıcıya tek satır öner ("kurumsal bilgiye şu satır eklenebilir: …"), ekleyen kullanıcıdır.
 - Doğrulanmamış bir kuralı dosyaya **yazma** — önce doğrula; doğrulayamıyorsan yazma, boş bırak.
 - Gün farkı, toplam, yüzde **kafadan hesaplanmaz** — `date -d` / `echo $((…))` ile hesapla (saha G65).
 - **Sürüm/uyumluluk (Rancher, RKE2/Kubernetes, Antrea, RHEL) — tahmin YASAK (T33, 2026-09-30):** bu ortam
@@ -490,9 +490,7 @@ yazma; ölçemediğin sunucuyu "ölçülmedi" diye ayrı göster. Bilmediğin de
   ssh/ad-hoc: okuma ve playbook gerektirmeyen tek ufak komut.
 - **Kurumsal bilgi** (`~/ai/work/opencode/kurumsal-bilgi.ini`, sahada): DNS/NTP, DMZ, ağ blokları, erişim/izin akışı, süreç kuralı gerekince
   önce bunu oku (`grep -n -i <sözcük>`); satır sonundaki kaynak `[doğrula]` ise ölçmeden kesin bilgi gibi kullanma. Dosya ile ölçüm
-  çelişirse ölçümü söyle, dosyayı kendin düzeltme — kullanıcı `/kaydet` ile günceller.
-- **`/kaydet`** (parametresiz): komut şablonundaki adımları aynen uygula; yeni bilgi yalnız `oturum-ozet.py` özetinden (kullanıcı sözü +
-  komut çıktısı); dosyada bilgi silinmez — düzenlenir, tek seferlik iş "10. İş geçmişi"ne, çelişki "ÇELİŞKİ / DOĞRULA"ya.
+  çelişirse ölçümü söyle, dosyayı kendin düzeltme — kullanıcı günceller.
 
 ## "Yalnız metni kontrol et, işlem yapma" (saha G111, 2026-10-27)
 

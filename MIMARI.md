@@ -25,7 +25,8 @@ geçici işin ayrıntısı: ~/ai/work/is-kayitlari/<tarih>-<etiket>/ (rapor/is-k
 ```
 
 - **Kurumsal bilgi sahada kalır** (kurum verisi bu depoya girmez); depo yalnız bölüm şablonunu (`knowledge/templates/kurumsal-bilgi.md`),
-  `/kaydet` talimatını (`engine/opencode.json` `commands.kaydet`) ve süzgeç betiğini (`rapor/oturum-ozet.py`) taşır. `kur.sh` dosyayı
+  süzgeç betiğini (`rapor/oturum-ozet.py`, olay raporu için) taşır. Dosyayı yalnız Alp değiştirir — ajanın
+  yazdığı `/kaydet` (2026-11-03) uydurma/tekrar ürettiği için 2026-11-23'te kaldırıldı. `kur.sh` dosyayı
   `instructions`'a ekler; motor dosyayı izler (değişince yeniden okur), yoksa atlar (`packages/core/src/config/plugin/instruction.ts`).
 - **Bilgi kaynağı yalnız kullanıcının sözü ve komut çıktısı** — ajanın yanıtı, düzeltilen sözü ve başarısız komut `oturum-ozet.py`'de elenir.
   Kurumsal bilgi her istekte bağlamda olduğu için kısa tutulur: tek seferlik iş en fazla 30 satır, eskisi iş kaydına.

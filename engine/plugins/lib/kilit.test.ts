@@ -1102,7 +1102,7 @@ describe("2026-11-03: iş kaydı betiği onaysız (ADR-0007 §6)", () => {
   })
 })
 
-describe("2026-11-03: /kaydet — oturum dökümü okuma, özet onaysız", () => {
+describe("2026-11-03: oturum dökümü okuma (rapor), özet onaysız", () => {
   const R = "/root/ai/opencode/knowledge/skills/approved/rapor"
   const karar = (c: string) => kilitDenetle("bash", { command: c }, workdir, undefined)
   for (const c of [

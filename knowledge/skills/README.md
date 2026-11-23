@@ -4,7 +4,7 @@ opencode becerileri **talep üzerine** yükler: ajan listeyi görür (isim + `de
 gerektiğinde `skill` aracıyla içeriği çeker → bağlam şişmez.
 
 > **Yönlendirme:** hangi işte hangi beceri — `engine/AGENTS.md` "İş haritası" (gerçek saha cümleleriyle testli). Kurum gerçekleri becerilere
-> yazılmaz; sahada `kurumsal-bilgi.ini`'de durur ve her oturumda yüklenir (`/kaydet` günceller).
+> yazılmaz; sahada `kurumsal-bilgi.ini`'de durur ve her oturumda yüklenir (yalnız kullanıcı günceller).
 
 ## Yaşam döngüsü
 
@@ -61,7 +61,7 @@ betiktir; model ham veriyi betiğe **borular**, betiğin bastığı satırı **a
 | `nfs-tani.py` | `rhel-nfs` | NFS istemcisi: açılışta bağlama zamanı/hatası, NFS'ten önce başlayan konteyner, motor servis sırası, nofail, readahead → BULGU (man kaynaklı) |
 | `sep-istisna.py` | `rke2-edr` | SEP Auto-Protect istisna adayları: sunucuda var olan yollardan tam yol + kaynak (Broadcom KB, MongoDB, RKE2), kurum kararı ve kaynaksız aday ayrı |
 | `is-kaydi.py` | `rapor` | Geçici saha işinin kaydı (sahada `~/ai/work/is-kayitlari/<tarih>-<etiket>/`): plan.md (önce sor, kanıt, adımlar, risk), okuma/ (komut çıktıları), sonuc.md — kurum iş bilgi tabanı; yalnız bu köke yazar, onaysız |
-| `oturum-ozet.py` | `rapor` | opencode oturum dökümünden kanıtlı özet (`/kaydet`): yalnız kullanıcı sözü + komut çıktısı; ajan metni girmez; düzeltilen ajan sözü ve başarısız komut "bilgi değil" bölümünde |
+| `oturum-ozet.py` | `rapor` | opencode oturum dökümünden kanıtlı özet (olay raporu): yalnız kullanıcı sözü + komut çıktısı; ajan metni girmez; düzeltilen ajan sözü ve başarısız komut "bilgi değil" bölümünde |
 | `envanter-harita.py` | `kurum-envanter` | Sunucu adı + IP (getent) → ilk 3 harf (lokasyon·ortam·alan) başına sayı, domain, /16 blok; tabloya uymayan kod ve domain uyuşmazlığı SOR listesine |
 | `kesinti-ozet.py` | `kesinti-sonrasi` | Elektrik/veri merkezi kesintisi sonrası filo, host düzeyinde hızlı (tek ansible okuma komutu): ulaşılamayan · yanıt vermeyen (ayakta) · kesintide kapanan (`last -x` ile ani/temiz) · kapanmayan; yük/D-state, bağlanmamış fstab/NFS (servis, journal, konteyner yalnız istenirse) |
 | `veeam-tani.py` | `veeam-linux` | Veeam Linux sunucusunda restore/iş hatası: salt-okunur komut + bilinen sebep kararı (/tmp noexec KB2099, /run/veeamtransport, koşullu veeamnetfsmount) |

@@ -1200,9 +1200,9 @@ export const OKUYAN_BECERI_BETIGI = new Set(
   }),
 )
 
-// is-envanter.py (2026-11-13, G126): yalnız çalışma dizininde dn/<no>/hosts.ini ya da ansible/inventories/hosts-<gün>-<etiket>.ini yazar
+// is-envanter.py (2026-11-13, G126; 2026-11-23): yalnız çalışma kökünde dn/<no>/hosts.ini ya da is/<gün>-<etiket>/hosts.ini yazar
 // (ana envantere dokunmaz); dışarıya yalnız DNS sorgusu + ssh portuna TCP denemesi (okuma).
-// Yalnız yerel iş kaydı köküne (~/ai/work/is-kayitlari) yazan betik (kaynağı denetlendi: kök dışına yazmaz, üstüne yazmaz) — sunucu
+// Yalnız yerel iş kaydı köküne (<çalışma kökü>/dn, /is) yazan betik (kaynağı denetlendi: kök dışına yazmaz, üstüne yazmaz) — sunucu
 // değişikliği değil, onay ekranına düşmez (Alp, 2026-11-03, ADR-0007 §6). Okuma sayılmaz; yalnız kesinOkuma'nın onaysız geçişinde kabul.
 export const YEREL_KAYIT_BETIGI = new Set(
   ["rapor/is-kaydi.py", "ansible/is-envanter.py"].flatMap((x) => {

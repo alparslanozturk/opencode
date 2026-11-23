@@ -137,7 +137,7 @@ En ağır hatalar ham çıktıyı kafadan tabloya/özete dökmekten çıktı (uy
 Bu işlerde betiği çalıştır, satırlarını **aynen** aktar; sayı/gün/süre hesaplama. Yol: `python3 /root/ai/opencode/knowledge/skills/approved/<beceri>/<betik>`,
 kullanım becerinin SKILL.md'sinde (önce beceriyi yükle):
 - sunucu/IP → hangi küme, Rancher'ın kümeleri, ingress, sertifika CN → `kume-bul/kume-bul.py`
-- değişiklik numarası + sunucu listesi → iş envanteri `dn/<numara>/hosts.ini` (CN'siz kriz/kurulum: `ansible/inventories/hosts-<YYYYMMDD>-<etiket>.ini`)
+- değişiklik numarası + sunucu listesi → iş envanteri `dn/<numara>/hosts.ini` (CN'siz kriz/kurulum/bulgu: `is/<YYYYMMDD>-<etiket>/hosts.ini` — her iş kendi dizininde)
   → `ansible/is-envanter.py` (ana envanterden aynen türetir; elle INI yazma — `ansible` becerisi §0)
 - sertifika/ayar dosyasını sunuculara dağıtma → içerik playbook'a gömülü (`copy content:`) → `ansible/gomulu-dosya.py`
   (PEM/base64'ü kendin yazma — betik bayt bayt gömer, sha256 doğrular)
@@ -480,11 +480,12 @@ yazma; ölçemediğin sunucuyu "ölçülmedi" diye ayrı göster. Bilmediğin de
 - Liste yapıştırılınca (alt alta, numaralı, virgüllü, envanter satırı) ne olduğunu sen anla; biçim isteme.
 - CN + sunucular tamamlanınca değişiklik işinde ilk adım iş envanteridir (`ansible/is-envanter.py`, yukarıdaki betik listesi).
   **Kurulum, kriz ve bulgu işinde de aynı (Alp, 2026-11-23: "her kurulumda sunucular belli … ini dosyaları oluşturulacak … kriz
-  anında da"):** sunucular belli olunca önce `is-envanter.py kurulum|kriz|bulgu <liste>` → `hosts-<gün>-<etiket>.ini`; işi bu envanter
+  anında da"):** sunucular belli olunca önce `is-envanter.py <tür>-<ad> <liste>` (ör. `kriz-elektrik`) → `is/<gün>-<etiket>/hosts.ini`; işi bu envanter
   ve `-l` ile yap, elle INI ya da `for … ssh` döngüsü yazma.
 - **İş kaydı (Alp, 2026-11-03; dizin düzeni 2026-11-12):** değişiklik içeren her saha işinde kayıt aç — `K=/root/ai/opencode/knowledge/skills/approved/rapor/is-kaydi.py`;
   `python3 $K ac <işin kısa adı> --cn <numara> --sunucular … --istek "<kullanıcının sözü>"` → `dn/<numara>/README.md` + `logs/` (CN yoksa `--cn`
-  yazma → `~/ai/work/is-kayitlari/<YYYYMMDD>-<etiket>/`; etiket türle başlar: `kriz-…`, `kurulum-…`, `bulgu-…`). Okuma çıktısı `<komut> | python3 $K ekle <numara|son> <ad>`, bitince ölçülen sonuç
+  yazma → `is/<YYYYMMDD>-<etiket>/` — CN'li işle aynı düzen; etiket türle başlar: `kriz-…`, `kurulum-…`, `bulgu-…`; `is-envanter.py` ile
+  **aynı etiketi** kullan, ikisi aynı dizine yazar; aynı gün aynı etiket = aynı iş). Okuma çıktısı `<komut> | python3 $K ekle <numara|son> <ad>`, bitince ölçülen sonuç
   `python3 $K sonuc <numara|son> "…"`. `README.md`'ye işin bilgisini yaz (istek, sunucular, adımlar ve hangi playbook, durum) — başka gün
   açan kişi oradan anlar. Kurum verisi — sahada kalır. Benzer iş için önce `python3 $K liste <sözcük…> [--tur cn|kriz|kurulum|bulgu|is] [--tarih YYYY-MM]` — README notları, plan ve
   sonuçta arar, eşleşen satırı dosya:satır basar ("daha önce nerede yapmıştık", "o işte ne not almıştık" sorusunun cevabı). İş kökü sabit:
@@ -529,8 +530,10 @@ doğrulama gerekiyorsa **sonunda tek cümleyle öner** ("istersen NFS sunucusund
 ## İş dizini ve dosya adlarında tarih (Alp, 2026-10-22; düzen 2026-11-12)
 - **Değişiklik numaralı iş:** `dn/<numara>/` — `hosts.ini`, `01-<ad>.yaml` …, `README.md`, `logs/`. Dizin ve dosya adında **tarih/saat yok**
   (Alp: "saati niye ekliyorsun"; "her değişiklik numarası için dn dizininde numarayla bir dizin … daha sade, daha anlaşılır"). Eski işler
-  `dn/<numara>/hosts-<YYYYMMDD>-dn<numara>.ini` adıyla durur — yeniden adlandırma. CN'siz iş: `ansible/inventories/hosts-<YYYYMMDD>-<etiket>.ini`
-  ve `~/ai/work/is-kayitlari/<YYYYMMDD>-<etiket>/` (gün, saat yok). Adları betik üretir (`is-envanter.py`, `is-kaydi.py`) — elle yazma.
+  `dn/<numara>/hosts-<YYYYMMDD>-dn<numara>.ini` adıyla durur — yeniden adlandırma. **CN'siz iş (Alp, 2026-11-23: "host dosyası her
+  zaman kendi dizininde"):** `is/<YYYYMMDD>-<etiket>/` — `hosts.ini`, playbook'lar, `README.md`, `logs/` (gün, saat yok). Ana envanter
+  (`ansible/inventories/`) envanter biriminin listesinden gelir; iş envanteri oraya yazılmaz. Eski CN'siz kayıtlar
+  (`ansible/inventories/hosts-<gün>-<etiket>.ini`, `~/ai/work/is-kayitlari/`) yerinde kalır, arama onları da okur. Adları betik üretir (`is-envanter.py`, `is-kaydi.py`) — elle yazma.
 - Yedek ve komut çıktısı (aynı gün birden çok olur): **`YYYYMMDD-HHMM`** (`date +%Y%m%d-%H%M`) — `fstab.20261022-1430`. Var olan dosyanın
   üzerine yazma; yeni ad üret.
 

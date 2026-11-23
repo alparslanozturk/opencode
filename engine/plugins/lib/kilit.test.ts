@@ -780,7 +780,7 @@ describe("G101: iş envanteri (hosts-<CN>-<tarih>.ini) ad ↔ IP eşlemesine kay
     expect(envanterDosyalari(dz).map((d) => d.split("/").pop()).sort()).toEqual(["hosts-rke2.ini", "hosts.ini"])
     expect(IS_DESEN.test("hosts-rke2.ini")).toBe(false)
   })
-  test("dn/<numara>/ iş dizini (ansible/ altında da) kaynak olmaz", () => {
+  test("dn/<numara>/ ve is/<gün>-<etiket>/ iş dizini (ansible/ altında da) kaynak olmaz", () => {
     const { mkdirSync, writeFileSync } = require("fs")
     const { envanterDosyalari } = require("./envanter") as typeof import("./envanter")
     const dz = workdir + "-g101dn"
@@ -791,6 +791,9 @@ describe("G101: iş envanteri (hosts-<CN>-<tarih>.ini) ad ↔ IP eşlemesine kay
     writeFileSync(dz + "/ansible/dn/29000/hosts.ini", "[g]\nx01 ansible_host=10.0.5.99\n")
     writeFileSync(dz + "/ansible/dn/29000/hosts-stl.ini", "[g]\nx02\n")
     writeFileSync(dz + "/dn/29001/hosts.ini", "[g]\nx03\n")
+    // is/<gün>-<etiket>/: CN'siz iş dizini (Alp, 2026-11-23) — o da kaynak değil
+    mkdirSync(dz + "/is/20261123-kriz-elektrik", { recursive: true })
+    writeFileSync(dz + "/is/20261123-kriz-elektrik/hosts.ini", "[g]\nx04 ansible_host=10.0.5.98\n")
     expect(envanterDosyalari(dz).map((d) => d.slice(dz.length))).toEqual(["/ansible/inventories/hosts.ini"])
   })
 })

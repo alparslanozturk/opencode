@@ -5,7 +5,9 @@
 # oraya atıyoruz" → değişiklik numaralı işin HER ŞEYİ tek dizinde:
 #   <çalışma dizini>/dn/<numara>/   hosts.ini (iş envanteri — is-envanter.py) · 01-<ad>.yaml, 02-… (playbook'lar) · README.md (iş bilgisi)
 #                                   logs/plan.md · logs/sonuc.md · logs/okuma/ (kanıt)
-# CN'siz iş (kriz, kurulum, inceleme): ~/ai/work/is-kayitlari/<YYYYMMDD>-<etiket>/ (IS_KAYIT_KOK ile değişir) — plan.md, sonuc.md, okuma/
+# CN'siz iş (kriz, kurulum, bulgu …; Alp 2026-11-23 "host dosyası her zaman kendi dizininde"): <çalışma kökü>/is/<YYYYMMDD>-<etiket>/ —
+#   CN'li işle aynı düzen (README.md, hosts.ini, playbook'lar, logs/); etiket türle başlar (kriz-elektrik); is-envanter.py aynı etiketle aynı
+#   dizini kullanır; aynı gün aynı etiket = aynı iş. IS_KAYIT_KOK ile değişir. Eski kayıtlar (~/ai/work/is-kayitlari, IS_ESKI_KOK) yalnız okunur.
 # Betik YALNIZ bu iki kökün altına yazar, var olan dosyanın üstüne yazmaz. Kurum verisi içerir — sahada kalır, opencode deposuna kopyalanmaz.
 #
 #   is-kaydi.py ac <etiket> [--cn <no>] [--sunucular a,b] [--istek "<metin>"]   → kayıt dizini, yolunu basar
@@ -28,7 +30,6 @@ import os
 import re
 import sys
 
-KOK = os.path.abspath(os.path.expanduser(os.environ.get("IS_KAYIT_KOK", "~/ai/work/is-kayitlari")))
 
 
 SABIT_KOK = "~/ai/work/opencode"  # Alp (2026-11-23): "genelde orada çalışıyorum … sabit olabilir" — ansible/, dn/, kurumsal-bilgi.ini burada
@@ -52,6 +53,8 @@ def calisma_koku():
 
 
 DN_KOK = os.path.abspath(os.path.expanduser(os.environ.get("IS_DN_KOK") or os.path.join(calisma_koku(), "dn")))
+KOK = os.path.abspath(os.path.expanduser(os.environ.get("IS_KAYIT_KOK") or os.path.join(calisma_koku(), "is")))
+ESKI_KOK = os.path.abspath(os.path.expanduser(os.environ.get("IS_ESKI_KOK") or "~/ai/work/is-kayitlari"))  # 2026-11-23 öncesi; yalnız okunur
 
 BASLIK = """- Açıldı: {zaman}
 - CN: {cn}
@@ -82,6 +85,17 @@ PLAN = """# {ad}
 
 SONUC = ("# Sonuç — {ad}\n\n(ölçülen son durum; \"yaptım\" yalnız hedefteki ölçümle)\n\n"
           "## Dersler (öneri — beceriye ancak Alp onayıyla girer; yalnız ölçülmüş olgu)\n\n")
+
+BENIOKU_IS = """# {etiket} — {ad}
+
+""" + BASLIK + """
+## Bu dizinde
+- `hosts.ini` — iş envanteri: yalnız bu işin sunucuları (`is-envanter.py {etiket} <liste>` aynı dizine yazar)
+- playbook'lar (`01-<ad>.yaml` …) · `logs/plan.md` plan · `logs/sonuc.md` ölçülen sonuç · `logs/okuma/` okuma kanıtı
+
+## Durum
+-
+"""
 
 BENIOKU = """# Değişiklik {cn} — {etiket}
 
@@ -120,13 +134,14 @@ def cn_dizin_adi(cn):
     return m.group(1) if m else ad
 
 
-def kayitlar():
-    # plan.md taşıyan tüm kayıt dizinleri: CN'li (dn/<no>/logs) + CN'siz (is-kayitlari/<ad>)
+def kayitlar(eski=True):
+    # plan.md taşıyan kayıt dizinleri: CN'li (dn/<no>/logs) + CN'siz (is/<ad>/logs) + eski CN'siz (is-kayitlari/<ad>, yalnız okuma)
     out = []
-    if os.path.isdir(DN_KOK):
-        out += [os.path.join(DN_KOK, d, "logs") for d in os.listdir(DN_KOK)]
-    if os.path.isdir(KOK):
-        out += [os.path.join(KOK, d) for d in os.listdir(KOK)]
+    for kok in (DN_KOK, KOK):
+        if os.path.isdir(kok):
+            out += [os.path.join(kok, d, "logs") for d in os.listdir(kok)]
+    if eski and os.path.isdir(ESKI_KOK) and ESKI_KOK not in (KOK, DN_KOK):
+        out += [os.path.join(ESKI_KOK, d) for d in os.listdir(ESKI_KOK)]
     return [d for d in out if os.path.isfile(os.path.join(d, "plan.md"))]
 
 
@@ -143,19 +158,26 @@ def acilis(dizin):
 
 
 def gorunen_ad(dizin):
-    return "dn/" + os.path.basename(os.path.dirname(dizin)) if icinde(DN_KOK, dizin) else os.path.basename(dizin)
+    is_dizini = os.path.dirname(dizin) if os.path.basename(dizin) == "logs" else dizin
+    if icinde(DN_KOK, is_dizini):
+        return "dn/" + os.path.basename(is_dizini)
+    if icinde(KOK, is_dizini):
+        return "is/" + os.path.basename(is_dizini)
+    return os.path.basename(is_dizini)
 
 
 def kayit_dizini(arg):
     if arg == "son":
-        hepsi = sorted(kayitlar(), key=acilis)
+        hepsi = sorted(kayitlar(eski=False), key=acilis)  # "son" yalnız yeni köklerden — eski kayda yazılmaz
         if not hepsi:
             raise SystemExit("kayıt yok (%s, %s)" % (DN_KOK, KOK))
         return hepsi[-1]
-    adaylar = [os.path.join(DN_KOK, cn_dizin_adi(arg)), os.path.join(KOK, arg)] if not os.path.isabs(arg) and os.sep not in arg else []
+    kisa = re.sub(r"^(dn|is)/", "", arg)
+    adaylar = ([os.path.join(DN_KOK, cn_dizin_adi(kisa)), os.path.join(KOK, kisa), os.path.join(ESKI_KOK, kisa)]
+               if not os.path.isabs(arg) and os.sep not in kisa else [])
     adaylar.append(os.path.abspath(os.path.expanduser(arg)))
     for yol in adaylar:
-        if not (icinde(DN_KOK, yol) or icinde(KOK, yol)) or yol in (DN_KOK, KOK):
+        if not any(icinde(k, yol) for k in (DN_KOK, KOK, ESKI_KOK)) or yol in (DN_KOK, KOK, ESKI_KOK):
             continue
         for d in (os.path.join(yol, "logs"), yol):  # iş dizini (dn/<no>) verildiyse kayıt logs/ altındadır
             if os.path.isfile(os.path.join(d, "plan.md")):
@@ -212,11 +234,18 @@ def ac(argv):
                   "(01-<ad>.yaml …) da bu dizine")
         return 0
     ad = "-".join(x for x in (zaman("%Y%m%d"), etiket or "is") if x)
-    dizin = yeni_dosya(os.path.join(KOK, ad))
-    os.makedirs(os.path.join(dizin, "okuma"))
-    yoksa_yaz(os.path.join(dizin, "plan.md"), PLAN.format(ad=os.path.basename(dizin), **alanlar))
-    yoksa_yaz(os.path.join(dizin, "sonuc.md"), SONUC.format(ad=os.path.basename(dizin)))
+    dizin = os.path.join(KOK, ad)  # aynı gün + aynı etiket = aynı iş (is-envanter.py de buraya yazar)
+    kayit = os.path.join(dizin, "logs")
+    vardi = os.path.isfile(os.path.join(kayit, "plan.md"))
+    os.makedirs(os.path.join(kayit, "okuma"), exist_ok=True)
+    yoksa_yaz(os.path.join(dizin, "README.md"), BENIOKU_IS.format(etiket=etiket or "is", ad=ad, **alanlar))
+    yoksa_yaz(os.path.join(kayit, "plan.md"), PLAN.format(ad=ad, **alanlar))
+    yoksa_yaz(os.path.join(kayit, "sonuc.md"), SONUC.format(ad=ad))
     print(dizin)
+    if vardi:
+        print("zaten açık (aynı gün, aynı etiket) — bu dizinle devam et; yeni dizin açılmadı, var olan dosyalara dokunulmadı")
+    else:
+        print("içinde: README.md · logs/plan.md · logs/sonuc.md · logs/okuma/ — iş envanteri: is-envanter.py %s <liste> (aynı dizine)" % (etiket or "is"))
     return 0
 
 
@@ -268,7 +297,7 @@ def kayit_bilgi(d):
     if icinde(DN_KOK, d):
         tur = "cn"
     else:
-        etiket = re.sub(r"^\d{8}-", "", os.path.basename(d)).lower()
+        etiket = re.sub(r"^\d{8}-", "", os.path.basename(is_dizini)).lower()
         tur = next((t for t in TURLER if etiket == t or etiket.startswith(t + "-")), "is")
     return tur, acil.group(1) if acil else "", gorunen_ad(d), sun.group(1) if sun else "", metinler
 

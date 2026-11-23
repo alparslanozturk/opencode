@@ -1207,7 +1207,7 @@ PY
     echo  "  tekerlek : cd <veri/proje dizini> && ocm          (fare tekerleğiyle kaydırma + terminalde seçim; = opencode mini)"
   fi
   echo  "  Model otomatik seçili: kurum / Qwen3.6-35B-A3B-FP8 (/models ile değiştirilebilir)."
-  sari "  NOT: opencode'u VERİNİN OLDUĞU dizinde aç (ör: cd ~/ansible && opencode) — dışarı çıkmak izin kapısı açar."
+  sari "  NOT: opencode'u VERİNİN OLDUĞU dizinde aç (iş kökü: cd ~/ai/work/opencode && opencode) — dışarı çıkmak izin kapısı açar."
 
   # -------------------------------------------------------------------------
   #  Kurulum başarıyla bitti (başarısız yollar yukarıda erken çıkar). Alp'in

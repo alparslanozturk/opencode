@@ -40,7 +40,7 @@ icermez() { if grep -qF -- "$3" "$2"; then kaldi "$1 — olmamalı: $3"; else ge
 
 cd "$CALISMA" || exit 1
 # Sahada ~/ai/work/opencode (sabit iş kökü) var — test betikleri gerçek iş dizinine yazmasın (is-kaydi/is-envanter, 2026-11-23)
-export OPS_SABIT_KOK="$CALISMA/sabit-kok-yok"
+export OPS_SABIT_KOK="$CALISMA/sabit-kok-yok" IS_ESKI_KOK="$CALISMA/eski-kayit-yok"
 
 # --------------------------------------------------------------------------- kume-bul
 baslik "kume-bul.py (G94)"
@@ -803,10 +803,12 @@ icerir "önek uyarısı" sio.txt "KB 250717"
 
 baslik "is-kaydi.py (iş kaydı; 2026-11-03 · dn/<numara>/ düzeni 2026-11-12)"
 IK="$B/rapor/is-kaydi.py"; export IS_KAYIT_KOK="$PWD/iskok" IS_DN_KOK="$PWD/isdn/dn"
-d1=$(python3 "$IK" ac "Data → Root!" --sunucular a,b --istek "talep")
-[ -f "$d1/plan.md" ] && [ -d "$d1/okuma" ] && gecti "ac: plan.md + okuma/" || kaldi "ac: $d1"
+d1=$(python3 "$IK" ac "Data → Root!" --sunucular a,b --istek "talep" | head -1)
+# CN'siz iş de CN'li ile aynı düzende (Alp, 2026-11-23): is/<gün>-<etiket>/README.md + logs/
+[ -f "$d1/logs/plan.md" ] && [ -d "$d1/logs/okuma" ] && [ -f "$d1/README.md" ] && gecti "ac: README.md + logs/{plan,okuma}" || kaldi "ac: $d1"
+python3 "$IK" ac "Data → Root!" > ikd.txt; icerir "CN'siz: aynı gün aynı etiket yeniden açılmaz" ikd.txt "zaten açık"
 case "$(basename "$d1")" in [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-data-root) gecti "CN'siz ad: <YYYYMMDD>-<etiket> (saat yok)";; *) kaldi "etiket: $d1";; esac
-icerir "CN verilmedi varsayılanı" "$d1/plan.md" "CN: verilmedi"
+icerir "CN verilmedi varsayılanı" "$d1/logs/plan.md" "CN: verilmedi"
 # saha G124 (Alp, 2026-11-12): değişiklik numaralı iş → dn/<numara>/ (README.md + logs/); adında tarih/saat yok, aynı numara yeniden açılmaz
 d2=$(python3 "$IK" ac guncelleme --cn 29000 --sunucular c,d --istek "tam update" | head -1)
 [ "$d2" = "$IS_DN_KOK/29000" ] && gecti "ac --cn: dn/<numara>" || kaldi "ac --cn dizini: $d2"
@@ -845,9 +847,9 @@ icerir "not: otomatik parola README'ye kaynağıyla yazılır (Alp 2026-11-23)" 
 python3 "$IK" not 29000 "parola: <sunucudaki .env>" --kaynak "komut: ls" > /dev/null; icerir "not: parolanın yeri komutla yazılabilir" "$d2/README.md" "parola: <sunucudaki .env> [komut: ls]"
 \rm -rf "$IS_DN_KOK"
 echo "Filesystem 365G" | python3 "$IK" ekle son df > ike.txt
-ls "$d1"/okuma/*-df.txt > /dev/null 2>&1 && gecti "ekle: stdin okuma/ altına" || kaldi "ekle: $(cat ike.txt)"
-echo x | python3 "$IK" ekle son df > /dev/null; [ "$(ls "$d1"/okuma | wc -l)" -eq 2 ] && gecti "ekle: üstüne yazmaz" || kaldi "ekle üstüne yazdı"
-python3 "$IK" sonuc son "root 365G" > /dev/null; icerir "sonuc satırı" "$d1/sonuc.md" "root 365G"
+ls "$d1"/logs/okuma/*-df.txt > /dev/null 2>&1 && gecti "ekle: stdin okuma/ altına" || kaldi "ekle: $(cat ike.txt)"
+echo x | python3 "$IK" ekle son df > /dev/null; [ "$(ls "$d1"/logs/okuma | wc -l)" -eq 2 ] && gecti "ekle: üstüne yazmaz" || kaldi "ekle üstüne yazdı"
+python3 "$IK" sonuc son "root 365G" > /dev/null; icerir "sonuc satırı" "$d1/logs/sonuc.md" "root 365G"
 if python3 "$IK" ekle ../../etc x < /dev/null > ikx.txt 2>&1; then kaldi "kök dışı kabul edildi"; else gecti "kök dışı dizin reddedilir"; fi
 if python3 "$IK" ekle /etc x < /dev/null > ikx.txt 2>&1; then kaldi "kök dışı mutlak yol kabul edildi"; else gecti "kök dışı mutlak yol reddedilir"; fi
 python3 "$IK" liste data > ikl.txt; icerir "liste sözcükle" ikl.txt "a,b"
@@ -865,6 +867,12 @@ mkdir -p sabitkok/ansible baskadizin
 (cd baskadizin && OPS_CALISMA_KOK="$PWD/../sabitkok" IS_KAYIT_KOK="$PWD/../iskok2" python3 "$IK" ac x --cn 31000 > ../iks.txt 2>&1)
 [ -f sabitkok/dn/31000/README.md ] && gecti "sabit kök: is-kaydi dn/ sabit kökte (cwd başka)" || kaldi "sabit kök is-kaydi: $(cat iks.txt)"
 [ ! -d baskadizin/dn ] && gecti "sabit kök: cwd'de dn/ açılmaz" || kaldi "cwd'de dn açıldı"
+# CN'siz iş: is-envanter.py + is-kaydi.py aynı etiketle aynı dizinde (Alp, 2026-11-23: "host dosyası her zaman kendi dizininde")
+mkdir -p ortak/ansible/inventories && printf '[w]\nkrz01 ansible_host=10.0.0.5\n' > ortak/ansible/inventories/hosts.ini
+(cd baskadizin && OPS_CALISMA_KOK="$PWD/../ortak" python3 "$B/ansible/is-envanter.py" kriz-elektrik krz01 --erisim-yok > /dev/null 2>&1
+ OPS_CALISMA_KOK="$PWD/../ortak" python3 "$IK" ac kriz-elektrik --istek "kesinti" > ../iko.txt 2>&1)
+ls ortak/is/*-kriz-elektrik/hosts.ini > /dev/null 2>&1 && ls ortak/is/*-kriz-elektrik/logs/plan.md > /dev/null 2>&1 && [ "$(ls ortak/is | wc -l)" -eq 1 ] \
+  && gecti "CN'siz: envanter + iş kaydı aynı dizin (is/<gün>-<etiket>/)" || kaldi "CN'siz ortak dizin: $(ls -R ortak/is 2>&1 | head -6)"
 
 baslik "oturum-ozet.py (oturum kanıtlı özeti; 2026-11-03)"
 cat > oz.json << 'JSON'
@@ -1046,7 +1054,7 @@ baslik "is-envanter bulgu: 'ad  IP' satırı ansible_host, cümle sözcüğü al
 mkdir -p ieb
 (cd ieb && printf 'Bu sunucular da sep calisiyor mu? abcmaster1  127.0.0.11\nabcmaster2  127.0.0.12\nbulgu kapatiyoruz.\n' |
   python3 "$B/ansible/is-envanter.py" bulgu - --erisim-yok > ../ieb.txt 2>&1)
-cat ieb/ansible/inventories/hosts-*-bulgu.ini > ieb1.txt 2>/dev/null
+cat ieb/is/*-bulgu/hosts.ini > ieb1.txt 2>/dev/null
 icerir "ad + IP → ansible_host" ieb1.txt "abcmaster1 ansible_host=127.0.0.11"
 grep -q '^127\.0\.0\.12 ' ieb1.txt && kaldi "IP ayrı host yazıldı" || gecti "IP ayrı host değil"
 grep -q -e '^sep ' -e '^bu ' -e '^bulgu ' ieb1.txt && kaldi "cümle sözcüğü host yazıldı" || gecti "cümle sözcüğü host değil"
@@ -1092,12 +1100,13 @@ icerir "çözülmeyen işaretlenir" ied/dn/29002/hosts.ini "yok-boyle-sunucu-x9 
 icerir "çıktı: erişim özeti" ied10.txt "erişim: ssh portu açık"
 icerir "çıktı: ansible ping önerisi" ied10.txt "-m ping -o"
 (cd ied && python3 "$IE" kriz stlweb01 --erisim-yok > ../ied5.txt 2>&1)
-ls ied/ansible/inventories/hosts-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-kriz.ini > /dev/null 2>&1 && gecti "CN'siz (kriz) → ansible/inventories/hosts-<YYYYMMDD>-kriz.ini" || kaldi "kriz: $(head -2 ied5.txt)"
+ls ied/is/[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-kriz/hosts.ini > /dev/null 2>&1 && gecti "CN'siz (kriz) → is/<YYYYMMDD>-kriz/hosts.ini (kendi dizininde)" || kaldi "kriz: $(head -2 ied5.txt)"
+ls ied/ansible/inventories/hosts-*-kriz.ini > /dev/null 2>&1 && kaldi "CN'siz envanter ana envanter dizinine yazıldı" || gecti "CN'siz: ana envanter dizinine yazılmaz"
 (cd ied/dn/29000 && python3 "$IE" 29000 dtlweb01 dtlweb02 --erisim-yok > ../../../ied6.txt 2>&1)
 icerir "iş dizininin içinden çalıştırılınca kök aynı" ied6.txt "dn/29000/hosts.ini"
 [ ! -d ied/dn/29000/dn ] && gecti "iç içe dn/ açılmadı" || kaldi "iç içe dn/"
 (cd ied && python3 "$IE" --liste > ../ied7.txt 2>&1)
-icerir "--liste: dn altı" ied7.txt "dn/29001/hosts.ini"; icerir "--liste: CN'siz" ied7.txt "-kriz.ini"
+icerir "--liste: dn altı" ied7.txt "dn/29001/hosts.ini"; icerir "--liste: CN'siz" ied7.txt "-kriz/hosts.ini"
 # iş envanteri kaynak sayılmaz: dn/ altı ana envanter aramasına girmez
 (cd ied && python3 "$B/kume-bul/kume-bul.py" stlweb01 > ../ied8.txt 2>&1)
 icermez "kume-bul dn/ altını kaynak saymaz" ied8.txt "dn/29000"

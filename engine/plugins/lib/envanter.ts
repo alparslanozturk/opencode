@@ -80,8 +80,8 @@ export function envanterDosyalari(workdir: string): string[] {
       return
     }
     for (const g of girdiler.sort()) {
-      // dn/: CN iş dizinleri (dn/<numara>/hosts*.ini, Alp 2026-11-12) — ajanın yazdığı iş envanteri, kaynak değil
-      if (g.startsWith(".") || g === "node_modules" || g === "roles" || g === "group_vars" || g === "host_vars" || g === "dn") continue
+      // dn/, is/: iş dizinleri (dn/<numara>/hosts.ini Alp 2026-11-12; is/<gün>-<etiket>/hosts.ini Alp 2026-11-23) — ajanın yazdığı iş envanteri, kaynak değil
+      if (g.startsWith(".") || g === "node_modules" || g === "roles" || g === "group_vars" || g === "host_vars" || g === "dn" || g === "is") continue
       const yol = join(dizin, g)
       let st
       try {

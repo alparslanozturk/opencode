@@ -23,7 +23,8 @@ _spec = importlib.util.spec_from_file_location(
 kb = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(kb)
 
-IS_DIZIN = os.path.join("ansible", "inventories")  # CN'siz iş envanterleri (ana envanterin yanında)
+IS_DIZIN = "is"  # CN'siz işler (Alp, 2026-11-23: "host dosyası her zaman kendi dizininde"): is/<YYYYMMDD>-<etiket>/hosts.ini
+ESKI_IS_DIZIN = os.path.join("ansible", "inventories")  # 2026-11-23 öncesi CN'siz iş envanterleri (hosts-<gün>-<etiket>.ini) — yalnız okunur
 DN_DIZIN = "dn"  # değişiklik numaralı işler: dn/<numara>/
 CNSIZ = ("kriz", "kurulum", "bulgu", "is")  # bulgu: denetim bulgusu kapatma (Alp, 2026-11-13 — CN yok, onay yok)
 # Ana envanter dizinindeki iş envanteri adı (tarihli kopya: hosts-20261022-dn29000.ini, hosts-20261112-kriz.ini) — kaynak sayılmaz.
@@ -296,15 +297,16 @@ def host_satiri(k):
 
 def liste():
     yollar = []
-    if os.path.isdir(DN_DIZIN):
-        for d in sorted(os.listdir(DN_DIZIN)):
-            alt = os.path.join(DN_DIZIN, d)
-            if os.path.isdir(alt):
-                yollar += [os.path.join(alt, g) for g in sorted(os.listdir(alt)) if re.match(r"^hosts.*\.ini$", g, re.I)]
-    if os.path.isdir(IS_DIZIN):
-        yollar += [os.path.join(IS_DIZIN, g) for g in sorted(os.listdir(IS_DIZIN)) if IS_DESEN.match(g)]
+    for kok in (DN_DIZIN, IS_DIZIN):
+        if os.path.isdir(kok):
+            for d in sorted(os.listdir(kok)):
+                alt = os.path.join(kok, d)
+                if os.path.isdir(alt):
+                    yollar += [os.path.join(alt, g) for g in sorted(os.listdir(alt)) if re.match(r"^hosts.*\.ini$", g, re.I)]
+    if os.path.isdir(ESKI_IS_DIZIN):
+        yollar += [os.path.join(ESKI_IS_DIZIN, g) for g in sorted(os.listdir(ESKI_IS_DIZIN)) if IS_DESEN.match(g)]
     if not yollar:
-        print("iş envanteri yok (%s/<numara>/hosts*.ini, %s/hosts-<gün>-<etiket>.ini)." % (DN_DIZIN, IS_DIZIN))
+        print("iş envanteri yok (%s/<numara>/hosts.ini, %s/<gün>-<etiket>/hosts.ini)." % (DN_DIZIN, IS_DIZIN))
         return 0
     for yol in yollar:
         bas, n = "", "?"
@@ -360,9 +362,14 @@ def main(argv):
     if not re.fullmatch(r"[A-Za-z0-9_-]{2,40}", etiket):
         print("etiket geçersiz: %r — değişiklik numarası (29000, CHG0012345) ya da kriz/kurulum/is" % etiket)
         return 1
-    cnsiz = etiket.lower() in CNSIZ
-    m = re.fullmatch(r"(?:dn[-_]?)?(\d+)", etiket, re.I)
-    is_dizin = None if cnsiz else os.path.join(DN_DIZIN, m.group(1) if m else etiket)  # dn29000 / 29000 → dn/29000
+    tur = next((t for t in CNSIZ if etiket.lower() == t or etiket.lower().startswith(t + "-")), "")  # kriz, kriz-elektrik …
+    cnsiz = bool(tur)
+    m = None if cnsiz else re.fullmatch(r"(?:dn[-_]?)?(\d+)", etiket, re.I)
+    if cnsiz:  # CN'siz iş de kendi dizininde: is/<YYYYMMDD>-<etiket>/ (is-kaydi.py aynı etiketle aynı dizini kullanır)
+        etiket = etiket.lower()
+        is_dizin = os.path.join(IS_DIZIN, "%s-%s" % (datetime.datetime.now().strftime("%Y%m%d"), etiket))
+    else:
+        is_dizin = os.path.join(DN_DIZIN, m.group(1) if m else etiket)  # dn29000 / 29000 → dn/29000
     if m:
         etiket = "dn" + m.group(1)  # başlık satırında sahadaki yazımıyla
     metin = sys.stdin.read() if kalan[1:] == ["-"] else "\n".join(kalan[1:])
@@ -373,8 +380,7 @@ def main(argv):
 
     # Tek dosya: dn/<numara>/hosts.ini · CN'siz: ansible/inventories/hosts-<gün>-<etiket>.ini. Var olan dosyadaki gruplar korunur,
     # yeni grup eklenir; aynı grup farklı sunucularla gelirse --yenile olmadan yazılmaz (kullanılmış envanter sessizce değişmez).
-    yol = os.path.join(is_dizin, "hosts.ini") if is_dizin else os.path.join(
-        IS_DIZIN, "hosts-%s-%s.ini" % (datetime.datetime.now().strftime("%Y%m%d"), etiket))
+    yol = os.path.join(is_dizin, "hosts.ini")
     eski = eski_gruplar(yol)
     istek = {g: (eski[g] if g in eski and set(eski[g]) == set(v) else v) for g, v in istek.items()}  # sıra farkı değişiklik değil
     cakisan = [g for g in istek if g in eski and eski[g] != istek[g]]
@@ -464,7 +470,7 @@ def main(argv):
             ek_satir.append("%s  # DNS: %s %s" % (b, fqdn, " ".join(ipler)))
 
     simdi = datetime.datetime.now()
-    os.makedirs(is_dizin or IS_DIZIN, exist_ok=True)
+    os.makedirs(is_dizin, exist_ok=True)
     sec = set(secilen)
     satirlar = [
         "# İş envanteri — %s — %s" % (etiket, simdi.strftime("%Y-%m-%d %H:%M")),
@@ -579,7 +585,7 @@ def main(argv):
     print("değişiklik = playbook, ŞABLONDAN (ansible becerisi §1c): reboot → cp %s %s · diğer → sablon/iskelet.yaml; hosts: all, "
           "başka .ini yazma" % (os.path.join(BURASI, "sablon", "reboot.yaml"), pb.replace("<ad>", "reboot")) if is_dizin else
           "değişiklik = playbook (ansible becerisi §0): %s — dizinde hazırı varsa onu kullan, yoksa sıradaki numarayla yaz" % pb)
-    if etiket.lower() == "bulgu":  # Alp, 2026-11-13: bulgu kapatmada CN ve onay yok — yine önce tek sunucu (kural, 2026-11-12)
+    if tur == "bulgu":  # Alp, 2026-11-13: bulgu kapatmada CN ve onay yok — yine önce tek sunucu (kural, 2026-11-12)
         print("  bulgu: CN yok, onay bekleme → playbook-denetim.py + --syntax-check + --list-hosts → önce TEK sunucu, olduysa kalanlar")
     else:
         print("  → playbook-denetim.py + --syntax-check + aynı komut --list-hosts → planı kullanıcıya göster, onayını bekle →")
@@ -592,8 +598,11 @@ def main(argv):
     else:
         print("  önce TEK sunucu: ansible-playbook -i %s %s -l <sunucu> → hedefte ölç → kalan sunucular kullanıcının \"devam\"ıyla" % (yol, pb))
     if is_dizin and not os.path.isfile(os.path.join(is_dizin, "logs", "plan.md")):
-        print("iş kaydı (README.md + logs/): python3 %s ac <işin kısa adı> --cn %s --istek \"<kullanıcının cümlesi>\"" % (
-            os.path.normpath(os.path.join(BURASI, "..", "rapor", "is-kaydi.py")), etiket))
+        ik = os.path.normpath(os.path.join(BURASI, "..", "rapor", "is-kaydi.py"))
+        if cnsiz:
+            print("iş kaydı (README.md + logs/, aynı dizin): python3 %s ac %s --istek \"<kullanıcının cümlesi>\"" % (ik, etiket))
+        else:
+            print("iş kaydı (README.md + logs/): python3 %s ac <işin kısa adı> --cn %s --istek \"<kullanıcının cümlesi>\"" % (ik, etiket))
     return 0
 
 

@@ -6,6 +6,15 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-23 — CN'siz iş de kendi dizininde: `is/<gün>-<etiket>/`
+
+Sahada: `al.sh` → `./kur.sh`, **yeni oturum**.
+- Alp: "host dosyası her zaman kendi dizininde". Kriz/kurulum/bulgu işi: `is/<YYYYMMDD>-<etiket>/` (hosts.ini, playbook, README, logs/) —
+  `is-envanter.py kriz-elektrik …` ve `is-kaydi.py ac kriz-elektrik` aynı dizini kullanır; aynı gün aynı etiket = aynı iş.
+- Ana envanter (`ansible/inventories/`, envanter biriminden) iş envanteri almaz; kilit ve kume-bul `is/`'i de kaynak saymaz.
+- Eski CN'siz kayıtlar (`ansible/inventories/hosts-<gün>-*.ini`, `~/ai/work/is-kayitlari/`) yerinde; arama okur, yeni kayıt açılmaz.
+- `kur.sh` notu: opencode'u iş kökünde aç (`cd ~/ai/work/opencode`).
+
 ## 2026-11-23 — İş kayıtlarında arama; iş kökü sabit (`~/ai/work/opencode`)
 
 Sahada: `al.sh` → `./kur.sh`, **yeni oturum**.

@@ -1706,7 +1706,7 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
 - **G127 (Alp, 2026-11-23, ~10 ekran):** gpu-dtx (alt ortam GPU kümesi) sdlgpumaster2 Rancher'da %100 CPU; master3 aynı gün arızalanıp
   reboot edilmiş; DevOps "neden?" diye sordu. Ajan (eski oturum, önceki arıza başka kümedeydi) **önce rke-nonprod-test kümesine** baktı
   (mas01-03 10.14.9.x) ve kanıtsız "DevOps kubectl ile antrea-ovs'u kill etti" yazdı (exit 137 tek başına elle kill göstermez). Düzeltilince
-  gpu-dtx'te `ssh root@10.14.3.62` (= **sdlgpumaster1**) ile ölçüp "master2 yük 0.39, %99 SAHTE — metrics-server 116 cpu.stat okuyor"
+  gpu-dtx'te `ssh root@<master1 IP>` (= **sdlgpumaster1**; master2 başka IP) ile ölçüp "master2 yük 0.39, %99 SAHTE — metrics-server 116 cpu.stat okuyor"
   dedi (kaynaksız). Alp'in `top` ekranı (aynı master): yük 30, **%94 sy**, `sisamddaemon` **%356** (3.6/4 çekirdek, 2 GB), etcd %3.7,
   apiserver %5. Rancher: 45 günde etcd 89, kube-apiserver 92, kube-controller-manager 92, cloud-controller-manager 104 restart; node 26 günde
   21 kez NotReady→Ready; apiserver liveness `[-]etcd failed`. Kurum SEP sınırı `sdcss*.slice` CPUQuota %400 = 4 CPU → 4 çekirdekli master'da

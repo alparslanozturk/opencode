@@ -6,6 +6,13 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-23 — `/kaydet` kaldırıldı
+
+Sahada: `al.sh` → `./kur.sh` (kurulu `opencode.json` şablondan yeniden yazılır, komut düşer), **yeni oturum**.
+- Alp: "kaydet fonksiyonunu tamamen çıkaralım". Yerel model `kurumsal-bilgi.ini`'yi serbest yeniden yazarken uydurma satır, tekrar başlık ve
+  parola üretiyordu. Kurumsal bilgi **her oturumda okunmaya devam eder**; ajan yazmaz, kalıcı bilgiyi kullanıcıya tek satır önerir.
+- `oturum-ozet.py` kalır (olay raporu kanıtı). Oturum kayıtları opencode'da durur.
+
 ## 2026-11-23 — kurumsal-bilgi düzeltme betiği; test H200 RAID ölçümü
 
 Sahada: `al.sh`, sonra **`python3 /root/ai/opencode/temp/kurumsal-bilgi-duzelt.py`** (tek seferlik; yedek alır, farkı maskeli basar;

@@ -129,7 +129,7 @@ bekliyor), kilitte betik işareti + statik denetim, AGENTS.md kısaltma + yönle
 
 ## 8. Uygulandı (2026-11-03, Alp onayı)
 
-- Kurumsal bilgi (sahada `kurumsal-bilgi.ini`) her oturumda otomatik yüklenir (`kur.sh` → `instructions`); `/kaydet` (parametresiz)
+- Kurumsal bilgi (sahada `kurumsal-bilgi.ini`) her oturumda otomatik yüklenir (`kur.sh` → `instructions`); `/kaydet` (parametresiz; **2026-11-23 kaldırıldı** — Alp: yerel model dosyayı bozuyordu, dosyayı yalnız Alp günceller)
   oturumdan günceller ve düzenler; iş kaydı `rapor/is-kaydi.py`; süzgeç `rapor/oturum-ozet.py`.
 - İş haritası `engine/AGENTS.md` başında; gerçek saha cümleleriyle test edilir. Kilitte iz bırakan "okuma" biçimleri kapandı (G122).
 - Rafta: kontrol merkezi, playbook kataloğu (§7 — isteğe bağlı), betik işaretiyle kilit listesinin otomatik denetimi.

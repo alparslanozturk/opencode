@@ -14,9 +14,10 @@
 #   <komut> | is-kaydi.py ekle <kayıt> <ad>      → stdin'i okuma/<tarih-saat>-<ad>.txt olarak saklar
 #   is-kaydi.py sonuc <kayıt> "<satır>"          → sonuc.md'ye zaman damgalı satır ekler
 #   is-kaydi.py liste [<sözcük>]                 → kayıtları listeler (okuma)
-#   is-kaydi.py not <kayıt> "<bilgi>"            → işin README.md'sine "## Notlar" altına zaman damgalı satır EKLER (başka satıra dokunmaz).
-#       Alp (2026-11-23): iş içinde "kaydet" = bu işin README'si; kurumsal bilgiye ancak "kurumsal bilgi çalışması" deyince, işten alınarak.
-#       Parola da yazılabilir (Alp, 2026-11-23: "her şey lokalde çalışıyor") — iş kaydı sahada kalır, depoya girmez.
+#   is-kaydi.py not <kayıt> "<bilgi>" [--kaynak <kaynak>] → işin README.md'sine "## Notlar" altına zaman damgalı satır EKLER (başka satıra
+#       dokunmaz). Uydurma yok (Alp, 2026-11-23): her not kaynaklı — --kaynak yoksa "Alp" (kullanıcının sözü, aynen); ölçüm için
+#       --kaynak "komut: <kısa komut>"; çıkarım için --kaynak tahmin (satır "tahmin:" ile başlar). Başka kaynak reddedilir (çıkış 2).
+#       Parola yazılabilir (Alp: "her şey lokalde") — iş kaydı sahada kalır, depoya girmez.
 #   <kayıt> = değişiklik numarası (29000) | dizin yolu/adı | son   ("son" = en son AÇILAN kayıt; emin değilsen numarayı yaz)
 import datetime
 import os
@@ -207,10 +208,16 @@ def ac(argv):
 
 
 
-def not_ekle(arg, metin):
+def not_ekle(arg, metin, kaynak="Alp"):
     metin = " ".join(metin.split())
+    kaynak = " ".join(kaynak.split())
     if not metin:
         raise SystemExit("not boş")
+    if kaynak == "tahmin":
+        metin = metin if metin.lower().startswith("tahmin:") else "tahmin: " + metin
+    elif not (kaynak == "Alp" or kaynak.startswith("Alp ") or re.match(r"komut:\s*\S", kaynak)):
+        print("REDDEDİLDİ: kaynak %r — yalnız Alp (kullanıcının sözü), \"komut: <komut>\" (ölçüm) ya da tahmin" % kaynak)
+        return 2
     dizin = kayit_dizini(arg)
     is_dizini = os.path.dirname(dizin) if os.path.basename(dizin) == "logs" else dizin  # dn/<no>/logs → dn/<no>
     readme = os.path.join(is_dizini, "README.md")
@@ -220,8 +227,8 @@ def not_ekle(arg, metin):
     eski = open(readme, encoding="utf-8").read()
     ek = "" if eski.endswith("\n") else "\n"
     if not re.search(r"^## Notlar\b", eski, re.M):
-        ek += "\n## Notlar (kullanıcının kaydettirdiği bilgi)\n"
-    ek += "- %s %s [Alp]\n" % (zaman("%Y-%m-%d %H:%M"), metin)
+        ek += "\n## Notlar (kaynaklı: [Alp] kullanıcının sözü · [komut: …] ölçüm · \"tahmin:\" çıkarım)\n"
+    ek += "- %s %s [%s]\n" % (zaman("%Y-%m-%d %H:%M"), metin, kaynak)
     with open(readme, "a", encoding="utf-8") as f:
         f.write(ek)
     print("%s ← %s" % (readme, metin))
@@ -250,7 +257,12 @@ def main(argv):
         print(os.path.join(dizin, "sonuc.md"))
         return 0
     if argv[0] == "not" and len(argv) > 2:
-        return not_ekle(argv[1], " ".join(argv[2:]))
+        kaynak = secenek(argv, "--kaynak", "Alp")
+        kalan = argv[2:]
+        if "--kaynak" in kalan:
+            i = kalan.index("--kaynak")
+            kalan = kalan[:i] + kalan[i + 2:]
+        return not_ekle(argv[1], " ".join(kalan), kaynak)
     if argv[0] == "liste":
         hepsi = sorted(kayitlar(), key=acilis)
         if not hepsi:

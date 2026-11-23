@@ -833,6 +833,11 @@ icerir "not: satır + kaynak" "$d2/README.md" "STL ile SX arası 26379 kapalı [
 [ "$(grep -c '^## Notlar' "$d2/README.md")" -eq 1 ] && gecti "not: bölüm başlığı tek" || kaldi "not: başlık tekrarlandı"
 icerir "not: var olan README satırı korunur" "$d2/README.md" "elle not"
 python3 "$IK" not 29000 "REDIS_PASSWORD = deneme123" > /dev/null; icerir "not: parola yazılabilir (Alp 2026-11-23, yerel)" "$d2/README.md" "REDIS_PASSWORD = deneme123"
+python3 "$IK" not 29000 "root 53G -> 365G" --kaynak "komut: df -h /" > /dev/null; icerir "not: ölçüm kaynağı" "$d2/README.md" "root 53G -> 365G [komut: df -h /]"
+python3 "$IK" not 29000 "disk yavaşlığı SEP taramasından" --kaynak tahmin > /dev/null; icerir "not: tahmin işaretli" "$d2/README.md" "tahmin: disk yavaşlığı SEP taramasından [tahmin]"
+python3 "$IK" not 29000 "ajanın kendi sonucu" --kaynak ajan > ikn.txt; rc=$?
+[ "$rc" -eq 2 ] && gecti "not: kaynaksız/ajan kaynağı reddedilir" || kaldi "not kaynak ajan çıkış $rc"
+icermez "not: reddedilen not yazılmaz" "$d2/README.md" "ajanın kendi sonucu"
 \rm -rf "$IS_DN_KOK"
 echo "Filesystem 365G" | python3 "$IK" ekle son df > ike.txt
 ls "$d1"/okuma/*-df.txt > /dev/null 2>&1 && gecti "ekle: stdin okuma/ altına" || kaldi "ekle: $(cat ike.txt)"

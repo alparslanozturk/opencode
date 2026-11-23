@@ -6,6 +6,14 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-23 — "Kaydet": uydurma yok, kaynak zorunlu; kurumsal bilgiye yalnız "kurumsal bilgi" deyince
+
+Sahada: `al.sh` → `./kur.sh`, **yeni oturum**.
+- `is-kaydi.py not … [--kaynak "komut: …" | --kaynak tahmin]`: her not kaynaklı (varsayılan `[Alp]`); başka kaynak reddedilir; tahmin
+  "tahmin:" ile işaretlenir. README'ye ajan da iş olgusunu (ölçülen sonuç, kullanıcının sözü) not alabilir.
+- Kurumsal bilgiye yalnız cümlede açıkça "kurumsal bilgi/hafıza" geçince. Parola: yalnız insan eliyle girilen genel parola; otomatik
+  üretilmiş uygulama parolası (Redis vb.) kurumsal bilgiye girmez, yeri yazılır (değer işin README'sine gidebilir).
+
 ## 2026-11-23 — "Kaydet" bağlamla: iş README'si; kurumsal bilgi yalnız "kurumsal bilgi çalışması"nda
 
 Sahada: `al.sh` → `./kur.sh`, **yeni oturum**.

@@ -493,12 +493,17 @@ yazma; ölçemediğin sunucuyu "ölçülmedi" diye ayrı göster. Bilmediğin de
   önce bunu oku (`grep -n -i <sözcük>`); satır sonundaki kaynak `[doğrula]` ise ölçmeden kesin bilgi gibi kullanma. Dosya ile ölçüm
   çelişirse ölçümü söyle, dosyayı kendin düzeltme.
 - **Kurumsal bilgiye yazma — yalnız açık talimatla (Alp, 2026-11-23: "ben diyeceğim şu bilgiyi kaydet, o kaydedecek; kontrollü olur"):**
-  kullanıcı "şunu kaydet / kurumsal bilgiye ekle / şu satırı düzelt" demeden dosyaya dokunma. Dediğinde:
+  kullanıcı açıkça istemeden dosyaya dokunma. İstek doğal cümleyle gelir — "kurumsal bilgiye kaydet", "hafızaya kaydet", "kurumsal
+  hafızana yaz", "bunu şu şekilde kaydet", "şu satırı düzelt" ve benzerleri. Yalnız "kaydet" geçiyor ama hedef belli değilse (dosya mı,
+  çıktı mı, kurumsal bilgi mi) **tek soru sor**: "kurumsal bilgiye mi kaydedeyim?". Dediğinde:
   1. Yalnız **kullanıcının verdiği bilgiyi** yaz — kendi çıkarımını, oturumdaki başka bilgiyi ekleme. Belirsizse önce sor.
   2. İlgili bölümün sonuna ekle (kullanıcı bölüm söylediyse oraya); satır sonuna `[Alp YYYY-MM-DD]`, "sanırım" denmişse `[doğrula]`.
   3. Başka satırı silme, taşıma, yeniden numaralama, "düzenleme" yapma — yalnız kullanıcının gösterdiği satır değişir.
   4. **Parola, token, anahtar yazma** — o kısmı yazmadan "parola dosyaya yazılmaz" de.
   5. Önce yedek: `cp -p <dosya> <dosya>.$(date +%Y%m%d-%H%M)`; sonra edit aracıyla değiştir; bitince `diff -u <yedek> <dosya>` göster.
+- **Kurumsal bilgiyi sorma** ("kurumsal hafızanda X ile ilgili ne var?", "DMZ için ne biliyorsun?"): dosyada ara
+  (`grep -n -i <sözcük> ~/ai/work/opencode/kurumsal-bilgi.ini`), bulduğunu **satır numarasıyla** aynen ver, yorumu ayrı ve "tahmin:" ile;
+  yoksa "kurumsal bilgide yok" de. Bu sohbetten sonra kullanıcı düzeltip "böyle kaydet" derse yukarıdaki kural.
 
 ## "Yalnız metni kontrol et, işlem yapma" (saha G111, 2026-10-27)
 

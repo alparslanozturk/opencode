@@ -73,7 +73,8 @@ dizinden oku). **Numara sıra değil, katalogdur** — talepte olmayan adımı �
   alanı sorgula: `getent ahostsv4 <kurum-dmz>.local` (AD'de alan adının A kayıtları DC'lerdir) ve varsa
   `dig +short SRV _ldap._tcp.dc._msdcs.<kurum-dmz>.local` (AD DC bulucu kaydı). Sorguyu adı çözebilen bir makineden yap (DMZ'deki
   mevcut bir sunucu — kurumsal bilgi §3 "DNS Çözümleme Notları"nda hangi makineden sorgulanacağı yazılı); DMZ alanı iç ağ DNS'lerinde
-  çözülmez (kurumsal bilgi §3). Yeni sunucu daha DNS'siz olabilir. NTP de AD'den: chrony'de `pool <kurum-dmz>.local iburst` (Alp: "pool …
+  çözülmez (kurumsal bilgi §3). Yeni sunucu daha DNS'siz olabilir. NTP de AD'den: chrony'de `pool <kurum-dmz>.local iburst` — alan adı bütün DC'lerin A kayıtlarına çözülür, chrony bunları havuz
+  olarak kullanır; varsayılan **4 kaynak** alır (`man chrony.conf` pool → `maxsources`, varsayılan 4, en çok 16; `chronyc sources` ile gör) (Alp: "pool …
   diyorduk"; kurumsal bilgi §2–§3). **DMZ test alanı ayrıdır** (kurumsal bilgi §3: ayrı alan adı ve ağ) — test DMZ sunucusunda NTP/DNS
   değerini o alandan al; bilgi yoksa sor, ana DMZ değerini yazma.
   Çıkan IP'leri sorgu çıktısıyla göster; kurumsal bilgideki DMZ değerleriyle farklıysa dur, sor.

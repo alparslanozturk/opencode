@@ -72,20 +72,33 @@ dizinden oku). **Numara sıra değil, katalogdur** — talepte olmayan adımı �
 - **DMZ DNS ve NTP — AD'den bulunur (Alp, 2026-11-23):** DMZ'nin DNS sunucuları DMZ AD alanının DC'leridir; listeyi ezberden yazma,
   alanı sorgula: `getent ahostsv4 <kurum-dmz>.local` (AD'de alan adının A kayıtları DC'lerdir) ve varsa
   `dig +short SRV _ldap._tcp.dc._msdcs.<kurum-dmz>.local` (AD DC bulucu kaydı). Sorguyu adı çözebilen bir makineden yap (DMZ'deki
-  mevcut bir sunucu); yeni sunucu daha DNS'siz olabilir. NTP de AD'den: chrony'de `pool <kurum-dmz>.local iburst` (Alp: "pool … diyorduk").
+  mevcut bir sunucu — kurumsal bilgi §3 "DNS Çözümleme Notları"nda hangi makineden sorgulanacağı yazılı); DMZ alanı iç ağ DNS'lerinde
+  çözülmez (kurumsal bilgi §3). Yeni sunucu daha DNS'siz olabilir. NTP de AD'den: chrony'de `pool <kurum-dmz>.local iburst` (Alp: "pool …
+  diyorduk"; kurumsal bilgi §2–§3). **DMZ test alanı ayrıdır** (kurumsal bilgi §3: ayrı alan adı ve ağ) — test DMZ sunucusunda NTP/DNS
+  değerini o alandan al; bilgi yoksa sor, ana DMZ değerini yazma.
   Çıkan IP'leri sorgu çıktısıyla göster; kurumsal bilgideki DMZ değerleriyle farklıysa dur, sor.
 - **Ağlar (Alp, 2026-11-23):** `10.13.x.x` = **prod**, `10.14.x.x` = **alt ortamlar**; aralarında **kesin izolasyon** var (birinden
   ötekine erişim beklenmez). Satellite iki tarafa da SSH ile erişir — kurulum/okuma Satellite'tan yapılır. Bu yüzden `02-dns-nmcli`'deki
   `10.13.x` / `10.14.x` çifti çelişki değil, ortama göre seçimdir: sunucunun IP'si hangi ağdaysa o ağın değeri; ikisini karıştırma.
-- **Çelişen değer = dur:** aynı ayar iki yerde farklıysa (G119: `group_vars/all.yml` `10.4.x` ↔ `02-dns-nmcli` `10.13.x`/`10.14.x` —
-  `10.4.x`'in ne olduğu **henüz cevapsız** `[SAHA]`; Satellite `srvsatellite…` / `satellite…`) hangisinin kullanılacağını **sen seçme** —
+- **`ansible/group_vars/all.yml` kaynak değildir (saha ekranı 2026-11-23):** içindeki değerler ölçülenle uyuşmuyor — DNS `10.4.4.10/11`,
+  NTP ikinci `10.4.4.20` (kurumsal bilgide de "[doğrula]"), `sep_service_name: sep-service` (gerçek birim `sisamdagent`, G44),
+  `xdr-agent`/`cis-agent` paket adları, `critical_services` içinde `firewalld` (kurumda firewalld kapalı), `satellite_server`
+  `satellite.<alan>` (Satellite `srvsatellite`). Tahmin: örnek/şablon değerler. Bu dosyadan değer alma; DNS/NTP kurumsal bilgi + sunucuda
+  ölçülen `resolv.conf`/`chronyc sources` ile. Bir playbook bu değişkenleri kullanıyorsa (`grep -rn base_dns_servers ansible/`) çalıştırmadan
+  önce göster ve sor.
+- **Çelişen değer = dur:** aynı ayar iki yerde farklıysa (G119: `group_vars/all.yml` `10.4.x` ↔ `02-dns-nmcli` `10.13.x`/`10.14.x`;
+  Satellite `srvsatellite…` / `satellite…`) hangisinin kullanılacağını **sen seçme** —
   iki satırı dosya:satır ile göster, sor.
   Ansible önceliği (playbook `vars` > `group_vars`) hangisinin **uygulanacağını** söyler, hangisinin **doğru** olduğunu söylemez.
 - **SEP kaynağı:** `07-sep-install` Satellite'taki `pub/SAL/1.4` dizininden kurar (saha ekranı). `SAL/1.4`, Broadcom'un Linux deposundaki
   dizin adıdır; Broadcom KB 222816 bunu 14.3 RU9 ile, başka bir KB 14.3 RU4 ile eşler — **sürüm bundan çıkarılmaz**, kurulu paket
   (`rpm -qa | grep -iE "sdcss|symantec"`) okunur. Alp (2026-11-23): en son kurulan **RU9**; eski sunucularda **RU4** de olabilir — filo
   karışık, sürümü her sunucuda ayrı oku. `08-sep-sinirlama` (kurum ekibinin playbook'u): SEP'in **bütün servisleri** sınırlanır
-  (gerçek zamanlı tarama, IPS … — Alp: "4 servis var sanırım"); değerler playbook'tan okunur, `rke2-edr` §0 sınır denetimi.
+  (gerçek zamanlı tarama, IPS … — Alp: "4 servis var sanırım") — sınır `sdcss.slice` + `sdcss-amd.slice` üzerinde (CPU %400,
+  MemoryHigh 2G, Max 3G; kurumsal bilgi SEP kurulum akışı); denetim komutu `rke2-edr` §0.
+- **Satellite sunucusunun kendisinde SEP (kurumsal bilgi, 2026-11-04):** Satellite paketleri kilitlidir — SEP kurulum/güncellemesinden
+  **önce** `foreman-maintain packages unlock`, sonra SEP güncelleme + sınırlama playbook'u yalnız `-l <satellite sunucusu>`, **bitince**
+  `foreman-maintain packages lock`. Kilidi açık bırakma; her adım ayrı komut, ayrı onay.
 - **Adım adım, kullanıcı kontrolünde (Alp, 2026-10-14):** her adım bitince dur, sonucu göster, sonraki adımı **sor**.
   Araya başka iş girdiyse (disk düzeltme, reboot) önceki "X ile devam et" onayı düşer — sıradaki adıma yeniden sor.
   "Verilen işi sonuna kadar yap" (AGENTS.md) bu akışta adımın **içi** içindir, adımlar arası geçiş için değil.

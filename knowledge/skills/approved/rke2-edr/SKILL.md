@@ -29,9 +29,15 @@ Kaynak etiketi: **(Alp)** kurum bilgisi · **(saha G…)** saha gözlemi · **(�
   for u in $(systemctl list-units --all --plain --no-legend --type=service 'sis*' | awk '{print $1}'); do
     systemctl show "$u" -p Id -p ActiveState -p Slice -p CPUQuotaPerSecUSec -p MemoryHigh -p MemoryMax | paste -sd' '; done
   ```
-  `infinity` = o birimde sınır yok. Sınır birimde değil slice'ta olabilir → aynı `-p` alanlarıyla `systemctl show <Slice>`. Bir servis
-  sınırsızsa "sınır eksik: <servis>" de; beklenen değerleri playbook'tan dosya:satır ile göster. Sürüm: RU9 en son kurulan, RU4 da
-  olabilir (Alp) — her sunucuda `rpm -qa | grep -iE "sdcss|symantec"`.
+  `infinity` = o birimde sınır yok. **Kurum playbook'u sınırı slice'a koyar:** `08-sep-sinirlama.yaml` → `sdcss.slice` ve
+  `sdcss-amd.slice` (kurumsal bilgi, SEP kurulum akışı, 2026-11-04). Asıl denetim:
+  ```bash
+  systemctl show sdcss.slice sdcss-amd.slice -p Id -p CPUQuotaPerSecUSec -p MemoryHigh -p MemoryMax
+  ```
+  Beklenen (CPU %400, MemoryHigh 2G, Max 3G) systemd'de `CPUQuotaPerSecUSec=4s MemoryHigh=2147483648 MemoryMax=3221225472`
+  (ölçüldü: systemd 257, `systemd-run -p CPUQuota=400% -p MemoryHigh=2G -p MemoryMax=3G`). Servislerin `Slice=` alanı bu iki slice'tan
+  biri değilse sınır o servise işlemiyor → "sınır eksik: <servis> (Slice=…)". Sürüm: RU9 en son kurulan, RU4 da olabilir (Alp) — her
+  sunucuda `rpm -qa | grep -iE "sdcss|symantec"`; saha kaydı: stlrancherwor07-14'te `14.3.9681.9100` (2026-09-30 kurulum).
 - 2026-10-20 wor14: önce ssh zaman aşımı + `antrea-agent` liveness `connection refused`; Alp **XDR'ı kaldırdı** → Ready, antrea
   2/2 Running (ajan raporu). SEP belki kapatılacak; **Twistlock kalacak** (kaldırılamaz). wor14'te ağır iş yükü: Milvus.
 - **2026-10-20 akşam (Alp):** XDR (`traps_pmd`) wor07-14'te `disable`; SEP de kapatılıyor (Alp kararı — iki ajan birlikte, tüm

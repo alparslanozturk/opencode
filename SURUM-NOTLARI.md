@@ -6,6 +6,13 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-23 — SEP sınırı slice'larda, Satellite'ta SEP kilidi, group_vars/all.yml kaynak değil
+
+Sahada: `al.sh` → `./kur.sh`, yeni oturum. Yalnız metin (saha ekranları 2026-11-23: kurumsal bilgi + group_vars).
+- `rke2-edr` §0: kurum sınırı `sdcss.slice` + `sdcss-amd.slice` — denetim komutu ve systemd karşılığı (4s / 2147483648 / 3221225472, ölçüldü).
+- `rhel-teslim`: Satellite sunucusunda SEP için `foreman-maintain packages unlock` → playbook → `lock`; DMZ alanı iç DNS'te çözülmez,
+  test DMZ alanı ayrı; `group_vars/all.yml` değerleri ölçülenle uyuşmuyor → kaynak sayılmaz.
+
 ## 2026-11-23 — NFS v3/v4 performans: `nfs-tani.py perf`
 
 Sahada: `al.sh` → `./kur.sh`, yeni oturum.

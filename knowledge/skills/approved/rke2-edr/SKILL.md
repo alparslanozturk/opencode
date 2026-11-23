@@ -22,11 +22,14 @@ Kaynak etiketi: **(Alp)** kurum bilgisi · **(saha G…)** saha gözlemi · **(�
 - Test kümesi worker'larında üç ajan (Alp, saha G72, 2026-10-20): **SEP** (Symantec, `sisamdagent`; `sisap`/`sisevt` modülleri —
   saha G44), **Cortex XDR** (Palo Alto Networks — eski adı Traps; systemd `traps_pmd`, `/opt/traps/bin/pmd`, sürüm `/opt/traps/version.txt`, araç `/opt/traps/bin/cytool` — Palo Alto Cortex XDR Agent belgesi), **Twistlock** (Prisma Cloud Defender,
   `/usr/local/bin/defender`). Kurum SEP kaynak sınırı: CPU %400, MemoryHigh 2G, Max 3G (saha G44, kaynak `08-sep-sinirlama` `[SAHA]`).
-- **Sınır SEP'in bütün servislerinde olmalı (Alp, 2026-11-23):** SEP'in birden çok servisi var (gerçek zamanlı tarama, IPS …; Alp:
-  "4 servis var sanırım" — adları sunucudan oku, ezberden yazma); kurum ekibinin `08-sep-sinirlama` playbook'u bunların hepsine sınır
-  koyar. Yalnız `sisamdagent`'a bakıp "sınırlı" deme — her birini ölç (salt-okunur; systemd 257'de denendi):
+- **Sınır SEP'in bütün servislerinde olmalı (Alp, 2026-11-23):** SEP'in üreticinin durum betiği `/usr/lib/symantec/status.sh` — saha
+  ekranı (srvsatellite, 2026-11-23, SEPM 14.3.9681.9100): daemon'lar `cafagent`, `sisamdagent`, `sisidsagent`, `sisipsagent`, `sisevtd`
+  (hepsi running), modüller `sisevt`, `sisap` (loaded). Kurum ekibinin `08-sep-sinirlama` playbook'u hepsine sınır koymalı. Yalnız
+  `sisamdagent`'a bakıp "sınırlı" deme — her birini ölç (salt-okunur; systemd 257'de denendi; systemd birim adı daemon adından farklıysa
+  listede görünür):
   ```bash
-  for u in $(systemctl list-units --all --plain --no-legend --type=service 'sis*' | awk '{print $1}'); do
+  /usr/lib/symantec/status.sh
+  for u in $(systemctl list-units --all --plain --no-legend --type=service 'sis*' 'caf*' 'sdcss*' | awk '{print $1}'); do
     systemctl show "$u" -p Id -p ActiveState -p Slice -p CPUQuotaPerSecUSec -p MemoryHigh -p MemoryMax | paste -sd' '; done
   ```
   `infinity` = o birimde sınır yok. **Kurum playbook'u sınırı slice'a koyar:** `08-sep-sinirlama.yaml` → `sdcss.slice` ve

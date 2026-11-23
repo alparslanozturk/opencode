@@ -1,6 +1,6 @@
 ---
 name: rhel-depolama
-description: Disk/depolama işlerinin hepsinde kullan — teşhis (disk dolması, inode, LVM, mount, yazılım RAID mdadm, NVMe sağlığı) ve değişiklik (disk ekleme, yeni birim/mount, LVM/bölüm büyütme, fstab). "raid", "mdadm", "mdstat", "degraded", "nvme", "smart", "disk dol", "yer kalmadı", "no space", "inode", "lvm", "mount", "partition", "nfs", "disk ekle", "mount et", "pvcreate", "vgextend", "lvextend", "xfs_growfs", "growpart", "büyüt", "yer aç", "fstab", "/data" isteklerinde tetiklenir. Değişiklik yapmadan önce **B. Disk ekleme** bölümünü oku.
+description: Disk/depolama işlerinin hepsinde kullan — teşhis (disk dolması, inode, LVM, mount, yazılım RAID mdadm, NVMe sağlığı) ve değişiklik (disk ekleme, yeni birim/mount, LVM/bölüm büyütme, fstab). "raid", "raid10", "/models", "model diski", "mdadm", "mdstat", "degraded", "nvme", "smart", "disk dol", "yer kalmadı", "no space", "inode", "lvm", "mount", "partition", "nfs", "disk ekle", "mount et", "pvcreate", "vgextend", "lvextend", "xfs_growfs", "growpart", "büyüt", "yer aç", "fstab", "/data" isteklerinde tetiklenir. Değişiklik yapmadan önce **B. Disk ekleme** bölümünü oku.
 ---
 
 Bu beceri iki bölüm: **A. Teşhis** (salt-okunur) ve **B. Disk ekleme / büyütme** (değişiklik — kurallarıyla).
@@ -223,6 +223,54 @@ yıpranan çift, aynı anda arızalanabilir.
 
 Disk değiştirme (`mdadm --fail/--remove/--add`) **değişikliktir** (onay ekranı);
 teşhis edip öner, kendin yapma.
+
+### 8b. GPU node model diski `/models` — hedef yapı ve dönüşüm
+
+**Referans (ölçüldü, saha ekranı `lsblk`, splgpuh200w3, 2026-11-23):** işletim sistemi ayrı NVMe'de (894G: `/boot/efi`, `/boot`,
+LVM `rhel-root` 100G, `rhel-var` 500G — kubelet pod dizinleri burada, `rhel-tmp`, `rhel-var_log`, `rhel-var_log_audit`, `rhel-var_tmp`);
+**8 × 3.5T NVMe → `md0` RAID10 (14T) → `vg_models`/`lv_models` (LVM, 14T) → `/models`**. Alp (2026-11-23): w3 sonradan bu yapıyla
+kuruldu; **w1 ve w2 de aynı yapıya çevrilecek**. Eski yapı (Alp, 2026-10-08, §8): 16 × 1.7T NVMe, 12'si RAID10 + 2 yedek — w1/w2'nin bugünkü
+durumu ölçülmeden "eski yapıda" deme.
+
+**Önce sor:** 1) hangi sunucu, CN var mı · 2) node'daki iş yükü nereye alınacak (node Kubernetes worker; `/models` hostPath ile vLLM/
+Run:ai pod'larına gidiyor — `rke2-gpu`) ve cordon/drain'i kim yapacak (küme değişikliği, ayrı onay) · 3) `/models`'taki modeller nereden
+geri gelecek (kaynak/kopya yeri) — dönüşüm diskteki **her şeyi siler** · 4) w3'ün parametreleri ölçüldü mü (aşağıdaki komut).
+
+**Karşılaştırma — salt-okunur, üç sunucuda aynı komut** (önce w3, sonra w1/w2; farkları tabloya koy):
+
+```bash
+ansible <w1,w2,w3,> -i <iş envanteri> -m shell -t cikti/filo/models -a 'lsblk -o NAME,SIZE,TYPE,MOUNTPOINT -e7 | grep -v kubelet;
+cat /proc/mdstat; for m in /dev/md[0-9]*; do [ -b $m ] && mdadm --detail $m | grep -E "Raid Level|Array Size|Raid Devices|Spare|Layout|Chunk|State :"; done;
+grep -v "^#" /etc/mdadm.conf 2>/dev/null; findmnt -no SOURCE,FSTYPE,OPTIONS /models; grep -w /models /etc/fstab;
+xfs_info /models 2>/dev/null | head -3; for d in /dev/md[0-9]* $(findmnt -no SOURCE /models); do [ -b $d ] && echo ra $d $(blockdev --getra $d); done'
+```
+
+**Dönüşüm sırası (w1/w2 — sahada denenmedi; her adım ayrı komut, ayrı onay; CN altında `ansible` becerisi akışı):**
+1. Node boşaltılır (cordon/drain — küme sahibi) ve `/models`'ı kullanan pod kalmadığı doğrulanır (`fuser -vm /models` boş).
+2. Eski yapı kaydedilir: yukarıdaki komutun çıktısı + `mdadm --detail --scan` iş dizinine.
+3. `umount /models`, fstab satırı yorum yapılır (yedekle), eski LV/VG kaldırılır, eski md durdurulur (`mdadm --stop`), üyelerde
+   `mdadm --zero-superblock` — **geri dönüşü yok**.
+4. Yeni dizi **w3'te ölçülen parametrelerle** (Raid Level, Raid Devices, Layout, Chunk): `mdadm --create /dev/md0 --level=10
+   --raid-devices=<N> [--layout=<w3'teki>] [--chunk=<w3'teki>] <diskler>` — değeri w3 çıktısından al, ezberden yazma.
+5. `pvcreate /dev/md0` → `vgcreate vg_models /dev/md0` → `lvcreate -l 100%FREE -n lv_models vg_models` → `mkfs.xfs /dev/vg_models/lv_models`.
+6. `mdadm --detail --scan >> /etc/mdadm.conf` (eski ARRAY satırı silinmiş olmalı), fstab'a UUID ile `/models` satırı — seçenekler w3'teki
+   gibi; `mount -a` + `findmnt /models` ile doğrula.
+7. Modeller geri kopyalanır, w3 ile aynı karşılaştırma komutu tekrar koşar; node uncordon (küme sahibi).
+İlk senkron (`resync`) arka planda sürer (`/proc/mdstat`); bitmeden yük vermek mümkün ama o sürede tek ayak — raporda belirt.
+
+**Ayar iddiaları — kaynaklı (dışarıdan gelen "optimizasyon" metinleri için, Alp 2026-11-23 örnek dosyası):**
+
+| İddia | Kaynak (bu makinedeki man, mdadm 4.4 / xfsprogs 6.16) |
+|---|---|
+| "chunk 512 seçin" | `man mdadm` --chunk: **varsayılan zaten 512KB** — ek kazanç yok |
+| "`noatime,nodiratime`" | `man mount` noatime: "**implies nodiratime**" — `noatime` yeter |
+| "`logbufs=8`" | `man xfs`: **varsayılan 8** · `logbsize` metadata işinde etkili; model okumada (büyük sıralı okuma) etkisi ölçülmeden söylenmez |
+| "`inode64`" | `man xfs`: "For kernel v3.7 and later, **inode64 is the default**" — yazmaya gerek yok |
+| RAID10 layout | `man md`: **far** = sıralı okuma RAID0'a yakın, yazma "substantially slower"; **offset** = far'a yakın okuma, daha az yazma kaybı; **near** varsayılan. Açıklama dönen diskler için yazılmış — NVMe'de farkı ölç |
+| read-ahead (`blockdev --setra`) | kalıcı değil (açılışta sıfırlanır); değer önerisi yalnız ölçümle (`fio`/model yükleme süresi önce ↔ sonra) |
+| SELinux etiketi `container_file_t` | kurumda SELinux **kapalı** — uygulanmaz |
+
+Bu tabloda "evet" denmeyen ayar sahaya önerilmez; öneri = ölçülen fark + man satırı.
 
 
 ### Raporlama

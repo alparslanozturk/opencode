@@ -94,7 +94,7 @@ dizinden oku). **Numara sıra değil, katalogdur** — talepte olmayan adımı �
   dizin adıdır; Broadcom KB 222816 bunu 14.3 RU9 ile, başka bir KB 14.3 RU4 ile eşler — **sürüm bundan çıkarılmaz**, kurulu paket
   (`rpm -qa | grep -iE "sdcss|symantec"`) okunur. Alp (2026-11-23): en son kurulan **RU9**; eski sunucularda **RU4** de olabilir — filo
   karışık, sürümü her sunucuda ayrı oku. `08-sep-sinirlama` (kurum ekibinin playbook'u): SEP'in **bütün servisleri** sınırlanır
-  (gerçek zamanlı tarama, IPS … — Alp: "4 servis var sanırım") — sınır `sdcss.slice` + `sdcss-amd.slice` üzerinde (CPU %400,
+  (5 daemon: `cafagent`, `sisamdagent`, `sisidsagent`, `sisipsagent`, `sisevtd` — `/usr/lib/symantec/status.sh`, saha 2026-11-23) — sınır `sdcss.slice` + `sdcss-amd.slice` üzerinde (CPU %400,
   MemoryHigh 2G, Max 3G; kurumsal bilgi SEP kurulum akışı); denetim komutu `rke2-edr` §0.
 - **Satellite sunucusunun kendisinde SEP (kurumsal bilgi, 2026-11-04):** Satellite paketleri kilitlidir — SEP kurulum/güncellemesinden
   **önce** `foreman-maintain packages unlock`, sonra SEP güncelleme + sınırlama playbook'u yalnız `-l <satellite sunucusu>`, **bitince**

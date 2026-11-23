@@ -6,6 +6,14 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-23 — GPU node `/models` RAID10 hedef yapısı; SEP 5 daemon
+
+Sahada: `al.sh` → `./kur.sh`, yeni oturum. Yalnız metin.
+- `rhel-depolama` §8b: w3 referansı (8 × 3.5T NVMe → md0 RAID10 → vg_models/lv_models → `/models`), üç sunucuyu karşılaştıran salt-okunur
+  komut, w1/w2 dönüşüm sırası (sahada denenmedi), dış "optimizasyon" iddialarının man sayfasıyla karşılığı (chunk 512 = varsayılan,
+  noatime ⊃ nodiratime, logbufs 8 = varsayılan, inode64 varsayılan, SELinux kurumda kapalı).
+- `rke2-edr`/`rhel-teslim`: SEP daemon'ları `/usr/lib/symantec/status.sh` çıktısından (cafagent, sisamdagent, sisidsagent, sisipsagent, sisevtd).
+
 ## 2026-11-23 — SEP sınırı slice'larda, Satellite'ta SEP kilidi, group_vars/all.yml kaynak değil
 
 Sahada: `al.sh` → `./kur.sh`, yeni oturum. Yalnız metin (saha ekranları 2026-11-23: kurumsal bilgi + group_vars).

@@ -6,6 +6,14 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-23 — SEP/EDR kaynak sınırı: role göre değerlendirme (`rke2-edr` §2c)
+
+Sahada: `al.sh` → `./kur.sh`, yeni oturum. Yalnız metin.
+- Üretici (Broadcom KB 236571) cgroup sınırından söz etmez; kaldıraç `AntiMalware.ini` tarama iş parçacığı (varsayılan = çekirdek, 4–16).
+- systemd: CPUQuota tek CPU'ya göre (%400 = 4 CPU), MemoryMax aşılınca SEP OOM ile ölür (man: son savunma) — MemoryHigh asıl sınır.
+- MongoDB: veri/log yolu AV/EDR istisnası (Production Notes); k8s node: ajanlar kubelet systemReserved'a sığmalı.
+- Salt-okunur ölçüm komutu (throttling, memory.events, MemoryPeak) + rol tablosu; sayı ölçümden, karar Alp'te.
+
 ## 2026-11-23 — GPU node `/models` RAID10 hedef yapısı; SEP 5 daemon
 
 Sahada: `al.sh` → `./kur.sh`, yeni oturum. Yalnız metin.

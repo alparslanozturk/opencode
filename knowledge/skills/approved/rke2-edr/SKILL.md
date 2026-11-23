@@ -1,6 +1,6 @@
 ---
 name: rke2-edr
-description: RKE2/Kubernetes node'larındaki ve RHEL sunuculardaki (SEP yüksek CPU, NFS taraması, istisnalar, donma — §2b) güvenlik ajanlarının (EDR/AV — Symantec SEP, Palo Alto Cortex XDR/Traps, Prisma Cloud/Twistlock Defender) node takılmasına, antrea-ovs/containerd beklemesine, yüksek CPU/belleğe etkisini incelerken ve "ajanı kapattım, düzeldi mi" sorusunu doğrularken kullan. "edr", "xdr", "cortex", "traps", "traps_pmd", "pmd", "sep", "symantec", "sisamddaemon", "antivirüs", "av", "twistlock", "prisma", "defender", "güvenlik ajanı", "xdr kaldırdım", "sep kapat", "ajan kapatınca düzeldi" isteklerinde tetiklenir. Node takılmasının genel incelemesi `rke2-denetim` §4. Yalnız okur; ajanı durdurmak/kaldırmak/istisna eklemek kullanıcının ve güvenlik ekibinin işi.
+description: RKE2/Kubernetes node'larındaki ve RHEL sunuculardaki (SEP yüksek CPU, NFS taraması, istisnalar, donma — §2b) güvenlik ajanlarının (EDR/AV — Symantec SEP, Palo Alto Cortex XDR/Traps, Prisma Cloud/Twistlock Defender) node takılmasına, antrea-ovs/containerd beklemesine, yüksek CPU/belleğe etkisini incelerken ve "ajanı kapattım, düzeldi mi" sorusunu doğrularken kullan. "edr", "xdr", "cortex", "traps", "traps_pmd", "pmd", "sep", "symantec", "sisamddaemon", "antivirüs", "av", "twistlock", "prisma", "defender", "güvenlik ajanı", "xdr kaldırdım", "sep kapat", "sep sınır", "sep limit", "sdcss.slice", "cpuquota", "memorymax", "scan.threads", "ajan kapatınca düzeldi" isteklerinde tetiklenir. Node takılmasının genel incelemesi `rke2-denetim` §4. Yalnız okur; ajanı durdurmak/kaldırmak/istisna eklemek kullanıcının ve güvenlik ekibinin işi.
 ---
 
 # Güvenlik ajanları (EDR/AV) ve node takılması
@@ -147,6 +147,59 @@ süreçten okunur · NFS bağlamaları — KB 162599, tercih politikada uzak tar
 ADAY** (PostgreSQL veri dizini — resmi belge yok, topluluk görüşü; docker/podman deposu). Yazım: önek `[NONE]` + tam yol (önek değişkeni
 14.3 RU1–RU5'te geçersiz, KB 250717); 14.3 RU1'den beri alt dizinler her zaman dahil (Broadcom TechDocs). `/tmp`, `/var/run` bilinçli
 dışarıda (güvenlik ekibi). İstisnayı SEPM'de SEP yöneticisi uygular; sonra KB 237314 profiliyle CPU'nun düştüğü ölçülür.
+
+## 2c. SEP/EDR kaynak sınırı — sunucunun rolüne göre değerlendirme (araştırma 2026-11-23, Alp sorusu)
+
+Alp (2026-11-23): "SEP sınırlamada doğrusu nedir bilemiyoruz … sunucu veritabanı mı, Kubernetes node'u mu, Mongo mu bilmediğimiz için
+böyle ayarladık … derin bir çalışma yapmadık." Bugünkü ayar **her sunucuda aynı**: `sdcss.slice` + `sdcss-amd.slice` CPU %400, MemoryHigh
+2G, MemoryMax 3G (§0). Bu bölüm karar vermez; değeri Alp ve güvenlik ekibi **ölçümle** seçer.
+
+**Kaynaklar ne diyor:**
+- **Üretici (Broadcom KB 236571 "High CPU usage by sisamddaemon", SEP 14.3 RU1+):** cgroup/systemd sınırından **hiç söz etmez**. Belgelenen
+  kaldıraç tarama iş parçacığı sayısıdır — `/opt/Symantec/sdcssagent/AMD/system/AntiMalware.ini` **ve** `AntiMalware.ini.1`:
+  `amdmanagement.ap.scan.threads=` (gerçek zamanlı/AutoProtect) ve `amdmanagement.ondemand.scan.threads=`. "By default, SEP assigns in
+  threads as much as CPU assigned to the system"; en az 4, en çok 16; ≥16 çekirdekte yarıya ya da çeyreğe indirilebilir; "The minimum
+  recommended amount of CPU core … with SEP client is 4". Uygulama: null policy (`su - sisips` → `./sisipsconfig.sh -r`) → `/usr/lib/symantec/stop.sh`
+  → iki dosya → `start.sh` → `./sisipsconfig.sh -s` (değişiklik — güvenlik ekibiyle, önce test sunucusunda).
+- **systemd (man systemd.resource-control, systemd 257):** `CPUQuota` yüzdesi **tek CPU'ya göredir** — %400 = en çok 4 CPU'luk süre, makine
+  kaç çekirdekli olursa olsun (4 çekirdekte fiilen sınırsız, 64 çekirdekte payı küçük). `MemoryHigh` = "throttling limit … main mechanism";
+  `MemoryMax` = aşılırsa "out-of-memory killer is invoked inside the unit" — "use MemoryMax= as the last line of defense". Yani 3G aşılırsa
+  **SEP süreci öldürülür, koruma kesilir**. `CPUWeight` (1–10000, varsayılan 100) yalnız CPU için yarış olduğunda pay böler, boşta kısmaz.
+- **Hesap (kaynak değil, aritmetik):** iş parçacığı varsayılanı çekirdek sayısı; 32 çekirdekli sunucuda 32 tarama iş parçacığı %400 kotaya
+  sıkışır. Tahmin: gerçek zamanlı tarama dosya açılışını bekletiyorsa kısılan CPU uygulama gecikmesine döner — belgede yok, ölç.
+- **Veritabanı — MongoDB (Production Notes, "MongoDB dbPath"):** AV/EDR taramasından **veri yolu (`storage.dbPath`) ve log yolu
+  (`systemLog.path`) hariç tutulmalı**: "The I/O and CPU costs to scan these files may significantly decrease performance without
+  providing any security benefits"; tutulmazsa "the scanner could quarantine or delete important files … corrupt your database". DB
+  sunucusunda asıl iş sınır değil **istisna** (§2b istisna listesi). PostgreSQL için resmi bir AV notu bulunamadı (arama 503 verdi) — `[araştırılmadı]`.
+- **Kubernetes node (kubernetes.io "Reserve Compute Resources for System Daemons", v1.34 — sayfa özetinden, birebir alıntı değil):**
+  kubelet `systemReserved`, sshd/udev gibi **işletim sistemi daemon'ları** içindir — node'a doğrudan kurulu SEP/XDR bu sınıftadır;
+  ayrılmazsa pod'lar o kaynağı da kullanır. Pod olarak çalışan ajan (Twistlock Defender DaemonSet) `systemReserved`'a girmez, kendi pod
+  `resources`'ıyla sınırlanır. Sayfa: önce pod'lar için Allocatable'ı uygula; `systemReserved`'ı cgroup ile **zorlamak** kritik servisleri
+  aç bırakabilir — yalnız ölçümden sonra. RKE2'de `kubelet-arg` ile verilir `[doğrula: rke2 config.yaml, kurum kümesi]`.
+
+**Ölçüm (salt-okunur; sınır var mı, değdi mi):** bir hafta, aynı saatlerde, rol başına en az bir sunucu.
+
+```bash
+for s in sdcss.slice sdcss-amd.slice; do echo "== $s"; systemctl show $s -p CPUQuotaPerSecUSec -p MemoryHigh -p MemoryMax -p MemoryCurrent -p MemoryPeak -p CPUUsageNSec | paste -sd' ';
+  grep -E 'nr_throttled|throttled_usec' /sys/fs/cgroup/$s/cpu.stat; tr '\n' ' ' < /sys/fs/cgroup/$s/memory.events; echo; done
+grep -E 'scan.threads' /opt/Symantec/sdcssagent/AMD/system/AntiMalware.ini; nproc
+```
+
+Okuma: `nr_throttled`/`throttled_usec` artıyorsa CPU kotası tarama hızını kısıyor · `memory.events` `high` artıyorsa MemoryHigh'a değiyor
+(yavaşlatılıyor), `max`/`oom_kill` > 0 ise SEP **öldürülmüş** (koruma kesintisi — raporda en üstte) · `MemoryPeak` gerçek tepe.
+(Alanlar bu makinede `system.slice` üzerinde doğrulandı; SEP slice'ı sahada yoksa "sınır uygulanmamış" de.)
+
+**Rol → değerlendirme (öneri iskeleti; sayı ölçümden gelir):**
+
+| Rol | Önce | Sınır için bakılacak |
+|---|---|---|
+| Veritabanı (Mongo, Postgres …) | Veri + log yolu istisnası (MongoDB belgesi) | throttling varken sorgu gecikmesi; MemoryMax'e değiyorsa yükselt |
+| Kubernetes node | Ajan toplamı kubelet `systemReserved`'a sığıyor mu | node'da `kubectl describe node` Allocatable; Defender pod limiti ayrı |
+| Uygulama / genel | Bugünkü değer başlangıç | `oom_kill` > 0 ya da sürekli throttling → değeri artır ya da `CPUWeight`'e geç |
+| Az çekirdekli (≤4) | Üretici en az 4 çekirdek önerir | %400 kotası zaten sınırsız — sınır yerine iş parçacığı |
+
+Önerilen ilke (Alp onayı bekler): **MemoryHigh asıl sınır, MemoryMax yalnız taşma koruması** (man); CPU kotası ile tarama iş parçacığı sayısı
+birbirine uygun (iş parçacığı ≤ kota CPU sayısı, üretici alt sınırı 4); DB'de önce istisna.
 
 ## 3. Kanıt — sebep ajan mı? (en güçlüden zayıfa)
 

@@ -123,6 +123,27 @@ def main(argv):
         print("  ❌ %s · Ready=%s · %s süredir · reason=%s · mesaj: %s" % (
             ad, r.get("status", "?"), sure(zaman(r.get("lastTransitionTime")), simdi), r.get("reason", "?"), (r.get("message") or "")[:160]))
         print("     lease son yenileme: %s önce%s" % (sure(lt, simdi), "  · taint: " + ",".join(taint) if taint else ""))
+    if hazir_degil:
+        print("     → sonraki adım: `rke2-edr/node-durum.py komut <node>` (ssh olmuyorsa yalnız kubectl bölümü — erişilemeyen node modu; "
+              "sonra vCenter/konsol)")
+    # etcd çoğunluğu (Alp, 2026-11-23 — gpu-prod master1 Unavailable): node Ready'ye göre; üye sağlığı ayrıca etcdctl
+    def rol(n):
+        lb = (n.get("metadata") or {}).get("labels") or {}
+        return {k.split("/")[-1] for k in lb if k.startswith("node-role.kubernetes.io/")}
+    etcd = [n for n in nodes if "etcd" in rol(n)] or [n for n in nodes if rol(n) & {"control-plane", "master"}]
+    if etcd:
+        hazir_ad = {a for a, _, _, _ in hazir_degil}
+        e = len(etcd)
+        r = sum(1 for n in etcd if n["metadata"]["name"] not in hazir_ad)
+        q = e // 2 + 1
+        print("  etcd/kontrol düzlemi: %d/%d master Ready · çoğunluk için en az %d gerekir (etcd: N üyeden N/2+1)" % (r, e, q))
+        if r < q:
+            print("  ❌ ÇOĞUNLUK YOK (node Ready'ye göre) — API yazamaz/okuyamaz olabilir; önce erişilemeyen master'ları ayağa kaldır")
+        elif r - 1 < q:
+            print("  ⚠ bir master daha düşerse etcd çoğunluğu kaybolur → küme API'si durur. Düşen master öncelikli: %s" % (
+                ", ".join(sorted(n["metadata"]["name"] for n in etcd if n["metadata"]["name"] in hazir_ad)) or "-"))
+        if r < e:
+            print("     (node Ready ≠ etcd üyesi sağlıklı — üye durumu: rke2-denetim etcd bölümü, etcdctl endpoint status)")
     for ad, k, m in baski:
         print("  ⚠ %s · %s=True · %s" % (ad, k, m[:140]))
     if leases and nodes:

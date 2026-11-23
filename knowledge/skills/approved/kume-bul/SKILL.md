@@ -83,6 +83,20 @@ ssh root@<rancher-local-master> "/var/lib/rancher/rke2/bin/kubectl --kubeconfig 
   hangisinin doğru olduğuna kullanıcı karar verir. Erişilemeyen platformda (AGENTS "Bu makineden erişilemeyen platform") ssh
   deneme: komutu kullanıcıya ver, çıktısını dosyaya kaydedip `KB k8s --kaydet < dosya` ile işle.
 
+### 3b. Rancher'ın yönettiği bir kümenin kendi node listesi → `--kume <ad>` (Alp, 2026-11-23)
+
+gpu-prod örneği: node'lar envanterde ve DNS'te yoktu, master1 erişilemezdi; ajan komşu IP'leri tahmin etti. Doğrusu: **erişilen herhangi
+bir master'dan** node listesini alıp envantere yazmak:
+
+```bash
+ssh root@<master> "/var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml get nodes -o json" | python3 /root/ai/opencode/knowledge/skills/approved/kume-bul/kume-bul.py k8s --kaydet --kume <kume-adi>
+```
+
+(`<master>`: erişilen herhangi bir master · `<kume-adi>`: Rancher'daki ad, ör. gpu-prod) → `ansible/inventories/kume-<ad>.ini`: `[kume_<ad>_master]` / `[kume_<ad>_worker]`, `ansible_host` = kubelet'in InternalIP'si,
+`k8s_rol`. Dosya yazar (onay ekranı) — önce kullanıcıya tek cümleyle söyle. Yalnız kendi ürettiği dosyanın üzerine yazar; tekrar
+çalıştırmak günceller. Sonra `kume-bul.py <node>` bağlanmadan bulur; `node-durum.py` için IP buradan da gelir.
+**Master erişilemezse** (ssh banner timeout / refused) sıradaki master'ı dene — komşu IP tahmin etme.
+
 ## 4. Sertifika / Secret elle (betik yoksa) (G88, G94)
 
 - `.data` değerleri base64 → bir kez `base64 -d` → PEM → `openssl x509`. `kubernetes.io/tls`'te `tls.crt` PEM'dir — `-inform DER` deneme.

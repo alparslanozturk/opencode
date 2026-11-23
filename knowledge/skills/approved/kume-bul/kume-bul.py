@@ -323,10 +323,12 @@ def sertifika_oku(pem):
 def k8s_main(argv):
     import base64
     import datetime
-    kaydet = None
+    kaydet, kume_adi = None, None
     for i, a in enumerate(argv):
         if a == "--kaydet":
             kaydet = argv[i + 1] if i + 1 < len(argv) and not argv[i + 1].startswith("-") else ""
+        if a == "--kume" and i + 1 < len(argv):
+            kume_adi = argv[i + 1]
     if sys.stdin.isatty():
         print("stdin boş: ssh root@<master> \"<kubectl> get ... -o json\" | kume-bul.py k8s (SKILL.md §2)")
         return 2
@@ -420,9 +422,46 @@ def k8s_main(argv):
             satirlar.append((k, kid, dugumler))
         if kaydet is not None:
             return rancher_kaydet(kaydet, server_url, satirlar, datetime.date.today().isoformat())
+    elif kaydet is not None and dugum and kume_adi:
+        return kume_kaydet(kaydet, kume_adi, dugum, datetime.date.today().isoformat())
     elif kaydet is not None:
-        print("\n--kaydet: Rancher Cluster/Node nesnesi yok — kaydedilecek harita yok (komutu Rancher local master'ında çalıştır).")
+        print("\n--kaydet: Rancher Cluster/Node nesnesi yok — Rancher haritası için komutu Rancher local master'ında çalıştır; bu kümenin "
+              "kendi node listesini kaydetmek için `--kume <küme adı>` ekle (Rancher'da görünen ad, ör. gpu-prod).")
         return 1
+    return 0
+
+
+def kume_kaydet(yol, kume_adi, dugum, tarih):
+    """Downstream kümenin node listesini (kubectl get nodes) envantere yazar — G127/gpu-prod (2026-11-23): node'lar envanterde ve DNS'te
+    yoktu, ajan komşu IP tahmin etti. Kaynak kubectl; ad ↔ IP kubelet'in bildirdiği InternalIP."""
+    temiz = lambda x: re.sub(r"[^a-z0-9_]+", "_", str(x).lower()).strip("_")
+    k = temiz(kume_adi)
+    if not k:
+        print("\n--kume: ad geçersiz")
+        return 1
+    yol = yol or os.path.join("ansible", "inventories", "kume-%s.ini" % k.replace("_", "-"))
+    imza = "# kume-bul.py k8s --kaydet --kume ile üretildi"
+    if os.path.exists(yol) and imza not in open(yol, encoding="utf-8", errors="replace").read(400):
+        print("\n--kaydet: %s var ve bu betikle üretilmemiş — üzerine yazılmadı." % yol)
+        return 1
+    master, worker = [], []
+    for o in sorted(dugum, key=lambda o: al(o, "metadata", "name")):
+        ad = al(o, "metadata", "name")
+        ip = ic_ip(al(o, "status", "addresses", vars=[]))
+        roller = rol_etiket(al(o, "metadata", "labels", vars={}) or {})
+        satir = "%s%s k8s_rol=%s" % (ad, " ansible_host=%s" % ip if ip_mi(ip) else "", ",".join(roller) or "-")
+        (master if any(r in ("control-plane", "master", "etcd") for r in roller) else worker).append(satir)
+    out = [imza + " — elle düzenleme, yeniden üretilir.",
+           "# kaynak: kubectl get nodes (InternalIP) · küme %s · %s" % (kume_adi, tarih),
+           "[kume_%s:children]" % k, "kume_%s_master" % k, "kume_%s_worker" % k, "",
+           "[kume_%s_master]" % k] + master + ["", "[kume_%s_worker]" % k] + worker + [
+           "", "[kume_%s:vars]" % k, "k8s_kume=%s" % kume_adi]
+    d = os.path.dirname(yol)
+    if d and not os.path.isdir(d):
+        os.makedirs(d)
+    open(yol, "w", encoding="utf-8").write("\n".join(out) + "\n")
+    print("\n--kaydet: yazıldı %s (küme %s: %d master, %d worker). Artık: kume-bul.py <ad|IP> · ansible kume_%s_master -i %s" % (
+        yol, kume_adi, len(master), len(worker), k, yol))
     return 0
 
 

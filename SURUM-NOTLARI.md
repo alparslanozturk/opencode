@@ -6,6 +6,20 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-23 — Node/küme sağlık kontrolü: `node-durum`, `sar-ozet --son`, `kume-bul --kume`, etcd çoğunluğu (G128)
+
+Sahada: `al.sh` → `./kur.sh`, **yeni oturum**. Deneme: "gpu-prod kümesinin sağlık kontrolünü yap".
+- `rke2-edr/node-durum.py komut <node> [--saat N]` → `tani`: CPU (node-cpu) · RAM (kullanılabilir, swap, en çok bellek) · disk (doluluk/
+  inode, /proc/diskstats await/%util, D-state) · ağ (hız, hata/düşen, conntrack) · çekirdek logları (journal -k, dmesg, messages —
+  OOM/hung task/lockup/IO/conntrack/link/Call Trace sınıflı, kaynak derinliğiyle) · journal uyarıları · sysstat durumu · K8s koşulları,
+  taint, olaylar, restart. Eşik yalnız kubelet tahliye varsayılanları. ssh yoksa **erişilemeyen node modu** (çıkış 4). Kilitte okuma.
+- `rhel-performans/sar-ozet.py`: `komut [--gun N]` (uzak komutu basar), `--son 5h|1g|7g` / `--bas --bit` pencere, disk/ağ/swap/majflt/
+  runq/blocked eksenleri, tepe anları; düz dosya kaynağı; kilitte okuma (önce her çalıştırma onay soruyordu).
+- `kume-bul.py k8s --kaydet --kume <ad>`: erişilen master'ın `kubectl get nodes` çıktısından `ansible/inventories/kume-<ad>.ini`.
+- `k8s-ozet.py`: etcd çoğunluğu ("bir master daha düşerse API durur" / "ÇOĞUNLUK YOK"), Ready olmayan node → node-durum.
+- İş haritası: "sağlık kontrolü · kümesini incele" → kume-bul → k8s-ozet → node-durum; "node sağlık · dmesg · kernel log · oom" → node-durum;
+  "gpu" satırı yalnız GPU sözcük öbekleriyle (küme adı gpu-prod/gpu-dtx artık GPU becerisine düşmez).
+
 ## 2026-11-23 — Node CPU %100 tanısı: `node-cpu.py`; hedef teyidi ve "sahte deme" kuralları (G127)
 
 Sahada: `al.sh` → `./kur.sh`, **yeni oturum**.

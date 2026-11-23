@@ -1714,3 +1714,12 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   Aksiyon: `rke2-edr/node-cpu.py` (IP kubectl'den, hostname eşleşmezse DUR, pod dışı pay + SEP sınırı), AGENTS "Hedef teyidi" + "Çelişen
   iki ölçüm" kuralları, `k8s-sorun` hedef teyidi, iş haritası satırı. Açık (Alp/güvenlik, CN): SEP K8s dizin istisnaları (Alp'te liste
   var), sınırın çekirdek sayısına göre belirlenmesi, master CPU, kalıcı journald. Sahada denenmedi (betik yerelde + saha değerleriyle test).
+
+- **G128 (Alp, 2026-11-23, 4 ekran):** "gpu-prod kümesini bir readonly inceler misin?" — ajan doğru kümeyi buldu (Rancher rke-prod), master1
+  ssh "banner timeout" (Rancher: splgpumaster1 **Unavailable**, `unreachable` taint). Node'lar envanterde yok, DNS'te yalnız biri var; ajan
+  master2/master3'ü **komşu IP deneyerek** buldu (tuttu, ama kurumsal bilgi "aynı /24'te başka IP deneme" der). master1'in erişilemez oluşu
+  sonuçta öne çıkmadı; etcd 2/3 (bir kayıp daha → API durur) söylenmedi; worker'da yük ~27 çekirdek sayısına bölünmeden "çok yüksek" denildi.
+  Alp: "sadece CPU değil — CPU, RAM, disk, network ve loglar … SAR'la zamana dönük … dmesg". Aksiyon: `rke2-edr/node-durum.py` (5 eksen +
+  çekirdek logları + K8s koşulları, erişilemeyen node modu), `sar-ozet.py --son/--bas` + disk/ağ/swap + tepe anları, `kume-bul k8s --kaydet
+  --kume <ad>` (downstream node listesi → envanter), `k8s-ozet` etcd çoğunluğu, iş haritası (küme sağlık; "gpu" satırı küme adlarına
+  takılmayacak biçimde daraltıldı). Sahada denenmedi (yerel + saha değerleriyle test).

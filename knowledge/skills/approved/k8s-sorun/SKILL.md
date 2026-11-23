@@ -54,6 +54,11 @@ sayısı çelişkisi, tam yaml dökümü):
 ssh root@<master> "/var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml get nodes,pods,events,ds,leases -A -o json" | python3 /root/ai/opencode/knowledge/skills/approved/k8s-sorun/k8s-ozet.py -
 ```
 
+Betik ayrıca **etcd çoğunluğunu** basar (Alp, 2026-11-23 — gpu-prod master1 Unavailable): "R/N master Ready · çoğunluk için en az
+N/2+1"; bir master daha düşerse API'nin duracağını uyarır, çoğunluk yoksa "ÇOĞUNLUK YOK" der (node Ready'ye göre — üye sağlığı
+etcdctl). Ready olmayan node için sonraki adım `rke2-edr/node-durum.py` (ssh olmuyorsa erişilemeyen node modu, sonra konsol).
+**Sağlık kontrolü sırası:** `k8s-ozet` (küme) → sorunlu node'lara `node-durum` → geçmiş için `sar-ozet --son`.
+
 (kubectl yerelde çalışıyorsa `kubectl get … -o json | python3 …/k8s-ozet.py -`.) Basar: Ready olmayan node'lar (koşul reason/mesajı,
 **ne kadar süredir**, lease son yenileme, taint), baskı koşulları, **sürüm sapması** (kubelet · OS · çekirdek · runtime grupları);
 çalışmayan pod'lar **altyapı / uygulama** ayrı (`--altyapi ns1,ns2` ile ekle), Ready olmayan node'daki pod `(NR)`; en çok yeniden

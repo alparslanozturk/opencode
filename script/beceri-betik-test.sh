@@ -84,6 +84,21 @@ python3 "$B/kume-bul/kume-bul.py" ornekapp01 > kb4.txt 2>&1
 icerir "kaydedilen haritadan bağlanmadan bulundu" kb4.txt "rancher_kume_adi=uygulama"
 python3 "$B/kume-bul/kume-bul.py" uygulama > kb5.txt 2>&1
 icerir "küme adıyla (rancher_kume_adi) bulundu" kb5.txt "rancher_kume_adi=uygulama"
+# downstream kümenin kendi node listesi (--kume; gpu-prod G127 dersi: node'lar envanterde/DNS'te yoktu, ajan komşu IP tahmin etti)
+python3 - > k8s-nodes.json << 'E'
+import json
+def n(ad, ip, m):
+    lb = {"node-role.kubernetes.io/control-plane": "true", "node-role.kubernetes.io/etcd": "true"} if m else {"node-role.kubernetes.io/worker": "true"}
+    return {"apiVersion": "v1", "kind": "Node", "metadata": {"name": ad, "labels": lb}, "status": {"addresses": [{"type": "InternalIP", "address": ip}]}}
+print(json.dumps({"kind": "List", "items": [n("ornekmaster1", "192.0.2.31", True), n("ornekmaster2", "192.0.2.32", True), n("ornekgpu1", "192.0.2.41", False)]}))
+E
+python3 "$B/kume-bul/kume-bul.py" k8s --kaydet < k8s-nodes.json > kb6.txt 2>&1
+icerir "--kume yoksa yol gösterir" kb6.txt "--kume <küme adı>"
+python3 "$B/kume-bul/kume-bul.py" k8s --kaydet --kume ornek-gpu < k8s-nodes.json > kb7.txt 2>&1
+icerir "--kume: dosya yazıldı (master/worker ayrı)" kb7.txt "küme ornek-gpu: 2 master, 1 worker"
+icerir "--kume: master grubu, IP kubectl'den" ansible/inventories/kume-ornek-gpu.ini "ornekmaster2 ansible_host=192.0.2.32 k8s_rol=control-plane,etcd"
+python3 "$B/kume-bul/kume-bul.py" ornekmaster2 > kb8.txt 2>&1
+icerir "--kume: kaydedilen node bağlanmadan bulunur" kb8.txt "grup=[kume_ornek_gpu_master]"
 icerir "küme adıyla üyeler listelendi" kb5.txt "üyeler (1): ornekapp01"
 python3 "$B/kume-bul/kume-bul.py" rke-ornek-test > kb6.txt 2>&1
 icerir "grup adıyla bulundu" kb6.txt "üyeler (3): ornekwor01 ornekwor02 ornekwor03"
@@ -575,6 +590,32 @@ icerir "OOMKilled ayrı" ko1.txt "OOMKilled (bellek limiti"
 icerir "NotReady + süre" ko1.txt "❌ ornekwor02 · Ready=Unknown · 42dk süredir"
 icerir "lease tazeliği" ko1.txt "lease son yenileme: 41dk önce"
 icerir "sürüm sapması" ko1.txt "SÜRÜM SAPMASI"
+icerir "NotReady → node-durum yönlendirmesi" ko1.txt "node-durum.py komut <node>"
+# etcd çoğunluğu (Alp 2026-11-23, gpu-prod master1 Unavailable): 3 master'dan 1'i düşük → uyarı; 2'si düşük → çoğunluk yok
+python3 - "$PWD/k8s.json" > k8sq.json << 'E'
+import json, sys
+d = json.load(open(sys.argv[1]))
+ek = []
+for i, (ad, hazir) in enumerate([("ornekm1", False), ("ornekm2", True), ("ornekm3", True)]):
+    ek.append({"kind": "Node", "metadata": {"name": ad, "labels": {"node-role.kubernetes.io/etcd": "true", "node-role.kubernetes.io/control-plane": "true"}},
+               "status": {"conditions": [{"type": "Ready", "status": "True" if hazir else "Unknown", "lastTransitionTime": "2026-11-23T06:00:00Z"}],
+                          "nodeInfo": {"kubeletVersion": "v1.33.13+rke2r1", "osImage": "RHEL 9.6", "kernelVersion": "k", "containerRuntimeVersion": "c"}}})
+d["items"] = [x for x in d["items"] if x["kind"] != "Node"] + ek
+print(json.dumps(d))
+E
+python3 "$B/k8s-sorun/k8s-ozet.py" - < k8sq.json > ko2.txt 2>&1
+icerir "etcd: 2/3 master Ready" ko2.txt "etcd/kontrol düzlemi: 2/3 master Ready · çoğunluk için en az 2"
+icerir "etcd: bir kayıp daha uyarısı" ko2.txt "bir master daha düşerse etcd çoğunluğu kaybolur → küme API'si durur. Düşen master öncelikli: ornekm1"
+python3 - "$PWD/k8sq.json" > k8sq2.json << 'E'
+import json, sys
+d = json.load(open(sys.argv[1]))
+for x in d["items"]:
+    if x["kind"] == "Node" and x["metadata"]["name"] == "ornekm2":
+        x["status"]["conditions"][0]["status"] = "Unknown"
+print(json.dumps(d))
+E
+python3 "$B/k8s-sorun/k8s-ozet.py" - < k8sq2.json > ko3.txt 2>&1
+icerir "etcd: çoğunluk yok" ko3.txt "ÇOĞUNLUK YOK"
 
 # --------------------------------------------------------------------------- gpu-dagilim
 baslik "gpu-dagilim.py (G51, G52, G59)"

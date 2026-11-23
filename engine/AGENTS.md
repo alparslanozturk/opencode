@@ -499,15 +499,17 @@ yazma; ölçemediğin sunucuyu "ölçülmedi" diye ayrı göster. Bilmediğin de
   1. **İşin README'si (iş notu)** — iş sırasında: kullanıcı "kaydet / not al" derse yaz; kendin de işin önemli olgusunu (ölçülen
      sonuç, kullanıcının verdiği bilgi) not alabilirsin. Komut: `python3 /root/ai/opencode/knowledge/skills/approved/rapor/is-kaydi.py
      not <numara|son> "<bilgi>" [--kaynak "komut: …" | --kaynak tahmin]` — README'nin "## Notlar" bölümüne ekler, başka satıra dokunmaz;
-     başka kaynak adını reddeder. İş kaydı açık değilse önce `is-kaydi.py ac` (CN varsa `--cn`). Parola da yazılabilir (iş kaydı sahada kalır).
+     başka kaynak adını reddeder. İş kaydı açık değilse önce `is-kaydi.py ac` (CN varsa `--cn`). Parola yalnız kullanıcı verdiyse (kaynak `Alp`);
+     komut çıktısında/dosyada gördüğün parolayı **kendiliğinden not alma** — betik komut/tahmin kaynaklı notta parolayı reddeder.
   2. **Kurumsal bilgi** (`~/ai/work/opencode/kurumsal-bilgi.ini`, her oturumda yüklenir) — **yalnız cümlede açıkça "kurumsal bilgi"
      (ya da "kurumsal hafıza") geçince**: "kurumsal bilgiye kaydet/ekle", "kurumsal bilgi çalışması yapıyorum, şu CN'deki şu bilgiyi al".
      Kaynak kullanıcının sözü, bir işin README'si (`is-kaydi.py liste <sözcük>` ile bul) ya da ölçüm. Alınacak satırı göster, onaylanınca
      ilgili bölümün sonuna ekle — kaynak `[Alp YYYY-MM-DD]`, `[dn<numara> README · Alp YYYY-MM-DD]` ya da `[komut: … YYYY-MM-DD]`.
      Önce yedek (`cp -p <dosya> <dosya>.$(date +%Y%m%d-%H%M)`), edit aracıyla yalnız o satır, sonra `diff -u <yedek> <dosya>`. Başka satırı
-     silme/taşıma/yeniden numaralama. **Parola:** yalnız insan eliyle girilen genel parola (ör. ortak root parolası) kullanıcı isterse;
-     uygulamanın otomatik üretilmiş gizli değeri (Redis/veritabanı parolası, uzun token) kurumsal bilgiye yazılmaz — yerini yaz
-     ("sunucudaki .env"), değer işin README'sine gidebilir.
+     silme/taşıma/yeniden numaralama. **Parola (Alp, 2026-11-23):** yalnız kullanıcı "bu genel bir parola, kaydet" dediğinde (beyan
+     kullanıcının — sen "genel mi, otomatik mi" diye karar verme); onun dışında komut çıktısında, `.env`'de, yapılandırmada gördüğün
+     parolayı (Redis/veritabanı, uzun token gibi otomatik üretilmiş değerler) kurumsal bilgiye **yazma** — gerekiyorsa yalnız yerini yaz
+     ("parola: sunucudaki .env").
   3. Bağlam başka bir şeyse ("çıktıyı dosyaya kaydet", "playbook'u kaydet") o iştir. "Hafızaya kaydet" gibi hedefi belirsiz cümlede iş
      sürüyorsa README; iş yoksa tek soru: "işin notuna mı, kurumsal bilgiye mi?"
 - **Kurumsal bilgiyi sorma** ("kurumsal hafızanda X ile ilgili ne var?", "DMZ için ne biliyorsun?"): dosyada ara

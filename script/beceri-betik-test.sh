@@ -838,6 +838,10 @@ python3 "$IK" not 29000 "disk yavaşlığı SEP taramasından" --kaynak tahmin >
 python3 "$IK" not 29000 "ajanın kendi sonucu" --kaynak ajan > ikn.txt; rc=$?
 [ "$rc" -eq 2 ] && gecti "not: kaynaksız/ajan kaynağı reddedilir" || kaldi "not kaynak ajan çıkış $rc"
 icermez "not: reddedilen not yazılmaz" "$d2/README.md" "ajanın kendi sonucu"
+python3 "$IK" not 29000 "REDIS_PASSWORD=otomatik999" --kaynak "komut: cat .env" > ikn.txt; rc=$?
+[ "$rc" -eq 3 ] && gecti "not: komut çıktısındaki parola reddedilir (otomatik parola)" || kaldi "not otomatik parola çıkış $rc"
+icermez "not: otomatik parola README'ye girmez" "$d2/README.md" "otomatik999"
+python3 "$IK" not 29000 "parola: <sunucudaki .env>" --kaynak "komut: ls" > /dev/null; icerir "not: parolanın yeri komutla yazılabilir" "$d2/README.md" "parola: <sunucudaki .env> [komut: ls]"
 \rm -rf "$IS_DN_KOK"
 echo "Filesystem 365G" | python3 "$IK" ekle son df > ike.txt
 ls "$d1"/okuma/*-df.txt > /dev/null 2>&1 && gecti "ekle: stdin okuma/ altına" || kaldi "ekle: $(cat ike.txt)"

@@ -80,8 +80,8 @@ dizinden oku). **Numara sıra değil, katalogdur** — talepte olmayan adımı �
 - **Ağlar (Alp, 2026-11-23):** `10.13.x.x` = **prod**, `10.14.x.x` = **alt ortamlar**; aralarında **kesin izolasyon** var (birinden
   ötekine erişim beklenmez). Satellite iki tarafa da SSH ile erişir — kurulum/okuma Satellite'tan yapılır. Bu yüzden `02-dns-nmcli`'deki
   `10.13.x` / `10.14.x` çifti çelişki değil, ortama göre seçimdir: sunucunun IP'si hangi ağdaysa o ağın değeri; ikisini karıştırma.
-- **`ansible/group_vars/all.yml` kaynak değildir (saha ekranı 2026-11-23):** içindeki değerler ölçülenle uyuşmuyor — DNS `10.4.4.10/11`,
-  NTP ikinci `10.4.4.20` (kurumsal bilgide de "[doğrula]"), `sep_service_name: sep-service` (gerçek birim `sisamdagent`, G44),
+- **`ansible/group_vars/all.yml` kaynak değildir (saha ekranı 2026-11-23):** içindeki değerler ölçülenle uyuşmuyor — DNS `10.4.x` (iki adres),
+  NTP ikinci `10.4.x` (kurumsal bilgide de "[doğrula]"), `sep_service_name: sep-service` (gerçek birim `sisamdagent`, G44),
   `xdr-agent`/`cis-agent` paket adları, `critical_services` içinde `firewalld` (kurumda firewalld kapalı), `satellite_server`
   `satellite.<alan>` (Satellite `srvsatellite`). Tahmin: örnek/şablon değerler. Bu dosyadan değer alma; DNS/NTP kurumsal bilgi + sunucuda
   ölçülen `resolv.conf`/`chronyc sources` ile. Bir playbook bu değişkenleri kullanıyorsa (`grep -rn base_dns_servers ansible/`) çalıştırmadan

@@ -10,7 +10,7 @@
 
 Sahada: `al.sh` → `./kur.sh`, **yeni oturum**.
 - Alp: "her işin içinde bir README koyuyoruz, oraya kaydetmesi daha güzel olur". İş sırasında "kaydet / not al" → `is-kaydi.py not
-  <numara|son> "<bilgi>"`: işin README'sine "## Notlar" altına zaman damgalı satır (ekleme; parola reddedilir, çıkış 3).
+  <numara|son> "<bilgi>"`: işin README'sine "## Notlar" altına zaman damgalı satır (ekleme). Parola yasağı yok (Alp: "her şey lokalde").
 - Kurumsal bilgiye yalnız kullanıcı "kurumsal bilgi çalışması" deyip kaynak işi (CN / tarih) gösterince; kaynak `[dn<no> README · Alp <tarih>]`.
 - Tek başına "kaydet" sözcüğü kurumsal bilgi talimatı değildir.
 

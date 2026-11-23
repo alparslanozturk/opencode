@@ -497,13 +497,13 @@ yazma; ölçemediğin sunucuyu "ölçülmedi" diye ayrı göster. Bilmediğin de
   geçti diye kurumsal bilgiye yazma; neyin nereye kaydedileceğini cümlenin bütününden çıkar:
   1. **İş sırasında** ("bunu kaydet", "not al", "şunu yaz") → **o işin README'si**:
      `python3 /root/ai/opencode/knowledge/skills/approved/rapor/is-kaydi.py not <numara|son> "<kullanıcının verdiği bilgi>"` — betik
-     README'nin "## Notlar" bölümüne zaman damgalı satır ekler, başka satıra dokunmaz, parolayı reddeder. Yalnız kullanıcının verdiği
+     README'nin "## Notlar" bölümüne zaman damgalı satır ekler, başka satıra dokunmaz. Yalnız kullanıcının verdiği
      bilgiyi yaz (kendi yorumun yok); belirsizse önce sor. İş kaydı açık değilse önce `is-kaydi.py ac` (CN varsa `--cn`).
   2. **Kurumsal bilgiye** (`~/ai/work/opencode/kurumsal-bilgi.ini`) yalnız kullanıcı **kurumsal bilgi çalışması** yaptığını açıkça söyleyip
      kaynağı gösterince ("şu CN'deki / şu tarihli işteki şu bilgiyi kurumsal bilgiye al"): o işin README'sini/kaydını oku
      (`is-kaydi.py liste <sözcük>`), alınacak satırı göster, kullanıcı onaylayınca ilgili bölümün sonuna ekle — kaynak
      `[dn<numara> README · Alp YYYY-MM-DD]`; "sanırım" denmişse `[doğrula]`. Önce yedek (`cp -p <dosya> <dosya>.$(date +%Y%m%d-%H%M)`),
-     edit aracıyla yalnız o satır, sonra `diff -u <yedek> <dosya>`. Başka satırı silme/taşıma/yeniden numaralama; **parola, token, anahtar yazma**.
+     edit aracıyla yalnız o satır, sonra `diff -u <yedek> <dosya>`. Başka satırı silme/taşıma/yeniden numaralama. Parola/token kullanıcı verdiyse yazılabilir (Alp, 2026-11-23: "her şey lokalde").
   3. Bağlam başka bir şeyse ("çıktıyı dosyaya kaydet", "playbook'u kaydet") o iştir — iş kaydı/kurumsal bilgi değil.
 - **Kurumsal bilgiyi sorma** ("kurumsal hafızanda X ile ilgili ne var?", "DMZ için ne biliyorsun?"): dosyada ara
   (`grep -n -i <sözcük> ~/ai/work/opencode/kurumsal-bilgi.ini`), bulduğunu **satır numarasıyla** aynen ver, yorumu ayrı ve "tahmin:" ile;

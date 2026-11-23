@@ -16,7 +16,7 @@
 #   is-kaydi.py liste [<sözcük>]                 → kayıtları listeler (okuma)
 #   is-kaydi.py not <kayıt> "<bilgi>"            → işin README.md'sine "## Notlar" altına zaman damgalı satır EKLER (başka satıra dokunmaz).
 #       Alp (2026-11-23): iş içinde "kaydet" = bu işin README'si; kurumsal bilgiye ancak "kurumsal bilgi çalışması" deyince, işten alınarak.
-#       Parola/token/anahtar içeren not reddedilir (çıkış 3).
+#       Parola da yazılabilir (Alp, 2026-11-23: "her şey lokalde çalışıyor") — iş kaydı sahada kalır, depoya girmez.
 #   <kayıt> = değişiklik numarası (29000) | dizin yolu/adı | son   ("son" = en son AÇILAN kayıt; emin değilsen numarayı yaz)
 import datetime
 import os
@@ -205,16 +205,12 @@ def ac(argv):
     return 0
 
 
-GIZLI = re.compile(r"(?i)(pass(word)?|parola|şifre|sifre|token|secret|api[_-]?key|anahtar)\s*[=:]\s*(?!<)\S")
 
 
 def not_ekle(arg, metin):
     metin = " ".join(metin.split())
     if not metin:
         raise SystemExit("not boş")
-    if GIZLI.search(metin):
-        print("REDDEDİLDİ: notta parola/token/anahtar değeri var — gizli değer iş kaydına yazılmaz (yerini yaz: \"parola: <sunucudaki .env>\")")
-        return 3
     dizin = kayit_dizini(arg)
     is_dizini = os.path.dirname(dizin) if os.path.basename(dizin) == "logs" else dizin  # dn/<no>/logs → dn/<no>
     readme = os.path.join(is_dizini, "README.md")

@@ -1,6 +1,6 @@
 # KURUMSAL BİLGİ — kalıcı kurum gerçekleri (sahada tutulur, bu depoya kurum verisi girmez)
 
-> Yer: `~/ai/work/opencode/kurumsal-bilgi.ini` (adı tarihsel; içerik bu şablondaki bölümler). Yalnız kullanıcı günceller (`/kaydet` 2026-11-23'te kaldırıldı).
+> Yer: `~/ai/work/opencode/kurumsal-bilgi.ini` (adı tarihsel; içerik bu şablondaki bölümler). Ajan yalnız kullanıcı "kaydet" deyince, verilen bilgiyi ekler (`engine/AGENTS.md`; `/kaydet` komutu 2026-11-23'te kaldırıldı).
 > **Girer:** her işte yeniden lazım olan, kanıtlı, uzun ömürlü bilgi. **Girmez:** tek seferlik iş adımları ve sonuçları
 > ve anlık değerler (sunucu sunucu kernel, disk yüzdesi) → en alttaki "10. İş geçmişi"; tahmin `[doğrula]` ile; ajanın yorumu hiç.
 > Parola/token yazılabilir (Alp, 2026-11-03: yerel ortam, gizlilik gereği yok).

@@ -5,7 +5,7 @@
 Her oturumda iki şey otomatik yüklü: bu dosya (kurallar) ve **kurumsal bilgi** (`~/ai/work/opencode/kurumsal-bilgi.ini` — DNS/NTP, DMZ,
 ağ blokları, erişim akışı, süreçler; satırdaki `[doğrula]` kesin bilgi değildir). İş gelince: isteğin sözcüklerini aşağıda **yukarıdan
 aşağı** ara, ilk eşleşen satır → o kurumsal bilgi bölümüne bak → beceriyi yükle → betiği kullan. Eşleşme yoksa sor; tahminle beceri seçme.
-Kurumsal bilgiyi yalnız kullanıcı (Alp) değiştirir; ajan dosyaya yazmaz (`/kaydet` 2026-11-23'te kaldırıldı).
+Kurumsal bilgiye ajan **yalnız kullanıcı açıkça "kaydet / kurumsal bilgiye ekle" deyince** yazar ("Kurumsal bilgi" kuralı, aşağıda).
 
 | İsteğin sözcükleri | Kurumsal bilgi | Beceri → betik |
 |---|---|---|
@@ -115,7 +115,8 @@ Kullanıcı sunucularda değişiklik istediyse (güncelleme, ayar, servis, disk 
   de **tahmindir**. Kaynağı yoksa hücreye `?` yaz, tabloyu bitir, hemen altında **tek numaralı liste** ile sor
   ("1. dk = ? 2. vms = ? …"); cevaba kadar o hücreyi başka yerde kullanma. Kullanıcı cevaplayınca kaynak "kullanıcı, <tarih>" olur.
 - Kurum bilgisi (önek/proje açılımı, ortam kodu) **AGENTS.md'ye yazılmaz** (kurulu ayar, ajana kapalı) ve `kurumsal-bilgi.ini`'ye de
-  ajan yazmaz — kalıcı olması gereken bilgiyi kullanıcıya tek satır öner ("kurumsal bilgiye şu satır eklenebilir: …"), ekleyen kullanıcıdır.
+  ajan kendiliğinden yazmaz — kalıcı olması gereken bilgiyi kullanıcıya tek satır öner ("kurumsal bilgiye şu satır eklenebilir: …");
+  kullanıcı "kaydet" derse aşağıdaki "Kurumsal bilgi" kuralıyla eklenir.
 - Doğrulanmamış bir kuralı dosyaya **yazma** — önce doğrula; doğrulayamıyorsan yazma, boş bırak.
 - Gün farkı, toplam, yüzde **kafadan hesaplanmaz** — `date -d` / `echo $((…))` ile hesapla (saha G65).
 - **Sürüm/uyumluluk (Rancher, RKE2/Kubernetes, Antrea, RHEL) — tahmin YASAK (T33, 2026-09-30):** bu ortam
@@ -490,7 +491,14 @@ yazma; ölçemediğin sunucuyu "ölçülmedi" diye ayrı göster. Bilmediğin de
   ssh/ad-hoc: okuma ve playbook gerektirmeyen tek ufak komut.
 - **Kurumsal bilgi** (`~/ai/work/opencode/kurumsal-bilgi.ini`, sahada): DNS/NTP, DMZ, ağ blokları, erişim/izin akışı, süreç kuralı gerekince
   önce bunu oku (`grep -n -i <sözcük>`); satır sonundaki kaynak `[doğrula]` ise ölçmeden kesin bilgi gibi kullanma. Dosya ile ölçüm
-  çelişirse ölçümü söyle, dosyayı kendin düzeltme — kullanıcı günceller.
+  çelişirse ölçümü söyle, dosyayı kendin düzeltme.
+- **Kurumsal bilgiye yazma — yalnız açık talimatla (Alp, 2026-11-23: "ben diyeceğim şu bilgiyi kaydet, o kaydedecek; kontrollü olur"):**
+  kullanıcı "şunu kaydet / kurumsal bilgiye ekle / şu satırı düzelt" demeden dosyaya dokunma. Dediğinde:
+  1. Yalnız **kullanıcının verdiği bilgiyi** yaz — kendi çıkarımını, oturumdaki başka bilgiyi ekleme. Belirsizse önce sor.
+  2. İlgili bölümün sonuna ekle (kullanıcı bölüm söylediyse oraya); satır sonuna `[Alp YYYY-MM-DD]`, "sanırım" denmişse `[doğrula]`.
+  3. Başka satırı silme, taşıma, yeniden numaralama, "düzenleme" yapma — yalnız kullanıcının gösterdiği satır değişir.
+  4. **Parola, token, anahtar yazma** — o kısmı yazmadan "parola dosyaya yazılmaz" de.
+  5. Önce yedek: `cp -p <dosya> <dosya>.$(date +%Y%m%d-%H%M)`; sonra edit aracıyla değiştir; bitince `diff -u <yedek> <dosya>` göster.
 
 ## "Yalnız metni kontrol et, işlem yapma" (saha G111, 2026-10-27)
 

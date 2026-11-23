@@ -4,7 +4,7 @@ opencode becerileri **talep üzerine** yükler: ajan listeyi görür (isim + `de
 gerektiğinde `skill` aracıyla içeriği çeker → bağlam şişmez.
 
 > **Yönlendirme:** hangi işte hangi beceri — `engine/AGENTS.md` "İş haritası" (gerçek saha cümleleriyle testli). Kurum gerçekleri becerilere
-> yazılmaz; sahada `kurumsal-bilgi.ini`'de durur ve her oturumda yüklenir (yalnız kullanıcı günceller).
+> yazılmaz; sahada `kurumsal-bilgi.ini`'de durur ve her oturumda yüklenir (ajan yalnız kullanıcı "kaydet" deyince ekler).
 
 ## Yaşam döngüsü
 

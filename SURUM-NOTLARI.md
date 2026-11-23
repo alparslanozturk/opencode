@@ -10,7 +10,8 @@
 
 Sahada: `al.sh` → `./kur.sh` (kurulu `opencode.json` şablondan yeniden yazılır, komut düşer), **yeni oturum**.
 - Alp: "kaydet fonksiyonunu tamamen çıkaralım". Yerel model `kurumsal-bilgi.ini`'yi serbest yeniden yazarken uydurma satır, tekrar başlık ve
-  parola üretiyordu. Kurumsal bilgi **her oturumda okunmaya devam eder**; ajan yazmaz, kalıcı bilgiyi kullanıcıya tek satır önerir.
+  parola üretiyordu. Kurumsal bilgi **her oturumda okunmaya devam eder**. Ajan yalnız Alp "şunu kaydet" deyince **verilen bilgiyi**
+  ilgili bölümün sonuna ekler (kaynak etiketi, yedek, diff; başka satıra dokunmaz, parola yazmaz); kendiliğinden yalnız öneri satırı verir.
 - `oturum-ozet.py` kalır (olay raporu kanıtı). Oturum kayıtları opencode'da durur.
 
 ## 2026-11-23 — kurumsal-bilgi düzeltme betiği; test H200 RAID ölçümü

@@ -38,7 +38,7 @@ ssh root@<sunucu> 'df -h /; lsblk' | python3 $K ekle son <sunucu>-once          
 python3 $K sonuc son "<sunucu>: root 53G → 365G (df -h /)"                          # yalnız ölçülen
 python3 $K not son "STL ile SX arası 26379 kapalı"                                 # kullanıcının sözü → README Notlar [Alp]
 python3 $K not son "root 53G → 365G" --kaynak "komut: df -h /"                    # ölçüm; çıkarım: --kaynak tahmin (uydurma yok)
-python3 $K liste data                                                               # eski benzer işler
+python3 $K liste redis --tur kriz --tarih 2026-11                                  # eski işlerde ara: README notu, plan, sonuç (dosya:satır)
 ```
 
 `plan.md`'yi doldur: önce sor cevapları, okuma kanıtı (dosya adıyla), adımlar (her biri ayrı komut), risk/geri dönüş. Verilmeyen alan

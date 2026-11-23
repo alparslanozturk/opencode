@@ -44,13 +44,23 @@ Envanterde olmayan ad DNS'ten doğrulanır ([is_ek]); çözülmeyen ⚠️ ile i
 Ana envanter değişmez. Çalışma dizininden çalıştır (dn/<numara> içinden de olur)."""
 
 
+SABIT_KOK = "~/ai/work/opencode"  # Alp (2026-11-23): "genelde orada çalışıyorum … sabit olabilir" — ansible/, dn/, kurumsal-bilgi.ini burada
+
+
 def calisma_koku():
-    # komut iş dizininin içinden (…/dn/<no>[/logs]) çalıştırılsa da kök aynı kalır (rapor/is-kaydi.py ile aynı kural)
+    # Kök sırası (rapor/is-kaydi.py ile aynı): 1) OPS_CALISMA_KOK · 2) iş dizininin içinden (…/dn/<no>[/logs]) çalıştırıldıysa onun üstü ·
+    # 3) sabit kök (~/ai/work/opencode) varsa — opencode hangi dizinde açılırsa açılsın dn/ ve envanter aynı yerde · 4) çalışma dizini.
+    ortam = os.environ.get("OPS_CALISMA_KOK")
+    if ortam:
+        return os.path.abspath(os.path.expanduser(ortam))
     c = a = os.getcwd()
     for _ in range(3):
         if os.path.basename(a) == "dn" and any(os.path.isdir(os.path.join(os.path.dirname(a), k)) for k in ("ansible", "inventories", "inventory")):
             return os.path.dirname(a)
         a = os.path.dirname(a)
+    sabit = os.path.abspath(os.path.expanduser(os.environ.get("OPS_SABIT_KOK") or SABIT_KOK))  # test: OPS_SABIT_KOK=/yok
+    if os.path.isdir(sabit):
+        return sabit
     return c
 
 
@@ -314,6 +324,8 @@ def main(argv):
     cwd, calisma = os.getcwd(), calisma_koku()
     if calisma != cwd:
         os.chdir(calisma)  # yollar çalışma dizinine göre basılır (dn/<no>/…)
+        if not cwd.startswith(calisma + os.sep):
+            print("ℹ️ çalışma kökü: %s — aşağıdaki yollar buraya göre; komutları `cd %s` ile buradan çalıştır" % (calisma, calisma))
     if argv[0] == "--liste":
         return liste()
     dosya_arg, notu, is_grup, asama, yenile, erisim_yok, kalan = [], "", "", "", False, False, []

@@ -484,9 +484,11 @@ yazma; ölçemediğin sunucuyu "ölçülmedi" diye ayrı göster. Bilmediğin de
   ve `-l` ile yap, elle INI ya da `for … ssh` döngüsü yazma.
 - **İş kaydı (Alp, 2026-11-03; dizin düzeni 2026-11-12):** değişiklik içeren her saha işinde kayıt aç — `K=/root/ai/opencode/knowledge/skills/approved/rapor/is-kaydi.py`;
   `python3 $K ac <işin kısa adı> --cn <numara> --sunucular … --istek "<kullanıcının sözü>"` → `dn/<numara>/README.md` + `logs/` (CN yoksa `--cn`
-  yazma → `~/ai/work/is-kayitlari/<YYYYMMDD>-<etiket>/`). Okuma çıktısı `<komut> | python3 $K ekle <numara|son> <ad>`, bitince ölçülen sonuç
+  yazma → `~/ai/work/is-kayitlari/<YYYYMMDD>-<etiket>/`; etiket türle başlar: `kriz-…`, `kurulum-…`, `bulgu-…`). Okuma çıktısı `<komut> | python3 $K ekle <numara|son> <ad>`, bitince ölçülen sonuç
   `python3 $K sonuc <numara|son> "…"`. `README.md`'ye işin bilgisini yaz (istek, sunucular, adımlar ve hangi playbook, durum) — başka gün
-  açan kişi oradan anlar. Kurum verisi — sahada kalır. Benzer iş için önce `python3 $K liste <sözcük>`.
+  açan kişi oradan anlar. Kurum verisi — sahada kalır. Benzer iş için önce `python3 $K liste <sözcük…> [--tur cn|kriz|kurulum|bulgu|is] [--tarih YYYY-MM]` — README notları, plan ve
+  sonuçta arar, eşleşen satırı dosya:satır basar ("daha önce nerede yapmıştık", "o işte ne not almıştık" sorusunun cevabı). İş kökü sabit:
+  `~/ai/work/opencode` (`dn/`, `ansible/`) — opencode başka dizinde açılsa da iş dizinleri orada açılır (Alp, 2026-11-23).
   Değişiklik **her adım ayrı onay**; CN'li işte yol iş dizini + ini → playbook → onay → önce tek sunucu ("Değişiklik işi" 3-5; ADR-0007 §9).
   ssh/ad-hoc: okuma ve playbook gerektirmeyen tek ufak komut.
 - **Kurumsal bilgi** (`~/ai/work/opencode/kurumsal-bilgi.ini`, sahada): DNS/NTP, DMZ, ağ blokları, erişim/izin akışı, süreç kuralı gerekince

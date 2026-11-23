@@ -13,7 +13,10 @@
 #       dosya tamamlanır). CN yoksa <YYYYMMDD>-<etiket> (gün, saat yok; aynı ad varsa -2, -3 …). Tarihi/CN'yi etikete yazma.
 #   <komut> | is-kaydi.py ekle <kayıt> <ad>      → stdin'i okuma/<tarih-saat>-<ad>.txt olarak saklar
 #   is-kaydi.py sonuc <kayıt> "<satır>"          → sonuc.md'ye zaman damgalı satır ekler
-#   is-kaydi.py liste [<sözcük>]                 → kayıtları listeler (okuma)
+#   is-kaydi.py liste [<sözcük>…] [--tur cn|kriz|kurulum|bulgu|is] [--tarih YYYY-MM[-DD]]
+#                                                → kayıtları listeler/arar: dizin adı + plan.md + README.md (notlar) + sonuc.md; eşleşen
+#                                                  satırı dosya:satır ile basar; birden çok sözcük = hepsi geçmeli. CN'siz işte tür
+#                                                  etiketin başından okunur (kriz-…, kurulum-…, bulgu-…; yoksa "is").
 #   is-kaydi.py not <kayıt> "<bilgi>" [--kaynak <kaynak>] → işin README.md'sine "## Notlar" altına zaman damgalı satır EKLER (başka satıra
 #       dokunmaz). Uydurma yok (Alp, 2026-11-23): her not kaynaklı — --kaynak yoksa "Alp" (kullanıcının sözü, aynen); ölçüm için
 #       --kaynak "komut: <kısa komut>"; çıkarım için --kaynak tahmin (satır "tahmin:" ile başlar). Başka kaynak reddedilir (çıkış 2).
@@ -28,13 +31,23 @@ import sys
 KOK = os.path.abspath(os.path.expanduser(os.environ.get("IS_KAYIT_KOK", "~/ai/work/is-kayitlari")))
 
 
+SABIT_KOK = "~/ai/work/opencode"  # Alp (2026-11-23): "genelde orada çalışıyorum … sabit olabilir" — ansible/, dn/, kurumsal-bilgi.ini burada
+
+
 def calisma_koku():
-    # komut iş dizininin içinden (…/dn/<no>[/logs]) çalıştırılsa da kök aynı kalır (is-envanter.py ile aynı kural)
+    # Kök sırası (ansible/is-envanter.py ile aynı): 1) OPS_CALISMA_KOK · 2) iş dizininin içinden (…/dn/<no>[/logs]) çalıştırıldıysa onun üstü ·
+    # 3) sabit kök (~/ai/work/opencode) varsa — opencode hangi dizinde açılırsa açılsın dn/ ve envanter aynı yerde · 4) çalışma dizini.
+    ortam = os.environ.get("OPS_CALISMA_KOK")
+    if ortam:
+        return os.path.abspath(os.path.expanduser(ortam))
     c = a = os.getcwd()
     for _ in range(3):
         if os.path.basename(a) == "dn" and any(os.path.isdir(os.path.join(os.path.dirname(a), k)) for k in ("ansible", "inventories", "inventory")):
             return os.path.dirname(a)
         a = os.path.dirname(a)
+    sabit = os.path.abspath(os.path.expanduser(os.environ.get("OPS_SABIT_KOK") or SABIT_KOK))  # test: OPS_SABIT_KOK=/yok
+    if os.path.isdir(sabit):
+        return sabit
     return c
 
 
@@ -236,6 +249,68 @@ def not_ekle(arg, metin, kaynak="Alp"):
     return 0
 
 
+TURLER = ("kriz", "kurulum", "bulgu")
+
+
+def kayit_bilgi(d):
+    """Kayıt dizini → (tür, açılış tarihi, görünen ad, sunucular, [(dosya, metin)])."""
+    is_dizini = os.path.dirname(d) if os.path.basename(d) == "logs" else d
+    dosyalar = [os.path.join(d, "plan.md"), os.path.join(is_dizini, "README.md"), os.path.join(d, "sonuc.md")]
+    metinler = []
+    for f in dosyalar:
+        try:
+            metinler.append((f, open(f, encoding="utf-8", errors="replace").read()))
+        except OSError:
+            pass
+    plan = metinler[0][1] if metinler and metinler[0][0].endswith("plan.md") else ""
+    acil = re.search(r"^- Açıldı: (\S+)", plan, re.M)
+    sun = re.search(r"^- Sunucular: (.*)$", plan, re.M)
+    if icinde(DN_KOK, d):
+        tur = "cn"
+    else:
+        etiket = re.sub(r"^\d{8}-", "", os.path.basename(d)).lower()
+        tur = next((t for t in TURLER if etiket == t or etiket.startswith(t + "-")), "is")
+    return tur, acil.group(1) if acil else "", gorunen_ad(d), sun.group(1) if sun else "", metinler
+
+
+def liste(argv):
+    """liste [<sözcük>…] [--tur cn|kriz|kurulum|bulgu|is] [--tarih YYYY-MM[-DD]] — ad, plan.md, README.md, sonuc.md içinde arar."""
+    tur_s = secenek(argv, "--tur", "").lower()
+    tarih_s = secenek(argv, "--tarih", "")
+    sozcukler = [x.lower() for i, x in enumerate(argv) if not x.startswith("--") and (i == 0 or argv[i - 1] not in ("--tur", "--tarih"))]
+    desenler = [re.compile(r"(?<!\w)" + re.escape(k), re.I) for k in sozcukler]  # sözcük başı: "os" → "hosts" eşleşmez
+    hepsi = sorted(kayitlar(), key=acilis)
+    if not hepsi:
+        print("kayıt yok (%s, %s)" % (DN_KOK, KOK))
+        return 0
+    bulunan = 0
+    for d in hepsi:
+        tur, tarih, ad, sun, metinler = kayit_bilgi(d)
+        if tur_s and tur != tur_s:
+            continue
+        if tarih_s and not tarih.startswith(tarih_s):
+            continue
+        eslesme = []
+        ust = os.path.dirname(os.path.dirname(d) if os.path.basename(d) == "logs" else d)  # dn/ ya da is-kayitlari/
+        if sozcukler:
+            tum = ad + "\n" + "\n".join(m for _, m in metinler)
+            if not all(r.search(tum) for r in desenler):
+                continue
+            for f, m in metinler:
+                for no, sat in enumerate(m.splitlines(), 1):
+                    if any(r.search(sat) for r in desenler):
+                        eslesme.append("    %s:%d  %s" % (os.path.relpath(f, ust), no, sat.strip()[:150]))
+        bulunan += 1
+        print("%-8s %-10s %-38s %s" % (tur, tarih or "?", ad, sun))
+        for e in eslesme[:5]:
+            print(e)
+        if len(eslesme) > 5:
+            print("    … %d eşleşme daha" % (len(eslesme) - 5))
+    if not bulunan:
+        print("eşleşen kayıt yok" + (" (sözcük: %s)" % " ".join(sozcukler) if sozcukler else ""))
+    return 0
+
+
 def main(argv):
     if not argv or argv[0] in ("-h", "--help"):
         print(open(__file__, encoding="utf-8").read().split("import datetime")[0].replace("# ", "").replace("#!/usr/bin/env python3\n", ""))
@@ -265,18 +340,7 @@ def main(argv):
             kalan = kalan[:i] + kalan[i + 2:]
         return not_ekle(argv[1], " ".join(kalan), kaynak)
     if argv[0] == "liste":
-        hepsi = sorted(kayitlar(), key=acilis)
-        if not hepsi:
-            print("kayıt yok (%s, %s)" % (DN_KOK, KOK))
-            return 0
-        sozcuk = argv[1].lower() if len(argv) > 1 else ""
-        for d in hepsi:
-            metin = open(os.path.join(d, "plan.md"), encoding="utf-8", errors="replace").read()
-            if sozcuk and sozcuk not in (gorunen_ad(d) + metin).lower():
-                continue
-            sun = re.search(r"^- Sunucular: (.*)$", metin, re.M)
-            print("%-45s %s" % (gorunen_ad(d), sun.group(1) if sun else ""))
-        return 0
+        return liste(argv[1:])
     print("alt komut: ac | ekle | sonuc | not | liste")
     return 2
 

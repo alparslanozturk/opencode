@@ -39,6 +39,8 @@ icerir() { if grep -qF -- "$3" "$2"; then gecti "$1"; else kaldi "$1 — beklene
 icermez() { if grep -qF -- "$3" "$2"; then kaldi "$1 — olmamalı: $3"; else gecti "$1"; fi; }
 
 cd "$CALISMA" || exit 1
+# Sahada ~/ai/work/opencode (sabit iş kökü) var — test betikleri gerçek iş dizinine yazmasın (is-kaydi/is-envanter, 2026-11-23)
+export OPS_SABIT_KOK="$CALISMA/sabit-kok-yok"
 
 # --------------------------------------------------------------------------- kume-bul
 baslik "kume-bul.py (G94)"
@@ -849,7 +851,20 @@ python3 "$IK" sonuc son "root 365G" > /dev/null; icerir "sonuc satırı" "$d1/so
 if python3 "$IK" ekle ../../etc x < /dev/null > ikx.txt 2>&1; then kaldi "kök dışı kabul edildi"; else gecti "kök dışı dizin reddedilir"; fi
 if python3 "$IK" ekle /etc x < /dev/null > ikx.txt 2>&1; then kaldi "kök dışı mutlak yol kabul edildi"; else gecti "kök dışı mutlak yol reddedilir"; fi
 python3 "$IK" liste data > ikl.txt; icerir "liste sözcükle" ikl.txt "a,b"
+# liste genişletildi (Alp, 2026-11-23): README notları + sonuc.md'de de arar, dosya:satır basar; --tur / --tarih süzgeci; sözcük başı
+python3 "$IK" ac kriz-elektrik --sunucular krz01 > /dev/null; python3 "$IK" not son "redis restart policy no" > /dev/null
+python3 "$IK" sonuc son "krz01 ayakta" > /dev/null
+python3 "$IK" liste redis > ikl2.txt; icerir "liste: README notunda bulur" ikl2.txt "README.md:"; icerir "liste: eşleşen satır" ikl2.txt "redis restart policy no"
+python3 "$IK" liste ayakta > ikl3.txt; icerir "liste: sonuc.md'de bulur" ikl3.txt "sonuc.md:"
+python3 "$IK" liste --tur kriz > ikl4.txt; icerir "liste --tur kriz" ikl4.txt "kriz-elektrik"; icermez "liste --tur kriz başka türü süzer" ikl4.txt "data-root"
+python3 "$IK" liste --tarih 1999 > ikl5.txt; icerir "liste --tarih süzer" ikl5.txt "eşleşen kayıt yok"
+python3 "$IK" liste ost > ikl6.txt; icermez "liste: sözcük başı (ost → hosts değil)" ikl6.txt "kriz-elektrik"
 unset IS_KAYIT_KOK IS_DN_KOK
+# Sabit kök (Alp, 2026-11-23: "genelde orada çalışıyorum … sabit olabilir"): opencode başka dizinde açılsa da dn/ aynı yerde
+mkdir -p sabitkok/ansible baskadizin
+(cd baskadizin && OPS_CALISMA_KOK="$PWD/../sabitkok" IS_KAYIT_KOK="$PWD/../iskok2" python3 "$IK" ac x --cn 31000 > ../iks.txt 2>&1)
+[ -f sabitkok/dn/31000/README.md ] && gecti "sabit kök: is-kaydi dn/ sabit kökte (cwd başka)" || kaldi "sabit kök is-kaydi: $(cat iks.txt)"
+[ ! -d baskadizin/dn ] && gecti "sabit kök: cwd'de dn/ açılmaz" || kaldi "cwd'de dn açıldı"
 
 baslik "oturum-ozet.py (oturum kanıtlı özeti; 2026-11-03)"
 cat > oz.json << 'JSON'
@@ -1010,6 +1025,13 @@ if command -v vermin > /dev/null; then
 else
   printf '  ATLANDI vermin yok (python3 -m venv v && v/bin/pip install vermin)\n'
 fi
+
+baslik "is-envanter sabit kök (OPS_CALISMA_KOK; Alp 2026-11-23)"
+mkdir -p iesk/ansible/inventories iesb && printf '[web]\nweb01 ansible_host=10.0.0.1\n' > iesk/ansible/inventories/hosts.ini
+(cd iesb && OPS_CALISMA_KOK="$PWD/../iesk" python3 "$B/ansible/is-envanter.py" 31001 web01 --erisim-yok > ../iesk.txt 2>&1)
+[ -f iesk/dn/31001/hosts.ini ] && gecti "sabit kök: iş envanteri kökte" || kaldi "sabit kök is-envanter: $(head -3 iesk.txt)"
+icerir "sabit kök: ana envanterden okundu" iesk/dn/31001/hosts.ini "ansible_host=10.0.0.1"
+icerir "sabit kök: cwd farklıysa kök bildirilir" iesk.txt "çalışma kökü:"
 
 baslik "is-envanter --grup (tire → _, G116)"
 mkdir -p ie && printf '[web]\nweb01 ansible_host=10.0.0.1\n' > ie/ana.ini

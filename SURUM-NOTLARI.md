@@ -6,6 +6,14 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-23 — İş kayıtlarında arama; iş kökü sabit (`~/ai/work/opencode`)
+
+Sahada: `al.sh` → `./kur.sh`, **yeni oturum**.
+- `is-kaydi.py liste <sözcük…> [--tur cn|kriz|kurulum|bulgu|is] [--tarih YYYY-MM[-DD]]`: artık README notlarında, plan.md ve sonuc.md'de
+  arar, eşleşen satırı dosya:satır ile basar, sözcük başına göre eşleşir. Tür: CN'li iş `cn`; CN'siz işte etiketin başı (kriz-…, kurulum-…).
+- `is-kaydi.py` + `is-envanter.py` kökü: `OPS_CALISMA_KOK` → iş dizininin içi → **sabit `~/ai/work/opencode`** (varsa) → çalışma dizini.
+  opencode başka dizinde açılsa da `dn/<numara>/` ve iş envanteri aynı yerde. Test betikleri `OPS_SABIT_KOK` ile gerçek dizine yazmaz.
+
 ## 2026-11-23 — "Kaydet": uydurma yok, kaynak zorunlu; kurumsal bilgiye yalnız "kurumsal bilgi" deyince
 
 Sahada: `al.sh` → `./kur.sh`, **yeni oturum**.

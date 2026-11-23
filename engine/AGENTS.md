@@ -14,6 +14,7 @@ aşağı** ara, ilk eşleşen satır → o kurumsal bilgi bölümüne bak → be
 | veeam · restore | — | `veeam-linux` → `veeam-tani` |
 | aide · dosya bütünlüğü · file integrity · fim · bütünlük kontrol | — | `rhel-aide` → `aide-ozet` (CIS 6.1.x: `rhel-cis`) |
 | sep · symantec · antivirüs · istisna · xdr · twistlock · defender | — | `rke2-edr` → `sep-istisna` (paket üretimi: `sep-paket`) |
+| %100 · cpu yüksek · yüksek cpu · cpu kullanımı · load average · yük dağılmıyor · yoruluyor · node neden yavaş | — | `rke2-edr` → `node-cpu` (node CPU: pod dışı süreç payı, SEP sınırı; hostname teyitli) |
 | nfs · nfsidmap · dizin boş · dizinler gelmedi | 9 bilinen sorunlar | `rhel-nfs` → `nfs-tani` |
 | idm · ipa · sudo · hbac · ad trust · kerberos | 6 süreçler | `idm-erisim` · `idm-kurulum` · `idm-bakim` |
 | gpu · nvidia · run:ai · vllm | — | `rke2-gpu` → `gpu-dagilim` (sürücü `rhel-gpu-surucu`, operator `rke2-gpu-kurulum`, `rke2-runai`) |
@@ -131,6 +132,12 @@ Kullanıcı sunucularda değişiklik istediyse (güncelleme, ayar, servis, disk 
   "desteklenmiyor/kural dışı" değil. ❌ yalnız kaynakta açık uyumsuzluk / kanıtlı hata / EOL / üreticinin destek listesi dışı.
   Kaynağı olmayan uyum cümlesi yazılmaz. **Uyum durumu bir arızanın sebebi olarak yazılmaz** (G77: node donmaları "Antrea matris
   dışı" diye Antrea'ya bağlandı, sonra sonuç olduğu anlaşıldı) — sebep olayın kendi kanıtıyla.
+
+## Çelişen iki ölçüm — "sahte" deme, yeniden ölç (saha G127, 2026-11-23)
+Kendi ölçümün başka bir kaynakla (Rancher, `kubectl top`, kullanıcının ekranı) çelişiyorsa birine "sahte/yanlış" deyip açıklama **uydurma**
+(G127: "metrics-server 116 cpu.stat okuyor" — kaynaksız). Önce aynı sunucuda olduğunu teyit et (hostname), ikisini aynı anda yeniden al,
+ikisini de göster. Node CPU yüksek, pod'ların toplamı düşükse fark **pod dışı süreçlerdir** (SEP/XDR/Defender, kubelet, containerd) — "sistem
+boş" değildir; `rke2-edr/node-cpu.py` hesaplar.
 
 ## Ham çıktıyı kafadan birleştirme — betiğe borula (saha G21/G22/G38/G65/G94)
 En ağır hatalar ham çıktıyı kafadan tabloya/özete dökmekten çıktı (uydurma kapasite raporu, OS diski "boş", kalan gün, base64).
@@ -322,6 +329,10 @@ değerdi.
   `../knowledge/policy/UZAK-ISLEM-ARAC-SECIMI.md`.
 
 ## SSH ve Kubernetes erişimi (kullanıcı açıkça istediğinde — Alp kuralı, 2026-09-15)
+- **Hedef teyidi — tanıdan önce (saha G127, 2026-11-23: ajan önce başka kümeye, sonra aynı kümenin başka master'ına baktı):** ilk ölçümden
+  önce tek satır yaz: "hedef: <küme>, <node/sunucu adları>, <IP'ler> — doğru mu?". IP'yi kendin seçme — `kubectl get node <ad> -o wide`
+  ya da envanterden al. Eski oturumda başka küme/sunucu konuşulduysa onu varsayma. Her ssh okumasında çıktıya `hostname` yazdır
+  (`echo h=$(hostname); …`) ve istenen adla karşılaştır — tutmuyorsa o çıktıdan sonuç çıkarma, doğru sunucuda yeniden ölç.
 - **Bağlanmak için host dosyası ARAMAYA GEREK YOK.** Erişim **public key** ile parolasız:
   `ssh root@<ip> "<komut>"` doğrudan çalışır. `/etc/hosts`, `hosts*.ini`, kubeconfig peşinde tüm
   dosya sistemini taramak anlamsız — sunucu listesi gerekiyorsa yeri **belli** (arama değil, doğrudan oku).

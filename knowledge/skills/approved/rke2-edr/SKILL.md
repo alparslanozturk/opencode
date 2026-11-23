@@ -1,6 +1,6 @@
 ---
 name: rke2-edr
-description: RKE2/Kubernetes node'larındaki ve RHEL sunuculardaki (SEP yüksek CPU, NFS taraması, istisnalar, donma — §2b) güvenlik ajanlarının (EDR/AV — Symantec SEP, Palo Alto Cortex XDR/Traps, Prisma Cloud/Twistlock Defender) node takılmasına, antrea-ovs/containerd beklemesine, yüksek CPU/belleğe etkisini incelerken ve "ajanı kapattım, düzeldi mi" sorusunu doğrularken kullan. "edr", "xdr", "cortex", "traps", "traps_pmd", "pmd", "sep", "symantec", "sisamddaemon", "antivirüs", "av", "twistlock", "prisma", "defender", "güvenlik ajanı", "xdr kaldırdım", "sep kapat", "sep sınır", "sep limit", "sdcss.slice", "cpuquota", "memorymax", "scan.threads", "ajan kapatınca düzeldi" isteklerinde tetiklenir. Node takılmasının genel incelemesi `rke2-denetim` §4. Yalnız okur; ajanı durdurmak/kaldırmak/istisna eklemek kullanıcının ve güvenlik ekibinin işi.
+description: RKE2/Kubernetes node'larındaki ve RHEL sunuculardaki (SEP yüksek CPU, NFS taraması, istisnalar, donma — §2b) güvenlik ajanlarının (EDR/AV — Symantec SEP, Palo Alto Cortex XDR/Traps, Prisma Cloud/Twistlock Defender) node takılmasına, antrea-ovs/containerd beklemesine, yüksek CPU/belleğe etkisini incelerken ve "ajanı kapattım, düzeldi mi" sorusunu doğrularken kullan. "edr", "xdr", "cortex", "traps", "traps_pmd", "pmd", "sep", "symantec", "sisamddaemon", "antivirüs", "av", "twistlock", "prisma", "defender", "güvenlik ajanı", "xdr kaldırdım", "sep kapat", "sep sınır", "sep limit", "cpu %100", "%100 cpu", "cpu yüksek", "master cpu", "load average", "yük dağılmıyor", "node-cpu", "sdcss.slice", "cpuquota", "memorymax", "scan.threads", "ajan kapatınca düzeldi" isteklerinde tetiklenir. Node takılmasının genel incelemesi `rke2-denetim` §4. Yalnız okur; ajanı durdurmak/kaldırmak/istisna eklemek kullanıcının ve güvenlik ekibinin işi.
 ---
 
 # Güvenlik ajanları (EDR/AV) ve node takılması
@@ -70,6 +70,24 @@ açılıştan beri gün (reboot sonrası modül gelmiş mi). Ölçüldü (ajans�
 4. **Amaç:** "sebep ajan mı" sorusu mu (§3 kanıt), ilgili ekibe öneri / istisna listesi mi (§5).
 
 Sorma: hangi ajan kurulu, süreçleri, CPU payı — §1 okur. Ajanın modu/politikası konsoldadır; node'dan okunamıyorsa "bilinmiyor".
+
+## 1a. Node CPU %100 — önce betik (`node-cpu.py`, saha G127)
+
+"Master/node neden %100 CPU?", "yük neden dağılmıyor?" sorusunda **elle ps/top yorumlama — betiği çalıştır** (2026-11-23: ajan başka kümeye,
+sonra başka master'a baktı, `kubectl top node`'a "SAHTE" deyip kaynaksız açıklama uydurdu; gerçek sebep SEP `sisamddaemon` %356 / 4 çekirdek,
+%94 sy idi — hiç ölçülmedi):
+
+```bash
+python3 /root/ai/opencode/knowledge/skills/approved/rke2-edr/node-cpu.py komut <node>   # iki salt-okunur komut basar
+#  1) 1. master'da kubectl → node IP'si, kapasite, top node, node'daki pod'lar + top pod
+#  2) node'un KENDİSİNDE (IP 1. çıktıdan) → hostname, nproc, yük, top (2 sn örnek), SEP slice kotası/throttling
+{ <1. komut>; <2. komut>; } | python3 /root/ai/opencode/knowledge/skills/approved/rke2-edr/node-cpu.py tani <node> -
+```
+
+Betik: hostname node adıyla eşleşmezse **DUR** (çıkış 3, sonuç yazma) · `kubectl top node − pod'ların toplamı = pod dışı süreçler` · süreçleri
+sahibine göre toplar (SEP / XDR / Twistlock / Kubernetes / izleme) · SEP kotası ≥ çekirdek sayısıysa "sınır bu makinede ETKİSİZ" · `top` ile
+`kubectl top node` farklıysa ikisini de gösterir, "sahte" demez. Çıkış: 0 bulgu yok · 1 bulgu · 2 eksik · 3 yanlış sunucu. Sonra §2c
+(sınır/istisna değerlendirmesi) ve §3 (olay anı kanıtı). Ölçüldü: bu makinede node komutu (SEP yok → yanlış bulgu yok) + saha değerleriyle.
 
 ## 1. Envanter (okuma)
 

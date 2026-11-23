@@ -1047,6 +1047,16 @@ describe("2026-11-03: sep-istisna okuma", () => {
   })
 })
 
+describe("2026-11-23: node-cpu okuma (saha G127)", () => {
+  test("node-cpu iki ssh komutu + tani kesin okuma (export/değişken yok)", () => {
+    const { execSync } = require("node:child_process")
+    const k = execSync("python3 /root/ai/opencode/knowledge/skills/approved/rke2-edr/node-cpu.py komut sdlgpumaster2").toString().split("\n")
+    expect(kesinOkuma(k[1].replace("<1. master>", "sdlgpumaster1"), workdir)).toBe(true)
+    expect(kesinOkuma(k[3].replace("<node_ip>", "10.14.3.63"), workdir)).toBe(true)
+    expect(kesinOkuma("cat a.txt | python3 /root/ai/opencode/knowledge/skills/approved/rke2-edr/node-cpu.py tani sdlgpumaster2 -", workdir)).toBe(true)
+  })
+})
+
 describe("2026-11-05: kurulu beceri kopyasından yazan betik K6 değil", () => {
   test("pdf-rapor kurulu yoldan K6'ya takılmaz, onaya düşer; çıktı korunan alana yazılamaz", () => {
     const w = "/root/ai/work/opencode"

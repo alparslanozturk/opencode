@@ -6,6 +6,15 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-23 — Node CPU %100 tanısı: `node-cpu.py`; hedef teyidi ve "sahte deme" kuralları (G127)
+
+Sahada: `al.sh` → `./kur.sh`, **yeni oturum**.
+- `rke2-edr/node-cpu.py komut <node>` → iki salt-okunur komut (1. master'da kubectl; node'un kendisinde top/slice) → `tani`: hostname node
+  adıyla eşleşmezse DUR (çıkış 3); `kubectl top node − pod toplamı = pod dışı`; süreçler sahibine göre (SEP/XDR/Twistlock/K8s); SEP kotası
+  ≥ çekirdek sayısı → "sınır etkisiz"; iki ölçüm farklıysa ikisi de gösterilir. Kilitte kesin okuma.
+- `engine/AGENTS.md`: "Hedef teyidi" (küme + node + IP satırı, IP kubectl'den, ssh çıktısında hostname) ve "Çelişen iki ölçüm — sahte deme".
+- İş haritası: "%100 · cpu yüksek · yük dağılmıyor …" → `rke2-edr` → `node-cpu`. `k8s-sorun` "Önce hangi kümedesin"e G127.
+
 ## 2026-11-23 — CN'siz iş de kendi dizininde: `is/<gün>-<etiket>/`
 
 Sahada: `al.sh` → `./kur.sh`, **yeni oturum**.

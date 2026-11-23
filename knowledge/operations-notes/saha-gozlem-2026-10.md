@@ -1702,3 +1702,15 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   yaparken de kurulum yapar gibi … Ansible scriptlerini çalıştırmak ve işlemler yapmak gerekir. Bunun için onaya gerek yoktur, change
   number'a." Aksiyon: kilitte BULGU yetkisi (listedeki sunucu + yerel iş dosyası sorusuz; yerel betik ve liste dışı sorulur), "ad  IP"
   liste ayrıştırması, `is-envanter.py bulgu` + ansible_host eşlemesi. Sahada denenmedi.
+
+- **G127 (Alp, 2026-11-23, ~10 ekran):** gpu-dtx (alt ortam GPU kümesi) sdlgpumaster2 Rancher'da %100 CPU; master3 aynı gün arızalanıp
+  reboot edilmiş; DevOps "neden?" diye sordu. Ajan (eski oturum, önceki arıza başka kümedeydi) **önce rke-nonprod-test kümesine** baktı
+  (mas01-03 10.14.9.x) ve kanıtsız "DevOps kubectl ile antrea-ovs'u kill etti" yazdı (exit 137 tek başına elle kill göstermez). Düzeltilince
+  gpu-dtx'te `ssh root@10.14.3.62` (= **sdlgpumaster1**) ile ölçüp "master2 yük 0.39, %99 SAHTE — metrics-server 116 cpu.stat okuyor"
+  dedi (kaynaksız). Alp'in `top` ekranı (aynı master): yük 30, **%94 sy**, `sisamddaemon` **%356** (3.6/4 çekirdek, 2 GB), etcd %3.7,
+  apiserver %5. Rancher: 45 günde etcd 89, kube-apiserver 92, kube-controller-manager 92, cloud-controller-manager 104 restart; node 26 günde
+  21 kez NotReady→Ready; apiserver liveness `[-]etcd failed`. Kurum SEP sınırı `sdcss*.slice` CPUQuota %400 = 4 CPU → 4 çekirdekli master'da
+  etkisiz. journald kalıcı değil (önceki master çöküşlerinde kanıt yok).
+  Aksiyon: `rke2-edr/node-cpu.py` (IP kubectl'den, hostname eşleşmezse DUR, pod dışı pay + SEP sınırı), AGENTS "Hedef teyidi" + "Çelişen
+  iki ölçüm" kuralları, `k8s-sorun` hedef teyidi, iş haritası satırı. Açık (Alp/güvenlik, CN): SEP K8s dizin istisnaları (Alp'te liste
+  var), sınırın çekirdek sayısına göre belirlenmesi, master CPU, kalıcı journald. Sahada denenmedi (betik yerelde + saha değerleriyle test).

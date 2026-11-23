@@ -790,6 +790,64 @@ icerir "pdf-rapor: madde" pro.txt "('madde', 'madde **kalın**')"
 if python3 -c "import fpdf" 2>/dev/null; then gecti "pdf-rapor: fpdf2 var (çizim yerelde ayrıca denendi)"; else
   python3 "$B/rapor/pdf-rapor.py" pr.md pr.pdf > pr2.txt 2>&1; icerir "pdf-rapor: fpdf2 yoksa HTML yolu söylenir" pr2.txt "fpdf2 kurulu değil"; fi
 
+baslik "node-cpu.py (node CPU %100 tanısı; saha G127, 2026-11-23)"
+cat > nc1.txt <<'EOF2'
+#bolum kube
+node=sdlgpumaster2
+node_ip=10.14.3.63
+kapasite_cpu=4
+top_node=sdlgpumaster2 3940m 98% 6400Mi 55%
+pod kube-system etcd-sdlgpumaster2
+pod kube-system kube-apiserver-sdlgpumaster2
+pod kube-system kube-scheduler-sdlgpumaster2
+pod kube-system kube-controller-manager-sdlgpumaster2
+toppod kube-system etcd-sdlgpumaster2 25m 300Mi
+toppod kube-system kube-apiserver-sdlgpumaster2 46m 2000Mi
+toppod kube-system kube-scheduler-sdlgpumaster2 4m 100Mi
+toppod kube-system kube-controller-manager-sdlgpumaster2 4m 100Mi
+toppod default baska-pod 900m 1Gi
+#bolum node
+hostname=sdlgpumaster2
+nproc=4
+loadavg=30.30 29.61 28.34 2/700 3429693
+top top - 14:09:42 up 26 days,  1:12,  2 users,  load average: 30.30, 29.61, 28.34
+top Tasks: 346 total,   2 running, 344 sleeping,   0 stopped,   0 zombie
+top %Cpu(s):  4.3 us, 94.4 sy,  0.0 ni,  0.0 id,  0.0 wa,  0.8 hi,  0.5 si,  0.0 st
+top MiB Mem :  11700.6 total,    162.9 free,   7285.0 used,   4685.6 buff/cache
+top 
+top     PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+top 3429693 root      20   0 4626584   2.0g  82664 S 356.5  17.3   3371:46 sisamddaemon
+top    1832 root      20   0 1410540  84952  29696 S  19.3   0.7   1042:05 containerd
+top    2404 root      20   0 3873724   2.4g  55936 S   5.0  20.8   1826:53 kube-apiserver
+top  157485 root      20   0 1238972  23228   9600 S   4.0   0.2  20:31.55 process-exporte
+top    2160 root      20   0   11.4g 267368 103344 S   3.7   2.2   1013:24 etcd
+top 3429563 dcscaf    20   0 2640520  60796  16896 S   0.7   0.5   3:19.05 cafservicemain
+slice sdcss.slice ActiveState=active CPUQuotaPerSecUSec=4s CPUUsageNSec=1 MemoryCurrent=1 nr_throttled 120 throttled_usec 99
+slice sdcss-amd.slice ActiveState=active CPUQuotaPerSecUSec=4s CPUUsageNSec=1 MemoryCurrent=1 nr_throttled 5 throttled_usec 9
+EOF2
+python3 "$B/rke2-edr/node-cpu.py" tani sdlgpumaster2 nc1.txt > nc1o.txt 2>&1; rc=$?
+[ "$rc" -eq 1 ] && gecti "node-cpu: bulgu → çıkış 1" || kaldi "node-cpu çıkış $rc"
+icerir "node-cpu: hostname eşleşti" nc1o.txt "ölçülen sunucu sdlgpumaster2 ✓"
+icerir "node-cpu: pod dışı fark hesabı" nc1o.txt "pod dışı ≈ 3861m"
+icerir "node-cpu: başka node'un pod'u sayılmaz" nc1o.txt "4 pod'un toplamı (kubectl top pod, 4 eşleşti): 79m"
+icerir "node-cpu: en büyük kullanıcı SEP" nc1o.txt "BULGU: CPU'nun en büyük kullanıcısı SEP ajanının süreci sisamddaemon"
+icerir "node-cpu: %400 kota 4 çekirdekte etkisiz" nc1o.txt "sınır bu makinede ETKİSİZ"
+icerir "node-cpu: sahibe göre toplam" nc1o.txt "SEP 357%"
+icermez "node-cpu: 'sahte' demez" nc1o.txt "SAHTE"
+sed 's/^hostname=sdlgpumaster2/hostname=sdlgpumaster1/' nc1.txt | python3 "$B/rke2-edr/node-cpu.py" tani sdlgpumaster2 - > nc2o.txt 2>&1; rc=$?
+[ "$rc" -eq 3 ] && gecti "node-cpu: yanlış sunucu → DUR (çıkış 3)" || kaldi "node-cpu yanlış sunucu çıkış $rc"
+icerir "node-cpu: doğru IP'yi gösterir" nc2o.txt "kubectl'in verdiği IP'ye (10.14.3.63)"
+grep -v '^#bolum node' nc1.txt | python3 "$B/rke2-edr/node-cpu.py" tani sdlgpumaster2 - > nc3o.txt 2>&1; rc=$?
+[ "$rc" -eq 2 ] && gecti "node-cpu: eksik bölüm → çıkış 2" || kaldi "node-cpu eksik çıkış $rc"
+sed 's/^top_node=sdlgpumaster2 3940m 98%/top_node=sdlgpumaster2 400m 10%/' nc1.txt | python3 "$B/rke2-edr/node-cpu.py" tani sdlgpumaster2 - > nc4o.txt 2>&1
+icerir "node-cpu: çelişen ölçümde ikisi de gösterilir, sahte denmez" nc4o.txt "HİÇBİRİ 'sahte' sayılmaz"
+# yerel: node komutu bu makinede gerçekten koşar (SEP yok → slice etkin değil, yanlış bulgu yok)
+k=$(python3 "$B/rke2-edr/node-cpu.py" komut x | sed -n 4p | sed "s/^ssh root@<node_ip> '//; s/'\$//"); bash -c "$k" > nc5.txt 2>&1
+H=$(hostname); { printf '#bolum kube\nnode=%s\nnode_ip=127.0.0.1\nkapasite_cpu=1\ntop_node=%s 10m 1%% 1Gi 1%%\n' "$H" "$H"; cat nc5.txt; } \
+  | python3 "$B/rke2-edr/node-cpu.py" tani "$H" - > nc5o.txt 2>&1; rc=$?
+[ "$rc" -eq 0 ] && gecti "node-cpu: yerel ölçüm koşar, SEP yokken bulgu yok" || kaldi "node-cpu yerel çıkış $rc: $(grep -m2 BULGU nc5o.txt)"
+icerir "node-cpu: yerel top okundu" nc5o.txt "CPU (top, 2 sn örnek)"
+
 baslik "sep-istisna.py (SEP istisna adayları; 2026-11-03)"
 printf 'sep_paket=sdcss-x \nvar=/proc /sys /data /var/lib/rancher \nnfs=/ab \nmongo_conf= dbPath: /data/mongo path: /var/log/mongodb/mongod.log \nmongo_args=\npg_data= -D /var/lib/pgsql/data \ndocker_root=/var/lib/docker\n' > si.txt
 python3 "$B/rke2-edr/sep-istisna.py" liste si.txt > sio.txt 2>&1
@@ -921,6 +979,8 @@ VAKALAR = [  # (G kaydı, saha cümlesi, beklenen beceri)
     ("G121", "sunucularda disk konfigürasyonu hatalı olmuş /data diye ayrı diskler verilmiş", "rhel-depolama"),
     ("G118", "NFS performans artışı için ne yapılabilir", "rhel-nfs"),
     ("G118", "son zamanlarda SEP'in etkilerini anlamaya çalışıyoruz", "rke2-edr"),
+    ("G127", "sdlgpumaster2 neden %100 CPU kullanıyor", "rke2-edr"),
+    ("G127", "ayrıca neden yük dağılmıyor da hep bir master çok yoruluyor", "rke2-edr"),
     ("G117", "dtlmrestore Veeam servisleri yeniden başlat", "veeam-linux"),
     ("G120", "SSH yapamadı connection refused", "rhel-teslim"),
     ("G116", "docker compose yapısını kontrol et", "rhel-guncelleme"),

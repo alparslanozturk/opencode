@@ -15,7 +15,11 @@ description: Kubernetes ve Rancher üzerinde sorun ararken kullan — pod, deplo
 ## Önce hangi kümedesin
 
 En pahalı hata yanlış kümede komut çalıştırmaktır. Rancher'da birden çok
-downstream küme aynı kubeconfig içinde olur.
+downstream küme aynı kubeconfig içinde olur. **Saha G127 (2026-11-23):** aynı alt ortamda
+"test" ve "gpu-dtx" kümeleri var; ajan eski oturumdaki kümeye, sonra kendi seçtiği IP ile
+başka bir master'a baktı. Kural: ilk ölçümden önce "hedef: <küme>, <node'lar>, <IP'ler> — doğru
+mu?" yaz; IP'yi `kubectl get node <ad> -o wide`'dan al; ssh çıktısına `hostname` yazdır. Node CPU
+%100 ise `rke2-edr` §1a (`node-cpu.py` — hostname eşleşmezse durur).
 
 ```bash
 kubectl config current-context

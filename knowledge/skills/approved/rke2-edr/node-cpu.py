@@ -152,7 +152,8 @@ def tani(node, metin):
     if surecler:
         print("En çok CPU (top; %100 = 1 çekirdek):")
         gruplar = {}
-        for p, k, u in sorted(surecler, reverse=True)[:12]:
+        sirali_s = sorted(surecler, reverse=True)
+        for p, k, u in [x for x in sirali_s if x[0] >= 0.5][:10] or sirali_s[:3]:
             s = sahip(k)
             print("  %7.1f%%  %-22s %s" % (p, k[:22], s))
         for p, k, u in surecler:

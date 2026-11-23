@@ -1,6 +1,6 @@
 ---
 name: rke2-edr
-description: RKE2/Kubernetes node'larındaki ve RHEL sunuculardaki (SEP yüksek CPU, NFS taraması, istisnalar, donma — §2b) güvenlik ajanlarının (EDR/AV — Symantec SEP, Palo Alto Cortex XDR/Traps, Prisma Cloud/Twistlock Defender) node takılmasına, antrea-ovs/containerd beklemesine, yüksek CPU/belleğe etkisini incelerken ve "ajanı kapattım, düzeldi mi" sorusunu doğrularken kullan. "edr", "xdr", "cortex", "traps", "traps_pmd", "pmd", "sep", "symantec", "sisamddaemon", "antivirüs", "av", "twistlock", "prisma", "defender", "güvenlik ajanı", "xdr kaldırdım", "sep kapat", "sep sınır", "sep limit", "cpu %100", "%100 cpu", "cpu yüksek", "master cpu", "load average", "yük dağılmıyor", "node-cpu", "sdcss.slice", "cpuquota", "memorymax", "scan.threads", "ajan kapatınca düzeldi" isteklerinde tetiklenir. Node takılmasının genel incelemesi `rke2-denetim` §4. Yalnız okur; ajanı durdurmak/kaldırmak/istisna eklemek kullanıcının ve güvenlik ekibinin işi.
+description: RKE2/Kubernetes node'larındaki ve RHEL sunuculardaki (SEP yüksek CPU, NFS taraması, istisnalar, donma — §2b) güvenlik ajanlarının (EDR/AV — Symantec SEP, Palo Alto Cortex XDR/Traps, Prisma Cloud/Twistlock Defender) node takılmasına, antrea-ovs/containerd beklemesine, yüksek CPU/belleğe etkisini incelerken ve "ajanı kapattım, düzeldi mi" sorusunu doğrularken kullan. "edr", "xdr", "cortex", "traps", "traps_pmd", "pmd", "sep", "symantec", "sisamddaemon", "antivirüs", "av", "twistlock", "prisma", "defender", "güvenlik ajanı", "xdr kaldırdım", "sep kapat", "sep sınır", "sep limit", "cpu %100", "%100 cpu", "cpu yüksek", "master cpu", "load average", "yük dağılmıyor", "node sağlık", "node durumu", "dmesg", "kernel log", "oom", "erişilemeyen node", "sdcss.slice", "cpuquota", "memorymax", "scan.threads", "ajan kapatınca düzeldi" isteklerinde tetiklenir. Node takılmasının genel incelemesi `rke2-denetim` §4. Yalnız okur; ajanı durdurmak/kaldırmak/istisna eklemek kullanıcının ve güvenlik ekibinin işi.
 ---
 
 # Güvenlik ajanları (EDR/AV) ve node takılması
@@ -71,7 +71,30 @@ açılıştan beri gün (reboot sonrası modül gelmiş mi). Ölçüldü (ajans�
 
 Sorma: hangi ajan kurulu, süreçleri, CPU payı — §1 okur. Ajanın modu/politikası konsoldadır; node'dan okunamıyorsa "bilinmiyor".
 
-## 1a. Node CPU %100 — önce betik (`node-cpu.py`, saha G127)
+## 1a. Node sağlığı — `node-durum.py` (CPU · RAM · disk · ağ · loglar; Alp 2026-11-23)
+
+"Node/sunucu durumu", "neden yavaş", "dmesg/kernel log", "OOM", "%100" — **tek betik, beş eksen** (yalnız CPU sorusunda `node-cpu.py`, aşağıda):
+
+```bash
+python3 /root/ai/opencode/knowledge/skills/approved/rke2-edr/node-durum.py komut <node> [--saat N]   # log penceresi, varsayılan 24
+#  1) master'da kubectl (IP, koşullar, taint, olaylar, restart, top) — master erişilmezse SIRADAKİ master (k8s-sorun)
+#  2) node'da: top + /proc/diskstats + /proc/net/dev iki örnek, meminfo, df/inode, conntrack, PSI, D-state, çekirdek logları
+#     (journal -k son N saat · dmesg · /var/log/messages), journal uyarıları birim başına, sysstat durumu
+{ <1. komut>; <2. komut>; } | python3 /root/ai/opencode/knowledge/skills/approved/rke2-edr/node-durum.py tani <node> -
+```
+
+- **Node'a ssh olmuyorsa** (banner timeout / refused) yalnız 1. çıktıyı ver → **erişilemeyen node modu** (çıkış 4): Kubernetes'in son bildiği
+  koşullar, `unreachable` taint, olaylar, restart; sonraki adım vCenter/konsol. Kümede olmayan sunucuda yalnız 2. komut (çıkış 0/1).
+- Eşikler yalnız kaynaklı: kubelet varsayılan tahliye eşikleri (memory.available<100Mi, nodefs.available<10%, nodefs.inodesFree<5% —
+  kubernetes.io "Node-pressure Eviction"). Disk await/%util, ağ hızı, PSI, conntrack **sayı olarak** basılır, eşik uydurulmaz.
+- Çekirdek mesajları sınıflanır (OOM, hung task, lockup/rcu stall, disk/FS hatası, conntrack dolu, link down/up, Call Trace, segfault;
+  anlamları `rhel-sorun` §3), her sınıf için ilk/son satır. **"Desen yok" ≠ "sorun yok":** betik kaynak derinliğini yazar (journal kalıcı
+  mı, boot sayısı, dmesg ilk satırı, en eski messages) — kalıcı olmayan journal'da reboot öncesi görünmez.
+- Geçmiş eğilim: aynı pencereyle `rhel-performans/sar-ozet.py --son <N>h` (disk, ağ, swap, kuyruk dahil). sysstat kurulu/açık değilse betik söyler.
+- Çıkış: 0 bulgu yok · 1 bulgu · 2 eksik · 3 yanlış sunucu (hostname) · 4 node erişilemedi. Ölçüldü: bu makinede node komutu (~2.5 sn) +
+  saha değerleriyle (erişilemeyen master, OOM/dolu disk/ağ hatası).
+
+## 1a-2. Yalnız CPU %100 — `node-cpu.py` (saha G127)
 
 "Master/node neden %100 CPU?", "yük neden dağılmıyor?" sorusunda **elle ps/top yorumlama — betiği çalıştır** (2026-11-23: ajan başka kümeye,
 sonra başka master'a baktı, `kubectl top node`'a "SAHTE" deyip kaynaksız açıklama uydurdu; gerçek sebep SEP `sisamddaemon` %356 / 4 çekirdek,

@@ -1055,6 +1055,13 @@ describe("2026-11-23: node-cpu okuma (saha G127)", () => {
     expect(kesinOkuma(k[3].replace("<node_ip>", "10.14.3.63"), workdir)).toBe(true)
     expect(kesinOkuma("cat a.txt | python3 /root/ai/opencode/knowledge/skills/approved/rke2-edr/node-cpu.py tani sdlgpumaster2 -", workdir)).toBe(true)
   })
+  test("node-durum iki ssh komutu + tani kesin okuma", () => {
+    const { execSync } = require("node:child_process")
+    const k = execSync("python3 /root/ai/opencode/knowledge/skills/approved/rke2-edr/node-durum.py komut splgpumaster1 --saat 5").toString().split("\n")
+    expect(kesinOkuma(k[1].replace("<master>", "splgpumaster2"), workdir)).toBe(true)
+    expect(kesinOkuma(k[3].replace("<node_ip>", "10.0.0.1"), workdir)).toBe(true)
+    expect(kesinOkuma("cat a.txt | python3 /root/ai/opencode/knowledge/skills/approved/rke2-edr/node-durum.py tani x -", workdir)).toBe(true)
+  })
 })
 
 describe("2026-11-05: kurulu beceri kopyasından yazan betik K6 değil", () => {

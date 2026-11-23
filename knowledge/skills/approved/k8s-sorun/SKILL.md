@@ -19,7 +19,10 @@ downstream küme aynı kubeconfig içinde olur. **Saha G127 (2026-11-23):** ayn�
 "test" ve "gpu-dtx" kümeleri var; ajan eski oturumdaki kümeye, sonra kendi seçtiği IP ile
 başka bir master'a baktı. Kural: ilk ölçümden önce "hedef: <küme>, <node'lar>, <IP'ler> — doğru
 mu?" yaz; IP'yi `kubectl get node <ad> -o wide`'dan al; ssh çıktısına `hostname` yazdır. Node CPU
-%100 ise `rke2-edr` §1a (`node-cpu.py` — hostname eşleşmezse durur).
+%100 ya da node sağlığı sorulursa `rke2-edr` §1a (`node-durum.py` — CPU/RAM/disk/ağ/log; hostname eşleşmezse durur).
+**Master erişilmezse** (ssh banner timeout / refused): envanterdeki ya da Rancher haritasındaki **sıradaki master**'a geç — aynı /24'te
+komşu IP tahmin etme (kurumsal bilgi: başka sunucuya bağlanırsın). Erişilen master'da `kubectl get nodes -o wide` ile bütün node IP'lerini
+al ve sonraki her adımda bunu kullan; harita yoksa `kume-bul` §3 (`k8s --kaydet --kume <ad>`).
 
 ```bash
 kubectl config current-context

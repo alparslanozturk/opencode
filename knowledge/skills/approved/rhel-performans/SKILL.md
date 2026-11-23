@@ -5,6 +5,9 @@ description: Sunucu yavaşlığı, yüksek yük, CPU/bellek/disk darboğazı, pa
 
 Darboğazı bulmadan çözüm önerme. Sıra: yük → hangi kaynak → hangi süreç.
 
+
+> **Anlık beş eksen tek betikte (2026-11-23):** CPU · RAM · disk · ağ · çekirdek logları (dmesg/journal/messages) + sysstat durumu →
+> `rke2-edr/node-durum.py` (Kubernetes node'u olmayan sunucuda da çalışır; hostname teyitli). Geçmiş için §6 `sar-ozet.py --son <süre>`.
 ## 0. Önce sor (tek mesaj, numaralı — oturumda/kurumsal bilgide cevabı varsa sorma)
 
 1. **Belirti:** ne yavaş — hangi işlem/uygulama, kullanıcı neyle ölçüyor (süre, zaman aşımı, kuyruk); "yavaş" tek başına yetmez.

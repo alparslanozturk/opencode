@@ -14,10 +14,11 @@ aşağı** ara, ilk eşleşen satır → o kurumsal bilgi bölümüne bak → be
 | veeam · restore | — | `veeam-linux` → `veeam-tani` |
 | aide · dosya bütünlüğü · file integrity · fim · bütünlük kontrol | — | `rhel-aide` → `aide-ozet` (CIS 6.1.x: `rhel-cis`) |
 | sep · symantec · antivirüs · istisna · xdr · twistlock · defender | — | `rke2-edr` → `sep-istisna` (paket üretimi: `sep-paket`) |
-| %100 · cpu yüksek · yüksek cpu · cpu kullanımı · load average · yük dağılmıyor · yoruluyor · node neden yavaş | — | `rke2-edr` → `node-cpu` (node CPU: pod dışı süreç payı, SEP sınırı; hostname teyitli) |
+| %100 · cpu yüksek · yüksek cpu · cpu kullanımı · load average · yük dağılmıyor · yoruluyor · node neden yavaş · node sağlık · node durumu · sunucu sağlık · dmesg · kernel log · çekirdek log · oom · bellek yüksek · ram yüksek | — | `rke2-edr` → `node-durum` (CPU·RAM·disk·ağ·log + K8s koşulları; erişilemeyen node; yalnız CPU: `node-cpu`; geçmiş: `sar-ozet --son`) |
+| sağlık kontrolü · kümesini incele · kümeyi incele · küme sağlık · cluster sağlık | 4 ağ blokları | `kume-bul` (master'ı bul; erişilmezse sıradaki) → `k8s-sorun` → `k8s-ozet` (etcd çoğunluğu) → sorunlu node'a `node-durum` |
 | nfs · nfsidmap · dizin boş · dizinler gelmedi | 9 bilinen sorunlar | `rhel-nfs` → `nfs-tani` |
 | idm · ipa · sudo · hbac · ad trust · kerberos | 6 süreçler | `idm-erisim` · `idm-kurulum` · `idm-bakim` |
-| gpu · nvidia · run:ai · vllm | — | `rke2-gpu` → `gpu-dagilim` (sürücü `rhel-gpu-surucu`, operator `rke2-gpu-kurulum`, `rke2-runai`) |
+| gpu dağılım · gpu kullanım · gpu kart · gpu durum · gpu operator · gpu sürücü · gpu pod · kaç gpu · nvidia · run:ai · runai · vllm · mig | — | `rke2-gpu` → `gpu-dagilim` (sürücü `rhel-gpu-surucu`, operator `rke2-gpu-kurulum`, `rke2-runai`) |
 | curl error · repomd · all mirrors were tried · yum ssl · dnf ssl · depo ssl · repo ssl · ssl certificate problem | — | `rhel-guncelleme` → "Depo erişiminde TLS/SSL hatası" (CA eksikse `rhel-ca-guven`) |
 | sertifika · tls · pfx | — | `rancher-sertifika` → `sertifika-kontrol` |
 | root ca · güven deposu · trust · captcha | — | `rhel-ca-guven` → `ca-dogrula` |
@@ -35,7 +36,7 @@ aşağı** ara, ilk eşleşen satır → o kurumsal bilgi bölümüne bak → be
 | rke2 yükselt · rancher yükselt · antrea | — | `rke2-yukseltme` → `uyum` |
 | envanter çıkar · sunucu envanteri · ip blokları · ağ haritası · kaç domain · drc | 1 ağ · 2 DMZ · 4 ağ blokları | `kurum-envanter` → `envanter-harita` |
 | terminating · force delete · --force · failedkillpod · pod silinmedi · pod açık kalmış | — | `k8s-sorun` → "Takılı Terminating" (force delete'ten önce node'da sebep; sonra yetim sandbox) |
-| küme · namespace · ns kapasite · pod · node · rancher · kubectl · notready | 4 ağ blokları | `kume-bul` (master'ı bul) → `k8s-sorun` → `k8s-ozet` |
+| küme · namespace · ns kapasite · pod · node · rancher · kubectl · notready | 4 ağ blokları | `kume-bul` (master'ı bul; erişilmezse sıradaki) → `k8s-sorun` → `k8s-ozet` (etcd çoğunluğu) → sorunlu node'a `node-durum` |
 | leapp · ana sürüm | — | `rhel-yukseltme` → `leapp-rapor` |
 | os upgrade · güncelle · dnf · yama · reboot · yeniden başlat | 7 servis davranışı | `rhel-guncelleme` → `filo-tablo` |
 | disk · /data · büyüt · extend · lvm · dolu · inode | — | `rhel-depolama` → `disk-durum` |

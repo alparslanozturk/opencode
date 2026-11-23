@@ -848,6 +848,51 @@ H=$(hostname); { printf '#bolum kube\nnode=%s\nnode_ip=127.0.0.1\nkapasite_cpu=1
 [ "$rc" -eq 0 ] && gecti "node-cpu: yerel ölçüm koşar, SEP yokken bulgu yok" || kaldi "node-cpu yerel çıkış $rc: $(grep -m2 BULGU nc5o.txt)"
 icerir "node-cpu: yerel top okundu" nc5o.txt "CPU (top, 2 sn örnek)"
 
+baslik "node-durum.py (CPU·RAM·disk·ağ·log + K8s koşulları; Alp 2026-11-23)"
+ND="$B/rke2-edr/node-durum.py"; H=$(hostname)
+# yerel: node komutu bu makinede gerçekten koşar; çıktı ayrıştırılır (kümede değil → yalnız node)
+k=$(python3 "$ND" komut "$H" --saat 6 | sed -n 4p | sed "s/^ssh root@<node_ip> '//; s/'\$//"); bash -c "$k" > nd1.txt 2>&1
+python3 "$ND" tani "$H" nd1.txt > nd1o.txt 2>&1; rc=$?
+[ "$rc" -le 1 ] && gecti "node-durum: yerel ölçüm koşar (çıkış $rc)" || kaldi "node-durum yerel çıkış $rc: $(tail -3 nd1o.txt)"
+for b in "-- CPU" "-- RAM" "-- Disk" "-- Ağ" "-- Loglar" "-- sysstat" "kaynak derinliği: journal kalıcı="; do icerir "node-durum: bölüm $b" nd1o.txt "$b"; done
+icerir "node-durum: pencere çıktıya yazılır" nd1o.txt "sar-ozet.py --son 6h"
+# sorunlu node: OOM, dolu disk, az bellek, ağ hatası (yerel çıktı değiştirilerek)
+sed -e 's/^mem MemAvailable:.*/mem MemAvailable:      50000 kB/' nd1.txt > nd2.txt
+printf 'df /dev/sdz1 100 96 4 96%% /var/lib/rancher\nkj 2026-11-23T10:00:00+0300 h kernel: Out of memory: Killed process 1234 (java)\nnd1   ethz: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0\nnd2   ethz: 1000 10 5 0 0 0 0 0 2000 10 0 0 0 0 0 0\n' >> nd2.txt
+python3 "$ND" tani "$H" nd2.txt > nd2o.txt 2>&1; rc=$?
+[ "$rc" -eq 1 ] && gecti "node-durum: sorunlu node → çıkış 1" || kaldi "node-durum sorunlu çıkış $rc"
+icerir "node-durum: bellek eşiği kaynaklı" nd2o.txt "memory.available<100Mi"
+icerir "node-durum: disk eşiği kaynaklı" nd2o.txt "nodefs.available<10%"
+icerir "node-durum: çekirdek OOM sınıflandı" nd2o.txt "[journal -k] OOM: 1 satır"
+icerir "node-durum: ağ hatası örnekte" nd2o.txt "ethz arayüzünde ölçüm sırasında 5 hata/düşen paket arttı"
+sed 's/^hostname=.*/hostname=baskasunucu/' nd1.txt | python3 "$ND" tani "$H" - > nd3o.txt 2>&1; rc=$?
+[ "$rc" -eq 3 ] && gecti "node-durum: yanlış sunucu → DUR (çıkış 3)" || kaldi "node-durum yanlış sunucu çıkış $rc"
+cat > nd4.txt <<'EOF2'
+#bolum kube
+node=splgpumaster1
+node_ip=10.13.16.208
+kapasite_cpu=8
+top_node=splgpumaster1 <unknown> <unknown> <unknown> <unknown>
+#bolum kube2
+kt Taints:             node-role.kubernetes.io/etcd:NoExecute
+kt                     node-role.kubernetes.io/control-plane:NoSchedule
+kt                     node.kubernetes.io/unreachable:NoExecute
+kt Unschedulable:      false
+kc Conditions:
+kc   Type             Status    LastHeartbeatTime                 LastTransitionTime                Reason              Message
+kc   ----             ------    -----------------                 ------------------                ------              -------
+kc   MemoryPressure   Unknown   Mon, 23 Nov 2026 09:10:11 +0300   Mon, 23 Nov 2026 09:12:00 +0300   NodeStatusUnknown   Kubelet stopped posting node status.
+kc   Ready            Unknown   Mon, 23 Nov 2026 09:10:11 +0300   Mon, 23 Nov 2026 09:12:00 +0300   NodeStatusUnknown   Kubelet stopped posting node status.
+kc Addresses:
+ke kube-system   5m   Normal   NodeNotReady   node/splgpumaster1   Node splgpumaster1 status is now: NodeNotReady
+kr kube-system etcd-splgpumaster1 12
+EOF2
+python3 "$ND" tani splgpumaster1 nd4.txt > nd4o.txt 2>&1; rc=$?
+[ "$rc" -eq 4 ] && gecti "node-durum: erişilemeyen node modu (çıkış 4)" || kaldi "node-durum erişilemez çıkış $rc"
+icerir "node-durum: unreachable taint bulgusu" nd4o.txt "unreachable' taint'li"
+icerir "node-durum: Ready=Unknown bulgusu" nd4o.txt "BULGU: Kubernetes Ready=Unknown"
+icerir "node-durum: konsol yönlendirmesi" nd4o.txt "vCenter/konsoldan"
+
 baslik "sep-istisna.py (SEP istisna adayları; 2026-11-03)"
 printf 'sep_paket=sdcss-x \nvar=/proc /sys /data /var/lib/rancher \nnfs=/ab \nmongo_conf= dbPath: /data/mongo path: /var/log/mongodb/mongod.log \nmongo_args=\npg_data= -D /var/lib/pgsql/data \ndocker_root=/var/lib/docker\n' > si.txt
 python3 "$B/rke2-edr/sep-istisna.py" liste si.txt > sio.txt 2>&1
@@ -981,6 +1026,12 @@ VAKALAR = [  # (G kaydı, saha cümlesi, beklenen beceri)
     ("G118", "son zamanlarda SEP'in etkilerini anlamaya çalışıyoruz", "rke2-edr"),
     ("G127", "sdlgpumaster2 neden %100 CPU kullanıyor", "rke2-edr"),
     ("G127", "ayrıca neden yük dağılmıyor da hep bir master çok yoruluyor", "rke2-edr"),
+    ("Alp 2026-11-23", "dmesg kernel loglarına da bak", "rke2-edr"),
+    ("Alp 2026-11-23", "splgpumaster1 node durumu nedir", "rke2-edr"),
+    ("Alp 2026-11-23", "gpu-prod kümesinin sağlık kontrolünü yap", "kume-bul"),
+    ("Alp 2026-11-23", "gpu-prod kümesini bir readonly inceler misin?", "kume-bul"),
+    ("Alp 2026-11-23", "hangi pod kaç GPU kullanıyor, GPU dağılımı nasıl", "rke2-gpu"),
+    ("Alp 2026-11-23", "nvidia sürücüsü yüklü mü", "rke2-gpu"),
     ("G117", "dtlmrestore Veeam servisleri yeniden başlat", "veeam-linux"),
     ("G120", "SSH yapamadı connection refused", "rhel-teslim"),
     ("G116", "docker compose yapısını kontrol et", "rhel-guncelleme"),

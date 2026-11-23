@@ -6,6 +6,13 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-23 — kurumsal-bilgi düzeltme betiği; test H200 RAID ölçümü
+
+Sahada: `al.sh`, sonra **`python3 /root/ai/opencode/temp/kurumsal-bilgi-duzelt.py`** (tek seferlik; yedek alır, farkı maskeli basar;
+`--kuru` yalnız gösterir). Model talimatı (`temp/kurumsal-bilgi-duzelt-20261123.md`) kaldırıldı — iş betikte.
+- `rhel-depolama` §8/§8b: test H200 16 × 1.7T = 14 RAID10 + 2 yedek (near=2, 512K — ölçüldü; eski "12 + 2" notu düzeltildi); prod w3 yedeksiz
+  8 × 3.5T; dönüşümde mdadm varsayılanı yeterli.
+
 ## 2026-11-23 — SEP/EDR kaynak sınırı: role göre değerlendirme (`rke2-edr` §2c)
 
 Sahada: `al.sh` → `./kur.sh`, yeni oturum. Yalnız metin.

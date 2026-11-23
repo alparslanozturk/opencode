@@ -161,8 +161,9 @@ olduğunu bul, `df` ile aramaya çalışma.
 
 ### 8. Yazılım RAID (mdadm) ve NVMe sağlığı
 
-GPU sunucusu: 16 × 1.7 TB NVMe, 12'si **yazılım RAID10** (mdadm, RHEL 9), 2'si
-yedek (spare) — Alp, 2026-10-08. RAID10 bir disk kaybında çalışmaya devam
+GPU sunucusu (test H200, sdl…; `mdadm --detail /dev/md0` saha ekranı 2026-11-23): 16 × 1.7 TB NVMe, **14'ü yazılım
+RAID10** (mdadm, RHEL 9), **2'si yedek (spare)**; `Layout : near=2`, `Chunk Size : 512K`, bitmap internal, 12.2T. (2026-10-08 notundaki
+"12 + 2" yanlıştı — ölçüm 14 + 2.) RAID10 bir disk kaybında çalışmaya devam
 eder; **aynı ayna çiftinden ikinci kayıp veri kaybıdır.** Bu yüzden düşen
 diski ve yıpranan diski erken görmek asıl iş. Hepsi salt okunur.
 
@@ -228,9 +229,9 @@ teşhis edip öner, kendin yapma.
 
 **Referans (ölçüldü, saha ekranı `lsblk`, splgpuh200w3, 2026-11-23):** işletim sistemi ayrı NVMe'de (894G: `/boot/efi`, `/boot`,
 LVM `rhel-root` 100G, `rhel-var` 500G — kubelet pod dizinleri burada, `rhel-tmp`, `rhel-var_log`, `rhel-var_log_audit`, `rhel-var_tmp`);
-**8 × 3.5T NVMe → `md0` RAID10 (14T) → `vg_models`/`lv_models` (LVM, 14T) → `/models`**. Alp (2026-11-23): w3 sonradan bu yapıyla
-kuruldu; **w1 ve w2 de aynı yapıya çevrilecek**. Eski yapı (Alp, 2026-10-08, §8): 16 × 1.7T NVMe, 12'si RAID10 + 2 yedek — w1/w2'nin bugünkü
-durumu ölçülmeden "eski yapıda" deme.
+**8 × 3.5T NVMe → `md0` RAID10 (14T) → `vg_models`/`lv_models` (LVM, 14T) → `/models`** (hesap: 8 × 3.5T / 2 = 14T → yedek disk yok).
+Alp (2026-11-23): üç production H200 var; w3 sonradan bu yapıyla kuruldu, **w1 ve w2 de aynı yapıya çevrilecek**. Test H200 (§8) farklı disk
+düzeninde ama **mantık aynı: md RAID10 → LVM `vg_models/lv_models` → `/models`** — ayrıntıya takılma, `/models` dizini ortak sözleşme.
 
 **Önce sor:** 1) hangi sunucu, CN var mı · 2) node'daki iş yükü nereye alınacak (node Kubernetes worker; `/models` hostPath ile vLLM/
 Run:ai pod'larına gidiyor — `rke2-gpu`) ve cordon/drain'i kim yapacak (küme değişikliği, ayrı onay) · 3) `/models`'taki modeller nereden
@@ -250,8 +251,9 @@ xfs_info /models 2>/dev/null | head -3; for d in /dev/md[0-9]* $(findmnt -no SOU
 2. Eski yapı kaydedilir: yukarıdaki komutun çıktısı + `mdadm --detail --scan` iş dizinine.
 3. `umount /models`, fstab satırı yorum yapılır (yedekle), eski LV/VG kaldırılır, eski md durdurulur (`mdadm --stop`), üyelerde
    `mdadm --zero-superblock` — **geri dönüşü yok**.
-4. Yeni dizi **w3'te ölçülen parametrelerle** (Raid Level, Raid Devices, Layout, Chunk): `mdadm --create /dev/md0 --level=10
-   --raid-devices=<N> [--layout=<w3'teki>] [--chunk=<w3'teki>] <diskler>` — değeri w3 çıktısından al, ezberden yazma.
+4. Yeni dizi: `mdadm --create /dev/md0 --level=10 --raid-devices=<N> <diskler>` — layout/chunk verilmezse mdadm varsayılanı
+   (near=2, 512K — test H200'de ölçülen de bu). w3 farklı kurulduysa (`mdadm --detail` göster) onu izle; yedek disk isteniyorsa
+   `--spare-devices=<k>`.
 5. `pvcreate /dev/md0` → `vgcreate vg_models /dev/md0` → `lvcreate -l 100%FREE -n lv_models vg_models` → `mkfs.xfs /dev/vg_models/lv_models`.
 6. `mdadm --detail --scan >> /etc/mdadm.conf` (eski ARRAY satırı silinmiş olmalı), fstab'a UUID ile `/models` satırı — seçenekler w3'teki
    gibi; `mount -a` + `findmnt /models` ile doğrula.

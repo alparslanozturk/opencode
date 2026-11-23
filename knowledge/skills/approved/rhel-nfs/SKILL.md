@@ -1,6 +1,6 @@
 ---
 name: rhel-nfs
-description: RHEL NFS istemcisi — açılışta NFS dizini boş/eksik görünüyor, yeniden bağlayınca (mount) dizinler geliyor, uygulama/konteyner NFS'e yazamıyor ya da yerel diske yazmış olabilir, NFS yavaş. Deterministik `nfs-tani.py` (salt-okunur: fstab/etkin seçenekler, bu açılıştaki bağlama zamanı ve hataları, docker/podman konteynerinin NFS'ten önce başlayıp başlamadığı, motor servis sırası, readahead) + kaynaklı karar. "nfs", "mount", "dizin gelmiyor", "dizin boş", "açılışta", "reboot sonrası", "yeniden mount", "remount", "nfsidmap", "idmapd", "readahead", "nfsiostat", "rsize", "wsize", "nofail", "_netdev", "medya kayıtları", "/ab" isteklerinde tetiklenir.
+description: RHEL NFS istemcisi — açılışta NFS dizini boş/eksik görünüyor, yeniden bağlayınca (mount) dizinler geliyor, uygulama/konteyner NFS'e yazamıyor ya da yerel diske yazmış olabilir, NFS yavaş. Deterministik `nfs-tani.py` (salt-okunur: fstab/etkin seçenekler, bu açılıştaki bağlama zamanı ve hataları, docker/podman konteynerinin NFS'ten önce başlayıp başlamadığı, motor servis sırası, readahead) + kaynaklı karar. "nfs", "mount", "dizin gelmiyor", "dizin boş", "açılışta", "reboot sonrası", "yeniden mount", "remount", "nfsidmap", "idmapd", "readahead", "nfsiostat", "mountstats", "nfs performans", "nfs yavaş", "nfsv3", "nfsv4", "nfs v3", "nfs v4", "vers=3", "vers=4", "nconnect", "retrans", "soft mount", "rsize", "wsize", "nofail", "_netdev", "medya kayıtları", "/ab" isteklerinde tetiklenir.
 ---
 
 # NFS istemcisi — açılış sırası, konteyner, performans
@@ -67,18 +67,49 @@ ile host'ta `ls <hedef>`. Farklıysa konteyner yerel dizini görüyor.
   (KB 250717) ve güvenlik ajanı + NFSv4 ID eşleme upcall kilitlenmesi (Red Hat 5201171) → `rke2-edr` §2b (RHEL için de geçerli). Donma
   olursa ilk kanıt olay anının çekirdek yığını; nfsidmap satırları tek başına sebep değildir.
 
-## 4. Performans — üç eksen (yalnız ölçümle)
+## 4. Performans — NFSv3 ve NFSv4 (yalnız ölçümle)
 
-"Yavaş" iddiası **throughput (kB/s) · IOPS (op/s) · gecikme (avg RTT / avg exe, ms)** ile ölçülür; yük üretmeyen araç `nfsiostat`
-(nfs-utils; sütunlar op/s, kB/s, kB/op, retrans, avg RTT, avg exe, avg queue, errors — man nfsiostat):
+Alp (2026-11-23): "genel anlamda nfs v3 ve nfsv4 için performans" — iki sürüm aynı araçla ölçülür. "Yavaş" iddiası
+**throughput (kB/s) · IOPS (op/s) · gecikme (avg RTT / avg exe, ms)** ile kurulur; kaynak `/proc/self/mountstats` (yük üretmez).
 
 ```bash
-nfsiostat 5 3 <hedef>     # 5 sn aralıkla 3 rapor; ilk rapor açılıştan beri ortalama, sonrakiler aralık
+python3 $B/nfs-tani.py perf-komut 10       # iki okuma, arada 10 sn — basılan komutu sunucuda çalıştır, çıktıyı borula:
+ssh root@<sunucu> '<basılan komut>' | python3 $B/nfs-tani.py perf -
+# çok sunucu: ansible <grup> -i <iş envanteri> -m shell -t cikti/filo/nfsperf -a '<komut>' → nfs-tani.py perf cikti/filo/nfsperf/<sunucu>
 ```
 
-Karşılaştırma **aynı komutla**: sorunlu ↔ sağlam sunucu ya da önce ↔ sonra. Tek sunucunun tek ölçümünden "yavaş" denmez. Ayar önerisi
-(readahead: `/etc/nfs.conf` `[nfsrahead]`, man nfsrahead — varsayılan 128; rsize/wsize; `nconnect`) yalnız ölçülmüş farkla ve
-o makinenin man sayfasındaki satırla verilir. `[SAHA]`: `nfsiostat` çıktısının betikle okunması — saha çıktı örneği gelince eklenecek.
+Betik her NFS bağlaması için sürümü (`vers=`), etkin seçenekleri (rsize/wsize/proto/timeo/retrans/hard-soft/nconnect) ve işlem başına
+op/s · kB/s · kB/op · yeniden gönderim (%) · RTT · exe · kuyruk · hata basar — hesap `nfsiostat` ile aynı (`/usr/sbin/nfsiostat`,
+nfs-utils 2.8.3; man nfsiostat: exe RTT'yi içerir, kuyruk = istek oluşturma → gönderim). **BULGU** yalnız: `soft`/`softerr` bağlama
+(man nfs: "silent data corruption"), sıfırdan farklı yeniden gönderim, hata durumlu işlem. Eşik yok; tabloyu karşılaştırmada kullan:
+**aynı komutla** sorunlu ↔ sağlam sunucu ya da önce ↔ sonra. Yük yokken ölçülen tablo boş çıkar — yük anında tekrar al.
+Ölçüldü: sentetik mountstats ile (biçim nfsiostat ayrıştırıcısından) ve bu makinede (NFS bağlaması yok → çıkış 2). Gerçek NFS'te sahada
+denenmedi.
+
+**v3 ↔ v4 farkı — performansı ilgilendiren (man nfs, nfs-utils 2.8.3):**
+
+| Konu | NFSv3 | NFSv4 (4.0/4.1/4.2) |
+|---|---|---|
+| Sürüm seçimi | `vers=3` | belirtilmezse istemci **4.2'den başlar, aşağı pazarlık eder** (`nfsvers=n`); `vers=4.1` = `vers=4,minorversion=1` |
+| Taşıma | TCP ya da UDP (`proto=`) | TCP zorunlu desteklenir, varsayılan TCP ("Options for NFS version 4 only") |
+| Portlar | NFS + **mountd + rpcbind** (+ NLM kilidi) — `mountport`, `mountproto` | tek port **2049**, rpcbind'e sormadan (`port=n`) |
+| Kilit | **NLM yan protokolü** (`lock`/`nolock`; `/var` NFS ise `nolock` şart) | protokolün içinde |
+| Önbellek tutarlılığı | close-to-open (`cto`/`nocto`) dosya + öznitelik | `cto`/`nocto` yalnız **dizinler** için ("File data caching behavior is not affected") |
+| Kimlik | UID/GID sayıyla | ad ↔ UID/GID eşlemesi NFSv4 alanıyla (`idmapd.conf` Domain) — §3 |
+| 4.1+ | — | oturumlar (sessions) `minorversion=1` ile |
+
+Her iki sürümde aynı (man nfs, "Options supported by all versions"):
+- `rsize`/`wsize`: Linux istemcide üst sınır **1 048 576** bayt; verilmezse istemci ve sunucu **en büyük ortak değeri pazarlık eder**;
+  etkin değer `/proc/mounts`'ta (betik mountstats'tan okur). Küçük değer görürsen önce fstab'da elle mi yazılmış bak.
+- `nconnect=n` (TCP): istemci–sunucu arasında birden çok bağlantı, **en fazla 16**; man: çok NIC'li yapılarda yükü dağıtıp "may improve
+  overall performance". Ölçmeden önerme.
+- `hard` varsayılan (istek süresiz yinelenir); `soft`/`softerr` `retrans` sonrası EIO/ETIMEDOUT döner — veri bütünlüğü riski (man).
+- `timeo` TCP'de varsayılan 600 (60 sn), doğrusal geri çekilme, üst sınır 600 sn; `retrans` TCP'de varsayılan 2. "server not responding"
+  `retrans` denemeden sonra basılır.
+- Öznitelik önbelleği `ac`/`noac`, `actimeo`, `acregmin/max`, `acdirmin/max`; `lookupcache=` — ayrıntı man nfs "DATA AND METADATA
+  COHERENCE". `noac` performansı düşürür ("noac" maddesi), yalnız ihtiyaç ölçülünce.
+- Readahead: `/etc/nfs.conf` `[nfsrahead]` (man nfsrahead — varsayılan 128); ayar önerisi yalnız ölçülmüş farkla ve o makinenin man
+  satırıyla.
 
 ## Yapmayacakların
 

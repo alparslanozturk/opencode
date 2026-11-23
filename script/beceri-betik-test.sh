@@ -689,6 +689,71 @@ printf 'acilis=1\nmotor_docker=after_remote_fs:1|requires_mounts:|baslangic:1\n'
 python3 "$B/rhel-nfs/nfs-tani.py" tani nfs2.txt > nfs2o.txt 2>&1; rc=$?
 [ "$rc" -eq 0 ] && gecti "NFS yok → bulgu yok, çıkış 0" || kaldi "nfs2 çıkış $rc"
 icerir "fstab'da NFS yok notu" nfs2o.txt "fstab'da NFS satırı yok"
+# perf (2026-11-23, Alp: "nfs v3 ve nfsv4 için performans"): biçim /usr/sbin/nfsiostat ayrıştırıcısından; sayılar sentetik
+cat > nfsms.txt <<'EOF2'
+#zaman 1000
+device /dev/sda1 mounted on / with fstype xfs
+device srv1:/exp4 mounted on /ab with fstype nfs4 statvers=1.1
+	opts:	rw,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=3,acregmax=60,acdirmin=30,acdirmax=60,hard,proto=tcp,timeo=600,retrans=2,sec=sys,clientaddr=10.0.0.5,local_lock=none
+	age:	3600
+	caps:	caps=0x3ffbffff,wtmult=512,dtsize=1048576,bsize=0,namlen=255
+	events:	1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27
+	bytes:	1 2 3 4 5 6 7 8
+	RPC iostats version: 1.1  p/v: 100003/4 (nfs)
+	xprt:	tcp 0 1 2 0 10 5000 5000 0 1000 0 50 0 0
+	per-op statistics
+	        NULL: 0 0 0 0 0 0 0 0 0
+	        READ: 1000 1000 0 120000 1048576000 500 2000 2600 0
+	       WRITE: 200 202 0 209715200 24000 100 800 1500 1
+	     GETATTR: 3000 3000 0 400000 600000 30 900 1000 0
+device srv2:/exp3 mounted on /eski with fstype nfs statvers=1.1
+	opts:	rw,vers=3,rsize=65536,wsize=65536,namlen=255,acregmin=3,acregmax=60,acdirmin=30,acdirmax=60,soft,proto=tcp,timeo=600,retrans=2,sec=sys,mountaddr=10.0.0.9,mountvers=3,mountport=20048,mountproto=udp,local_lock=none
+	age:	3600
+	RPC iostats version: 1.1  p/v: 100003/3 (nfs)
+	xprt:	tcp 0 1 1 0 10 100 100 0 10 0 2 0 0
+	per-op statistics
+	        READ: 10 10 0 1200 655360 5 30 40 0
+#zaman 1010
+device /dev/sda1 mounted on / with fstype xfs
+device srv1:/exp4 mounted on /ab with fstype nfs4 statvers=1.1
+	opts:	rw,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,acregmin=3,acregmax=60,acdirmin=30,acdirmax=60,hard,proto=tcp,timeo=600,retrans=2,sec=sys,clientaddr=10.0.0.5,local_lock=none
+	age:	3610
+	RPC iostats version: 1.1  p/v: 100003/4 (nfs)
+	xprt:	tcp 0 1 3 0 10 5600 5600 0 1000 0 50 0 0
+	per-op statistics
+	        READ: 1500 1500 0 180000 1572864000 600 3000 9100 0
+	       WRITE: 200 202 0 209715200 24000 100 800 1500 1
+	     GETATTR: 3100 3100 0 413000 620000 31 930 1040 0
+device srv2:/exp3 mounted on /eski with fstype nfs statvers=1.1
+	opts:	rw,vers=3,rsize=65536,wsize=65536,soft,proto=tcp,timeo=600,retrans=2,sec=sys,local_lock=none
+	age:	3610
+	RPC iostats version: 1.1  p/v: 100003/3 (nfs)
+	xprt:	tcp 0 1 1 0 10 100 100 0 10 0 2 0 0
+	per-op statistics
+	        READ: 20 22 0 2400 1310720 10 60 80 0
+EOF2
+python3 "$B/rhel-nfs/nfs-tani.py" perf nfsms.txt > nfsmso.txt 2>&1; rc=$?
+[ "$rc" -eq 1 ] && gecti "perf: soft + yeniden gönderim → çıkış 1" || kaldi "perf çıkış $rc"
+icerir "perf: iki okuma → aralık" nfsmso.txt "NFS v4.1  [aralık 10 sn]"
+icerir "perf: v4 read aralık hesabı (nfsiostat ile aynı)" nfsmso.txt "read             50.00    51205.9   1024.1        0 ( 0.0)      2.00     13.00      0.20        0"
+icerir "perf: getattr aralık hızı" nfsmso.txt "getattr          10.00"
+icermez "perf: aralıkta işlemsiz write basılmaz" nfsmso.txt "write   "
+icerir "perf: exe/RTT notu" nfsmso.txt "NOT: read exe 13.00 ms, RTT 2.00 ms"
+icerir "perf: v3 soft BULGU man kaynaklı" nfsmso.txt "BULGU: soft ile bağlı"
+icerir "perf: v3 yeniden gönderim yüzdesi" nfsmso.txt "BULGU: read yeniden gönderim 2 (%20.0)"
+icerir "perf: v3 NLM notu" nfsmso.txt "NOT: v3 — kilit NLM"
+icerir "perf: xprt yeniden bağlanma" nfsmso.txt "aralıkta yeniden bağlanma 1"
+icermez "perf: yerel xfs bağlaması alınmaz" nfsmso.txt "/dev/sda1"
+awk '/#zaman 1010/{exit} {print}' nfsms.txt | python3 "$B/rhel-nfs/nfs-tani.py" perf - > nfsms1.txt 2>&1
+icerir "perf: tek okuma → bağlamadan beri" nfsms1.txt "[bağlamadan beri (age 3600 sn)]"
+icerir "perf: write hata sayısı" nfsms1.txt "BULGU: write 1 işlem hata durumuyla bitti"
+python3 -c 'import json,sys; print(json.dumps({"rc":0,"stdout":open(sys.argv[1]).read()}))' nfsms.txt > nfsmsj.txt
+python3 "$B/rhel-nfs/nfs-tani.py" perf nfsmsj.txt > nfsmsjo.txt 2>&1
+icerir "perf: ansible -t JSON çıktısı okunur" nfsmsjo.txt "NFS v4.1  [aralık 10 sn]"
+python3 "$B/rhel-nfs/nfs-tani.py" perf /proc/self/mountstats > nfsmsy.txt 2>&1; rc=$?
+[ "$rc" -eq 2 ] && gecti "perf: NFS yok → çıkış 2" || kaldi "perf NFS yok çıkış $rc"
+k=$(python3 "$B/rhel-nfs/nfs-tani.py" perf-komut 1 | head -1 | sed "s/^ssh root@<sunucu> '//; s/'\$//")
+bash -c "$k" > nfsmsk.txt 2>&1 && [ "$(grep -c '^#zaman' nfsmsk.txt)" -eq 2 ] && gecti "perf-komut yerelde iki okuma" || kaldi "perf-komut yerelde"
 
 baslik "aide-ozet.py (AIDE durumu + NFS kapsamı; 2026-11-04)"
 rm -rf at && mkdir at

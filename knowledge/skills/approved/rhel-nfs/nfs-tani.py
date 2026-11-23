@@ -6,6 +6,11 @@
 #
 #   nfs-tani.py komut              → sunucuda çalıştırılacak SALT-OKUNUR komutu basar (ssh root@<sunucu> '<komut>')
 #   nfs-tani.py tani <dosya|->     → çıktıyı okur: BULGU / NOT / EKSİK KANIT. Çıkış 0 bulgu yok, 1 bulgu var, 2 hata.
+#   nfs-tani.py perf-komut [sn]    → performans: /proc/self/mountstats'ı iki kez (arada sn, varsayılan 10) okuyan SALT-OKUNUR komut
+#   nfs-tani.py perf <dosya|->     → NFSv3 ve NFSv4 aynı: bağlama başına sürüm/seçenek + işlem başına op/s, kB/s, yeniden gönderim,
+#                                    avg RTT/exe/queue (ms), hata — nfsiostat ile aynı hesap (/usr/sbin/nfsiostat, nfs-utils 2.8.3).
+#                                    Tek okuma → bağlamadan beri ortalama; iki okuma → aralık. Eşik uydurmaz: yalnız man nfs'te yazan
+#                                    risk (soft) ve sıfırdan farklı yeniden gönderim/hata BULGU'dur; gerisi karşılaştırma için tablo.
 import re
 import sys
 
@@ -121,6 +126,154 @@ def tani(kv):
     return bulgular, notlar, eksik
 
 
+# ---- performans (mountstats) — biçim: /usr/sbin/nfsiostat (nfs-utils 2.8.3) DeviceData.__parse_*_line ----
+PERF_ISLEM = ("READ", "WRITE", "COMMIT", "GETATTR", "LOOKUP", "ACCESS", "READDIR", "READDIRPLUS", "OPEN", "CLOSE", "LOCK")
+MAN_SOFT = ("man nfs (soft / softerr / hard): \"A so-called \\\"soft\\\" timeout can cause silent data corruption in certain cases\" — "
+            "varsayılan hard (istek süresiz yinelenir)")
+MAN_RETRANS = ("man nfs (retrans=n): \"The NFS client generates a \\\"server not responding\\\" message after retrans retries\"; "
+               "man nfsiostat: retrans = yeniden gönderim sayısı")
+
+
+def perf_oku(metin):
+    """mountstats metni → [(zaman|None, {hedef: bağlama})]. '#zaman <epoch>' satırı yeni okumayı başlatır."""
+    okumalar, b = [], None
+    simdiki = None
+    for satir in metin.splitlines():
+        w = satir.split()
+        if not w:
+            continue
+        if w[0] == "#zaman":
+            simdiki = {"zaman": float(w[1]) if len(w) > 1 else None, "baglar": {}}
+            okumalar.append(simdiki)
+            b = None
+            continue
+        if w[0] == "device" and len(w) >= 8:
+            if simdiki is None:
+                simdiki = {"zaman": None, "baglar": {}}
+                okumalar.append(simdiki)
+            if w[7] not in ("nfs", "nfs4"):
+                b = None
+                continue
+            b = {"kaynak": w[1], "hedef": w[4], "tur": w[7], "secenek": {}, "islem": {}, "xprt": None, "yas": None, "rpc": False}
+            if w[4] in simdiki["baglar"]:  # aynı okumada aynı hedef ikinci kez (ör. iki cat) → yeni okuma say
+                simdiki = {"zaman": None, "baglar": {}}
+                okumalar.append(simdiki)
+            simdiki["baglar"][w[4]] = b
+            continue
+        if b is None:
+            continue
+        if w[0] == "age:":
+            b["yas"] = int(w[1])
+        elif w[0] == "opts:":
+            for o in "".join(w[1:]).split(","):
+                k, _, v = o.partition("=")
+                b["secenek"][k] = v if _ else True
+        elif w[0] == "RPC":
+            b["rpc"] = True
+        elif w[0] == "xprt:" and len(w) > 2:
+            # tcp: port bind connect connect_time idle sends recvs badxids inflight backlog (nfsiostat __parse_rpc_line)
+            if w[1] in ("tcp", "rdma") and len(w) >= 12:
+                b["xprt"] = {"proto": w[1], "baglanti": int(w[4]), "gonderim": int(w[7]), "badxid": int(w[9]), "backlog": int(w[11])}
+            elif w[1] == "udp" and len(w) >= 9:
+                b["xprt"] = {"proto": "udp", "baglanti": None, "gonderim": int(w[4]), "badxid": int(w[6]), "backlog": int(w[8])}
+        elif b["rpc"] and w[0].endswith(":") and w[0] != "per-op":
+            try:
+                b["islem"][w[0][:-1]] = [int(x) for x in w[1:]]
+            except ValueError:
+                pass
+    return okumalar
+
+
+def perf_satir(ad, d, sure):
+    # nfsiostat __print_rpc_op_stats: ops=d[0], retrans=d[1]-d[0], kB=(d[3]+d[4])/1024, queue=d[5], rtt=d[6], exe=d[7], err=d[8]
+    ops = d[0]
+    if ops <= 0:
+        return None
+    yg = d[1] - d[0]
+    kb = (d[3] + d[4]) / 1024.0
+    hata = d[8] if len(d) >= 9 else None
+    return {"ad": ad, "ops": ops, "ops_s": ops / sure, "kb_s": kb / sure, "kb_op": kb / ops, "yg": yg, "yg_y": yg * 100.0 / ops,
+            "rtt": d[6] / ops, "exe": d[7] / ops, "kuyruk": d[5] / ops, "hata": hata}
+
+
+def perf(metin):
+    okumalar = [o for o in perf_oku(metin) if o["baglar"]]
+    if not okumalar:
+        print("NFS bağlaması yok (mountstats'ta fstype nfs/nfs4 satırı bulunamadı) — `nfs-tani.py perf-komut` çıktısını ver")
+        return 2
+    son = okumalar[-1]
+    once = okumalar[0] if len(okumalar) >= 2 else None
+    aralik = None
+    if once and once["zaman"] and son["zaman"]:
+        aralik = son["zaman"] - once["zaman"]
+    bulgu_var = False
+    for hedef, b in sorted(son["baglar"].items()):
+        s = b["secenek"]
+        surum = s.get("vers", "?")
+        onceki = once["baglar"].get(hedef) if once else None
+        if onceki and aralik and aralik > 0:
+            kip, sure = "aralık %.0f sn" % aralik, aralik
+        else:
+            kip, sure = "bağlamadan beri (age %s sn)" % b["yas"], float(b["yas"] or 1)
+            onceki = None
+        print("== %s  ←  %s   NFS v%s  [%s]" % (hedef, b["kaynak"], surum, kip))
+        anahtar = ["proto", "rsize", "wsize", "nconnect", "timeo", "retrans", "sec", "lookupcache", "actimeo", "acregmin", "acregmax", "local_lock"]
+        bayrak = [k for k in ("hard", "soft", "softerr", "noac", "nocto", "nolock") if k in s]
+        print("   seçenek: " + " ".join("%s=%s" % (k, s[k]) for k in anahtar if k in s and s[k] is not True) +
+              ("  " + " ".join(bayrak) if bayrak else ""))
+        x = b["xprt"]
+        if x:
+            if onceki and onceki["xprt"]:
+                ox = onceki["xprt"]
+                bag = None if x["baglanti"] is None else x["baglanti"] - (ox["baglanti"] or 0)
+                print("   taşıma: %s · aralıkta yeniden bağlanma %s · badxid %d" % (x["proto"], bag, x["badxid"] - ox["badxid"]))
+            else:
+                print("   taşıma: %s · bağlanma sayısı %s · badxid %d" % (x["proto"], x["baglanti"], x["badxid"]))
+        print("   %-12s %9s %10s %8s %14s %9s %9s %9s %8s" % ("işlem", "op/s", "kB/s", "kB/op", "yeniden(%)", "RTT ms", "exe ms",
+                                                                 "kuyruk", "hata"))
+        satirlar = []
+        for ad in PERF_ISLEM:
+            if ad not in b["islem"]:
+                continue
+            d = b["islem"][ad]
+            if onceki and ad in onceki["islem"]:
+                d = [y - e for y, e in zip(d, onceki["islem"][ad])]
+            r = perf_satir(ad, d, sure)
+            if r:
+                satirlar.append(r)
+                print("   %-12s %9.2f %10.1f %8.1f %8d (%4.1f) %9.2f %9.2f %9.2f %8s" % (
+                    ad.lower(), r["ops_s"], r["kb_s"], r["kb_op"], r["yg"], r["yg_y"], r["rtt"], r["exe"], r["kuyruk"],
+                    "-" if r["hata"] is None else r["hata"]))
+        if not satirlar:
+            print("   (bu %s işlem yok — yük yokken ölçüldü; yük altında tekrar al)" % ("aralıkta" if onceki else "bağlamada"))
+        if "soft" in s or "softerr" in s:
+            bulgu_var = True
+            print("   BULGU: %s ile bağlı → istek zaman aşımında uygulamaya EIO/ETIMEDOUT döner\n      kaynak: %s" %
+                  ("soft" if "soft" in s else "softerr", MAN_SOFT))
+        for r in satirlar:
+            if r["yg"] > 0:
+                bulgu_var = True
+                print("   BULGU: %s yeniden gönderim %d (%%%.1f) — ağ/sunucu yanıtı gecikiyor; aynı anda `journalctl -k` "
+                      "\"not responding\" satırına bak\n      kaynak: %s" % (r["ad"].lower(), r["yg"], r["yg_y"], MAN_RETRANS))
+            if r["hata"]:
+                bulgu_var = True
+                print("   BULGU: %s %d işlem hata durumuyla bitti (man nfsiostat: errors = status < 0)" % (r["ad"].lower(), r["hata"]))
+        for r in satirlar:
+            if r["exe"] > 0 and r["exe"] - r["rtt"] > r["rtt"]:
+                print("   NOT: %s exe %.2f ms, RTT %.2f ms — sürenin yarıdan fazlası ağ dışında, istemci tarafında (man nfsiostat: exe = "
+                      "isteğin çekirdeğe verilişinden bitişine, RTT'yi içerir)" % (r["ad"].lower(), r["exe"], r["rtt"]))
+        if surum.startswith("3"):
+            print("   NOT: v3 — kilit NLM yan protokolüyle (man nfs lock/nolock), mountd/rpcbind gerekir; v4'te kilit ve bağlama 2049'da tek "
+                  "protokolde (man nfs, \"Options for NFS version 4 only\" port=n)")
+        elif surum.startswith("4"):
+            print("   NOT: v4 — kullanıcı/grup adı ↔ UID/GID eşlemesi NFSv4 alanında (man idmapd.conf: Domain \"The local NFSv4 domain "
+                  "name\", varsayılan makinenin DNS alanı) — rhel-nfs §3")
+    if not once:
+        print("NOT: tek okuma — değerler bağlamadan beri ortalama; güncel durum için `perf-komut` (iki okuma) kullan")
+    print("Karşılaştırma aynı komutla: sorunlu ↔ sağlam sunucu ya da önce ↔ sonra (rhel-nfs §4). Eşik yok — tek ölçümden \"yavaş\" deme.")
+    return 1 if bulgu_var else 0
+
+
 def main(argv):
     if not argv or argv[0] in ("-h", "--help"):
         print(open(__file__, encoding="utf-8").read().split("import re")[0].replace("# ", "").replace("#!/usr/bin/env python3\n", ""))
@@ -142,7 +295,23 @@ def main(argv):
         for e in eksik:
             print("EKSİK KANIT: " + e)
         return 1 if bulgular else 0
-    print("alt komut: komut | tani")
+    if argv[0] == "perf-komut":
+        sn = argv[1] if len(argv) > 1 and argv[1].isdigit() else "10"
+        print("ssh root@<sunucu> 'echo \"#zaman $(date +%%s)\"; cat /proc/self/mountstats; sleep %s; "
+              "echo \"#zaman $(date +%%s)\"; cat /proc/self/mountstats'" % sn)
+        print("# çok sunucu: ansible <grup> -i <iş envanteri> -m shell -t cikti/filo/nfsperf -a '<tırnak içindeki komut>'"
+              " → her sunucunun dosyası ayrı: nfs-tani.py perf cikti/filo/nfsperf/<sunucu>")
+        return 0
+    if argv[0] == "perf" and len(argv) > 1:
+        metin = sys.stdin.read() if argv[1] == "-" else open(argv[1], encoding="utf-8", errors="replace").read()
+        if metin.lstrip().startswith("{"):  # ansible -t çıktısı (JSON) → stdout
+            import json
+            try:
+                metin = json.loads(metin).get("stdout", "")
+            except ValueError:
+                pass
+        return perf(metin)
+    print("alt komut: komut | tani | perf-komut | perf")
     return 2
 
 

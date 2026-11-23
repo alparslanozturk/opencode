@@ -6,6 +6,13 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-23 — NFS v3/v4 performans: `nfs-tani.py perf`
+
+Sahada: `al.sh` → `./kur.sh`, yeni oturum.
+- `rhel-nfs` §4 yeniden: `nfs-tani.py perf-komut` (iki `/proc/self/mountstats` okuması, salt-okunur) → `perf` bağlama başına sürüm,
+  etkin seçenekler, işlem başına op/s · kB/s · yeniden gönderim · RTT/exe/kuyruk · hata (nfsiostat ile aynı hesap). BULGU yalnız soft
+  bağlama, yeniden gönderim, hata; eşik yok. v3 ↔ v4 farkları tablosu (man nfs). Sentetik veriyle test; gerçek NFS'te sahada denenmedi.
+
 ## 2026-11-23 — DMZ DNS/NTP AD'den, ağ izolasyonu, SEP bütün servisler sınırlı, her işte iş envanteri
 
 Sahada: `al.sh` → `./kur.sh`, yeni oturum. Yalnız metin değişti (Alp'in 2026-11-23 cevapları).

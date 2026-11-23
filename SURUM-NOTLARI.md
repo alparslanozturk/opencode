@@ -12,8 +12,8 @@ Sahada: `al.sh` → `./kur.sh`, **yeni oturum**.
 - `is-kaydi.py not … [--kaynak "komut: …" | --kaynak tahmin]`: her not kaynaklı (varsayılan `[Alp]`); başka kaynak reddedilir; tahmin
   "tahmin:" ile işaretlenir. README'ye ajan da iş olgusunu (ölçülen sonuç, kullanıcının sözü) not alabilir.
 - Kurumsal bilgiye yalnız cümlede açıkça "kurumsal bilgi/hafıza" geçince. Parola yalnız Alp "bu genel bir parola, kaydet" deyince;
-  komut çıktısında/.env'de görülen (otomatik) parola hiçbir yere kendiliğinden yazılmaz — `is-kaydi.py not` komut/tahmin kaynaklı notta
-  parola değerini reddeder (çıkış 3), yalnız yeri yazılır.
+  komut çıktısında/.env'de görülen otomatik parolaların (Redis, veritabanı, token) **hepsi işin README'sine** kaynağıyla yazılır
+  (Alp: "otomatik gelen parolaların hepsini readme'ye kaydet"); kurumsal bilgiye girmez.
 
 ## 2026-11-23 — "Kaydet" bağlamla: iş README'si; kurumsal bilgi yalnız "kurumsal bilgi çalışması"nda
 

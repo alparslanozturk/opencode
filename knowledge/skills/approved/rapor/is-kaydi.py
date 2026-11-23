@@ -17,8 +17,8 @@
 #   is-kaydi.py not <kayıt> "<bilgi>" [--kaynak <kaynak>] → işin README.md'sine "## Notlar" altına zaman damgalı satır EKLER (başka satıra
 #       dokunmaz). Uydurma yok (Alp, 2026-11-23): her not kaynaklı — --kaynak yoksa "Alp" (kullanıcının sözü, aynen); ölçüm için
 #       --kaynak "komut: <kısa komut>"; çıkarım için --kaynak tahmin (satır "tahmin:" ile başlar). Başka kaynak reddedilir (çıkış 2).
-#       Parola: yalnız kullanıcının verdiği (kaynak Alp) not parola içerebilir; komut çıktısından/tahminden gelen notta parola değeri
-#       reddedilir (çıkış 3) — Alp (2026-11-23): "otomatik gelen parolaları kaydetme".
+#       Parola: iş sırasında görülen otomatik parolalar (Redis, veritabanı, token) README'ye yazılır — Alp (2026-11-23): "otomatik gelen
+#       parolaların hepsini readme'ye kaydet"; kurumsal bilgiye girmez. İş kaydı sahada kalır, depoya girmez.
 #   <kayıt> = değişiklik numarası (29000) | dizin yolu/adı | son   ("son" = en son AÇILAN kayıt; emin değilsen numarayı yaz)
 import datetime
 import os
@@ -209,9 +209,6 @@ def ac(argv):
 
 
 
-GIZLI = re.compile(r"(?i)(pass(word)?|parola|şifre|sifre|token|secret|api[_-]?key)\s*[=:]\s*(?!<)\S")
-
-
 def not_ekle(arg, metin, kaynak="Alp"):
     metin = " ".join(metin.split())
     kaynak = " ".join(kaynak.split())
@@ -222,10 +219,6 @@ def not_ekle(arg, metin, kaynak="Alp"):
     elif not (kaynak == "Alp" or kaynak.startswith("Alp ") or re.match(r"komut:\s*\S", kaynak)):
         print("REDDEDİLDİ: kaynak %r — yalnız Alp (kullanıcının sözü), \"komut: <komut>\" (ölçüm) ya da tahmin" % kaynak)
         return 2
-    if not kaynak.startswith("Alp") and GIZLI.search(metin):
-        print("REDDEDİLDİ: komut çıktısından/tahminden gelen notta parola değeri var — otomatik parola kaydedilmez (yerini yaz: "
-              "\"parola: <sunucudaki .env>\"); kullanıcı verdiyse --kaynak Alp")
-        return 3
     dizin = kayit_dizini(arg)
     is_dizini = os.path.dirname(dizin) if os.path.basename(dizin) == "logs" else dizin  # dn/<no>/logs → dn/<no>
     readme = os.path.join(is_dizini, "README.md")

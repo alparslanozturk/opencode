@@ -6,6 +6,14 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-23 — DMZ DNS/NTP AD'den, ağ izolasyonu, SEP bütün servisler sınırlı, her işte iş envanteri
+
+Sahada: `al.sh` → `./kur.sh`, yeni oturum. Yalnız metin değişti (Alp'in 2026-11-23 cevapları).
+- `rhel-teslim`: DMZ DNS = DMZ AD alanının DC'leri (alan sorgusuyla bulunur), NTP = `pool <dmz alanı>`; `10.13` prod / `10.14` alt
+  ortam, kesin izolasyon, Satellite ikisine de SSH — `02-dns-nmcli`'deki çift çelişki değil. `group_vars` `10.4.x` hâlâ `[SAHA]`.
+- `rke2-edr` + `rhel-teslim`: SEP sürümü RU9 (en son) / RU4 (eski) karışık; sınır SEP'in **bütün** servislerinde denetlenir (komut eklendi).
+- `engine/AGENTS.md`: kurulum/kriz/bulgu işinde de önce `is-envanter.py` ile iş envanteri.
+
 ## 2026-11-22 — Motor: opencode 2.1.4 → 2.3.2 (11 sürüm)
 
 Sahada: `al.sh` → `./kur.sh` (ikili yeniden derlenir), **yeni oturum**.

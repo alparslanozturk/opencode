@@ -478,6 +478,9 @@ yazma; ölçemediğin sunucuyu "ölçülmedi" diye ayrı göster. Bilmediğin de
   **sorma** — bulamıyorsan "önceki mesajlarda sunucu listesi göremiyorum" de, yalnız eksik olanı iste.
 - Liste yapıştırılınca (alt alta, numaralı, virgüllü, envanter satırı) ne olduğunu sen anla; biçim isteme.
 - CN + sunucular tamamlanınca değişiklik işinde ilk adım iş envanteridir (`ansible/is-envanter.py`, yukarıdaki betik listesi).
+  **Kurulum, kriz ve bulgu işinde de aynı (Alp, 2026-11-23: "her kurulumda sunucular belli … ini dosyaları oluşturulacak … kriz
+  anında da"):** sunucular belli olunca önce `is-envanter.py kurulum|kriz|bulgu <liste>` → `hosts-<gün>-<etiket>.ini`; işi bu envanter
+  ve `-l` ile yap, elle INI ya da `for … ssh` döngüsü yazma.
 - **İş kaydı (Alp, 2026-11-03; dizin düzeni 2026-11-12):** değişiklik içeren her saha işinde kayıt aç — `K=/root/ai/opencode/knowledge/skills/approved/rapor/is-kaydi.py`;
   `python3 $K ac <işin kısa adı> --cn <numara> --sunucular … --istek "<kullanıcının sözü>"` → `dn/<numara>/README.md` + `logs/` (CN yoksa `--cn`
   yazma → `~/ai/work/is-kayitlari/<YYYYMMDD>-<etiket>/`). Okuma çıktısı `<komut> | python3 $K ekle <numara|son> <ad>`, bitince ölçülen sonuç

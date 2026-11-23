@@ -22,6 +22,16 @@ Kaynak etiketi: **(Alp)** kurum bilgisi · **(saha G…)** saha gözlemi · **(�
 - Test kümesi worker'larında üç ajan (Alp, saha G72, 2026-10-20): **SEP** (Symantec, `sisamdagent`; `sisap`/`sisevt` modülleri —
   saha G44), **Cortex XDR** (Palo Alto Networks — eski adı Traps; systemd `traps_pmd`, `/opt/traps/bin/pmd`, sürüm `/opt/traps/version.txt`, araç `/opt/traps/bin/cytool` — Palo Alto Cortex XDR Agent belgesi), **Twistlock** (Prisma Cloud Defender,
   `/usr/local/bin/defender`). Kurum SEP kaynak sınırı: CPU %400, MemoryHigh 2G, Max 3G (saha G44, kaynak `08-sep-sinirlama` `[SAHA]`).
+- **Sınır SEP'in bütün servislerinde olmalı (Alp, 2026-11-23):** SEP'in birden çok servisi var (gerçek zamanlı tarama, IPS …; Alp:
+  "4 servis var sanırım" — adları sunucudan oku, ezberden yazma); kurum ekibinin `08-sep-sinirlama` playbook'u bunların hepsine sınır
+  koyar. Yalnız `sisamdagent`'a bakıp "sınırlı" deme — her birini ölç (salt-okunur; systemd 257'de denendi):
+  ```bash
+  for u in $(systemctl list-units --all --plain --no-legend --type=service 'sis*' | awk '{print $1}'); do
+    systemctl show "$u" -p Id -p ActiveState -p Slice -p CPUQuotaPerSecUSec -p MemoryHigh -p MemoryMax | paste -sd' '; done
+  ```
+  `infinity` = o birimde sınır yok. Sınır birimde değil slice'ta olabilir → aynı `-p` alanlarıyla `systemctl show <Slice>`. Bir servis
+  sınırsızsa "sınır eksik: <servis>" de; beklenen değerleri playbook'tan dosya:satır ile göster. Sürüm: RU9 en son kurulan, RU4 da
+  olabilir (Alp) — her sunucuda `rpm -qa | grep -iE "sdcss|symantec"`.
 - 2026-10-20 wor14: önce ssh zaman aşımı + `antrea-agent` liveness `connection refused`; Alp **XDR'ı kaldırdı** → Ready, antrea
   2/2 Running (ajan raporu). SEP belki kapatılacak; **Twistlock kalacak** (kaldırılamaz). wor14'te ağır iş yükü: Milvus.
 - **2026-10-20 akşam (Alp):** XDR (`traps_pmd`) wor07-14'te `disable`; SEP de kapatılıyor (Alp kararı — iki ajan birlikte, tüm

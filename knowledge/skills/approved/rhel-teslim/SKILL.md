@@ -69,12 +69,23 @@ dizinden oku). **Numara sıra değil, katalogdur** — talepte olmayan adımı �
   değerlerini ve DMZ playbook'unun adını **dizinden/dosyadan oku ve dosya:satır göster** `[SAHA]` — ezbere ya da "iç ağ adının yerine
   DMZ adını yaz" diye türetme (G119: ajan DMZ DNS IP'lerini kaynaksız tabloya yazdı). DMZ sunucusuna iç ağ playbook'u (ya da tersi)
   çalıştırma; DMZ değişkeni yoksa dur ve sor. Ad kuralı: 3. harf `d` = DMZ (`engine/AGENTS.md` sunucu adı → ortam).
-- **Çelişen değer = dur:** aynı ayar iki yerde farklıysa (G119: `02-dns-nmcli` varsayılanı `10.13.x` / `10.14.x`, `group_vars/all.yml`
-  `10.4.x`; Satellite `srvsatellite…` / `satellite…`) hangisinin kullanılacağını **sen seçme** — iki satırı dosya:satır ile göster, sor.
+- **DMZ DNS ve NTP — AD'den bulunur (Alp, 2026-11-23):** DMZ'nin DNS sunucuları DMZ AD alanının DC'leridir; listeyi ezberden yazma,
+  alanı sorgula: `getent ahostsv4 <kurum-dmz>.local` (AD'de alan adının A kayıtları DC'lerdir) ve varsa
+  `dig +short SRV _ldap._tcp.dc._msdcs.<kurum-dmz>.local` (AD DC bulucu kaydı). Sorguyu adı çözebilen bir makineden yap (DMZ'deki
+  mevcut bir sunucu); yeni sunucu daha DNS'siz olabilir. NTP de AD'den: chrony'de `pool <kurum-dmz>.local iburst` (Alp: "pool … diyorduk").
+  Çıkan IP'leri sorgu çıktısıyla göster; kurumsal bilgideki DMZ değerleriyle farklıysa dur, sor.
+- **Ağlar (Alp, 2026-11-23):** `10.13.x.x` = **prod**, `10.14.x.x` = **alt ortamlar**; aralarında **kesin izolasyon** var (birinden
+  ötekine erişim beklenmez). Satellite iki tarafa da SSH ile erişir — kurulum/okuma Satellite'tan yapılır. Bu yüzden `02-dns-nmcli`'deki
+  `10.13.x` / `10.14.x` çifti çelişki değil, ortama göre seçimdir: sunucunun IP'si hangi ağdaysa o ağın değeri; ikisini karıştırma.
+- **Çelişen değer = dur:** aynı ayar iki yerde farklıysa (G119: `group_vars/all.yml` `10.4.x` ↔ `02-dns-nmcli` `10.13.x`/`10.14.x` —
+  `10.4.x`'in ne olduğu **henüz cevapsız** `[SAHA]`; Satellite `srvsatellite…` / `satellite…`) hangisinin kullanılacağını **sen seçme** —
+  iki satırı dosya:satır ile göster, sor.
   Ansible önceliği (playbook `vars` > `group_vars`) hangisinin **uygulanacağını** söyler, hangisinin **doğru** olduğunu söylemez.
 - **SEP kaynağı:** `07-sep-install` Satellite'taki `pub/SAL/1.4` dizininden kurar (saha ekranı). `SAL/1.4`, Broadcom'un Linux deposundaki
   dizin adıdır; Broadcom KB 222816 bunu 14.3 RU9 ile, başka bir KB 14.3 RU4 ile eşler — **sürüm bundan çıkarılmaz**, kurulu paket
-  (`rpm -qa | grep -iE "sdcss|symantec"`) okunur. `08-sep-sinirlama`: CPU %400, Mem 2G/3G (`rke2-edr` §0).
+  (`rpm -qa | grep -iE "sdcss|symantec"`) okunur. Alp (2026-11-23): en son kurulan **RU9**; eski sunucularda **RU4** de olabilir — filo
+  karışık, sürümü her sunucuda ayrı oku. `08-sep-sinirlama` (kurum ekibinin playbook'u): SEP'in **bütün servisleri** sınırlanır
+  (gerçek zamanlı tarama, IPS … — Alp: "4 servis var sanırım"); değerler playbook'tan okunur, `rke2-edr` §0 sınır denetimi.
 - **Adım adım, kullanıcı kontrolünde (Alp, 2026-10-14):** her adım bitince dur, sonucu göster, sonraki adımı **sor**.
   Araya başka iş girdiyse (disk düzeltme, reboot) önceki "X ile devam et" onayı düşer — sıradaki adıma yeniden sor.
   "Verilen işi sonuna kadar yap" (AGENTS.md) bu akışta adımın **içi** içindir, adımlar arası geçiş için değil.

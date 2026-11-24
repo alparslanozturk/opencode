@@ -6,6 +6,18 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
+## 2026-11-25 — Kontrol: modelin gördüğü dış beceriler (`dis-beceri` satırı); GPU ortam özeti talimatı
+
+Sahada: `al.sh` → `./kur.sh kontrol`. `dis-beceri` satırına bak, fotoğrafını Doktor'a gönder.
+- Neden: 2.x `~/.claude/skills`, `~/.agents/skills` ve çalışma dizinindeki `.claude`/`.agents` becerilerini de yükler
+  (`packages/core/src/config/plugin/compatibility.ts:84`); `permission.skill "*": "allow"` olduğu için model onları da açabilir. Doktor
+  sunucusunda ölçüldü: 14 Claude becerisi (deep-research, docx, chrome-browser …) opencode listesinde.
+- Temizse `beceri ✓ … · dis beceri yok` (ayrı satır yok, rapor bütçesi); varsa `dis-beceri ! … dis beceri (<kaynak>)` + `--ayrintili`'da adlar. `opencode debug skill`
+  çalışma kökünden (yoksa `$HOME`) çalışır, ~2 sn. Upstream hatası (ölçüldü, 2.3.2): `debug skill` boruya yazınca çıktı 128/192 KB'de
+  kesiliyor; dosyaya yönlendirilince tam → kontrol geçici dosya + geçici veri dizini kullanır (yoksa opencode.log kirlenir).
+- Henüz izin değişikliği YOK: dış beceri sahada görülürse `kur.sh` yalnız bizim becerilere `allow`, gerisine `deny` yazacak (Alp kararı).
+- `temp/gpu-ortam-ozet-20261126.md`: Kubernetes + Run:ai + vLLM ortamının 1 sayfalık salt-okunur özeti (sahada "dosyadaki talimatı uygula").
+
 ## 2026-11-23 — Node/küme sağlık kontrolü: `node-durum`, `sar-ozet --son`, `kume-bul --kume`, etcd çoğunluğu (G128)
 
 Sahada: `al.sh` → `./kur.sh`, **yeni oturum**. Deneme: "gpu-prod kümesinin sağlık kontrolünü yap".

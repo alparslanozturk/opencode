@@ -1520,6 +1520,68 @@ kontrol_kurulum() {
     sorun_kaydet "kurulum yapilmamis — ./kur.sh calistir"
   fi
 
+  # 5b) Modelin GERÇEKTE gördüğü beceriler (2026-11-25): 2.x ~/.claude/skills, ~/.agents/skills ve
+  # çalışma dizinindeki .claude/.agents'ı da tarar (packages/core/src/config/plugin/compatibility.ts).
+  # Bizim kurulum dizini ve yerleşikler dışındaki her beceri "dış" sayılır — model onları da yükleyebilir.
+  # `debug skill` izinle (deny) kapatılanları zaten listelemez. Çalışma kökünden çalıştırılır (sahada
+  # işler orada açılır); yoksa $HOME. Ölçüm: ~2 sn, arkada süreç bırakmıyor.
+  local bc_dis="" bc_bizim="" bc_yer="" bc_kaynak="" bc_ad="" bc_ek="" bc_ozet=""
+  if [ -x "$kurulu_bin" ] && [ -n "$PY" ]; then
+    local bc_dizin="${OPS_CALISMA_KOK:-$HOME/ai/work/opencode}"
+    [ -d "$bc_dizin" ] || bc_dizin="$HOME"
+    # JSON beceri içeriklerini de taşır (yüzlerce KB) — argümana sığmaz (tek argüman ≤128 KB), dosyadan okunur.
+    local bc_kod
+    bc_kod="$(cat << 'PY'
+import json, sys
+kendi, ev = sys.argv[1], sys.argv[2]
+try:
+    liste = json.load(sys.stdin)
+except Exception:
+    sys.exit(0)
+bizim = yerlesik = 0
+dis = {}
+for s in liste if isinstance(liste, list) else []:
+    yer = str(s.get("location") or "")
+    if yer == "<built-in>":
+        yerlesik += 1
+    elif yer.startswith(kendi.rstrip("/") + "/"):
+        bizim += 1
+    else:
+        kaynak = yer
+        for k in (".claude/skills", ".agents/skills", ".claude", ".agents"):
+            i = yer.find(k)
+            if i >= 0:
+                kaynak = yer[: i + len(k)]
+                break
+        kaynak = kaynak.replace(ev, "~", 1) if kaynak.startswith(ev) else kaynak
+        dis.setdefault(kaynak, []).append(str(s.get("name") or "?"))
+adlar = " ".join(sorted(sum(dis.values(), [])))
+print("toplam\t%d\nbizim\t%d\nyerlesik\t%d\ndis\t%d" % (bizim + yerlesik + sum(map(len, dis.values())), bizim, yerlesik, sum(map(len, dis.values()))))
+print("dis_kaynak\t%s" % " ".join(sorted(dis)))
+print("dis_ad\t%s" % adlar)
+PY
+)"
+    # Ölçüldü (2026-11-25, 2.3.2): `debug skill` boruya yazınca çıktı 128/192 KB'de kesiliyor (süreç tamponu
+    # boşaltmadan çıkıyor); dosyaya yönlendirilince tam (~250 KB). Bu yüzden geçici dosya.
+    # Veri/durum dizini geçici: yoksa çağrı opencode.log'a ~11 satır yazar ve aşağıdaki "log" satırını kirletir
+    # (ölçüldü). Beceri keşfi config + $HOME'dan yapılır, veri dizinine bağlı değil (aynı liste, ölçüldü).
+    local bc_tmp
+    bc_tmp="$(mktemp -d 2> /dev/null)" || bc_tmp=""
+    if [ -n "$bc_tmp" ]; then
+      (cd "$bc_dizin" && XDG_DATA_HOME="$bc_tmp/veri" XDG_STATE_HOME="$bc_tmp/durum" \
+        timeout 30 "$kurulu_bin" debug skill > "$bc_tmp/liste.json" 2> /dev/null) || true
+      bc_ozet="$("$PY" -c "$bc_kod" "$ayar_dizin/skills" "$HOME" < "$bc_tmp/liste.json" 2> /dev/null)" || true
+      rm -rf "$bc_tmp"
+    fi
+    if [ -n "$bc_ozet" ]; then
+      bc_dis="$(printf '%s\n' "$bc_ozet" | sed -n 's/^dis\t//p')"
+      bc_bizim="$(printf '%s\n' "$bc_ozet" | sed -n 's/^bizim\t//p')"
+      bc_yer="$(printf '%s\n' "$bc_ozet" | sed -n 's/^yerlesik\t//p')"
+      bc_kaynak="$(printf '%s\n' "$bc_ozet" | sed -n 's/^dis_kaynak\t//p')"
+      bc_ad="$(printf '%s\n' "$bc_ozet" | sed -n 's/^dis_ad\t//p')"
+      [ "${bc_dis:-0}" -gt 0 ] || bc_ek=" · dis beceri yok"
+    fi
+  fi
   # 5) beceriler + AGENTS.md
   local onayli park kurulu_beceri
   onayli="$(find "$KOK/knowledge/skills/approved" -mindepth 1 -maxdepth 1 -type d 2> /dev/null | wc -l)"
@@ -1543,13 +1605,23 @@ kontrol_kurulum() {
     elif [ "$kurulu_beceri" -gt 0 ] && [ "$kurulu_beceri" -lt "$onayli" ]; then
       satir "beceri" uyar "kurulu $kurulu_beceri < approved $onayli — yeni beceriler kurulmamis (./kur.sh)"
     elif [ "$kurulu_beceri" -gt 0 ]; then
-      satir "beceri" ok "kurulu $kurulu_beceri · repo: approved $onayli + parked $park"
+      satir "beceri" ok "kurulu $kurulu_beceri · repo: approved $onayli + parked $park$bc_ek"
     else
       satir "beceri" uyar "kurulu beceri dizini bos — ./kur.sh"
     fi
   else
     satir "beceri" hata "$ayar_dizin/skills YOK — ./kur.sh calistirilmamis"
     sorun_kaydet "beceriler kurulmamis — ./kur.sh calistir"
+  fi
+  # 5b çıktısı: dış beceri yoksa ayrı satır basılmaz, "beceri" satırına eklenir (rapor satır bütçesi, duman T2).
+  if [ -x "$kurulu_bin" ] && [ -n "$PY" ]; then
+    if [ -z "$bc_ozet" ]; then
+      satir "dis-beceri" uyar "opencode debug skill okunamadi — modelin gordugu beceri listesi dogrulanmadi"
+    elif [ "${bc_dis:-0}" -gt 0 ]; then
+      satir "dis-beceri" uyar "modelin gordugu $bc_dis dis beceri ($bc_kaynak) — Doktor'a bildir · bizim $bc_bizim · yerlesik $bc_yer"
+      ayr "dis beceriler: $bc_ad"
+      sorun_kaydet "opencode kurum disi beceri goruyor ($bc_kaynak): $bc_ad"
+    fi
   fi
   if [ -f "$ayar_dizin/AGENTS.md" ]; then
     satir "AGENTS" ok "kurulu: ~/.config/opencode/AGENTS.md"

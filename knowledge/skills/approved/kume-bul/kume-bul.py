@@ -137,6 +137,24 @@ def goster_vars(v):
     return " ".join("%s=%s" % (k, "***" if GIZLI.search(k) else x) for k, x in v.items())
 
 
+def duz(s):
+    return re.sub(r"[^a-z0-9]+", "-", str(s).lower()).strip("-")
+
+
+def platform_kume(q):
+    """'platform(küme)' / 'platform/küme' → (platform, küme); değilse None."""
+    m = re.match(r"^([^()/]+)\(([^()]+)\)$", q) or re.match(r"^([^()/]+)/([^()/]+)$", q)
+    return (m.group(1).strip(), m.group(2).strip()) if m else None
+
+
+def grup_degeri(anahtar, grup_vars, ad):
+    for _, s in grup_vars.get(anahtar, []):
+        k, _, v = s.partition("=")
+        if k.strip().lower() == ad:
+            return v.strip().lower()
+    return ""
+
+
 def main(argv):
     if argv and argv[0] == "k8s":
         return k8s_main(argv[1:])
@@ -153,7 +171,9 @@ def main(argv):
             ek.append(argv[i + 1])
             i += 2
             continue
-        sorgular.extend(x.strip().lower() for x in re.split(r"[,\s]+", argv[i]) if x.strip())
+        # "rke-nonprod (test)" tek sorgudur: platform(küme) — boşluktan bölünmeden önce birleştirilir (G130)
+        arg = re.sub(r"\s*\(\s*([^()]*?)\s*\)", r"(\1)", argv[i])
+        sorgular.extend(x.strip().lower() for x in re.split(r"[,\s]+", arg) if x.strip())
         i += 1
     if not sorgular:
         print("kullanım: kume-bul.py <ad|kısa ad|IP> [...] [--dosya <envanter.ini>]...")
@@ -188,6 +208,32 @@ def main(argv):
         ayni_ip = [k for k in kayitlar if k["ipler"] & ipler and k not in esles]
 
         print("\n== %s" % q)
+        pk = platform_kume(q) if not esles and not ip_mi(q) else None
+        if pk:
+            # Saha G130 (2026-11-25): "rke-nonprod(test)" soruldu, ajan yalnız [rke-nonprod] grubuna (Rancher'ın kendi kümesi, 3/3 Ready)
+            # baktı; [rke-nonprod-test] (18 node, bir master NotReady) hiç açılmadı. Platform adı tek başına asla cevap sayılmaz.
+            pf, km = duz(pk[0]), duz(pk[1])
+            tum = set(gruplar) | set(grup_vars)
+            kesin = sorted(a for a in tum if duz(a[1]) == pf + "-" + km or (
+                duz(grup_degeri(a, grup_vars, "rancher_kume_adi")) == km and
+                re.sub(r"^https?://", "", grup_degeri(a, grup_vars, "rancher_url")).split("/")[0].split(".")[0] == pf))
+            aday = kesin or sorted(a for a in tum if duz(a[1]) == km or duz(a[1]).endswith("-" + km) or
+                                   km == duz(grup_degeri(a, grup_vars, "rancher_kume_adi")) or
+                                   km == duz(grup_degeri(a, grup_vars, "k8s_kume")))
+            print("  okunuş: platform=%s · küme=%s" % pk)
+            for a in aday:
+                uye = gruplar.get(a, [])
+                print("  %s: [%s] %s · üyeler (%d): %s%s" % ("küme" if kesin else "ADAY (doğrula)", a[1], os.path.relpath(a[0]),
+                                                          len(uye), " ".join(uye[:30]), " …" if len(uye) > 30 else ""))
+                kapsama.setdefault(a, set()).add(q)
+            if len(aday) > 1 or (aday and not kesin):
+                print("  BELİRSİZ: hangisi olduğunu sor; birini kendin seçme.")
+            if not aday:
+                bulunamayan.append(q)
+                print("  küme '%s' envanterde YOK. [%s] grubu platformun kendisidir, bu kümenin YERİNE geçmez — oradan sağlık sonucu verme;"
+                      % (pk[1], pk[0]))
+                print("  Rancher haritası (SKILL.md §3 --kaydet) ya da kümenin bir master adını sor.")
+            continue
         if not esles and not ip_mi(q):
             # küme/grup adı sorgusu (ör. "ai-test"): grup adı ya da kaydedilmiş Rancher haritasında rancher_kume_adi
             gq = re.sub(r"[^a-z0-9_]+", "_", q).strip("_")
@@ -207,6 +253,12 @@ def main(argv):
                                 s = s.split("=")[0] + "=***"
                             print("  [%s:vars] %s:%d  %s" % (g, os.path.relpath(anahtar[0]), no, s))
                     kapsama.setdefault(anahtar, set()).add(q)
+                benzer = sorted({a[1] for a in set(gruplar) | set(grup_vars) if duz(a[1]).startswith(duz(q) + "-")})
+                if benzer:
+                    print("  ⚠ AYNI ÖNEKLE %d GRUP DAHA VAR: %s%s" % (
+                        len(benzer), " ".join("[%s]" % b for b in benzer[:20]), " …" if len(benzer) > 20 else ""))
+                    print("    Kullanıcı ek/parantez yazdıysa (ör. \"%s(test)\") hedef onlardan biridir: kume-bul.py \"%s(<küme>)\"; "
+                          "emin değilsen sor." % (q, q))
                 print("  eşleşme türü: küme/grup adı")
                 continue
         if not esles:

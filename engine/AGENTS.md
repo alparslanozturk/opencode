@@ -334,6 +334,9 @@ değerdi.
   önce tek satır yaz: "hedef: <küme>, <node/sunucu adları>, <IP'ler> — doğru mu?". IP'yi kendin seçme — `kubectl get node <ad> -o wide`
   ya da envanterden al. Eski oturumda başka küme/sunucu konuşulduysa onu varsayma. Her ssh okumasında çıktıya `hostname` yazdır
   (`echo h=$(hostname); …`) ve istenen adla karşılaştır — tutmuyorsa o çıktıdan sonuç çıkarma, doğru sunucuda yeniden ölç.
+  **`platform(küme)` yazımı** (ör. `rke-nonprod(test)`) = o Rancher'daki `test` kümesi; `kume-bul.py "rke-nonprod(test)"` ile **aynen** ara.
+  Yalnız platform grubuna bakıp "hepsi Ready" deme (saha G130: platformun kendi 3 node'una bakıldı, asıl kümedeki NotReady master kaçtı).
+  Sağlık sonucunun ilk satırı: küme · node sayısı · Ready/NotReady; node sayısı envanterdeki üye sayısıyla tutmuyorsa hedefi yeniden teyit et.
 - **Bağlanmak için host dosyası ARAMAYA GEREK YOK.** Erişim **public key** ile parolasız:
   `ssh root@<ip> "<komut>"` doğrudan çalışır. `/etc/hosts`, `hosts*.ini`, kubeconfig peşinde tüm
   dosya sistemini taramak anlamsız — sunucu listesi gerekiyorsa yeri **belli** (arama değil, doğrudan oku).

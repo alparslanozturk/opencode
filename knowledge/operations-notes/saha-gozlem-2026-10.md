@@ -1724,7 +1724,7 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   --kume <ad>` (downstream node listesi → envanter), `k8s-ozet` etcd çoğunluğu, iş haritası (küme sağlık; "gpu" satırı küme adlarına
   takılmayacak biçimde daraltıldı). Sahada denenmedi (yerel + saha değerleriyle test).
 
-- **G129 (Alp, 2026-11-26, 5 ekran):** `temp/gpu-ortam-ozet-20261126.md` talimatıyla gpu-dtx salt-okunur ortam özeti. Ajan kümeyi buldu, hedef
+- **G129 (Alp, 2026-11-25, 5 ekran):** `temp/gpu-ortam-ozet-20261126.md` talimatıyla gpu-dtx salt-okunur ortam özeti. Ajan kümeyi buldu, hedef
   teyidi sordu ("gpu-dtx — sdlgpumaster1 · 7 node · v1.33.13 · doğru mu?"), envanterde 1 node varken 7 node gördü → `kume-bul --kaydet`
   (yerel dosya). Görülen: 3 master + 4 worker, RKE2 v1.33.13+rke2r1, tüm Ready; GPU yalnız sdlgpuh200w1 (8× H200, 2.2 TB, 256 CPU) —
   worker1-3'te GPU yok (Alp). sdlgpuh200w1 RHEL 9.4 / 5.14.0-427, diğerleri 9.6 / 5.14.0-570. GPU Operator v25.3.4 (ClusterPolicy,
@@ -1735,6 +1735,14 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   `--enable-prefix-caching` + `--no-enable-prefix-caching` birlikte; qwen38-27b OOMKilled (bellek 10Gi, 262144 bağlam, 5 restart);
   process-exporter 567 restart (master3, StartError exit 128); NFD worker 282–487 restart; Run:ai cluster-sync 159 restart; /dev/shm
   sizeLimit yok (runai-inference). Okunamayan: Run:ai project/department CRD (yetki), vLLM imaj etiketleri (ajan `containers[0]`'a baktı —
-  yan container), sdlgpuworker1-3 GPU (cevap: yok). Ajan sonunda özeti talimat dosyasının ÜSTÜNE kaydetmeyi önerdi (Alp reddetti).
+  yan container), sdlgpuworker1-3 GPU (cevap: yok). Ajan sonunda özeti talimat dosyasının ÜSTÜNE kaydetmeyi önerdi (Doktor "kaydetme" dedi; sonucu görülmedi).
   Aksiyon: `gpu-dagilim.py` vLLM container'ını seçer (vllm geçen → GPU limitli → ilk) ve `imaj=` basar (test +2); talimat dosyası kaldırıldı.
   Açık: Run:ai proje/kota okuma yetkisi normal mi (Alp); prefix caching/OOM/restartlar DevOps'a (öneri, uygulanmadı).
+
+- **G130 (Alp, 2026-11-25, 2 ekran):** "rke-nonprod(test)" sağlık kontrolü → ajan yalnız `[rke-nonprod]` grubuna (Rancher'ın kendi kümesi, 3/3
+  Ready) baktı; `[rke-nonprod-test]` (18 node) içindeki master `mas03` **Unavailable** kaçtı (Rancher ekranı; ajan sonra: 23 Kasım'dan beri
+  NotReady, lease 48 saat). İlk cevabın ekranı ve çalıştırdığı komut görülmedi; neden ajanın kendi anlatımı. Yerelde tekrar (sentetik envanter):
+  `kume-bul.py "rke-nonprod(test)"` → "YOK"; `rke-nonprod` → 1 üye, benzer gruptan söz yok — kök betikte. `k8s-ozet.py` NotReady'yi gösterir,
+  yanlış kümeye çalıştırıldı. İkinci cevapta kanıtsızlar: banner timeout → "kullanıcı alanı donmuş" (tahmin olmalı); "etcd tek node'a sıkışık"
+  (3 master'dan 2'si Ready); el9_6 çekirdek "en eski" (mas01 el9_4).
+  Aksiyon: `kume-bul.py` `platform(küme)` / `platform/küme` çözümü + aynı önekli grup uyarısı, AGENTS hedef teyidi, SKILL §1, test. Sahada denenmedi.

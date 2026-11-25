@@ -39,6 +39,9 @@ farklı ad"**; tek sorguda grup üyeleri ve `[grup:vars]` (gizli alanlar `***`);
 - **Küme adıyla sorgu** (ör. `KB ai-test`, saha G106): host yoksa betik grup adına ve kayıtlı haritadaki `rancher_kume_adi`'ya
   bakar, üyeleri + `:vars`'ı basar. Küme adı ancak §3 haritası kaydedildiyse ya da envanterde aynı adla bir grup varsa bulunur;
   yoksa "YOK" doğru cevaptır → §2/§3 (Rancher local master'ından `--kaydet`), elle grep/for döngüsü kurma.
+- **`platform(küme)`** (ör. `KB "rke-nonprod(test)"`, saha G130): tırnak içinde aynen ver; betik `[platform-küme]` grubunu ya da haritadaki
+  `rancher_url` + `rancher_kume_adi` eşleşmesini basar. "ADAY"/"BELİRSİZ" → sor. "YOK" → platform grubu kümenin yerine geçmez. Düz ad
+  sorgusunda "AYNI ÖNEKLE n GRUP DAHA VAR" uyarısı çıkarsa kullanıcının yazdığı ekle karşılaştır.
 - **Envanterde IP olmaması eksik değildir** (kurum kuralı: IP envantere yazılmaz, ad DNS'ten çözülür — saha 2026-11-03: ajan
   `spltprkemas01` için "isim var ama IP yok" deyip IP istedi). Ad bulunduysa doğrudan `ssh root@<ad>`; IP sorma, envanteri düzeltme önerme.
 - Yalnız düz bir listede (ör. `[production]`) ya da hiç yoksa: `getent hosts <ad>` → IP ile tekrar; yine yoksa §2.

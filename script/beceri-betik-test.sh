@@ -617,6 +617,20 @@ E
 python3 "$B/k8s-sorun/k8s-ozet.py" - < k8sq2.json > ko3.txt 2>&1
 icerir "etcd: çoğunluk yok" ko3.txt "ÇOĞUNLUK YOK"
 
+# --------------------------------------------------------------------------- kume-bul platform(küme)
+baslik "kume-bul.py platform(küme) (G130)"
+mkdir -p g130/ansible/inventories
+printf '[rke-nonprod]\nornekrancher1\n[rke-nonprod-test]\nornekmas[01:03]\n[rke-nonprod-dev]\nornekdevmas01\n' > g130/ansible/inventories/hosts-k8s.ini
+printf '[rancher_x_uat]\nornekuat1\n[rancher_x_uat:vars]\nrancher_url=https://rke-prod.ornek.local\nrancher_kume_adi=uat\n' > g130/ansible/inventories/rancher-x.ini
+kb130() { (cd g130 && python3 "$B/kume-bul/kume-bul.py" "$1" > ../kb130.txt 2>&1; echo "cikis=$?" >> ../kb130.txt); }
+kb130 "rke-nonprod(test)"; icerir "platform(küme) doğru grup" kb130.txt "küme: [rke-nonprod-test]"
+kb130 "rke-nonprod (test)"; icerir "boşluklu yazım" kb130.txt "küme: [rke-nonprod-test]"
+kb130 "rke-nonprod/test"; icerir "bölü yazımı" kb130.txt "küme: [rke-nonprod-test]"
+kb130 "rke-prod(uat)"; icerir "haritadan platform+küme" kb130.txt "küme: [rancher_x_uat]"
+kb130 "rke-nonprod(uat)"; icerir "başka platformdaki küme yalnız ADAY" kb130.txt "ADAY (doğrula): [rancher_x_uat]"; icerir "aday → sor" kb130.txt "BELİRSİZ"
+kb130 "rke-nonprod(yok)"; icerir "yoksa platform yerine geçmez" kb130.txt "YERİNE geçmez"; icerir "yoksa çıkış 1" kb130.txt "cikis=1"
+kb130 "rke-nonprod"; icerir "aynı önekli gruplar uyarısı" kb130.txt "[rke-nonprod-dev] [rke-nonprod-test]"
+
 # --------------------------------------------------------------------------- gpu-dagilim
 baslik "gpu-dagilim.py (G51, G52, G59)"
 python3 - > gpu.json << 'E2'

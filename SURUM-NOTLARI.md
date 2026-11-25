@@ -6,17 +6,18 @@
 > içinde fonksiyon oldu. Aşağıdaki eski kayıtlarda geçen `alp-*`, `oc-*`, `01/02/03-*` ve önceki
 > `kur.sh` anlamları **tarihseldir** — o günkü durumu anlatır.
 
-## 2026-11-25 — Kontrol: modelin gördüğü dış beceriler (`dis-beceri` satırı); GPU ortam özeti talimatı
+## 2026-11-25 — `kume-bul` platform(küme) çözümü (G130); kontrolde kurum dışı beceri; `gpu-dagilim` imaj satırı (G129)
 
-Sahada: `al.sh` → `./kur.sh kontrol`. `dis-beceri` satırına bak, fotoğrafını Doktor'a gönder.
-- Neden: 2.x `~/.claude/skills`, `~/.agents/skills` ve çalışma dizinindeki `.claude`/`.agents` becerilerini de yükler
-  (`packages/core/src/config/plugin/compatibility.ts:84`); `permission.skill "*": "allow"` olduğu için model onları da açabilir. Doktor
-  sunucusunda ölçüldü: 14 Claude becerisi (deep-research, docx, chrome-browser …) opencode listesinde.
-- Temizse `beceri ✓ … · dis beceri yok` (ayrı satır yok, rapor bütçesi); varsa `dis-beceri ! … dis beceri (<kaynak>)` + `--ayrintili`'da adlar. `opencode debug skill`
-  çalışma kökünden (yoksa `$HOME`) çalışır, ~2 sn. Upstream hatası (ölçüldü, 2.3.2): `debug skill` boruya yazınca çıktı 128/192 KB'de
-  kesiliyor; dosyaya yönlendirilince tam → kontrol geçici dosya + geçici veri dizini kullanır (yoksa opencode.log kirlenir).
-- Henüz izin değişikliği YOK: dış beceri sahada görülürse `kur.sh` yalnız bizim becerilere `allow`, gerisine `deny` yazacak (Alp kararı).
-- `temp/gpu-ortam-ozet-20261126.md` (1 sayfa GPU ortam özeti) sahada uygulandı (G129) ve kaldırıldı. `gpu-dagilim.py` artık vLLM container'ını seçip `imaj=` basar (Run:ai/Knative pod'larında ilk container yan container olabiliyor).
+Sahada: `al.sh` → `./kur.sh`, **yeni oturum**. Deneme: "rke-nonprod(test) kümesinin sağlığını salt okunur kontrol et".
+- `kume-bul.py "rke-nonprod(test)"` (`platform (küme)`, `platform/küme`): `[platform-küme]` grubu ya da Rancher haritasındaki küme; aday
+  belirsizse sorar; yoksa platform grubunu kümenin yerine koymaz (çıkış 1). Düz ad sorgusunda aynı önekli diğer gruplar uyarı olarak basılır.
+- Kontrol: temizse `beceri ✓ … · dis beceri yok`; varsa `dis-beceri ! kurum disi N beceri yuklenir (<dizin>)` (`--ayrintili`'da adlar). 2.x
+  `~/.claude/skills`, `~/.agents/skills` ve çalışma dizininden köke `.claude/.agents/.opencode` becerilerini yükler (ilk dördü 2.x ikilisiyle
+  ölçüldü; `.opencode` ve üst dizinler koddan).
+  **Düzeltme:** `51ad4d79af`'teki ilk hâli `opencode debug skill` çağırıyordu; bu komut 2.x'te yok (ölçüm 1.0.0 ikilisiyle yapılmıştı) —
+  sahada hep "okunamadi" basardı. Artık opencode çalıştırılmaz, dizinler sayılır. O kayıttaki "boru 128/192 KB'de kesiliyor (2.3.2)"
+  ölçümü de 1.0.0'a aitti, 2.x için geçersiz. İzin değişikliği yok (Alp kararı).
+- `gpu-dagilim.py` vLLM container'ını seçip `imaj=` basar (ilk container yan container olabilir — tahmin, sahada doğrulanmadı).
 
 ## 2026-11-23 — Node/küme sağlık kontrolü: `node-durum`, `sar-ozet --son`, `kume-bul --kume`, etcd çoğunluğu (G128)
 

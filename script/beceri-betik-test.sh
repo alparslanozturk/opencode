@@ -639,12 +639,26 @@ print(json.dumps({"kind": "List", "items": [node,
     pod("vllm", "uyumsuz", 4, ["--tensor-parallel-size=2"], shm="20Gi"),
     pod("runai-inference", "kesirli", None, ["--max-model-len", "32768"], ann={"runai-allocated-gpus": "0.35"})]}))
 E2
+# G129: Run:ai/Knative çıkarım pod'u — ilk container yan container (queue-proxy), vLLM ikinci sırada
+python3 - "$PWD/gpu.json" << 'E2B'
+import json, sys
+d = json.load(open(sys.argv[1]))
+p = json.loads(json.dumps(d["items"][3]))
+p["metadata"]["name"] = "yancontainerli"
+v = p["spec"]["containers"][0]
+v.update({"name": "user-container", "image": "registry.ornek/vllm/vllm-openai:v0.17.1", "args": ["vllm", "serve", "--max-model-len", "262144"]})
+p["spec"]["containers"] = [{"name": "queue-proxy", "image": "registry.ornek/knative/queue:1.0", "args": ["--x"]}, v]
+d["items"].append(p)
+json.dump(d, open(sys.argv[1], "w"))
+E2B
 python3 "$B/rke2-gpu/gpu-dagilim.py" - < gpu.json > gd1.txt 2>&1
 icerir "çelişen bayrak" gd1.txt "çelişen bayrak: --enable-prefix-caching/--no-enable-prefix-caching"
 icerir "tp×pp ≠ GPU limiti" gd1.txt "tp×pp=2 ≠ GPU limiti 4"
 icerir "çok GPU'lu pod shm" gd1.txt "çok GPU'lu pod'da shm sizeLimit yok"
 icerir "Run:ai kesir pod adıyla" gd1.txt "runai-allocated-gpus=0.35"
-icerir "node toplamı (2+4+0.35)" gd1.txt "ayrılan 6.35"
+icerir "node toplamı (2+4+0.35+0.35)" gd1.txt "ayrılan 6.70"
+icerir "yan container: vLLM imajı (G129)" gd1.txt "imaj=registry.ornek/vllm/vllm-openai:v0.17.1 (container user-container, 2 container)"
+icerir "yan container: vLLM args okunur" gd1.txt "max-model-len=262144"
 
 # --------------------------------------------------------------------------- olay-penceresi
 baslik "olay-penceresi.py (G62-G65)"

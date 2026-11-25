@@ -16,7 +16,7 @@ Sahada: `al.sh` → `./kur.sh kontrol`. `dis-beceri` satırına bak, fotoğrafı
   çalışma kökünden (yoksa `$HOME`) çalışır, ~2 sn. Upstream hatası (ölçüldü, 2.3.2): `debug skill` boruya yazınca çıktı 128/192 KB'de
   kesiliyor; dosyaya yönlendirilince tam → kontrol geçici dosya + geçici veri dizini kullanır (yoksa opencode.log kirlenir).
 - Henüz izin değişikliği YOK: dış beceri sahada görülürse `kur.sh` yalnız bizim becerilere `allow`, gerisine `deny` yazacak (Alp kararı).
-- `temp/gpu-ortam-ozet-20261126.md`: Kubernetes + Run:ai + vLLM ortamının 1 sayfalık salt-okunur özeti (sahada "dosyadaki talimatı uygula").
+- `temp/gpu-ortam-ozet-20261126.md` (1 sayfa GPU ortam özeti) sahada uygulandı (G129) ve kaldırıldı. `gpu-dagilim.py` artık vLLM container'ını seçip `imaj=` basar (Run:ai/Knative pod'larında ilk container yan container olabiliyor).
 
 ## 2026-11-23 — Node/küme sağlık kontrolü: `node-durum`, `sar-ozet --son`, `kume-bul --kume`, etcd çoğunluğu (G128)
 

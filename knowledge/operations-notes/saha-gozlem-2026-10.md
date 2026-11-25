@@ -1723,3 +1723,18 @@ playbook'ları Alp tek tek söylüyor (Alp: bu bilinçli). Maskeleme: iç IP →
   çekirdek logları + K8s koşulları, erişilemeyen node modu), `sar-ozet.py --son/--bas` + disk/ağ/swap + tepe anları, `kume-bul k8s --kaydet
   --kume <ad>` (downstream node listesi → envanter), `k8s-ozet` etcd çoğunluğu, iş haritası (küme sağlık; "gpu" satırı küme adlarına
   takılmayacak biçimde daraltıldı). Sahada denenmedi (yerel + saha değerleriyle test).
+
+- **G129 (Alp, 2026-11-26, 5 ekran):** `temp/gpu-ortam-ozet-20261126.md` talimatıyla gpu-dtx salt-okunur ortam özeti. Ajan kümeyi buldu, hedef
+  teyidi sordu ("gpu-dtx — sdlgpumaster1 · 7 node · v1.33.13 · doğru mu?"), envanterde 1 node varken 7 node gördü → `kume-bul --kaydet`
+  (yerel dosya). Görülen: 3 master + 4 worker, RKE2 v1.33.13+rke2r1, tüm Ready; GPU yalnız sdlgpuh200w1 (8× H200, 2.2 TB, 256 CPU) —
+  worker1-3'te GPU yok (Alp). sdlgpuh200w1 RHEL 9.4 / 5.14.0-427, diğerleri 9.6 / 5.14.0-570. GPU Operator v25.3.4 (ClusterPolicy,
+  driver.enabled=false — sürücü host'ta 580.82.07), toolkit v1.17.8, device plugin v0.17.4, DCGM exporter 4.3.1. Run:ai engine v2.22.66 /
+  operator v3.33.16, nodepool h200-nonprod. `runai-inference` 6 pod: qwen3-4b 0.2, qwen3-14b 0.35, qwen3-32b-vlm 0.5, **qwen36-35b (opencode)
+  0.5 GPU / 75377 MiB, max-model-len 262144** (= opencode ctx ✅), qwen38-27b 1.0 GPU, triton-test 0.15; `vllm` namespace (deployment):
+  vllm-qwen3-235b 2 GPU tp=2 16384, vllm-qwen35-397b 3 GPU tp=1 pp=3 262144 (9 deployment, 7'si replicas=0). Dikkat: iki vllm pod'unda
+  `--enable-prefix-caching` + `--no-enable-prefix-caching` birlikte; qwen38-27b OOMKilled (bellek 10Gi, 262144 bağlam, 5 restart);
+  process-exporter 567 restart (master3, StartError exit 128); NFD worker 282–487 restart; Run:ai cluster-sync 159 restart; /dev/shm
+  sizeLimit yok (runai-inference). Okunamayan: Run:ai project/department CRD (yetki), vLLM imaj etiketleri (ajan `containers[0]`'a baktı —
+  yan container), sdlgpuworker1-3 GPU (cevap: yok). Ajan sonunda özeti talimat dosyasının ÜSTÜNE kaydetmeyi önerdi (Alp reddetti).
+  Aksiyon: `gpu-dagilim.py` vLLM container'ını seçer (vllm geçen → GPU limitli → ilk) ve `imaj=` basar (test +2); talimat dosyası kaldırıldı.
+  Açık: Run:ai proje/kota okuma yetkisi normal mi (Alp); prefix caching/OOM/restartlar DevOps'a (öneri, uygulanmadı).

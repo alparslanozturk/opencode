@@ -63,6 +63,19 @@ def args_coz(liste):
     return deger, celisen
 
 
+def ana_container(cler):
+    # Saha G129 (2026-11-26): Run:ai/Knative çıkarım pod'larında yan container'lar var (queue-proxy vb.); ilk container her zaman
+    # model sunucusu değil. Sıra: komut/args/imajında vllm geçen → GPU limiti olan → ilk.
+    for c in cler:
+        metin = " ".join([str(c.get("image") or "")] + [str(x) for x in (c.get("command") or []) + (c.get("args") or [])])
+        if "vllm" in metin.lower():
+            return c
+    for c in cler:
+        if gpu_say((c.get("resources") or {}).get("limits")):
+            return c
+    return cler[0] if cler else {}
+
+
 def main(argv):
     if argv and argv[0] in ("-h", "--help"):
         print(open(__file__, encoding="utf-8").read().split("import json")[0])
@@ -93,7 +106,8 @@ def main(argv):
         node = sp.get("nodeName", "-")
         if not limit and not runai:
             continue  # GPU istemeyen pod (GPU node'unda olsa da) — bu tablo GPU kullananlar
-        ana = (sp.get("containers") or [{}])[0]
+        ana = ana_container(sp.get("containers") or [])
+        imaj = ana.get("image") or "-"
         deger, celisen = args_coz((ana.get("command") or []) + (ana.get("args") or []))
         bellek = ((ana.get("resources") or {}).get("limits") or {}).get("memory", "-")
         shm = "-"
@@ -135,7 +149,7 @@ def main(argv):
                 gpu_node[node]["ayrilan"] += pay or 0
                 gpu_node[node]["pod"].append(md.get("name"))
         satirlar.append((node, md.get("namespace"), md.get("name"), st.get("phase"), limit, runai, sp.get("schedulerName", "-"),
-                         deger, bellek, shm, nccl, rs, son, uyari))
+                         deger, bellek, shm, nccl, rs, son, uyari, "%s (container %s, %d container)" % (imaj, ana.get("name", "?"), len(sp.get("containers") or []))))
 
     print("\n== GPU node'ları")
     for ad, g in sorted(gpu_node.items()):
@@ -143,11 +157,12 @@ def main(argv):
             ad, g["urun"], g["say"], g["kap"], g["ayr"], g["ayrilan"], len(g["pod"]),
             " · Run:ai rezervasyon %.0f GPU (kesirli pod'lar bunları paylaşır — toplamla çift sayma; nvidia-smi ile doğrula)" % g["rez"] if g["rez"] else ""))
     print("\n== GPU kullanan pod'lar (%d) — her satır TEK pod; değerleri başka pod'a taşıma" % len(satirlar))
-    for (node, ns, ad, faz, limit, runai, sch, d, bellek, shm, nccl, rs, son, uyari) in sorted(satirlar, key=lambda x: (x[0], x[1], x[2])):
+    for (node, ns, ad, faz, limit, runai, sch, d, bellek, shm, nccl, rs, son, uyari, imaj) in sorted(satirlar, key=lambda x: (x[0], x[1], x[2])):
         print("  %s/%s · node=%s · %s · restart=%d%s" % (ns, ad, node, faz, rs, (" · son: " + son) if son else ""))
         print("      GPU limiti=%s · Run:ai: %s · scheduler=%s" % (
             ("%g" % limit) if limit else "-", ", ".join("%s=%s" % (k.split("/")[-1], v) for k, v in sorted(runai.items())) or "-", sch))
         vl = ["%s=%s" % (k[2:], v) for k, v in d.items() if k in VLLM]
+        print("      imaj=%s" % imaj)
         print("      bellek limiti=%s · /dev/shm=%s%s" % (bellek, shm, (" · vLLM: " + " ".join(vl)) if vl else ""))
         if nccl:
             print("      env: " + " ".join(nccl))

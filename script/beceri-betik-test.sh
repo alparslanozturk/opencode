@@ -1303,6 +1303,12 @@ icerir "çıktı: ansible ping önerisi" ied10.txt "-m ping -o"
 (cd ied && python3 "$IE" kriz stlweb01 --erisim-yok > ../ied5.txt 2>&1)
 ls ied/is/[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-kriz/hosts.ini > /dev/null 2>&1 && gecti "CN'siz (kriz) → is/<YYYYMMDD>-kriz/hosts.ini (kendi dizininde)" || kaldi "kriz: $(head -2 ied5.txt)"
 ls ied/ansible/inventories/hosts-*-kriz.ini > /dev/null 2>&1 && kaldi "CN'siz envanter ana envanter dizinine yazıldı" || gecti "CN'siz: ana envanter dizinine yazılmaz"
+# kontrol türü (Alp 2026-11-27): yalnız okuma — envanter aynı düzende, değişiklik/playbook yolu basılmaz
+(cd ied && python3 "$IE" kontrol-idm stlweb01 --erisim-yok > ../ied5k.txt 2>&1)
+ls ied/is/[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-kontrol-idm/hosts.ini > /dev/null 2>&1 && gecti "kontrol → is/<gün>-kontrol-idm/hosts.ini" || kaldi "kontrol: $(head -2 ied5k.txt)"
+icerir "kontrol: yalnız okuma satırı" ied5k.txt "kontrol: YALNIZ OKUMA"
+icermez "kontrol: playbook/değişiklik yolu yok" ied5k.txt "ansible-playbook"
+icerir "kontrol: iş kaydı aynı etiket" ied5k.txt "ac kontrol-idm"
 (cd ied/dn/29000 && python3 "$IE" 29000 dtlweb01 dtlweb02 --erisim-yok > ../../../ied6.txt 2>&1)
 icerir "iş dizininin içinden çalıştırılınca kök aynı" ied6.txt "dn/29000/hosts.ini"
 [ ! -d ied/dn/29000/dn ] && gecti "iç içe dn/ açılmadı" || kaldi "iç içe dn/"

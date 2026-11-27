@@ -39,6 +39,9 @@ farklı ad"**; tek sorguda grup üyeleri ve `[grup:vars]` (gizli alanlar `***`);
 - **Küme adıyla sorgu** (ör. `KB ai-test`, saha G106): host yoksa betik grup adına ve kayıtlı haritadaki `rancher_kume_adi`'ya
   bakar, üyeleri + `:vars`'ı basar. Küme adı ancak §3 haritası kaydedildiyse ya da envanterde aynı adla bir grup varsa bulunur;
   yoksa "YOK" doğru cevaptır → §2/§3 (Rancher local master'ından `--kaydet`), elle grep/for döngüsü kurma.
+- **Platform** (Alp, 2026-11-27) = Rancher'ın kurulu olduğu upstream küme (admin küme; Rancher'daki adı `local`). Rancher oradan
+  downstream kümeleri yönetir (RKE2, AKS, EKS, GKE, Anthos … herhangi bir Kubernetes). "Platformun kümeleri" = downstream'ler;
+  platformun kendi node'ları ayrı bir küme sayılır.
 - **`platform(küme)`** (ör. `KB "rke-nonprod(test)"`, saha G130): tırnak içinde aynen ver; betik `[platform-küme]` grubunu ya da haritadaki
   `rancher_url` + `rancher_kume_adi` eşleşmesini basar. "ADAY"/"BELİRSİZ" → sor. "YOK" → platform grubu kümenin yerine geçmez. Düz ad
   sorgusunda "AYNI ÖNEKLE n GRUP DAHA VAR" uyarısı çıkarsa kullanıcının yazdığı ekle karşılaştır.

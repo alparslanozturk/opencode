@@ -17,7 +17,8 @@ Ansible ad-hoc bunu tek komutta, paralel ve makine okunur biçimde yapar.
 4. **Çıktı:** ekranda özet mi, tablo/CSV/rapor mu (`rapor` becerisi).
 
 Ölçülebileni sorma: kimin kapsandığı (`--list-hosts`), erişim, değerler — §1–§7 komutları ve `filo-tablo.py` / `erisim-blok.py` toplar.
-Bu beceri yalnız okur; değişiklik isteniyorsa "Sınır" bölümü.
+Sunucu listesi verilmiş kontrol işi ("bu sunucularda … kontrol edeceğiz"): önce `ansible/is-envanter.py kontrol-<ad> <liste>`
+→ `is/<gün>-kontrol-<ad>/hosts.ini`; aşağıdaki komutlar `-i` ile o envanterde. Bu beceri yalnız okur; değişiklik isteniyorsa "Sınır" bölümü.
 
 ## 1. Kimi kapsıyorsun — önce bunu gör
 

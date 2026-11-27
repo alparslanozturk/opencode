@@ -15,10 +15,10 @@
 #       dosya tamamlanır). CN yoksa <YYYYMMDD>-<etiket> (gün, saat yok; aynı ad varsa -2, -3 …). Tarihi/CN'yi etikete yazma.
 #   <komut> | is-kaydi.py ekle <kayıt> <ad>      → stdin'i okuma/<tarih-saat>-<ad>.txt olarak saklar
 #   is-kaydi.py sonuc <kayıt> "<satır>"          → sonuc.md'ye zaman damgalı satır ekler
-#   is-kaydi.py liste [<sözcük>…] [--tur cn|kriz|kurulum|bulgu|is] [--tarih YYYY-MM[-DD]]
+#   is-kaydi.py liste [<sözcük>…] [--tur cn|kriz|kurulum|bulgu|kontrol|is] [--tarih YYYY-MM[-DD]]
 #                                                → kayıtları listeler/arar: dizin adı + plan.md + README.md (notlar) + sonuc.md; eşleşen
 #                                                  satırı dosya:satır ile basar; birden çok sözcük = hepsi geçmeli. CN'siz işte tür
-#                                                  etiketin başından okunur (kriz-…, kurulum-…, bulgu-…; yoksa "is").
+#                                                  etiketin başından okunur (kriz-…, kurulum-…, bulgu-…, kontrol-…; yoksa "is").
 #   is-kaydi.py not <kayıt> "<bilgi>" [--kaynak <kaynak>] → işin README.md'sine "## Notlar" altına zaman damgalı satır EKLER (başka satıra
 #       dokunmaz). Uydurma yok (Alp, 2026-11-23): her not kaynaklı — --kaynak yoksa "Alp" (kullanıcının sözü, aynen); ölçüm için
 #       --kaynak "komut: <kısa komut>"; çıkarım için --kaynak tahmin (satır "tahmin:" ile başlar). Başka kaynak reddedilir (çıkış 2).
@@ -278,7 +278,7 @@ def not_ekle(arg, metin, kaynak="Alp"):
     return 0
 
 
-TURLER = ("kriz", "kurulum", "bulgu")
+TURLER = ("kriz", "kurulum", "bulgu", "kontrol")
 
 
 def kayit_bilgi(d):
@@ -303,7 +303,7 @@ def kayit_bilgi(d):
 
 
 def liste(argv):
-    """liste [<sözcük>…] [--tur cn|kriz|kurulum|bulgu|is] [--tarih YYYY-MM[-DD]] — ad, plan.md, README.md, sonuc.md içinde arar."""
+    """liste [<sözcük>…] [--tur cn|kriz|kurulum|bulgu|kontrol|is] [--tarih YYYY-MM[-DD]] — ad, plan.md, README.md, sonuc.md içinde arar."""
     tur_s = secenek(argv, "--tur", "").lower()
     tarih_s = secenek(argv, "--tarih", "")
     sozcukler = [x.lower() for i, x in enumerate(argv) if not x.startswith("--") and (i == 0 or argv[i - 1] not in ("--tur", "--tarih"))]

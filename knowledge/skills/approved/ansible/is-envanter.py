@@ -26,7 +26,8 @@ _spec.loader.exec_module(kb)
 IS_DIZIN = "is"  # CN'siz işler (Alp, 2026-11-23: "host dosyası her zaman kendi dizininde"): is/<YYYYMMDD>-<etiket>/hosts.ini
 ESKI_IS_DIZIN = os.path.join("ansible", "inventories")  # 2026-11-23 öncesi CN'siz iş envanterleri (hosts-<gün>-<etiket>.ini) — yalnız okunur
 DN_DIZIN = "dn"  # değişiklik numaralı işler: dn/<numara>/
-CNSIZ = ("kriz", "kurulum", "bulgu", "is")  # bulgu: denetim bulgusu kapatma (Alp, 2026-11-13 — CN yok, onay yok)
+CNSIZ = ("kriz", "kurulum", "bulgu", "kontrol", "is")  # bulgu: denetim bulgusu kapatma (Alp, 2026-11-13 — CN yok, onay yok)
+# kontrol (Alp, 2026-11-27): yalnız okuma işi (ör. "ssh erişimi / IdM kurulu mu") — envanter + iş kaydı aynı düzende, değişiklik YOK.
 # Ana envanter dizinindeki iş envanteri adı (tarihli kopya: hosts-20261022-dn29000.ini, hosts-20261112-kriz.ini) — kaynak sayılmaz.
 # Aynı desen kume-bul.py ve engine/plugins/lib/envanter.ts'te. dn/ zaten kaynak aranan dizinlerden değil.
 IS_DESEN = re.compile(r"^hosts-(?:.+-\d{8}(?:-\d{4})?|\d{8}(?:-\d{4})?-.+)\.ini$", re.I)
@@ -34,7 +35,7 @@ KULLANIM = """kullanım:
   is-envanter.py <ETIKET> <sunucu|kısa ad|IP|aralık|grup> ... [--ad <grup>] [--grup <iş grubu>] [--dosya <ana.ini>]... [--not "<metin>"]
   is-envanter.py <ETIKET> -            # sunucular stdin'den (yapıştırılan liste, serbest biçim; "DTL:" gibi başlıklar grup olur)
   is-envanter.py --liste               # iş envanterleri (dn/<numara>/ ve ansible/inventories/)
-ETIKET: değişiklik numarası (29000, dn29000, CHG0012345) ya da kriz | kurulum | bulgu | is (CN'siz iş).
+ETIKET: değişiklik numarası (29000, dn29000, CHG0012345) ya da kriz | kurulum | bulgu | kontrol | is (CN'siz iş).
 --ad:    sunucuları aynı hosts.ini içinde bu gruba koyar (ör. --ad stl → [stl]); önceki gruplar korunur.
 --yenile: var olan grubu farklı sunucularla değiştirir (kullanıcı istediyse).
 --grup:  tüm seçilen host'ları ayrıca bu gruba koyar (playbook "hosts: <grup>" için; tire → _).
@@ -360,7 +361,7 @@ def main(argv):
     etiket = kalan[0].strip()
     etiket = re.sub(r"^\d{8}(?:-\d{4})?-(?=.)", "", etiket)  # etikete yazılmış tarih yinelenmez (adı betik üretir)
     if not re.fullmatch(r"[A-Za-z0-9_-]{2,40}", etiket):
-        print("etiket geçersiz: %r — değişiklik numarası (29000, CHG0012345) ya da kriz/kurulum/is" % etiket)
+        print("etiket geçersiz: %r — değişiklik numarası (29000, CHG0012345) ya da kriz/kurulum/kontrol/is" % etiket)
         return 1
     tur = next((t for t in CNSIZ if etiket.lower() == t or etiket.lower().startswith(t + "-")), "")  # kriz, kriz-elektrik …
     cnsiz = bool(tur)
@@ -582,6 +583,13 @@ def main(argv):
     if calisma != cwd:
         print("çalışma dizini: %s (yollar buna göre)" % calisma)
     print("okuma (çok sunucu, tek komut — for … ssh döngüsü yazma): ansible all -i %s -m shell -a '<okuma>' -t cikti/filo/<etiket>" % yol)
+    if tur == "kontrol":  # Alp, 2026-11-27: kontrol = yalnız okuma; değişiklik yolu basılmaz
+        print("kontrol: YALNIZ OKUMA — sonuç tablosu: python3 %s cikti/filo/<etiket>" % os.path.normpath(os.path.join(BURASI, "..", "filo-kontrol", "filo-tablo.py")))
+        print("  değişiklik gerekirse YAPMA: bulguyu yaz, kullanıcıya sor (CN / kriz / kurulum ayrı iş, ayrı etiket)")
+        if is_dizin and not os.path.isfile(os.path.join(is_dizin, "logs", "plan.md")):
+            print("iş kaydı (README.md + logs/, aynı dizin): python3 %s ac %s --istek \"<kullanıcının cümlesi>\""
+                  % (os.path.normpath(os.path.join(BURASI, "..", "rapor", "is-kaydi.py")), etiket))
+        return 0
     print("değişiklik = playbook, ŞABLONDAN (ansible becerisi §1c): reboot → cp %s %s · diğer → sablon/iskelet.yaml; hosts: all, "
           "başka .ini yazma" % (os.path.join(BURASI, "sablon", "reboot.yaml"), pb.replace("<ad>", "reboot")) if is_dizin else
           "değişiklik = playbook (ansible becerisi §0): %s — dizinde hazırı varsa onu kullan, yoksa sıradaki numarayla yaz" % pb)

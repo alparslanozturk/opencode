@@ -145,7 +145,7 @@ En ağır hatalar ham çıktıyı kafadan tabloya/özete dökmekten çıktı (uy
 Bu işlerde betiği çalıştır, satırlarını **aynen** aktar; sayı/gün/süre hesaplama. Yol: `python3 /root/ai/opencode/knowledge/skills/approved/<beceri>/<betik>`,
 kullanım becerinin SKILL.md'sinde (önce beceriyi yükle):
 - sunucu/IP → hangi küme, Rancher'ın kümeleri, ingress, sertifika CN → `kume-bul/kume-bul.py`
-- değişiklik numarası + sunucu listesi → iş envanteri `dn/<numara>/hosts.ini` (CN'siz kriz/kurulum/bulgu: `is/<YYYYMMDD>-<etiket>/hosts.ini` — her iş kendi dizininde)
+- değişiklik numarası + sunucu listesi → iş envanteri `dn/<numara>/hosts.ini` (CN'siz kriz/kurulum/bulgu/kontrol: `is/<YYYYMMDD>-<etiket>/hosts.ini` — her iş kendi dizininde)
   → `ansible/is-envanter.py` (ana envanterden aynen türetir; elle INI yazma — `ansible` becerisi §0)
 - sertifika/ayar dosyasını sunuculara dağıtma → içerik playbook'a gömülü (`copy content:`) → `ansible/gomulu-dosya.py`
   (PEM/base64'ü kendin yazma — betik bayt bayt gömer, sha256 doğrular)
@@ -497,6 +497,11 @@ yazma; ölçemediğin sunucuyu "ölçülmedi" diye ayrı göster. Bilmediğin de
   **Kurulum, kriz ve bulgu işinde de aynı (Alp, 2026-11-23: "her kurulumda sunucular belli … ini dosyaları oluşturulacak … kriz
   anında da"):** sunucular belli olunca önce `is-envanter.py <tür>-<ad> <liste>` (ör. `kriz-elektrik`) → `is/<gün>-<etiket>/hosts.ini`; işi bu envanter
   ve `-l` ile yap, elle INI ya da `for … ssh` döngüsü yazma.
+- **İş türleri (Alp, 2026-11-27):** değişiklik (CN) · kriz · kurulum · bulgu · **kontrol**. Kontrol = sunucu listesi verilip yalnız
+  okunan iş ("ssh erişimi var mı, IdM kurulu mu"): `is-envanter.py kontrol-<ad> <liste>` → `ansible … -t cikti/filo/<etiket>` →
+  `filo-tablo.py`; iş kaydı aynı etiketle. Kontrolde değişiklik **yapılmaz** — gereken düzeltmeyi bulgu olarak yaz, kullanıcıya sor
+  (ayrı iş: CN/kriz/kurulum). Kontrol için "kriz" deme/önerme (kriz değişiklik yetkisi açar). "Kategori ekleyemem / izin motoru" deme
+  — tür etiketin başıdır (saha 2026-11-27).
 - **İş kaydı (Alp, 2026-11-03; dizin düzeni 2026-11-12):** değişiklik içeren her saha işinde kayıt aç — `K=/root/ai/opencode/knowledge/skills/approved/rapor/is-kaydi.py`;
   `python3 $K ac <işin kısa adı> --cn <numara> --sunucular … --istek "<kullanıcının sözü>"` → `dn/<numara>/README.md` + `logs/` (CN yoksa `--cn`
   yazma → `is/<YYYYMMDD>-<etiket>/` — CN'li işle aynı düzen; etiket türle başlar: `kriz-…`, `kurulum-…`, `bulgu-…`; `is-envanter.py` ile

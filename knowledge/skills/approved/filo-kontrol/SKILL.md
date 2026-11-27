@@ -73,6 +73,12 @@ python3 <filo-kontrol>/filo-tablo.py cikti/filo/kontrol
 - **ssh hatasının nedenini tahmin etme** (saha 2026-11-28: ajan "Not allowed at this time" için "FW/IDS" dedi, kanıtsız). Hata
   metnini **aynen** yaz; TCP 22 açık + karşıdan metin geliyorsa bağlantı sunucuya/araya ulaşıyor demektir — kaynağı (sshd ayarı, PAM,
   ağ cihazı) ölçülmeden "FW" deme, "neden bilinmiyor — sunucu sahibi/ağ ekibi bakmalı" de. FW talebini yalnız TCP 22 kapalıysa öner.
+- **`Not allowed at this time`** (TCP açık, banner yerine bu satır): OpenSSH ≥ 9.8 sshd'nin **PerSourcePenalties** reddidir — sunucu,
+  bizim kaynak IP'mizi (başarısız giriş, kimliksiz bağlantı, LoginGraceTime aşımı birikince) bir süre cezalı sayar; FW değil
+  (kaynak: OpenSSH srclimit.c; saha 2026-11-28, 6 sunucu). Yapılacak: **denemeyi kes** (her `nc`/ssh denemesi kimliksiz bağlantı
+  olarak cezayı uzatabilir), sonucu "sshd kaynak IP cezası — süre dolunca açılır" diye yaz; kalıcıysa sunucu sahibi `sshd -T | grep -i
+  penalt` ve `journalctl -u sshd | grep -i penalt` ile bakar, gerekiyorsa yönetim sunucusu `PerSourcePenaltyExemptList`'e girer
+  (sunucuda değişiklik — bu işte yapılmaz, kullanıcıya bildir). Erişim testi için `for … nc` döngüsü yazma — ansible ping çıktısı yeter.
 - `ipa_paket=var` + `ipa_yapilandirma=yok` → paket kurulu, `ipa-client-install` çalışmamış. `sssd` active değilse giriş yine olmaz.
 - `rhsm_kayit=var` → sertifika var (kayıtlı); hangi Satellite'a: `rhsm_sunucu`. Kaydın geçerliliği (iptal/süre) bu okumayla
   kesinleşmez — gerekirse tek sunucuda `subscription-manager status` (root ister).

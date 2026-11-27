@@ -46,6 +46,7 @@ aşağı** ara, ilk eşleşen satır → o kurumsal bilgi bölümüne bak → be
 | dns · ntp · chrony · dmz | 1 ağ · 2 DMZ | `rhel-yonetim` |
 | yavaş · yük · cpu · bellek · sar · performans | — | `rhel-performans` → `sar-ozet` |
 | hata · çöktü · log · olay saati · panic · hung | — | `rhel-sorun` → `olay-penceresi` |
+| sunucuları kontrol · bu sunucularda kontrol · kontrol edeceğim/edeceğiz (+ sunucu listesi) | — | önce `is-envanter.py kontrol-<ad> <liste>` (ilk adım, kontrol türü) → `filo-kontrol` §2a → `filo-tablo` |
 | çok sunucu · hepsinde · toplu kontrol | — | `filo-kontrol` → `filo-tablo` |
 | ansible · playbook · envanter · cn | 6 süreçler | `ansible` → `is-envanter`, `playbook-denetim` |
 | docker · compose · konteyner | 7 servis davranışı | `rhel-guncelleme` 1b (compose fotoğrafı) |

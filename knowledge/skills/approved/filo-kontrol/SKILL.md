@@ -59,6 +59,22 @@ değiştirildi" deme — `command` modülü her zaman böyle davranır.
 Gerçekten değişiklik yapıp yapmadığını anlamak için modüle bak, çıktı
 etiketine değil.
 
+## 2a. Hazır okuma: ssh + IdM istemcisi + Satellite kaydı (saha 2026-11-28)
+
+Sunucu listesiyle "ssh erişimi, ipa-client kurulu/yapılandırılmış mı, Satellite'a kayıtlı mı" sorusu — önce envanter
+(`is-envanter.py kontrol-<ad> <liste>`), sonra tek komut, sonra tablo. Root gerekmez (`-b` yok):
+
+```bash
+ansible all -i is/<gün>-kontrol-<ad>/hosts.ini -m shell -f 10 -T 10 -t cikti/filo/kontrol -a 'echo ipa_paket=$(rpm -q ipa-client >/dev/null 2>&1 && echo var || echo yok); echo ipa_yapilandirma=$(test -s /etc/ipa/default.conf && echo var || echo yok); echo ipa_alan=$(awk -F" *= *" "/^domain/{print \$2; exit}" /etc/ipa/default.conf 2>/dev/null); echo sssd=$(systemctl is-active sssd 2>/dev/null); echo rhsm_sunucu=$(awk -F" *= *" "/^hostname/{print \$2; exit}" /etc/rhsm/rhsm.conf 2>/dev/null); echo rhsm_kayit=$(test -s /etc/pki/consumer/cert.pem && echo var || echo yok)'
+python3 <filo-kontrol>/filo-tablo.py cikti/filo/kontrol
+```
+
+- **ssh erişimi** = sunucunun çıktısı geldi mi; gelmeyen/UNREACHABLE olan tabloda ayrı listelenir (giriş/sudo hatası mesajıyla).
+- `ipa_paket=var` + `ipa_yapilandirma=yok` → paket kurulu, `ipa-client-install` çalışmamış. `sssd` active değilse giriş yine olmaz.
+- `rhsm_kayit=var` → sertifika var (kayıtlı); hangi Satellite'a: `rhsm_sunucu`. Kaydın geçerliliği (iptal/süre) bu okumayla
+  kesinleşmez — gerekirse tek sunucuda `subscription-manager status` (root ister).
+- Eksikleri düzeltmek **değişikliktir** — bu işte yapma; tabloyu ver, kullanıcıya sor (`rhel-teslim`, `idm-kurulum`).
+
 ## 3. Paralellik — varsayılan 5, filo için az
 
 ```bash

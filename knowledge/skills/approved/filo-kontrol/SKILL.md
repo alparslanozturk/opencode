@@ -70,6 +70,9 @@ python3 <filo-kontrol>/filo-tablo.py cikti/filo/kontrol
 ```
 
 - **ssh erişimi** = sunucunun çıktısı geldi mi; gelmeyen/UNREACHABLE olan tabloda ayrı listelenir (giriş/sudo hatası mesajıyla).
+- **ssh hatasının nedenini tahmin etme** (saha 2026-11-28: ajan "Not allowed at this time" için "FW/IDS" dedi, kanıtsız). Hata
+  metnini **aynen** yaz; TCP 22 açık + karşıdan metin geliyorsa bağlantı sunucuya/araya ulaşıyor demektir — kaynağı (sshd ayarı, PAM,
+  ağ cihazı) ölçülmeden "FW" deme, "neden bilinmiyor — sunucu sahibi/ağ ekibi bakmalı" de. FW talebini yalnız TCP 22 kapalıysa öner.
 - `ipa_paket=var` + `ipa_yapilandirma=yok` → paket kurulu, `ipa-client-install` çalışmamış. `sssd` active değilse giriş yine olmaz.
 - `rhsm_kayit=var` → sertifika var (kayıtlı); hangi Satellite'a: `rhsm_sunucu`. Kaydın geçerliliği (iptal/süre) bu okumayla
   kesinleşmez — gerekirse tek sunucuda `subscription-manager status` (root ister).

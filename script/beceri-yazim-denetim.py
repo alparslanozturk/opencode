@@ -71,6 +71,7 @@ def main():
         if "## İş haritası" in t:
             harita = t.split("## İş haritası", 1)[1].split("\n## ", 1)[0]
     beceriler = sorted(d for d in os.listdir(ONAYLI) if os.path.isfile(os.path.join(ONAYLI, d, "SKILL.md")))
+    alanlar_cache = {}
     for b in beceriler:
         yol = os.path.join(ONAYLI, b, "SKILL.md")
         metin = oku(yol)
@@ -84,6 +85,7 @@ def main():
         if not re.match(r"^[a-z0-9]+(-[a-z0-9]+)*$", ad) or len(ad) > 64:
             hata.append("%s: name biçimi (1-64, a-z 0-9 tek tire)" % b)
         ack = alan.get("description", "")
+        alanlar_cache[b] = ack
         if not ack:
             hata.append("%s: description boş (opencode açıklamasız beceriyi modele göstermez)" % b)
         if len(ack) > 1024:
@@ -127,6 +129,15 @@ def main():
     for h in hata:
         print("HATA " + h)
     print("BECERI=%d HATA=%d" % (len(beceriler), len(hata)))
+    # ADR-0008: her istekte modele giden sabit yük (AGENTS.md + tüm description'lar) — izlenir, hedef: AGENTS ≤ 25 bin, açıklama ≤ 400/beceri
+    try:
+        ag = len(oku(os.path.join(KOK, "engine", "AGENTS.md")))
+    except OSError:
+        ag = 0
+    acik = [(len(alanlar_cache.get(b, "")), b) for b in beceriler]
+    uzun = sorted([x for x in acik if x[0] > 400], reverse=True)
+    print("BÜTÇE sabit bağlam: AGENTS.md %d bin karakter (hedef ≤ 25) · description toplam %d bin (%d beceri > 400 karakter%s)"
+          % (ag // 1000, sum(x[0] for x in acik) // 1000, len(uzun), "; en uzun: " + ", ".join("%s %d" % (b, n) for n, b in uzun[:3]) if uzun else ""))
     if bilgi_buyuk:
         print("BİLGİ gövdesi büyük (öneri < 20 bin karakter; bölünmeye aday): " + ", ".join(bilgi_buyuk))
     return 1 if hata else 0

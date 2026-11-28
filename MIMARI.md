@@ -10,6 +10,9 @@ ADR-0003 güncellemesi). **Ürün sürümü ayrı**: `kur.sh`'ın derlediği iki
 
 > **Motor ≠ Bilgi.** Motor (`engine/`) güncellenebilir; bilgi (`knowledge/`) kalıcıdır. Kurumsal değer bilgide birikir.
 
+> **Claude Code düzeyi (2026-11-28, durum: önerildi):** ölç (davranış testi) → kural koda → ince AGENTS (≤ 25 bin) →
+> kademeli beceri → upstream'e yakın — `knowledge/architecture/decisions/0008-claude-code-duzeyi.md`.
+
 > **Yeniden tasarım önerisi (2026-11-03, durum: önerildi):** oku → planla (iş paketi) → playbook'la değiştir → doğrula —
 > `knowledge/architecture/decisions/0007-oku-planla-playbookla-dogrula.md`. Kabul edilene kadar aşağıdaki yapı geçerli.
 

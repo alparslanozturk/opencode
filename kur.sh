@@ -1521,12 +1521,13 @@ kontrol_kurulum() {
   fi
 
   # 5b) Kurum dışı beceriler: 2.x, kendi dizinimiz dışında ~/.claude/skills, ~/.agents/skills ve çalışma dizininden köke kadar
-  # .claude/.agents/.opencode altındaki skills'i de yükler (core/src/config/discovery.ts; 2.x ikilisi + `serve` ile ölçüldü,
-  # 2026-11-25). opencode ÇALIŞTIRILMAZ, dizinler sayılır: `debug skill` 2.x'te yok, `api GET /api/skill` eklentiler yüklenmeden boş döner.
+  # .claude/.agents/.opencode altındaki skills'i de yükler (core/src/config/discovery.ts, config/plugin/skill.ts). İlk dördü 2.x
+  # ikilisi + `serve` ile ölçüldü (2026-11-25); .opencode, üst dizinler ve <ayar>/skill koddan (ölçülmedi). opencode ÇALIŞTIRILMAZ, dizinler sayılır: `debug skill` 2.x'te yok, `api GET /api/skill` eklentiler yüklenmeden boş döner.
   local bc_ek=" · dis beceri yok" bc_dizin bc_yol bc_kok bc_dis=0 bc_kaynak="" bc_ad="" bc_gor=" " bc_f
   bc_dizin="${OPS_CALISMA_KOK:-$HOME/ai/work/opencode}"
   [ -d "$bc_dizin" ] || bc_dizin="$HOME"
-  local -a bc_kokler=("$HOME/.claude/skills" "$HOME/.agents/skills")
+  bc_dizin="$(cd "$bc_dizin" 2> /dev/null && pwd -P)" || bc_dizin="$HOME" # göreli yol: dirname "." döngüsü olmasın
+  local -a bc_kokler=("$HOME/.claude/skills" "$HOME/.agents/skills" "$ayar_dizin/skill")
   bc_yol="$bc_dizin"
   while :; do
     bc_kokler+=("${bc_yol%/}/.claude/skills" "${bc_yol%/}/.agents/skills" "${bc_yol%/}/.opencode/skills" "${bc_yol%/}/.opencode/skill")
@@ -1583,7 +1584,7 @@ kontrol_kurulum() {
   if [ "$bc_dis" -gt 0 ]; then
     satir "dis-beceri" uyar "kurum disi $bc_dis beceri yuklenir ($bc_kaynak) — Doktor'a bildir"
     ayr "dis beceriler:$bc_ad"
-    sorun_kaydet "opencode kurum disi beceri yukluyor ($bc_kaynak)"
+    sorun_kaydet "opencode kurum disi beceri yukluyor ($bc_kaynak):$bc_ad"
   fi
   if [ -f "$ayar_dizin/AGENTS.md" ]; then
     satir "AGENTS" ok "kurulu: ~/.config/opencode/AGENTS.md"

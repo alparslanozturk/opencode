@@ -144,7 +144,27 @@ def duz(s):
 def platform_kume(q):
     """'platform(küme)' / 'platform/küme' → (platform, küme); değilse None."""
     m = re.match(r"^([^()/]+)\(([^()]+)\)$", q) or re.match(r"^([^()/]+)/([^()/]+)$", q)
-    return (m.group(1).strip(), m.group(2).strip()) if m else None
+    if not m or ip_mi(m.group(1).strip()) or m.group(2).strip().isdigit():  # 10.0.0.0/24 platform/küme değil
+        return None
+    return m.group(1).strip(), m.group(2).strip()
+
+
+def uyeler_ozyineli(anahtar, gruplar, cocuklar):
+    """Grubun üyeleri, :children alt grupları dahil (kume-bul k8s --kaydet haritası yalnız alt gruplardan oluşur)."""
+    out, gor, bak = [], set(), [anahtar]
+    while bak:
+        a = bak.pop(0)
+        if a in gor:
+            continue
+        gor.add(a)
+        out.extend(h for h in gruplar.get(a, []) if h not in out)
+        bak.extend((a[0], c) for c in sorted(cocuklar.get(a, ())))
+    return out
+
+
+def url_etiket(url):
+    """rancher_url → ilk DNS etiketi (tırnak, şema, port, yol atılır)."""
+    return duz(re.sub(r"^https?://", "", url.strip().strip("\"'")).split("/")[0].split(":")[0].split(".")[0])
 
 
 def grup_degeri(anahtar, grup_vars, ad):
@@ -208,21 +228,31 @@ def main(argv):
         ayni_ip = [k for k in kayitlar if k["ipler"] & ipler and k not in esles]
 
         print("\n== %s" % q)
+        if not esles and "(" in q:
+            # "mas01 (master)": parantez not olabilir — önce baştaki ad host mu bak
+            taban = q.split("(")[0]
+            esles = [k for k in kayitlar if k["ad"] == taban or k["kisa"] == taban.split(".")[0]]
+            if esles:
+                tur = "ad (parantez not sayıldı: %s)" % q[len(taban):]
+                for k in esles:
+                    ipler |= k["ipler"]
         pk = platform_kume(q) if not esles and not ip_mi(q) else None
         if pk:
             # Saha G130 (2026-11-25): "rke-nonprod(test)" soruldu, ajan yalnız [rke-nonprod] grubuna (Rancher'ın kendi kümesi, 3/3 Ready)
             # baktı; [rke-nonprod-test] (18 node, bir master NotReady) hiç açılmadı. Platform adı tek başına asla cevap sayılmaz.
             pf, km = duz(pk[0]), duz(pk[1])
-            tum = set(gruplar) | set(grup_vars)
-            kesin = sorted(a for a in tum if duz(a[1]) == pf + "-" + km or (
-                duz(grup_degeri(a, grup_vars, "rancher_kume_adi")) == km and
-                re.sub(r"^https?://", "", grup_degeri(a, grup_vars, "rancher_url")).split("/")[0].split(".")[0] == pf))
-            aday = kesin or sorted(a for a in tum if duz(a[1]) == km or duz(a[1]).endswith("-" + km) or
-                                   km == duz(grup_degeri(a, grup_vars, "rancher_kume_adi")) or
-                                   km == duz(grup_degeri(a, grup_vars, "k8s_kume")))
+            tum = set(gruplar) | set(grup_vars) | set(cocuklar)
+            deger = lambda a, ad: duz(grup_degeri(a, grup_vars, ad).strip("\"'"))
+            if not pf or not km:  # ASCII dışı ad duz() ile boşalır — boş değer her grupla "eşleşmesin"
+                kesin = aday = []
+            else:
+                kesin = sorted(a for a in tum if duz(a[1]) == pf + "-" + km or (
+                    deger(a, "rancher_kume_adi") == km and url_etiket(grup_degeri(a, grup_vars, "rancher_url")) == pf))
+                aday = kesin or sorted(a for a in tum if duz(a[1]) == km or duz(a[1]).endswith("-" + km) or
+                                       km == deger(a, "rancher_kume_adi") or km == deger(a, "k8s_kume"))
             print("  okunuş: platform=%s · küme=%s" % pk)
             for a in aday:
-                uye = gruplar.get(a, [])
+                uye = uyeler_ozyineli(a, gruplar, cocuklar)
                 print("  %s: [%s] %s · üyeler (%d): %s%s" % ("küme" if kesin else "ADAY (doğrula)", a[1], os.path.relpath(a[0]),
                                                           len(uye), " ".join(uye[:30]), " …" if len(uye) > 30 else ""))
                 kapsama.setdefault(a, set()).add(q)
@@ -263,6 +293,10 @@ def main(argv):
                 continue
         if not esles:
             bulunamayan.append(q)
+            benzer = sorted({a[1] for a in set(gruplar) | set(grup_vars) | set(cocuklar) if duz(q) and duz(a[1]).startswith(duz(q) + "-")})
+            if benzer:
+                print("  ⚠ bu adla grup yok ama AYNI ÖNEKLE %d GRUP VAR: %s — hangisi olduğunu sor: kume-bul.py \"%s(<küme>)\"" % (
+                    len(benzer), " ".join("[%s]" % b for b in benzer[:20]), q))
             print("  envanterde YOK (ad, kısa ad, ansible_host, grup/küme adı). Sonraki adım: getent hosts %s → IP ile yeniden çalıştır;" % q)
             print("  yine yoksa canlı yol (SKILL.md §2: master'dan kubectl JSON → kume-bul.py k8s).")
             continue

@@ -1470,6 +1470,32 @@ while read -r durum ad _; do
 done < dv.txt
 grep -q "Traceback" dv.txt && kaldi "davranis-test.py yüklenemedi: $(tail -1 dv.txt)"
 
+baslik "kume-bul.py inceleme düzeltmeleri (2026-11-28: alt gruplu küme, parantez not, ASCII dışı, tırnaklı url, CIDR)"
+mkdir -p kbi/ansible && cat > kbi/ansible/hosts.ini <<'INI'
+[rke-nonprod]
+rnp01
+[test_master]
+mas01
+[test_worker]
+wrk01
+wrk02
+[rke-nonprod-test:children]
+test_master
+test_worker
+[g]
+x01
+[g:vars]
+rancher_url="https://rke-prod.ornek.local:8443"
+rancher_kume_adi="uat"
+INI
+kbq() { (cd kbi && python3 -I "$KOK/knowledge/skills/approved/kume-bul/kume-bul.py" "$@" 2>&1); }
+kbq "rke-nonprod(test)" > kbi1.txt; icerir "kume-bul: alt gruplu küme + üyeler" kbi1.txt "küme: [rke-nonprod-test] ansible/hosts.ini · üyeler (3)"
+kbq "mas01 (master)" > kbi2.txt; icerir "kume-bul: parantez not host" kbi2.txt "ad=mas01  grup=[test_master]"
+kbq "rke-nonprod(ğ)" > kbi3.txt; icerir "kume-bul: ASCII dışı ad aday üretmez" kbi3.txt "envanterde YOK"
+kbq "rke-prod(uat)" > kbi4.txt; icerir "kume-bul: tırnaklı/portlu rancher_url" kbi4.txt "küme: [g]"
+kbq "10.0.0.0/24" > kbi5.txt; icerir "kume-bul: CIDR platform sayılmaz" kbi5.txt "getent hosts 10.0.0.0/24"
+kbq "rke" > kbi6.txt; icerir "kume-bul: bulunamayınca aynı önek uyarısı" kbi6.txt "AYNI ÖNEKLE"
+
 # Gövdesi büyük beceriler — bilgi, testi düşürmez. ("Önce sor" 2026-11-11'de 46/46 oldu → script/beceri-yazim-denetim.py'de zorunlu.)
 printf '\n'; grep '^BİLGİ' yazim.txt
 printf '\nSonuç: %d geçti · %d kaldı\n' "$GECEN" "$KALAN"

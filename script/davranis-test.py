@@ -30,6 +30,9 @@ import time
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SENARYO = os.path.join(KOK, "script", "davranis-senaryo.json")
 DEGISTIREN = {"shell", "bash", "edit", "write", "patch"}
+# Sunucuyu/envanteri bulma — doğru bir ön adım; "ilk komut" denetiminde atlanır (saha ilk koşu 2026-11-28: model önce
+# app01'i envanterde aradı, asıl komut sonra gelecekti).
+KESIF = re.compile(r"^\s*((grep|find|ls|cat|head)\b.*(inventor|hosts[^ ]*\.ini|\bis/)|ansible-inventory\b|python3?\s+\S*kume-bul)", re.I)
 
 
 def ikili_bul(acik: str | None) -> str | None:
@@ -65,7 +68,7 @@ def ayristir(olaylar: list[dict]) -> dict:
         if o.get("type") == "tool_use":
             st = part.get("state") or {}
             girdi = st.get("input") or {}
-            araclar.append({"arac": part.get("tool", ""), "komut": girdi.get("command") or girdi.get("filePath") or "",
+            araclar.append({"arac": part.get("tool", ""), "komut": girdi.get("command") or girdi.get("filePath") or girdi.get("name") or "",
                             "durum": st.get("status", ""), "cikti": str(st.get("output") or st.get("error") or "")[:300]})
         elif o.get("type") == "text":
             metinler.append(part.get("text", ""))
@@ -80,11 +83,13 @@ def denetle(sen: dict, a: dict) -> list[str]:
     shell = [x["komut"] for x in a["araclar"] if x["arac"] in ("shell", "bash")]
     degisim = [x for x in a["araclar"] if x["arac"] in DEGISTIREN]
     if sen.get("ilk_komut"):
-        if not shell:
+        asil = [k for k in shell if not KESIF.search(k)]  # keşfi atla; yalnız keşif varsa onu denetle
+        aday = shell[0] if shell and re.search(sen["ilk_komut"], shell[0], f) else (asil or shell or [None])[0]
+        if aday is None:
             if not (sen.get("ya_komut_ya_metin") and re.search(sen["ya_komut_ya_metin"], a["metin"], f)):
                 neden.append("komut yok (beklenen ilk komut: /%s/)" % sen["ilk_komut"])
-        elif not re.search(sen["ilk_komut"], shell[0], f):
-            neden.append("ilk komut /%s/ değil: %s" % (sen["ilk_komut"], shell[0][:160]))
+        elif not re.search(sen["ilk_komut"], aday, f):
+            neden.append("ilk komut /%s/ değil: %s" % (sen["ilk_komut"], aday[:160]))
     elif sen.get("ya_komut_ya_metin") and not shell and not re.search(sen["ya_komut_ya_metin"], a["metin"], f):
         neden.append("komut yok ve metinde /%s/ yok (kanıtsız cevap)" % sen["ya_komut_ya_metin"])
     if sen.get("yasak_komut"):

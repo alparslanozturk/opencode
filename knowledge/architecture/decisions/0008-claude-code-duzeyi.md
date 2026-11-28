@@ -15,6 +15,7 @@
 | Gövdesi > 20 bin karakter beceri | 5 (rke2-edr 27, ansible 25, rhel-guncelleme 22 …) | aynı |
 | Oturum açılışında bağlam | ~33,7K token (%13), iş başlamadan | saha ekranı 2026-11-27 |
 | Modelin davranışını ölçen test | **yok** — testler betik (490) + kilit (386) | `script/` |
+| **İlk davranış ölçümü** (saha, 2026-11-28, Qwen3.6-35B-A3B) | **10/15 geçti** · ilk adım girdi **~60,7K token** (sistem + AGENTS + açıklamalar + araç tanımları) | `./kur.sh davranis` |
 
 Gözlem: aynı gün iki kural ihlali, ikisinin kuralı da AGENTS.md'de yazılıydı ("for … ssh döngüsü yazma", "tahmini olgu gibi
 sunma" → "Not allowed at this time" için "firewall" dedi). Sahadaki model MoE (35B, adım başına ~3B etkin); uzun kural metni
@@ -57,7 +58,7 @@ MobaXterm'in bu terminal pano isteğini (OSC 52) destekleyip desteklemediği **�
 
 | Faz | İş | Kabul ölçütü |
 |---|---|---|
-| 0 ✅ | BÜTÇE satırı · `script/davranis-test.py` + `davranis-senaryo.json` (15 genel senaryo) · eklentide kuru kip (`OPS_DAVRANIS_KURU=1`) · `./kur.sh davranis` | öz-test (kuru kip engelliyor; ters deneme kalıyor) + denetim birim testi 21/21 burada; **sahada ilk sayı alınacak** |
+| 0 ✅ | BÜTÇE satırı · `script/davranis-test.py` + `davranis-senaryo.json` (15 genel senaryo) · eklentide kuru kip (`OPS_DAVRANIS_KURU=1`) · `./kur.sh davranis` | öz-test (kuru kip engelliyor; ters deneme kalıyor) + denetim birim testi 21/21 burada; sahada ilk sayı: **10/15, 60,7K token** (kalanlar: 3'ü testin katılığı — model önce sunucuyu envanterde aradı → keşif adımı artık atlanıyor; 2'si metin cevabı, ayrıntı bekleniyor) |
 | 1 | Beceri standardı: şablon + denetimde açıklama ≤ 400 uyarısı; 5 büyük beceri ek dosyalara bölünür | açıklama toplamı < 18 bin; davranış sayısı düşmez |
 | 2 | AGENTS.md sadeleştirme (60 → ≤ 25 bin) | davranış sayısı düşmez, açılış bağlamı ölçülür |
 | 3 | Kuralları eklentiye taşı (döngü, envanter ipucu) | ilgili senaryolar metinden bağımsız geçer |

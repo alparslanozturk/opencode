@@ -82,6 +82,7 @@ export function arac1x(tool: string, input: unknown): { tool: string; args: Reco
 
 // Bu araçlar çalışmadan önce permission.assert çağırır (core tool/plugin/{shell,edit,write,patch}.ts).
 const IZIN_SORAN = new Set(["shell", "edit", "write", "patch"])
+let kuruSayac = 0 // ADR-0008 kuru kip: süreç başına çağrı sayısı (davranış testinde her senaryo ayrı süreç)
 
 const modelAdi = (m: unknown) => {
   if (typeof m !== "object" || m === null) return undefined
@@ -211,8 +212,15 @@ export async function guvenlikKur(ctx: Baglam) {
     ctx.tool.hook("execute.before", async (e) => {
       // ADR-0008 davranış testi (script/davranis-test.py): kuru kip — değişiklik/komut aracı ÇALIŞMAZ, yalnız niyet
       // JSON akışında görünür. Okuma araçları (read/grep/glob/skill) çalışır. Sahada gerçek modelle güvenle koşsun diye.
-      if (process.env.OPS_DAVRANIS_KURU === "1" && IZIN_SORAN.has(e.tool))
-        throw new Error("DAVRANIŞ TESTİ (kuru kip): çağrı kaydedildi, ÇALIŞTIRILMADI — çıktı yok. Sonuç uydurma; ne yapacağını tek cümleyle söyle ve dur.")
+      // İlk 3 çağrıdan sonra model devam edebilir (ilk adım çoğu kez sunucuyu envanterde aramak — asıl komut sonra gelir).
+      if (process.env.OPS_DAVRANIS_KURU === "1" && IZIN_SORAN.has(e.tool)) {
+        kuruSayac++
+        throw new Error(
+          kuruSayac < 3
+            ? "DAVRANIŞ TESTİ (kuru kip): çağrı kaydedildi, ÇALIŞTIRILMADI — çıktı yok. Sonuç uydurma. Bu çağrı arama idiyse sunucunun envanterde olduğunu varsay ve sıradaki komutunu çağır; değilse ne yapacağını tek cümleyle söyle ve dur."
+            : "DAVRANIŞ TESTİ (kuru kip): çağrı kaydedildi, ÇALIŞTIRILMADI. Sınır doldu; ne yapacağını tek cümleyle söyle ve dur.",
+        )
+      }
       const { tool, args } = arac1x(e.tool, e.input)
       const target = deriveTarget(args)
       const argsHash = sha256(JSON.stringify(e.input ?? {}))

@@ -2402,6 +2402,7 @@ Alt komutlar:
   kur        gerekirse derler, kurar, kisayolu duzeltir, sonda kontrol ekranini basar
   derle      yalniz kaynaktan derler (kurulum/kisayol yok)  [--bin-kopyala | --kurulum-yok]
   kontrol    yalniz kontrol/teshis raporu (salt okunur: kurulum + kurum AI ucu)
+  davranis   modelin davranis testi (kuru kip: komut calismaz; --ad <x>, --tekrar <n>, --ayrintili)
   yardim     bu ekran  (-h | --help)
 
 Secenekler (kur/varsayilan akista kontrol asamasina aktarilir):
@@ -2423,6 +2424,11 @@ YARDIM
 }
 
 ana() {
+  # ADR-0008: davranış testi — kurulu opencode + gerçek model, KURU kip (komut çalışmaz). Bayraklar betiğe aynen gider.
+  if [ "${1:-}" = "davranis" ]; then
+    shift
+    exec python3 -I "$KOK/script/davranis-test.py" "$@"
+  fi
   while [ $# -gt 0 ]; do
     case "$1" in
       kur | derle | kontrol)

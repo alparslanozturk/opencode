@@ -1,7 +1,7 @@
 # ADR-0008: Claude Code düzeyi — ölç, ince çekirdek, kademeli beceri, upstream'e yakın
 
 - **Tarih:** 2026-11-28
-- **Durum:** önerildi (Alp onayı bekliyor; Faz 0'ın ölçüm satırı uygulandı)
+- **Durum:** kabul edildi (Alp, 2026-11-28: "5 ilke güzel, çalışmalara başlayalım"); Faz 0 uygulandı
 - **Bağlam:** Alp (2026-11-28): "amaç genel anlamda opencode ve modelinin kanıta dayalı çalışması, en optimum çalışma,
   upstream ile ilerleyebilmesi, becerilerin güzel olması ve en önemlisi Claude Code kadar kaliteli ve yetenekli olması …
   bu eksikleri bir mimari ile oluşturmak". Saha-özel işlere takılmadan genel çözüm.
@@ -57,7 +57,7 @@ MobaXterm'in bu terminal pano isteğini (OSC 52) destekleyip desteklemediği **�
 
 | Faz | İş | Kabul ölçütü |
 |---|---|---|
-| 0 | BÜTÇE satırı (yapıldı) · davranış testi iskeleti + ilk 15 senaryo (genel: kanıt, envanter, döngü, onay, salt-okuma) | iskelet burada sahte uçla koşar; sahada ilk sayı alınır |
+| 0 ✅ | BÜTÇE satırı · `script/davranis-test.py` + `davranis-senaryo.json` (15 genel senaryo) · eklentide kuru kip (`OPS_DAVRANIS_KURU=1`) · `./kur.sh davranis` | öz-test (kuru kip engelliyor; ters deneme kalıyor) + denetim birim testi 21/21 burada; **sahada ilk sayı alınacak** |
 | 1 | Beceri standardı: şablon + denetimde açıklama ≤ 400 uyarısı; 5 büyük beceri ek dosyalara bölünür | açıklama toplamı < 18 bin; davranış sayısı düşmez |
 | 2 | AGENTS.md sadeleştirme (60 → ≤ 25 bin) | davranış sayısı düşmez, açılış bağlamı ölçülür |
 | 3 | Kuralları eklentiye taşı (döngü, envanter ipucu) | ilgili senaryolar metinden bağımsız geçer |

@@ -209,6 +209,10 @@ export async function guvenlikKur(ctx: Baglam) {
     }),
 
     ctx.tool.hook("execute.before", async (e) => {
+      // ADR-0008 davranış testi (script/davranis-test.py): kuru kip — değişiklik/komut aracı ÇALIŞMAZ, yalnız niyet
+      // JSON akışında görünür. Okuma araçları (read/grep/glob/skill) çalışır. Sahada gerçek modelle güvenle koşsun diye.
+      if (process.env.OPS_DAVRANIS_KURU === "1" && IZIN_SORAN.has(e.tool))
+        throw new Error("DAVRANIŞ TESTİ (kuru kip): çağrı kaydedildi, ÇALIŞTIRILMADI — çıktı yok. Sonuç uydurma; ne yapacağını tek cümleyle söyle ve dur.")
       const { tool, args } = arac1x(e.tool, e.input)
       const target = deriveTarget(args)
       const argsHash = sha256(JSON.stringify(e.input ?? {}))

@@ -49,7 +49,8 @@
     {
       "ad": "olay-penceresi",
       "istem": "app02 bu sabah 09:10 civarında kendiliğinden yeniden başladı, loglara bak ne oldu",
-      "ilk_komut": "olay-penceresi\\.py|journalctl|last\\b"
+      "ilk_komut": "olay-penceresi\\.py|journalctl|last\\b|inventor|kume-bul",
+      "_not": "ilk adım sunucuyu envanterde bulmak da doğru (kuru kipte ilk komuttan sonra durur)"
     },
     {
       "ad": "sadece-metin-kontrol",

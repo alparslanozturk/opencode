@@ -201,6 +201,8 @@ def main() -> int:
                 if g.ayrintili:
                     for x in a["araclar"]:
                         print("      %s: %s" % (x["arac"], x["komut"][:160]))
+                    if a["metin"].strip():
+                        print("      metin: %s" % " ".join(a["metin"].split())[:300])
             ok = sum(1 for n in sonuc if not n)
             etiket = "GECTI" if ok == len(sonuc) else ("KISMI" if ok else "KALDI")
             print("  %-5s %-26s %d/%d%s" % (etiket, sen["ad"], ok, len(sonuc),

@@ -43,22 +43,52 @@ def ikili_bul(acik: str | None) -> str | None:
     return None
 
 
+AZAMI_ARAC = 8  # sert sınır: bu kadar araç çağrısından sonra koşu kesilir (kuru kipte "dur" metni yalnız öğüttür)
+
+
 def kos(ikili: str, istem: str, env: dict, cwd: str, zaman: int) -> tuple[list[dict], str]:
-    """→ (olaylar, hata metni). Olay: JSON satırı."""
-    try:
-        p = subprocess.run([ikili, "run", "--standalone", "--format", "json", istem], cwd=cwd, env=env,
-                           capture_output=True, text=True, timeout=zaman)
-    except subprocess.TimeoutExpired as h:
-        cikti = h.stdout.decode() if isinstance(h.stdout, bytes) else (h.stdout or "")
-        return [json.loads(s) for s in cikti.splitlines() if s.startswith("{")], "zaman aşımı (%d sn)" % zaman
-    olaylar = []
-    for s in p.stdout.splitlines():
-        if s.startswith("{"):
+    """→ (olaylar, hata metni). Olay: JSON satırı. Hata: zaman aşımı, sıfır olmayan çıkış, ya da akıştaki error olayı."""
+    import selectors
+    p = subprocess.Popen([ikili, "run", "--standalone", "--format", "json", istem], cwd=cwd, env=env,
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    olaylar, hata, son = [], "", time.time() + zaman
+    sec = selectors.DefaultSelector()
+    sec.register(p.stdout, selectors.EVENT_READ)
+    while True:
+        kalan = son - time.time()
+        if kalan <= 0:
+            hata = "zaman aşımı (%d sn)" % zaman
+            break
+        if not sec.select(timeout=min(kalan, 5)):
+            if p.poll() is not None:
+                break
+            continue
+        satir = p.stdout.readline()
+        if not satir:
+            break
+        if satir.startswith("{"):
             try:
-                olaylar.append(json.loads(s))
+                olaylar.append(json.loads(satir))
             except ValueError:
-                pass
-    return olaylar, "" if olaylar else (p.stderr.strip().splitlines() or ["çıktı yok"])[-1][:200]
+                continue
+        if sum(1 for o in olaylar if o.get("type") == "tool_use") > AZAMI_ARAC:
+            hata = "araç çağrısı sınırı aşıldı (> %d) — model durmadı" % AZAMI_ARAC
+            break
+    if p.poll() is None:
+        p.kill()
+    try:
+        _, err = p.communicate(timeout=10)
+    except subprocess.TimeoutExpired:
+        err = ""
+    hatalar = [o for o in olaylar if o.get("type") == "error"]
+    if not hata and hatalar:
+        h = hatalar[0].get("error") or hatalar[0]
+        hata = "opencode hata olayı: %s" % json.dumps(h, ensure_ascii=False)[:200]
+    if not hata and p.returncode not in (0, None):
+        hata = "opencode çıkış %s: %s" % (p.returncode, ((err or "").strip().splitlines() or ["?"])[-1][:200])
+    if not hata and not olaylar:
+        hata = "çıktı yok"
+    return olaylar, hata
 
 
 def ayristir(olaylar: list[dict]) -> dict:
@@ -74,7 +104,8 @@ def ayristir(olaylar: list[dict]) -> dict:
             metinler.append(part.get("text", ""))
         elif o.get("type") == "step_finish" and ilk_girdi is None:
             ilk_girdi = ((part.get("tokens") or {}).get("input")) or None
-    return {"araclar": araclar, "metin": "\n".join(metinler), "ilk_girdi": ilk_girdi}
+    return {"araclar": araclar, "metin": "\n".join(metinler), "ilk_girdi": ilk_girdi,
+            "kod_kipi": any(x["arac"] == "execute" for x in araclar)}
 
 
 def denetle(sen: dict, a: dict) -> list[str]:
@@ -84,7 +115,7 @@ def denetle(sen: dict, a: dict) -> list[str]:
     degisim = [x for x in a["araclar"] if x["arac"] in DEGISTIREN]
     if sen.get("ilk_komut"):
         asil = [k for k in shell if not KESIF.search(k)]  # keşfi atla; yalnız keşif varsa onu denetle
-        aday = shell[0] if shell and re.search(sen["ilk_komut"], shell[0], f) else (asil or shell or [None])[0]
+        aday = (asil or shell or [None])[0]
         if aday is None:
             if not (sen.get("ya_komut_ya_metin") and re.search(sen["ya_komut_ya_metin"], a["metin"], f)):
                 neden.append("komut yok (beklenen ilk komut: /%s/)" % sen["ilk_komut"])
@@ -109,8 +140,11 @@ def denetle(sen: dict, a: dict) -> list[str]:
 
 
 def ortam(veri: str) -> dict:
+    """Denetim kaydı (hash zincirli) ve yetki dosyaları GEÇİCİ dizine: test istemindeki sahte CN gerçek kayda girmesin."""
     env = dict(os.environ)
-    env.update({"OPS_DAVRANIS_KURU": "1", "XDG_DATA_HOME": veri, "OPENCODE_DISABLE_AUTOUPDATE": "1"})
+    env.update({"OPS_DAVRANIS_KURU": "1", "XDG_DATA_HOME": veri, "OPENCODE_DISABLE_AUTOUPDATE": "1",
+                "OPS_AGENT_AUDIT_LOG": os.path.join(veri, "denetim", "audit.jsonl"),
+                "OPS_AGENT_YETKI_DIZINI": os.path.join(veri, "denetim", "yetki")})
     return env
 
 
@@ -199,7 +233,9 @@ def main() -> int:
                 a = ayristir(olaylar)
                 if a["ilk_girdi"]:
                     girdiler.append(a["ilk_girdi"])
-                neden = (["koşu: " + hata] if hata and not olaylar else []) + denetle(sen, a)
+                neden = (["koşu: " + hata] if hata else []) + (
+                    ["kod kipi (full_codemode) açık — komutlar 'execute' içinde, denetlenemez; kapatıp koş"] if a["kod_kipi"] else []
+                ) + denetle(sen, a)
                 sonuc.append(neden)
                 toplam += 1
                 gecen += not neden

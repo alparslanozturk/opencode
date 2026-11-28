@@ -236,6 +236,7 @@ def main(argv):
                 tur = "ad (parantez not sayıldı: %s)" % q[len(taban):]
                 for k in esles:
                     ipler |= k["ipler"]
+                ayni_ip = [k for k in kayitlar if k["ipler"] & ipler and k not in esles]
         pk = platform_kume(q) if not esles and not ip_mi(q) else None
         if pk:
             # Saha G130 (2026-11-25): "rke-nonprod(test)" soruldu, ajan yalnız [rke-nonprod] grubuna (Rancher'ın kendi kümesi, 3/3 Ready)
@@ -267,12 +268,12 @@ def main(argv):
         if not esles and not ip_mi(q):
             # küme/grup adı sorgusu (ör. "ai-test"): grup adı ya da kaydedilmiş Rancher haritasında rancher_kume_adi
             gq = re.sub(r"[^a-z0-9_]+", "_", q).strip("_")
-            kume = sorted({a for a in gruplar if a[1] in (q, gq)} | {
+            kume = sorted({a for a in set(gruplar) | set(cocuklar) if a[1] in (q, gq)} | {
                 a for a, satirlar in grup_vars.items()
                 if any(re.sub(r"\s+", "", s).lower() == "rancher_kume_adi=" + q for _, s in satirlar)})
             if kume:
                 for anahtar in kume:
-                    uyeler = gruplar.get(anahtar, [])
+                    uyeler = uyeler_ozyineli(anahtar, gruplar, cocuklar)
                     print("  küme/grup adı: [%s] %s · üyeler (%d): %s%s" % (
                         anahtar[1], os.path.relpath(anahtar[0]), len(uyeler), " ".join(uyeler[:30]),
                         " …" if len(uyeler) > 30 else ""))
@@ -283,7 +284,7 @@ def main(argv):
                                 s = s.split("=")[0] + "=***"
                             print("  [%s:vars] %s:%d  %s" % (g, os.path.relpath(anahtar[0]), no, s))
                     kapsama.setdefault(anahtar, set()).add(q)
-                benzer = sorted({a[1] for a in set(gruplar) | set(grup_vars) if duz(a[1]).startswith(duz(q) + "-")})
+                benzer = sorted({a[1] for a in set(gruplar) | set(grup_vars) | set(cocuklar) if duz(a[1]).startswith(duz(q) + "-")})
                 if benzer:
                     print("  ⚠ AYNI ÖNEKLE %d GRUP DAHA VAR: %s%s" % (
                         len(benzer), " ".join("[%s]" % b for b in benzer[:20]), " …" if len(benzer) > 20 else ""))

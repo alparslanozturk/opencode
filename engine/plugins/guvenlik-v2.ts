@@ -82,6 +82,8 @@ export function arac1x(tool: string, input: unknown): { tool: string; args: Reco
 
 // Bu araçlar çalışmadan önce permission.assert çağırır (core tool/plugin/{shell,edit,write,patch}.ts).
 const IZIN_SORAN = new Set(["shell", "edit", "write", "patch"])
+// Kuru kipte YALNIZ bunlar çalışır (izin listesi — MCP/subagent/automation vb. dahil geri kalan her araç durdurulur).
+const KURU_SERBEST = new Set(["read", "grep", "glob", "list", "skill", "todowrite", "question"])
 let kuruSayac = 0 // ADR-0008 kuru kip: süreç başına çağrı sayısı (davranış testinde her senaryo ayrı süreç)
 
 const modelAdi = (m: unknown) => {
@@ -211,9 +213,9 @@ export async function guvenlikKur(ctx: Baglam) {
 
     ctx.tool.hook("execute.before", async (e) => {
       // ADR-0008 davranış testi (script/davranis-test.py): kuru kip — değişiklik/komut aracı ÇALIŞMAZ, yalnız niyet
-      // JSON akışında görünür. Okuma araçları (read/grep/glob/skill) çalışır. Sahada gerçek modelle güvenle koşsun diye.
+      // JSON akışında görünür. Yalnız KURU_SERBEST (okuma) araçları çalışır; gerisi (MCP dahil) durur. Sahada gerçek modelle güvenle koşsun diye.
       // İlk 3 çağrıdan sonra model devam edebilir (ilk adım çoğu kez sunucuyu envanterde aramak — asıl komut sonra gelir).
-      if (process.env.OPS_DAVRANIS_KURU === "1" && IZIN_SORAN.has(e.tool)) {
+      if (process.env.OPS_DAVRANIS_KURU === "1" && !KURU_SERBEST.has(e.tool)) {
         kuruSayac++
         throw new Error(
           kuruSayac < 3

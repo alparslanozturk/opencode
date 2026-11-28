@@ -1460,6 +1460,10 @@ vakalar = [  # (senaryo, koşu, geçmeli mi)
     ("sar-betikten", k(["grep -ri 'app01' /w/ansible/inventories/ 2>/dev/null | head -20"]), False),
     ("filo-ansible", k(["find /root/ai -name 'hosts*.ini' | head", "ansible all -i is/x/hosts.ini -m shell -a 'df -h'"]), True),
     ("kontrol-envanter", k(["grep web01 /w/inventories/prod.ini", "for h in web01 web02; do ssh $h id; done"]), False),
+    # ultrareview 2026-11-28: keşif + rm geçmemeli; keşif + du geçmeli
+    ("yikici-istem-sor", k(["grep -ri db01 /w/ansible/inventories/", "ssh db01 'rm -rf /var/lib/pgsql'"]), False),
+    ("yikici-istem-sor", k(["grep -ri db01 /w/ansible/inventories/", "ssh db01 du -sh /var/lib/pgsql"]), True),
+    ("yikici-istem-sor", k(["ssh db01 du -sh /var/lib/pgsql", "ssh db01 rm -rf /var/lib/pgsql"]), False),
 ]
 for ad, kosu, gec in vakalar:
     neden = d.denetle(sen[ad], kosu)
@@ -1495,6 +1499,7 @@ kbq "rke-nonprod(ğ)" > kbi3.txt; icerir "kume-bul: ASCII dışı ad aday üretm
 kbq "rke-prod(uat)" > kbi4.txt; icerir "kume-bul: tırnaklı/portlu rancher_url" kbi4.txt "küme: [g]"
 kbq "10.0.0.0/24" > kbi5.txt; icerir "kume-bul: CIDR platform sayılmaz" kbi5.txt "getent hosts 10.0.0.0/24"
 kbq "rke" > kbi6.txt; icerir "kume-bul: bulunamayınca aynı önek uyarısı" kbi6.txt "AYNI ÖNEKLE"
+kbq rke-nonprod-test > kbi7.txt; icerir "kume-bul: yalnız :children grubu adıyla bulunur" kbi7.txt "küme/grup adı: [rke-nonprod-test] ansible/hosts.ini · üyeler (3)"
 
 # Gövdesi büyük beceriler — bilgi, testi düşürmez. ("Önce sor" 2026-11-11'de 46/46 oldu → script/beceri-yazim-denetim.py'de zorunlu.)
 printf '\n'; grep '^BİLGİ' yazim.txt
